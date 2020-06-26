@@ -991,4 +991,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setClientKeyPassword(String password);
 
+    /**
+     * Specifies the flag to load LOBs instead of streaming them.
+     *
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
+     */
+    void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Returns the current flag value for delayLoadingLobs.
+     *
+     * @return 'delayLoadingLobs' property value.
+     */
+    boolean getDelayLoadingLobs();
+
+    /*
+     * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
+     * 
+     * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
+     */
+    boolean getSendTemporalDataTypesAsStringForBulkCopy();
+
+    /**
+     * Specifies the flag to send temporal datatypes as String for Bulk Copy.
+     * 
+     * @param sendTemporalDataTypesAsStringForBulkCopy
+     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
+     */
+    void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
+
 }

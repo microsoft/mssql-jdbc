@@ -125,13 +125,14 @@ final class TDS {
     // Data Classification constants
     static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
     static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
-    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x02;
 
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
 
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
+    static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -195,6 +196,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
             case TDS_FEATURE_EXT_UTF8SUPPORT:
                 return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
+            case TDS_FEATURE_EXT_AZURESQLDNSCACHING:
+                return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -652,8 +655,10 @@ final class TDSChannel implements Serializable {
 
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
+     *
+     * @return InetSocketAddress of the connection socket.
      */
-    final void open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
+    final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
@@ -661,7 +666,6 @@ final class TDSChannel implements Serializable {
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout);
-
         try {
 
             // Set socket options
@@ -677,6 +681,7 @@ final class TDSChannel implements Serializable {
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
+        return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
 
     /**
@@ -2333,6 +2338,16 @@ final class SocketFinder {
         try {
             InetAddress[] inetAddrs = null;
 
+            if (!useParallel) {
+                // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
+                // For TNIR first attempt, we should do existing behavior including how host name is resolved.
+                if (useTnir && isTnirFirstAttempt) {
+                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                } else if (!useTnir) {
+                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                }
+            }
+
             // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the
             // case.
             if (useParallel || useTnir) {
@@ -2342,16 +2357,6 @@ final class SocketFinder {
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
-                }
-            }
-
-            if (!useParallel) {
-                // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
-                // For TNIR first attempt, we should do existing behavior including how host name is resolved.
-                if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
-                } else if (!useTnir) {
-                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2645,6 +2650,14 @@ final class SocketFinder {
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
         InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
+        if (addr.isUnresolved()) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(this.toString() + "Failed to resolve host name: " + hostName
+                        + ". Using IP address from DNS cache.");
+            }
+            InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
+            addr = (null != cacheEntry) ? cacheEntry : addr;
+        }
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
@@ -3398,6 +3411,28 @@ final class TDSWriter {
     }
 
     /**
+     * Append a money/smallmoney value in the TDS stream.
+     * 
+     * @param moneyVal
+     *        the money data value.
+     * @param srcJdbcType
+     *        the source JDBCType
+     * @throws SQLServerException
+     */
+    void writeMoney(BigDecimal moneyVal, int srcJdbcType) throws SQLServerException {
+        moneyVal = moneyVal.setScale(4, RoundingMode.HALF_UP);
+
+        int bLength;
+
+        // Money types are 8 bytes, smallmoney are 4 bytes
+        bLength = (srcJdbcType == microsoft.sql.Types.MONEY ? 8 : 4);
+        writeByte((byte) (bLength));
+
+        byte[] valueBytes = DDC.convertMoneyToBytes(moneyVal, bLength);
+        writeBytes(valueBytes);
+    }
+
+    /**
      * Append a big decimal inside sql_variant in the TDS stream.
      * 
      * @param bigDecimalVal
@@ -3574,27 +3609,100 @@ final class TDSWriter {
     void writeDateTimeOffset(Object value, int scale, SSType destSSType) throws SQLServerException {
         GregorianCalendar calendar;
         TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         int minutesOffset;
 
-        microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
-        utcMillis = dtoValue.getTimestamp().getTime();
-        subSecondNanos = dtoValue.getTimestamp().getNanos();
-        minutesOffset = dtoValue.getMinutesOffset();
+        /*
+         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't
+         * allow direct casting from java.sql.timestamp (which was created from a String).
+         * DateTimeOffset was never required to be constructed from a String, but with the
+         * introduction of extended bulk copy support for Azure DW, we now need to support this scenario.
+         * Parse the DTO as string if it's coming from a CSV.
+         */
+        if (value instanceof String) {
+            // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
+            try {
+                String stringValue = (String) value;
+                int lastColon = stringValue.lastIndexOf(':');
 
-        // If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-        // will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-        // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-        // use a local time zone determined by the minutes offset of the value, since
-        // the writers for those types expect local calendars.
-        timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                                                         : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+                String offsetString = stringValue.substring(lastColon - 3);
 
-        calendar = new GregorianCalendar(timeZone, Locale.US);
-        calendar.setLenient(true);
-        calendar.clear();
-        calendar.setTimeInMillis(utcMillis);
+                /*
+                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset
+                 * value has not been provided. Parse accordingly.
+                 */
+                String timestampString;
+
+                if (!offsetString.startsWith("+") && !offsetString.startsWith("-")) {
+                    minutesOffset = 0;
+                    timestampString = stringValue;
+                } else {
+                    minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
+                            + Integer.valueOf(offsetString.substring(4, 6));
+                    timestampString = stringValue.substring(0, lastColon - 4);
+
+                    if (offsetString.startsWith("-"))
+                        minutesOffset = -minutesOffset;
+                }
+
+                /*
+                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+                 * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+                 * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+                 * use a local time zone determined by the minutes offset of the value, since
+                 * the writers for those types expect local calendars.
+                 */
+                timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                                 : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+                calendar = new GregorianCalendar(timeZone);
+
+                int year = Integer.valueOf(timestampString.substring(0, 4));
+                int month = Integer.valueOf(timestampString.substring(5, 7));
+                int day = Integer.valueOf(timestampString.substring(8, 10));
+                int hour = Integer.valueOf(timestampString.substring(11, 13));
+                int minute = Integer.valueOf(timestampString.substring(14, 16));
+                int second = Integer.valueOf(timestampString.substring(17, 19));
+
+                subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
+                        .scaleByPowerOfTen(9).intValue() : 0;
+
+                calendar.setLenient(true);
+                calendar.set(Calendar.YEAR, year);
+                calendar.set(Calendar.MONTH, month - 1);
+                calendar.set(Calendar.DAY_OF_MONTH, day);
+                calendar.set(Calendar.HOUR_OF_DAY, hour);
+                calendar.set(Calendar.MINUTE, minute);
+                calendar.set(Calendar.SECOND, second);
+                calendar.add(Calendar.MINUTE, -minutesOffset);
+            } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingDataError"));
+                Object[] msgArgs = {value, JDBCType.DATETIMEOFFSET};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
+        } else {
+            long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+
+            microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
+            utcMillis = dtoValue.getTimestamp().getTime();
+            subSecondNanos = dtoValue.getTimestamp().getNanos();
+            minutesOffset = dtoValue.getMinutesOffset();
+
+            /*
+             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
+             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
+             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
+             * use a local time zone determined by the minutes offset of the value, since
+             * the writers for those types expect local calendars.
+             */
+            timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                             : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+            calendar = new GregorianCalendar(timeZone, Locale.US);
+            calendar.setLenient(true);
+            calendar.clear();
+            calendar.setTimeInMillis(utcMillis);
+        }
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
 
@@ -4476,16 +4584,16 @@ final class TDSWriter {
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
-        boolean isShortValue = nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
-
         // Textual RPC requires a collation. If none is provided, as is the case when
         // the SSType is non-textual, then use the database collation by default.
         if (null == collation)
             collation = con.getDatabaseCollation();
 
-        // Use PLP encoding on Yukon and later with long values and OUT parameters
-        boolean usePLP = (!isShortValue || bOut);
-        if (usePLP) {
+        /*
+         * Use PLP encoding if either OUT params were specified or if the user query exceeds
+         * DataTypes.SHORT_VARTYPE_MAX_BYTES
+         */
+        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
             // Handle Yukon v*max type header here.
@@ -4503,16 +4611,10 @@ final class TDSWriter {
                 // Send the terminator PLP chunk.
                 writeInt(0);
             }
-        } else // non-PLP type
-        {
+        } else { // non-PLP type
             // Write maximum length of data
-            if (isShortValue) {
-                writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
-                writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
-            } else {
-                writeRPCNameValType(sName, bOut, TDSType.NTEXT);
-                writeInt(DataTypes.IMAGE_TEXT_MAX_BYTES);
-            }
+            writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
+            writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
             collation.writeCollation(this);
 
@@ -4521,10 +4623,7 @@ final class TDSWriter {
                 writeShort((short) -1); // actual len
             } else {
                 // Write actual length of data
-                if (isShortValue)
-                    writeShort((short) nValueLen);
-                else
-                    writeInt(nValueLen);
+                writeShort((short) nValueLen);
 
                 // If length is zero, we're done.
                 if (0 != nValueLen)
@@ -6348,6 +6447,8 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
+
     private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
@@ -6375,6 +6476,7 @@ final class TDSReader implements Serializable {
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
         columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
+        serverSupportedDataClassificationVersion = con.getServerSupportedDataClassificationVersion();
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -6387,6 +6489,10 @@ final class TDSReader implements Serializable {
 
     final boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    final byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
     }
 
     final void throwInvalidTDS() throws SQLServerException {

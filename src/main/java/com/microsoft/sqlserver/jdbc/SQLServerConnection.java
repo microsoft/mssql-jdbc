@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.sql.CallableStatement;
@@ -37,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -135,6 +137,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientCertificate = null;
     private String clientKey = null;
     private String clientKeyPassword = "";
+
+    private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
     final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
@@ -653,6 +657,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
     }
 
+    boolean getSendTemporalDataTypesAsStringForBulkCopy() {
+        return sendTemporalDataTypesAsStringForBulkCopy;
+    }
+
     String enclaveAttestationUrl = null;
     String enclaveAttestationProtocol = null;
 
@@ -674,9 +682,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private boolean serverSupportsDataClassification = false;
+    private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
 
     boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    private boolean serverSupportsDNSCaching = false;
+    private static ConcurrentHashMap<String, InetSocketAddress> dnsCache = null;
+
+    static InetSocketAddress getDNSEntry(String key) {
+        return (null != dnsCache) ? dnsCache.get(key) : null;
+    }
+
+    byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
+    }
+
+    // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
+    private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
+
+    boolean getDelayLoadingLobs() {
+        return delayLoadingLobs;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -2121,6 +2148,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 clientKeyPassword = sPropValue;
             }
 
+            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
             FailoverInfo fo = null;
             String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
             String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
@@ -2312,9 +2353,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // Attempt login. Use Place holder to make sure that the failoverdemand is done.
-                connectHelper(currentConnectPlaceHolder, timerRemaining(intervalExpire), timeout, useParallel, useTnir,
-                        (0 == attemptNumber), // is this the TNIR first attempt
+                InetSocketAddress inetSocketAddress = connectHelper(currentConnectPlaceHolder,
+                        timerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // TNIR
+                                                                                                             // first
+                                                                                                             // attempt
                         timerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
+                // Successful connection, cache the IP address and port if server supports DNS Cache.
+                if (serverSupportsDNSCaching) {
+                    dnsCache.put(currentConnectPlaceHolder.getServerName(), inetSocketAddress);
+                }
 
                 if (isRoutedInCurrentAttempt) {
                     // we ignore the failoverpartner ENVCHANGE if we got routed so no error needs to be thrown
@@ -2615,10 +2662,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param useTnir
      * @param isTnirFirstAttempt
      * @param timeOutsliceInMillisForFullTimeout
+     * @return InetSocketAddress of the connected socket.
      * @throws SQLServerException
      */
-    private void connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis, int timeOutFullInSeconds,
-            boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
+    private InetSocketAddress connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis,
+            int timeOutFullInSeconds, boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
             int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
         // Make the initial tcp-ip connection.
 
@@ -2638,12 +2686,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        if (0 == timeOutFullInSeconds)
-            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), 0, useParallel, useTnir,
-                    isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
-        else
-            tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(), timeOutSliceInMillis, useParallel,
-                    useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
+        InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(),
+                (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
+                timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
 
@@ -2660,6 +2705,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
+        return inetSocketAddress;
     }
 
     /**
@@ -3353,16 +3399,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void commit() throws SQLServerException {
         commit(false);
     }
-    
+
     /**
-     * Makes all changes made since the previous
-     * commit/rollback permanent and releases any database locks
-     * currently held by this <code>Connection</code> object.
-     * This method should be
-     * used only when auto-commit mode has been disabled.
+     * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
+     * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
+     * disabled.
      * 
-     * @param delayedDurability flag to indicate whether the commit will occur with delayed durability on.
-     * @throws SQLServerException Exception if a database access error occurs,
+     * @param delayedDurability
+     *        flag to indicate whether the commit will occur with delayed durability on.
+     * @throws SQLServerException
+     *         Exception if a database access error occurs,
      */
     public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
@@ -3371,12 +3417,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         checkClosed();
-        if (!databaseAutoCommitMode)
-        {
+        if (!databaseAutoCommitMode) {
             if (!delayedDurability)
                 connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN", "Connection.commit");
             else
-                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )", "Connection.commit");
+                connectionCommand("IF @@TRANCOUNT > 0 COMMIT TRAN WITH ( DELAYED_DURABILITY =  ON )",
+                        "Connection.commit");
         }
         loggerExternal.exiting(loggingClassName, "commit");
     }
@@ -3857,6 +3903,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int len = 5; // 1byte = featureID, 4bytes = featureData length
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_UTF8SUPPORT);
+            tdsWriter.writeInt(0);
+        }
+        return len;
+    }
+
+    int writeDNSCacheFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING);
             tdsWriter.writeInt(0);
         }
         return len;
@@ -4548,7 +4604,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, byte[] data) throws SQLServerException {
-        if (null != routingInfo) {
+        // To be able to cache both control and tenant ring IPs, need to parse AZURESQLDNSCACHING.
+        if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId) {
             return;
         }
 
@@ -4642,9 +4699,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_UnknownDataClsTokenNumber"), null);
                 }
 
-                byte supportedDataClassificationVersion = data[0];
-                if ((0 == supportedDataClassificationVersion)
-                        || (supportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
+                serverSupportedDataClassificationVersion = data[0];
+                if ((0 == serverSupportedDataClassificationVersion)
+                        || (serverSupportedDataClassificationVersion > TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION)) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidDataClsVersionNumber"),
                             null);
                 }
@@ -4660,6 +4717,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (1 > data.length) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unknownUTF8SupportValue"), null);
+                }
+                break;
+            }
+            case TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for Azure SQL DNS Caching.");
+                }
+
+                if (1 > data.length) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownAzureSQLDNSCachingValue"),
+                            null);
+                }
+
+                if (1 == data[0]) {
+                    serverSupportsDNSCaching = true;
+                    if (null == dnsCache) {
+                        dnsCache = new ConcurrentHashMap<String, InetSocketAddress>();
+                    }
+                } else {
+                    serverSupportsDNSCaching = false;
+                    if (null != dnsCache) {
+                        dnsCache.remove(currentConnectPlaceHolder.getServerName());
+                    }
                 }
                 break;
             }
@@ -4947,6 +5028,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeUTF8SupportFeatureRequest(false, tdsWriter);
 
+        len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
+
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
         // Length of entire Login 7 packet
@@ -5136,6 +5219,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
+        writeDNSCacheFeatureRequest(true, tdsWriter);
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);

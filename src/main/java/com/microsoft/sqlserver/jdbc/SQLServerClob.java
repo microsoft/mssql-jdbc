@@ -205,9 +205,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public InputStream getAsciiStream() throws SQLException {
         checkClosed();
-
-        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
+        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion()) {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
+        }
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
         InputStream getterStream = null;
@@ -237,6 +241,10 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {

@@ -29,7 +29,7 @@ import java.util.TimeZone;
 
 
 /**
- * Utility class for all Data Dependant Conversions (DDC).
+ * Utility class for all Data Dependent Conversions (DDC).
  */
 
 final class DDC {
@@ -338,6 +338,30 @@ final class DDC {
         return valueBytes;
     }
 
+    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) {
+        byte[] valueBytes = new byte[bLength];
+
+        BigInteger bi = bigDecimalVal.unscaledValue();
+
+        if (bLength == 8) {
+            // money
+            byte[] longbArray = new byte[bLength];
+            Util.writeLong(bi.longValue(), longbArray, 0);
+            /*
+             * TDS 2.2.5.5.1.4 Fixed-Point Numbers Money is represented as a 8 byte signed integer, with one 4-byte
+             * integer that represents the more significant half, and one 4-byte integer that represents the less
+             * significant half.
+             */
+            System.arraycopy(longbArray, 0, valueBytes, 4, 4);
+            System.arraycopy(longbArray, 4, valueBytes, 0, 4);
+        } else {
+            // smallmoney
+            Util.writeInt(bi.intValue(), valueBytes, 0);
+        }
+
+        return valueBytes;
+    }
+
     /**
      * Convert a BigDecimal object to desired target user type.
      * 
@@ -629,9 +653,9 @@ final class DDC {
         if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
             if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s, 0, firstDash, 10);
-                month = Integer.parseInt(s, firstDash + 1, secondDash, 10);
-                day = Integer.parseInt(s, secondDash + 1, dividingSpace, 10);
+                year = Integer.parseInt(s.substring(0, firstDash));
+                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
 
                 if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
                     parsedDate = true;
@@ -645,16 +669,16 @@ final class DDC {
         // Convert the time; default missing nanos
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
-            hour = Integer.parseInt(s, dividingSpace + 1, firstColon, 10);
-            minute = Integer.parseInt(s, firstColon + 1, secondColon, 10);
+            hour = Integer.parseInt(s.substring(dividingSpace + 1, firstColon));
+            minute = Integer.parseInt(s.substring(firstColon + 1, secondColon));
             if (period > 0 && period < len - 1) {
-                second = Integer.parseInt(s, secondColon + 1, period, 10);
+                second = Integer.parseInt(s.substring(secondColon + 1, period));
                 int nanoPrecision = len - (period + 1);
                 if (nanoPrecision > 9)
                     throw new java.lang.IllegalArgumentException(formatError);
                 if (!Character.isDigit(s.charAt(period + 1)))
                     throw new java.lang.IllegalArgumentException(formatError);
-                int tmpNanos = Integer.parseInt(s, period + 1, len, 10);
+                int tmpNanos = Integer.parseInt(s.substring(period + 1, len));
                 while (nanoPrecision < 9) {
                     tmpNanos *= 10;
                     nanoPrecision++;
@@ -663,7 +687,7 @@ final class DDC {
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
-                second = Integer.parseInt(s, secondColon + 1, len, 10);
+                second = Integer.parseInt(s.substring(secondColon + 1, len));
             }
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
@@ -1289,7 +1313,8 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt),
+                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME
