@@ -174,10 +174,10 @@ public class DataClassificationTest extends AbstractTest {
 
                     verifyLabel(sp.getLabel());
                     verifyInfoType(sp.getInformationType(), columnPos);
-                    assertEquals(sp.getSensitivityRank(), rank, TestResource.getResource("R_valuesAreDifferent"));
+                    assertEquals(rank, sp.getSensitivityRank(), TestResource.getResource("R_valuesAreDifferent"));
 
                     int sensitivityRank = rs.getSensitivityClassification().getSensitivityRank();
-                    assertEquals(sensitivityRank, rank, TestResource.getResource("R_valuesAreDifferent"));
+                    assertEquals(rank, sensitivityRank, TestResource.getResource("R_valuesAreDifferent"));
                 }
             }
         }
