@@ -185,7 +185,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private String localUserSQL;
 
-    private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();;
+    private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
     // Internal function used in tracing
     String getClassNameInternal() {
