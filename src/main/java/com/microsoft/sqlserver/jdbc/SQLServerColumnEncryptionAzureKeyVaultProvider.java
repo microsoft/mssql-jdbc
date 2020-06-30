@@ -94,6 +94,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *        Identifier of the client requesting the token.
      * @param clientKey
      *        Key of the client requesting the token.
+     * @throws SQLServerException
+     *         when an error occurs
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
         if (clientId == null || clientId.isEmpty()) {
@@ -136,7 +138,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         createKeyvaultClients(new ManagedIdentityCredentialBuilder().clientId(clientId).build());
     }
 
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider using the provided TokenCredential to authenticate to
+     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * @param tokenCredential
+     *        The TokenCredential to use to authenticate to Azure Key Vault.
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) {
         createKeyvaultClients(tokenCredential);
     }
 
@@ -161,9 +170,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @return Plain text column encryption key
      */
     @Override
-    public byte[] decryptColumnEncryptionKey(String masterKeyPath,
-                                             String encryptionAlgorithm,
-                                             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
+    public byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
+            byte[] encryptedColumnEncryptionKey) throws SQLServerException {
 
         // Validate the input parameters
         this.ValidateNonEmptyAKVPath(masterKeyPath);
@@ -298,9 +306,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @return Encrypted column encryption key
      */
     @Override
-    public byte[] encryptColumnEncryptionKey(String masterKeyPath,
-                                             String encryptionAlgorithm,
-                                             byte[] columnEncryptionKey) throws SQLServerException {
+    public byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
+            byte[] columnEncryptionKey) throws SQLServerException {
 
         // Validate the input parameters
         this.ValidateNonEmptyAKVPath(masterKeyPath);

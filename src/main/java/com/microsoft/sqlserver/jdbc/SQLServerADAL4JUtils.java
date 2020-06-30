@@ -34,19 +34,6 @@ class SQLServerADAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
-//            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-//            Future<AuthenticationResult> future = context.acquireToken(
-//                    fedAuthInfo.spn,
-//                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID,
-//                    user,
-//                    password,
-//                    null);
-//
-//            AuthenticationResult authenticationResult = future.get();
-//
-//            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
-
-
             final PublicClientApplication clientApplication = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
                     .executorService(executorService)
@@ -101,14 +88,6 @@ class SQLServerADAL4JUtils {
             if (adal4jLogger.isLoggable(Level.FINE)) {
                 adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
             }
-
-//            AuthenticationContext context = new AuthenticationContext(fedAuthInfo.stsurl, false, executorService);
-//            Future<AuthenticationResult> future = context.acquireToken(fedAuthInfo.spn,
-//                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, username, null, null);
-//
-//            AuthenticationResult authenticationResult = future.get();
-//
-//            return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
 
             final PublicClientApplication clientApplication = PublicClientApplication
                 .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
