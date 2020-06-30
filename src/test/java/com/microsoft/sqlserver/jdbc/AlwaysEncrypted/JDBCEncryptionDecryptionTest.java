@@ -91,15 +91,11 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testAkvName(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        try {
-            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    createTokenCredential());
-            String keystoreName = "keystoreName";
-            akv.setName(keystoreName);
-            assertTrue(akv.getName().equals(keystoreName));
-        } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                createTokenCredential());
+        String keystoreName = "keystoreName";
+        akv.setName(keystoreName);
+        assertTrue(akv.getName().equals(keystoreName));
     }
 
     /*
@@ -129,13 +125,9 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testBadAkv(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        try {
-            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    (TokenCredential) null);
-            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
-        }
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                (TokenCredential) null);
+        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
     }
 
     /*
@@ -182,11 +174,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        try {
-            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
-        } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
 
         // null encryptedColumnEncryptionKey
         try {
@@ -265,11 +253,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        try {
-            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
-        } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
 
         // null akvpath
         try {
