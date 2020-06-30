@@ -44,10 +44,14 @@ public class DataClassificationTest extends AbstractTest {
     /**
      * Tests data classification metadata information from SQL Server
      * 
+     * TODO: remove xAzureSQLDW tag once issue on server is fixed
+     * (currently DW not returning rank info) VSO issue 12931
+     * 
      * @throws Exception
      */
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testDataClassificationMetadata() throws Exception {
         try (Statement stmt = connection.createStatement();) {
