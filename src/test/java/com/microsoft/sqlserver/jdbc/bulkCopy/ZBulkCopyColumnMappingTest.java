@@ -42,7 +42,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Column Mapping Test")
-public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
+public class ZBulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")

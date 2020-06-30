@@ -35,7 +35,7 @@ import com.zaxxer.hikari.HikariDataSource;
 
 
 @RunWith(JUnitPlatform.class)
-public class ActivityIDTest extends AbstractTest {
+public class ZActivityIDTest extends AbstractTest {
 
     @Test
     public void testActivityID() throws Exception {
