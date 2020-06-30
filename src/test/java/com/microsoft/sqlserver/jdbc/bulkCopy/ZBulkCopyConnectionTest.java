@@ -34,7 +34,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Connection Test")
-public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
+public class ZBulkCopyConnectionTest extends BulkCopyTestSetUp {
 
     /**
      * Generate dynamic tests to test all SQLServerBulkCopy constructor

@@ -26,7 +26,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-public class BulkCopyAllTypesTest extends AbstractTest {
+public class ZBulkCopyAllTypesTest extends AbstractTest {
 
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
