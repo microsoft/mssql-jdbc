@@ -10,13 +10,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
 import com.microsoft.sqlserver.jdbc.dataclassification.Label;
@@ -27,25 +33,58 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.xAzureSQLDB)
-@Tag(Constants.xAzureSQLDW)
-@Tag(Constants.xSQLv12)
-@Tag(Constants.xSQLv14)
 public class DataClassificationTest extends AbstractTest {
-    private static final String tableName = RandomUtil.getIdentifier("DataClassification");
+    private static final String tableName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("DataClassification"));
+
+    private static final String addSensitivitySql = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='%s', INFORMATION_TYPE_ID='%s'%s)";
+    private static final String sensitivityRankSql = ", RANK=%s";
+    private static String sensitivityRank[][] = {{"NONE", "0"}, {"LOW", "10"}, {"MEDIUM", "20"}, {"HIGH", "30"},
+            {"CRITICAL", "40"}};
 
     /**
      * Tests data classification metadata information from SQL Server
      * 
      * @throws Exception
      */
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
     @Test
     public void testDataClassificationMetadata() throws Exception {
         try (Statement stmt = connection.createStatement();) {
-            assert (TestUtils.serverSupportsDataClassification(stmt));
-            createTable(connection, stmt);
-            runTestsForServer(stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            if (!TestUtils.serverSupportsDataClassification(stmt)) {
+                fail(TestResource.getResource("R_dataClassificationNotSupported"));
+            }
+
+            for (int i = 0; i < sensitivityRank.length; i++) {
+                createTable(connection, stmt);
+                addSensitivity(connection, stmt, sensitivityRank[i][0]);
+                insertData(connection, stmt);
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName)) {
+                    verifySensitivityClassification(rs, Integer.parseInt(sensitivityRank[i][1]));
+                }
+                dropTable();
+            }
+        }
+    }
+
+    /**
+     * Tests data classification not supported
+     * 
+     * @throws SQLException
+     * @throws SQLServerException
+     * 
+     * @throws Exception
+     */
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testDataClassificationNotSupported() throws Exception {
+        try (Statement stmt = connection.createStatement();) {
+            if (TestUtils.serverSupportsDataClassification(stmt)) {
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
         }
     }
 
@@ -57,26 +96,27 @@ public class DataClassificationTest extends AbstractTest {
      * @throws SQLException
      */
     private void createTable(Connection connection, Statement stmt) throws SQLException {
-        String createQuery = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ("
-                + "[Id] [int] IDENTITY(1,1) NOT NULL," + "[CompanyName] [nvarchar](40) NOT NULL,"
-                + "[ContactName] [nvarchar](50) NULL," + "[ContactTitle] [nvarchar](40) NULL,"
-                + "[City] [nvarchar](40) NULL," + "[CountryName] [nvarchar](40) NULL,"
+        String createQuery = "CREATE TABLE " + tableName + " (" + "[Id] [int] IDENTITY(1,1) NOT NULL,"
+                + "[CompanyName] [nvarchar](40) NOT NULL," + "[ContactName] [nvarchar](50) NULL,"
+                + "[ContactTitle] [nvarchar](40) NULL," + "[City] [nvarchar](40) NULL,"
+                + "[CountryName] [nvarchar](40) NULL,"
                 + "[Phone] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL,"
                 + "[Fax] [nvarchar](30) MASKED WITH (FUNCTION = 'default()') NULL)";
         stmt.execute(createQuery);
+    }
 
-        stmt.execute("ADD SENSITIVITY CLASSIFICATION TO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + ".CompanyName WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Company name', INFORMATION_TYPE_ID='COMPANY')");
-        stmt.execute("ADD SENSITIVITY CLASSIFICATION TO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + ".ContactName WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Person name', INFORMATION_TYPE_ID='NAME')");
-        stmt.execute("ADD SENSITIVITY CLASSIFICATION TO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + ".Phone WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Contact Information', INFORMATION_TYPE_ID='CONTACT')");
-        stmt.execute("ADD SENSITIVITY CLASSIFICATION TO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                + ".Fax WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='Contact Information', INFORMATION_TYPE_ID='CONTACT')");
+    private void addSensitivity(Connection connection, Statement stmt, String rank) throws SQLException {
+        String addRankSql = String.format(sensitivityRankSql, rank);
+        stmt.execute(String.format(addSensitivitySql, tableName, "CompanyName", "Company name", "COMPANY", addRankSql));
+        stmt.execute(String.format(addSensitivitySql, tableName, "ContactName", "Person name", "NAME", addRankSql));
+        stmt.execute(
+                String.format(addSensitivitySql, tableName, "Phone", "Contact Information", "CONTACT", addRankSql));
+        stmt.execute(String.format(addSensitivitySql, tableName, "Fax", "Contact Information", "CONTACT", addRankSql));
+    }
 
-        // INSERT ROWS OF DATA
-        try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?,?,?,?,?,?,?)")) {
+    private void insertData(Connection connection, Statement stmt) throws SQLException {
+        try (PreparedStatement ps = connection
+                .prepareStatement("INSERT INTO " + tableName + " VALUES (?,?,?,?,?,?,?)")) {
 
             ps.setString(1, "Exotic Liquids");
             ps.setString(2, "Charlotte Cooper");
@@ -108,25 +148,13 @@ public class DataClassificationTest extends AbstractTest {
     }
 
     /**
-     * Selects data from the table and triggers verifySensitivityClassification method
-     * 
-     * @param stmt
-     * @throws Exception
-     */
-    private void runTestsForServer(Statement stmt) throws Exception {
-        try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-            verifySensitivityClassification(rs);
-        }
-    }
-
-    /**
      * Verifies ResultSet received to contain data classification information as set.
      * 
      * @param rs
+     * @param rank
      * @throws SQLException
      */
-    private void verifySensitivityClassification(SQLServerResultSet rs) throws SQLException {
+    private void verifySensitivityClassification(SQLServerResultSet rs, int rank) throws SQLException {
         if (null != rs.getSensitivityClassification()) {
             for (int columnPos = 0; columnPos < rs.getSensitivityClassification().getColumnSensitivities().size();
                     columnPos++) {
@@ -143,25 +171,31 @@ public class DataClassificationTest extends AbstractTest {
                     assert (labels.size() == 1);
                     verifyLabel(labels.get(0));
 
-                    if (columnPos == 1 || columnPos == 2 || columnPos == 6 || columnPos == 7) {
-                        verifyLabel(sp.getLabel());
-                        verifyInfoType(sp.getInformationType(), columnPos);
-                    }
+                    verifyLabel(sp.getLabel());
+                    verifyInfoType(sp.getInformationType(), columnPos);
+                    assertEquals(sp.getSensitivityRank(), rank, TestResource.getResource("R_valuesAreDifferent"));
                 }
             }
         }
     }
 
     private void verifyInfoType(InformationType informationType, int i) {
-        assert (informationType != null);
-        assert (informationType.getId().equalsIgnoreCase(i == 1 ? "COMPANY" : (i == 2 ? "NAME" : "CONTACT")));
-        assert (informationType.getName()
+        assertTrue(informationType != null);
+        assertTrue(informationType.getId().equalsIgnoreCase(i == 1 ? "COMPANY" : (i == 2 ? "NAME" : "CONTACT")));
+        assertTrue(informationType.getName()
                 .equalsIgnoreCase(i == 1 ? "Company name" : (i == 2 ? "Person Name" : "Contact Information")));
     }
 
     private void verifyLabel(Label label) {
-        assert (label != null);
-        assert (label.getId().equalsIgnoreCase("L1"));
-        assert (label.getName().equalsIgnoreCase("PII"));
+        assertTrue(label != null);
+        assertTrue(label.getId().equalsIgnoreCase("L1"));
+        assertTrue(label.getName().equalsIgnoreCase("PII"));
+    }
+
+    @AfterAll
+    public static void dropTable() throws Exception {
+        try (Statement stmt = connection.createStatement();) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+        }
     }
 }

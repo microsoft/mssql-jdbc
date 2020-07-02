@@ -125,13 +125,14 @@ final class TDS {
     // Data Classification constants
     static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
     static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
-    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x01;
+    static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x02;
 
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
     static final int AE_METADATA = 0x08;
 
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
+    static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -195,6 +196,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
             case TDS_FEATURE_EXT_UTF8SUPPORT:
                 return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
+            case TDS_FEATURE_EXT_AZURESQLDNSCACHING:
+                return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -652,8 +655,10 @@ final class TDSChannel implements Serializable {
 
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
+     *
+     * @return InetSocketAddress of the connection socket.
      */
-    final void open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
+    final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
@@ -661,7 +666,6 @@ final class TDSChannel implements Serializable {
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout);
-
         try {
 
             // Set socket options
@@ -677,6 +681,7 @@ final class TDSChannel implements Serializable {
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
+        return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
 
     /**
@@ -2333,6 +2338,16 @@ final class SocketFinder {
         try {
             InetAddress[] inetAddrs = null;
 
+            if (!useParallel) {
+                // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
+                // For TNIR first attempt, we should do existing behavior including how host name is resolved.
+                if (useTnir && isTnirFirstAttempt) {
+                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                } else if (!useTnir) {
+                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                }
+            }
+
             // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the
             // case.
             if (useParallel || useTnir) {
@@ -2342,16 +2357,6 @@ final class SocketFinder {
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
-                }
-            }
-
-            if (!useParallel) {
-                // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
-                // For TNIR first attempt, we should do existing behavior including how host name is resolved.
-                if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
-                } else if (!useTnir) {
-                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2645,6 +2650,14 @@ final class SocketFinder {
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
         InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
+        if (addr.isUnresolved()) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(this.toString() + "Failed to resolve host name: " + hostName
+                        + ". Using IP address from DNS cache.");
+            }
+            InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
+            addr = (null != cacheEntry) ? cacheEntry : addr;
+        }
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
@@ -6434,6 +6447,8 @@ final class TDSReader implements Serializable {
     private boolean useColumnEncryption = false;
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
+    private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
+
     private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
@@ -6461,6 +6476,7 @@ final class TDSReader implements Serializable {
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
         columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
+        serverSupportedDataClassificationVersion = con.getServerSupportedDataClassificationVersion();
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -6473,6 +6489,10 @@ final class TDSReader implements Serializable {
 
     final boolean getServerSupportsDataClassification() {
         return serverSupportsDataClassification;
+    }
+
+    final byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
     }
 
     final void throwInvalidTDS() throws SQLServerException {
