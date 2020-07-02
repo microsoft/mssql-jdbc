@@ -15,7 +15,6 @@ import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -649,14 +648,8 @@ public class PreparedStatementTest extends AbstractTest {
             }
 
             // AE has 1 more prepared statement handle as it calls sp_describe_parameter_encryption
-            int start = connectionString.toUpperCase().indexOf(Constants.COLUMN_ENCRYPTION_SETTING);
-            if (-1 != start) {
-                int end = connectionString.indexOf(";", start);
-                String value = connectionString.substring(start + Constants.COLUMN_ENCRYPTION_SETTING.length() + 1,
-                        (-1 != end) ? end : connectionString.length());
-                if (value.equalsIgnoreCase(Constants.ENABLED)) {
-                    handle++;
-                }
+            if (ds.getColumnEncryptionSetting().equalsIgnoreCase(Constants.ENABLED)) {
+                handle++;
             }
 
             // Execute statement again and verify same handle was used.
