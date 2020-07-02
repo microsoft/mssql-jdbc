@@ -61,6 +61,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_connectionReset", "Connection reset"}, {"R_unknownException", "Unknown exception"},
             {"R_deadConnection", "Dead connection should be invalid"},
             {"R_wrongExceptionMessage", "Wrong exception message"},
+            {"R_wrongSqlState", "Wrong sql state"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
             {"R_connectionClosed", "The connection has been closed"},
@@ -185,5 +186,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_RichQueryError", "Rich query failed."}, {"R_reqExternalSetup", "External setup for test required."},
             {"R_invalidEnclaveSessionFailed", "invalidate enclave session failed."},
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
-            {"R_keystorePassword", "keystore password was incorrect"}};
+            {"R_keystorePassword", "keystore password was incorrect"},
+            {"R_enclaveNotEnabled", "The statement triggers enclave computations"},
+            {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }

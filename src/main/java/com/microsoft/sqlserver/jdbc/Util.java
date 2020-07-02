@@ -242,10 +242,9 @@ final class Util {
         Properties p = new Properties();
         String tmpUrl = url;
         String sPrefix = "jdbc:sqlserver://";
-        String result = "";
+        StringBuilder result = new StringBuilder();
         String name = "";
         String value = "";
-        StringBuilder builder;
 
         if (!tmpUrl.startsWith(sPrefix))
             return null;
@@ -275,10 +274,7 @@ final class Util {
                         // done immediately
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         state = inServerName;
                     }
                     break;
@@ -287,14 +283,14 @@ final class Util {
                 case inServerName: {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
-                        result = result.trim();
-                        if (result.length() > 0) {
-                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
+                        String property = result.toString().trim();
+                        if (property.length() > 0) {
+                            p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                             if (logger.isLoggable(Level.FINE)) {
-                                logger.fine("Property:serverName " + "Value:" + result);
+                                logger.fine("Property:serverName " + "Value:" + property);
                             }
                         }
-                        result = "";
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
@@ -303,10 +299,7 @@ final class Util {
                         else
                             state = inInstanceName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -314,18 +307,15 @@ final class Util {
 
                 case inPort: {
                     if (ch == ';') {
-                        result = result.trim();
+                        String property = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:portNumber " + "Value:" + result);
+                            logger.fine("Property:portNumber " + "Value:" + property);
                         }
-                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
-                        result = "";
+                        p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), property);
+                        result.setLength(0);
                         state = inName;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -333,22 +323,19 @@ final class Util {
                 case inInstanceName: {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
-                        result = result.trim();
+                        String property = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
-                            logger.fine("Property:instanceName " + "Value:" + result);
+                            logger.fine("Property:instanceName " + "Value:" + property);
                         }
-                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result.toLowerCase(Locale.US));
-                        result = "";
+                        p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), property.toLowerCase(Locale.US));
+                        result.setLength(0);
 
                         if (ch == ';')
                             state = inName;
                         else
                             state = inPort;
                     } else {
-                        builder = new StringBuilder();
-                        builder.append(result);
-                        builder.append(ch);
-                        result = builder.toString();
+                        result.append(ch);
                         // same state
                     }
                     break;
@@ -370,7 +357,7 @@ final class Util {
                         }
                         // same state
                     } else {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(name);
                         builder.append(ch);
                         name = builder.toString();
@@ -408,7 +395,7 @@ final class Util {
                                     SQLServerException.getErrString("R_errorConnectionString"), null, true);
                         }
                     } else {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
                         value = builder.toString();
@@ -423,7 +410,7 @@ final class Util {
                      * if it is, then we have a }}, which is not the closing of the escaped state.
                      */
                     if (ch == '}' && i + 1 < tmpUrl.length() && tmpUrl.charAt(i + 1) == '}') {
-                        builder = new StringBuilder();
+                        StringBuilder builder = new StringBuilder();
                         builder.append(value);
                         builder.append(ch);
                         value = builder.toString();
@@ -448,7 +435,7 @@ final class Util {
                             // it would not be clean
                             state = inEscapedValueEnd;
                         } else {
-                            builder = new StringBuilder();
+                            StringBuilder builder = new StringBuilder();
                             builder.append(value);
                             builder.append(ch);
                             value = builder.toString();
@@ -478,27 +465,27 @@ final class Util {
         // Exit
         switch (state) {
             case inServerName:
-                result = result.trim();
-                if (result.length() > 0) {
+                String property = result.toString().trim();
+                if (property.length() > 0) {
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.fine("Property:serverName " + "Value:" + result);
+                        logger.fine("Property:serverName " + "Value:" + property);
                     }
-                    p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), result);
+                    p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                 }
                 break;
             case inPort:
-                result = result.trim();
+                property = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:portNumber " + "Value:" + result);
+                    logger.fine("Property:portNumber " + "Value:" + property);
                 }
-                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), result);
+                p.put(SQLServerDriverIntProperty.PORT_NUMBER.toString(), property);
                 break;
             case inInstanceName:
-                result = result.trim();
+                property = result.toString().trim();
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Property:instanceName " + "Value:" + result);
+                    logger.fine("Property:instanceName " + "Value:" + property);
                 }
-                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), result);
+                p.put(SQLServerDriverStringProperty.INSTANCE_NAME.toString(), property);
                 break;
             case inValue:
                 // simple value trim
@@ -898,6 +885,10 @@ final class Util {
                     return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
                 } else if (JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
                     return ((null == value) ? 0 : (ParameterUtils.HexToBin((String) value).length));
+                } else if (JDBCType.GEOMETRY == jdbcType) {
+                    return ((null == value) ? 0 : ((Geometry) value).serialize().length);
+                } else if (JDBCType.GEOGRAPHY == jdbcType) {
+                    return ((null == value) ? 0 : ((Geography) value).serialize().length);
                 } else {
                     return ((null == value) ? 0 : ((String) value).length());
                 }
@@ -1032,6 +1023,10 @@ final class Util {
         }
         return result.toString();
     }
+
+    static String zeroOneToYesNo(int i) {
+        return 0 == i ? "NO" : "YES";
+    }
 }
 
 
@@ -1090,8 +1085,8 @@ final class SQLIdentifier {
             fullName.append("[").append(databaseName).append("].");
         else
             assert 0 == serverName.length();
-
         if (schemaName.length() > 0)
+
             fullName.append("[").append(schemaName).append("].");
         else if (databaseName.length() > 0)
             fullName.append('.');

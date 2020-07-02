@@ -667,7 +667,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         boolean append = true;
         if (null != mssqlJdbcProperties) {
             String endpoints = mssqlJdbcProperties.getProperty(AKV_TRUSTED_ENDPOINTS_KEYWORD);
-            if (null != endpoints && !endpoints.isBlank()) {
+            if (null != endpoints && !endpoints.trim().isEmpty()) {
                 endpoints = endpoints.trim();
                 // Append if the list starts with a semicolon.
                 if (';' != endpoints.charAt(0)) {
@@ -677,7 +677,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 }
                 String[] entries = endpoints.split(";");
                 for (String entry : entries) {
-                    if (null != entry && !entry.isBlank()) {
+                    if (null != entry && !entry.trim().isEmpty()) {
                         trustedEndpoints.add(entry.trim());
                     }
                 }

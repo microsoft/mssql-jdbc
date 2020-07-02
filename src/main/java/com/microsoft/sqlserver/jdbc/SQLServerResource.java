@@ -73,6 +73,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_invalidPacketSize", "The packetSize {0} is not valid."},
             {"R_packetSizeTooBigForSSL",
                     "SSL encryption cannot be used with a network packet size larger than {0} bytes.  Please check your connection properties and SQL Server configuration."},
+            {"R_redirectedFrom", "{0} (redirected from {1})"},
             {"R_tcpipConnectionFailed", "The TCP/IP connection to the host {0}, port {1} has failed. Error: \"{2}\"."}, // <loccomment>{PlaceHolder="TCP/IP"}</locomment>
             {"R_invalidTransactionLevel", "The transaction level {0} is not valid."},
             {"R_cantInvokeRollback", "Cannot invoke a rollback operation when the AutoCommit mode is set to \"true\"."},
@@ -263,6 +264,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_clientKeyPropertyDescription", "Private key file path for client certificate authentication feature."},
             {"R_clientKeyPasswordPropertyDescription",
                     "Password for private key if the private key is password protected."},
+            {"R_sendTemporalDataTypesAsStringForBulkCopyPropertyDescription",
+                    "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
+            {"R_delayLoadingLobsPropertyDescription",
+                    "Boolean flag which indicates whether the driver will load LOB datatypes into memeory."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -294,6 +299,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Destination connection must be a connection from the Microsoft JDBC Driver for SQL Server."},
             {"R_unableRetrieveSourceData", "Unable to retrieve data from the source."},
             {"R_ParsingError", "Failed to parse data for the {0} type."},
+            {"R_ParsingDataError", "Failed to parse data {0} for the {1} type."},
             {"R_BulkTypeNotSupported", "Data type {0} is not supported in bulk copy."},
             {"R_BulkTypeNotSupportedDW", "Data type {0} is not supported in bulk copy against Azure Data Warehouse."},
             {"R_invalidTransactionOption",
@@ -529,7 +535,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "\"keyStoreAuthentication\" connection string keyword must be specified, if \"{0}\" is specified."},
             {"R_keyStoreSecretOrLocationNotSet",
                     "Both \"keyStoreSecret\" and \"keyStoreLocation\" must be set, if \"keyStoreAuthentication=JavaKeyStorePassword\" has been specified in the connection string."},
-            {"R_keyStoreSecretnNotSet",
+            {"R_keyStoreSecretNotSet",
                     "\"keyStoreSecret\" must be set, if \"keyStoreAuthentication=KeyVaultClientSecret\" has been specified in the connection string."},
             {"R_certificateStoreInvalidKeyword",
                     "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
@@ -575,6 +581,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
             {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
             {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
+            {"R_unknownAzureSQLDNSCachingValue", "Unknown value for Azure SQL DNS Caching."},
             {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
             {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
             {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
@@ -639,5 +646,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_pvkParseError", "Could not read Private Key from PVK, check the password provided."},
             {"R_pvkHeaderError", "Cannot parse the PVK, PVK file does not contain the correct header."},
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
-            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."}};
+            {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
+            {"R_InvalidCSVQuotes",
+                    "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},};
 };

@@ -1008,7 +1008,9 @@ final class Parameter {
         }
 
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
-            if (null != byteArrayValue && byteArrayValue.length > DataTypes.SHORT_VARTYPE_MAX_BYTES)
+            // exclude JDBC typecasting for Geometry/Geography as these datatypes don't have a size limit.
+            if (null != byteArrayValue && byteArrayValue.length > DataTypes.SHORT_VARTYPE_MAX_BYTES
+                    && (dtv.getJdbcType() != JDBCType.GEOMETRY && dtv.getJdbcType() != JDBCType.GEOGRAPHY))
                 dtv.setJdbcType(dtv.getJdbcType().isBinary() ? JDBCType.LONGVARBINARY : JDBCType.LONGVARCHAR);
 
             setTypeDefinition(dtv);

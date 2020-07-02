@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.3.0.jre14-preview</version>
+	<version>8.3.1.jre14-preview</version>
 </dependency>
 ```
 
@@ -129,20 +129,20 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.3.0.jre14-preview</version>
+	<version>8.3.1.jre14-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.7.0</version>
+	<version>1.7.4</version>
 </dependency>
 ```
 
@@ -152,26 +152,26 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.3.0.jre14-preview</version>
+	<version>8.3.1.jre14-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.7.0</version>
+	<version>1.7.4</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>1.2.2</version>
+	<version>1.2.4</version>
 </dependency>
 ```
 
@@ -185,7 +185,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.3.0.jre14-preview</version>
+	<version>8.3.1.jre14-preview</version>
 </dependency>
 
 <dependency>

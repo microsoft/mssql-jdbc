@@ -76,7 +76,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testNumericPrecision8Scale2(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -94,8 +94,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testDateScale2(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -116,8 +115,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testNumericPrecision8Scale0(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -135,8 +133,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testDateScale0(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -158,8 +155,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testNumericPrecision8Scale2Null(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -177,8 +173,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testDateScale2Null(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);
@@ -196,8 +191,7 @@ public class PrecisionScaleTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testDateScale5Null(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             dropTables(stmt);

@@ -76,6 +76,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SP_STORED_PROCEDURES("{call sp_stored_procedures(?, ?, ?) }", "{call sp_stored_procedures(?, ?, ?) }"),
         SP_TABLE_PRIVILEGES("{call sp_table_privileges(?,?,?) }", "{call sp_table_privileges(?,?,?) }"),
         SP_PKEYS("{ call sp_pkeys (?, ?, ?)}", "{ call sp_pkeys (?, ?, ?)}");
+
         // stored procs before Katmai ie SS10
         private final String preKatProc;
         // procs on or after katmai
@@ -637,7 +638,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
                     + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
                     + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
-                    + "FROM @mssqljdbc_temp_sp_columns_result;";
+                    + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
             SQLServerResultSet rs = null;
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
@@ -746,7 +747,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                     if (0 == azureDwSelectBuilder.length()) {
                         azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
+                    } else {
+                        azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                     }
+
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(azureDwSelectBuilder.toString());
                     userRs = (SQLServerResultSet) resultPstmt.executeQuery();
@@ -755,8 +759,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     userRs.getColumn(7).setFilter(new ZeroFixupFilter());
                     userRs.getColumn(8).setFilter(new ZeroFixupFilter());
                     userRs.getColumn(16).setFilter(new ZeroFixupFilter());
-                    userRs.getColumn(23).setFilter(new IntColumnIdentityFilter());
-                    userRs.getColumn(24).setFilter(new IntColumnIdentityFilter());
                 } catch (SQLException e) {
                     if (null != resultPstmt) {
                         try {
@@ -785,7 +787,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null == o) {
                     sb.append("NULL");
                 } else if (o instanceof Number) {
-                    sb.append(o.toString());
+                    if ("IS_AUTOINCREMENT".equalsIgnoreCase(p.getValue())
+                            || "IS_GENERATEDCOLUMN".equalsIgnoreCase(p.getValue())) {
+                        sb.append("'").append(Util.escapeSingleQuotes(Util.zeroOneToYesNo(((Number) o).intValue())))
+                                .append("'");
+                    } else {
+                        sb.append(o.toString());
+                    }
                 } else {
                     sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("'");
                 }
@@ -1040,7 +1048,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     "END as UPDATE_RULE, " + "CASE s.delete_referential_action " + "WHEN 1 THEN 0 " + "WHEN 0 THEN 3 "
                     + "WHEN 2 THEN 2 " + "WHEN 3 THEN 4 " + "END as DELETE_RULE, " + "t.FK_NAME, " + "t.PK_NAME, "
                     + "t.DEFERRABILITY " + "FROM " + tempTableName + " t "
-                    + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id";
+                    + "LEFT JOIN sys.foreign_keys s ON t.FK_NAME = s.name COLLATE database_default AND schema_id(t.FKTABLE_OWNER) = s.schema_id "
+                    + "ORDER BY PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, KEY_SEQ";
             SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(sql);
             cstmt.closeOnCompletion();
             for (int i = 0; i < 6; i++) {
@@ -2537,6 +2546,27 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
         return true;
     }
+
+    /* -------------- MSSQL-JDBC Extension methods start here --------------- */
+
+    /**
+     * Returns the database compatibility level setting for the current database. This is useful if the database's
+     * compatibility level is lower than the engine version. In this case the database will only support SQL commands at
+     * its compatibility level, and not the wider set of commands accepted by the engine.
+     *
+     * @return the database compatibility level value (from sys.databases table).
+     * @throws SQLException
+     */
+    public int getDatabaseCompatibilityLevel() throws SQLException {
+        checkClosed();
+        String database = connection.getCatalog();
+        SQLServerResultSet rs = getResultSetFromInternalQueries(null,
+                "select name, compatibility_level from sys.databases where name = '" + database + "'");
+        if (!rs.next()) {
+            return 0;
+        }
+        return rs.getInt("compatibility_level");
+    }
 }
 
 
@@ -2630,10 +2660,6 @@ abstract class IntColumnFilter extends ColumnFilter {
  * proc returns and what the JDBC spec expects.
  */
 class IntColumnIdentityFilter extends ColumnFilter {
-    private static String zeroOneToYesNo(int i) {
-        return 0 == i ? "NO" : "YES";
-    }
-
     final Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
         if (null == value)
             return value;
@@ -2658,12 +2684,12 @@ class IntColumnIdentityFilter extends ColumnFilter {
                 // anyways. Only thing is that
                 // the user will get a cast exception in this case.
                 assert (value instanceof Number);
-                return zeroOneToYesNo(((Number) value).intValue());
+                return Util.zeroOneToYesNo(((Number) value).intValue());
             case CHAR:
             case VARCHAR:
             case LONGVARCHAR:
                 assert (value instanceof String);
-                return zeroOneToYesNo(Integer.parseInt((String) value));
+                return Util.zeroOneToYesNo(Integer.parseInt((String) value));
             default:
                 DataTypes.throwConversionError("char", asJDBCType.toString());
                 return value;
