@@ -64,8 +64,9 @@ abstract class SQLServerSpatialDatatype {
     protected byte[] wkb;
     protected byte endian = 1; // little endian
     protected int wkbType;
-    // Open Geospatial Consortium specifications
-    // Document reference number: OGC 06-103r3
+    /*
+     * Open Geospatial Consortium specifications Document reference number: OGC 06-103r3
+     */
     final private int WKB_POINT_SIZE = 16; // two doubles, x and y, are 16 bytes together
     final private int BYTE_ORDER_SIZE = 1;
     final private int INTERNAL_TYPE_SIZE = 4;
@@ -220,26 +221,18 @@ abstract class SQLServerSpatialDatatype {
         ByteBuffer buf = ByteBuffer.allocate(determineWkbCapacity());
 
         /*
-         * Page 66 of OGC 06-103r3 (https://portal.ogc.org/files/?artifact_id=18241)
-         * 
-         * Structure of a WKBGeometry/WKBGeography representations
-         * The basic building block is the representation for a Point, which consists of an x and y axis.
-         * Other Geometry representations are built using the representations for geometric objects that have already
-         * been defined.
-         * 
-         * For example, a LINESTRING(1 2, 3 2) shape is represented in WKB as follows in hex:
-         * 0x010200000002000000000000000000F03F000000000000004000000000000008400000000000001040
-         * 
-         * We can break down the above hex like this:
-         * 
-         * 01 - byte order | one byte | currently representing little endian (big endian is 02)
-         * 02000000 - Geometry code type 2 | four bytes | currently representing LINESTRING
-         * 02000000 - 02 | four bytes | currently representing that there are two POINTS in this LINESTRING
-         * 000000000000F03F0000000000000040 16 bytes, 2 points with x and y axis (1, 2)
-         * 00000000000008400000000000000040 16 bytes, 2 points with x and y axis (3, 2)
-         * 
-         * There are geometric objects that contain other geometric objects, such as MULTIPOINT.
-         * The below logic builds WKB from existing Geometry/Geography object and returns a byte array.
+         * Page 66 of OGC 06-103r3 (https://portal.ogc.org/files/?artifact_id=18241) Structure of a
+         * WKBGeometry/WKBGeography representations The basic building block is the representation for a Point, which
+         * consists of an x and y axis. Other Geometry representations are built using the representations for geometric
+         * objects that have already been defined. For example, a LINESTRING(1 2, 3 2) shape is represented in WKB as
+         * follows in hex: 0x010200000002000000000000000000F03F000000000000004000000000000008400000000000001040 We can
+         * break down the above hex like this: 01 - byte order | one byte | currently representing little endian (big
+         * endian is 02) 02000000 - Geometry code type 2 | four bytes | currently representing LINESTRING 02000000 - 02
+         * | four bytes | currently representing that there are two POINTS in this LINESTRING
+         * 000000000000F03F0000000000000040 16 bytes, 2 points with x and y axis (1, 2) 00000000000008400000000000000040
+         * 16 bytes, 2 points with x and y axis (3, 2) There are geometric objects that contain other geometric objects,
+         * such as MULTIPOINT. The below logic builds WKB from existing Geometry/Geography object and returns a byte
+         * array.
          */
 
         buf.order(ByteOrder.LITTLE_ENDIAN);
@@ -547,21 +540,14 @@ abstract class SQLServerSpatialDatatype {
                     break;
                 case COMPOUNDCURVE:
                     /*
-                     * COMPOUNDCURVEs are made of these four types of segments:
-                     * SEGMENT_FIRST_ARC
-                     * - It's a circularstring. It has 3 points and signals the beginning of an arc.
-                     * SEGMENT_FIRST_LINE
-                     * - It's a linestring. It has 2 points and signals the beginning of a line.
-                     * SEGMENT_ARC
-                     * - It only comes after SEGMENT_FIRST_ARC or other SEGMENT_ARCs. Adds 2 points each.
-                     * SEGMENT_LINE
-                     * - It only comes after SEGMENT_FIRST_LINE or other SEGMENT_LINE. Adds 1 point each.
-                     * 
-                     * The FIRST_ARCs and FIRST_LINEs are considered as a full geometric object by WKB
-                     * and it takes up a header spot, so we need to calculate how many of these occur
-                     * in a compoundcurve and handle them individually. On the other hand, SEGMENT_ARCs
-                     * and SEGMENT_LINEs only add up additional points.
-                     * 
+                     * COMPOUNDCURVEs are made of these four types of segments: SEGMENT_FIRST_ARC - It's a
+                     * circularstring. It has 3 points and signals the beginning of an arc. SEGMENT_FIRST_LINE - It's a
+                     * linestring. It has 2 points and signals the beginning of a line. SEGMENT_ARC - It only comes
+                     * after SEGMENT_FIRST_ARC or other SEGMENT_ARCs. Adds 2 points each. SEGMENT_LINE - It only comes
+                     * after SEGMENT_FIRST_LINE or other SEGMENT_LINE. Adds 1 point each. The FIRST_ARCs and FIRST_LINEs
+                     * are considered as a full geometric object by WKB and it takes up a header spot, so we need to
+                     * calculate how many of these occur in a compoundcurve and handle them individually. On the other
+                     * hand, SEGMENT_ARCs and SEGMENT_LINEs only add up additional points.
                      */
                     if (segments[currentWKBSegmentIndex].getSegmentType() == SEGMENT_FIRST_ARC) {
                         int numberOfPointsInStructure = 3;
@@ -613,6 +599,18 @@ abstract class SQLServerSpatialDatatype {
             return 0;
         }
 
+        /*
+         * Calculates the number of points in this figure. Whenever this method is used, it's because this shape of
+         * geometry/geography uses figures to keep track of which internal shape holds how many points. For example, we
+         * have a curvepolygon has 3 shapes inside it, where the first shape has 3 points, the second shape has 5 points
+         * and the third shape has 2 points. In order to determine that the first shape has 3 points, we look ahead one
+         * figure, and see that the figure that comes after this figure has 3 as its point offset. Since current point
+         * offset is 0 (since we haven't counted any points yet), we know that this figure has (3 - 0) = 3 points
+         * inside. If we were to call this method one more time, we repeat the same process - we look ahead one figure,
+         * find out that the figure has 8 as its point offset, which means that this figure has (8 - 3) = 5 points. The
+         * 3rd call to this method sees that this is the last figure, so it does (10 - 8) = 2 points, where 10 is the
+         * total number of points in the curvepolygon.
+         */
         return (currentWKBFigureIndex == figures.length - 1)
                                                              ? (numberOfPoints
                                                                      - figures[currentWKBFigureIndex].getPointOffset())
@@ -1962,8 +1960,8 @@ abstract class SQLServerSpatialDatatype {
                 for (int i = 1; i < shapes.length; i++) {
                     if (shapes[i].getOpenGISType() == InternalSpatialDatatype.POINT.getTypeCode()) {
                         /*
-                         * empty points are actually considered an empty multipoint in WKB.
-                         * In this case, the figure offset will be -1, so adjust accordingly.
+                         * empty points are actually considered an empty multipoint in WKB. In this case, the figure
+                         * offset will be -1, so adjust accordingly.
                          */
                         if (shapes[i].getFigureOffset() == -1) {
                             totalSize += WKB_HEADER_SIZE;
@@ -1978,17 +1976,13 @@ abstract class SQLServerSpatialDatatype {
 
                                 /*
                                  * the logic below handles cases where we have something like:
-                                 * GEOMETRYCOLLECTION(POLYGON(0 1, 0 2, 0 3), POLYGON EMPTY, POLYGON EMPTY)
-                                 * 
-                                 * In this case, in order to find out how many figures there are in the first polygon,
-                                 * we need to look ahead to the next shape (POLYGON EMPTY) to find out how many figures
-                                 * are
-                                 * in this polygon. However, if the shape is empty, the figure index is going to be -1.
-                                 * If that happens, we need to keep looking ahead until we find a shape that isn't
-                                 * empty.
+                                 * GEOMETRYCOLLECTION(POLYGON(0 1, 0 2, 0 3), POLYGON EMPTY, POLYGON EMPTY) In this
+                                 * case, in order to find out how many figures there are in the first polygon, we need
+                                 * to look ahead to the next shape (POLYGON EMPTY) to find out how many figures are in
+                                 * this polygon. However, if the shape is empty, the figure index is going to be -1. If
+                                 * that happens, we need to keep looking ahead until we find a shape that isn't empty.
                                  * If the last shape is also empty, then we can calculate the number of figures in the
                                  * current polygon by doing (number of all the figures) - (current figure index).
-                                 * 
                                  */
 
                                 int figureIndexEnd = -1;
@@ -2041,27 +2035,18 @@ abstract class SQLServerSpatialDatatype {
 
                 /*
                  * Segments are exclusively used by COMPOUNDCURVE. However, by extension GEOMETRYCOLLECTION or
-                 * CURVEPOLYGON can have them beacuse they can contain COMPOUNDCURVE inside.
-                 * 
-                 * If a geometric shape contains any number of COMPOUNDCURVEs, we need to calculate the actual number
-                 * of points involved in the geometric shape.
-                 * This is because some points in the compound curve shapes are being used across two segments.
-                 * 
-                 * For example, let's say we have a
-                 * COMPOUNDCURVE(CIRCULARSTRING(1 0, 0 1, 9 6, 8 7, -1 0), CIRCULARSTRING(-1 0, 7 9, -10 2)).
-                 * This compoundcurve contains a CIRCULARSTRING that spans across 5 points, and another
-                 * CIRCULARSTRING that spans across 3 points.
-                 * 
-                 * In WKB format this would be considered as 8 points. However, the existing Geometry/Geography object
-                 * will have their CLR sent from SQL Server as only having 7 points.
-                 * 
-                 * This is because compoundcurves have a rule that all the segments have to be connected to each other
-                 * (if the user tried to create a compoundcurve that doesn't link from one segment to the next, it will
-                 * throw an error).
-                 * 
-                 * Therefore, in order to convert from CLR to WKB, we need to find out the "true" number of points
-                 * that exist in this geometric object, and the below logic handles the calculation.
-                 * 
+                 * CURVEPOLYGON can have them beacuse they can contain COMPOUNDCURVE inside. If a geometric shape
+                 * contains any number of COMPOUNDCURVEs, we need to calculate the actual number of points involved in
+                 * the geometric shape. This is because some points in the compound curve shapes are being used across
+                 * two segments. For example, let's say we have a COMPOUNDCURVE(CIRCULARSTRING(1 0, 0 1, 9 6, 8 7, -1
+                 * 0), CIRCULARSTRING(-1 0, 7 9, -10 2)). This compoundcurve contains a CIRCULARSTRING that spans across
+                 * 5 points, and another CIRCULARSTRING that spans across 3 points. In WKB format this would be
+                 * considered as 8 points. However, the existing Geometry/Geography object will have their CLR sent from
+                 * SQL Server as only having 7 points. This is because compoundcurves have a rule that all the segments
+                 * have to be connected to each other (if the user tried to create a compoundcurve that doesn't link
+                 * from one segment to the next, it will throw an error). Therefore, in order to convert from CLR to
+                 * WKB, we need to find out the "true" number of points that exist in this geometric object, and the
+                 * below logic handles the calculation.
                  */
 
                 for (Segment s : segments) {
@@ -2087,13 +2072,11 @@ abstract class SQLServerSpatialDatatype {
                 numberOfCompositeCurves = 0;
 
                 /*
-                 * Since CURVEPOLYGONs can have COMPOUNDCURVEs inside, we need to account for them as well.
-                 * However, COMPOUNDCURVEs inside CURVEPOLYGONs are treated differently than when they are
-                 * on their own, because each compound curve
-                 * (represented by f.getFiguresAttribute() == FA_COMPOSITE_CURVE)
-                 * needs to wrap around to itself, which means that for every composite curve, the actual number of
-                 * pointsdecreases by one. The below logic accounts for this.
-                 * 
+                 * Since CURVEPOLYGONs can have COMPOUNDCURVEs inside, we need to account for them as well. However,
+                 * COMPOUNDCURVEs inside CURVEPOLYGONs are treated differently than when they are on their own, because
+                 * each compound curve (represented by f.getFiguresAttribute() == FA_COMPOSITE_CURVE) needs to wrap
+                 * around to itself, which means that for every composite curve, the actual number of pointsdecreases by
+                 * one. The below logic accounts for this.
                  */
 
                 for (Figure f : figures) {

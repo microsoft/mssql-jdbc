@@ -51,6 +51,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     static String spatialDatatypeTableName;
     static boolean isDenaliOrLater = false;
 
+    /**
+     * Tests basic point scenario.
+     */
     @Test
     public void testPoint() throws SQLException {
         String geoWKT = "POINT(3 40 5 6)";
@@ -67,6 +70,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty point scenario.
+     */
     @Test
     public void testPoint2() throws SQLException {
         String geoWKT = "POINT EMPTY";
@@ -81,6 +87,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic linestring scenario.
+     */
     @Test
     public void testLineString() throws SQLException {
         String geoWKT = "LINESTRING(1 0, 0 1, -1 0)";
@@ -98,6 +107,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty linestring scenario.
+     */
     @Test
     public void testLineString2() throws SQLException {
         String geoWKT = "LINESTRING EMPTY";
@@ -112,6 +124,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic polygon scenario.
+     */
     @Test
     public void testPolygon() throws SQLException {
         String geoWKT = "POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1))";
@@ -129,6 +144,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty polygon scenario.
+     */
     @Test
     public void testPolygon2() throws SQLException {
         String geoWKT = "POLYGON EMPTY";
@@ -143,6 +161,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multipoint scenario.
+     */
     @Test
     public void testMultiPoint() throws SQLException {
         String geoWKT = "MULTIPOINT((2 3), (7 8 9.5))";
@@ -160,6 +181,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty multipoint scenario.
+     */
     @Test
     public void testMultiPoint2() throws SQLException {
         String geoWKT = "MULTIPOINT EMPTY";
@@ -174,6 +198,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multilinestring scenario.
+     */
     @Test
     public void testMultiLineString() throws SQLException {
         String geoWKT = "MULTILINESTRING((0 2, 1 1), (1 0, 1 1))";
@@ -191,6 +218,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty multilinestring scenario.
+     */
     @Test
     public void testMultiLineString2() throws SQLException {
         String geoWKT = "MULTILINESTRING EMPTY";
@@ -205,6 +235,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multipolygon scenario.
+     */
     @Test
     public void testMultiPolygon() throws SQLException {
         String geoWKT = "MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9)))";
@@ -222,6 +255,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multipolygon scenario.
+     */
     @Test
     public void testMultiPolygon2() throws SQLException {
         String geoWKT = "MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9)), ((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)))";
@@ -239,6 +275,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multipolygon scenario.
+     */
     @Test
     public void testMultiPolygon3() throws SQLException {
         String geoWKT = "MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9), (12 12, 0 0, 12 12, 12 12), (1 0, 3 4, 4 5, 6 7, 1 0)), ((9 9, 9 10, 10 9, 9 9)), ((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)))";
@@ -256,6 +295,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic multipolygon scenario.
+     */
     @Test
     public void testMultiPolygon4() throws SQLException {
         String geoWKT = "MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9)))";
@@ -273,6 +315,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty multipolygon scenario.
+     */
     @Test
     public void testMultiPolygon5() throws SQLException {
         String geoWKT = "MULTIPOLYGON EMPTY";
@@ -287,6 +332,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POINT(3 3 1), LINESTRING(1 0, 0 1, -1 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2), (0 0 2, 1 10 3, 1 0 4, 0 0 2), (0 0 2, 1 10 3, 1 0 4, 0 0 2)), MULTIPOINT((2 3), (7 8 9.5)), MULTILINESTRING((0 2, 1 1), (1 0, 1 1)), MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9))), COMPOUNDCURVE(CIRCULARSTRING(1 0 3, 0 1 3, 9 6 3, 8 7 3, -1 0 3), CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 77, 88 88 88, 2 6 4), (2 6 4, 3 3 6, 7 7 1)), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2)))";
@@ -304,6 +352,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection1() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION EMPTY";
@@ -318,6 +369,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection2() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY)";
@@ -334,6 +388,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection3() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POINT(3 40 5 6))";
@@ -350,6 +407,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection4() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POINT EMPTY)";
@@ -366,6 +426,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection5() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(LINESTRING(1 0, 0 1, -1 0))";
@@ -383,6 +446,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection6() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(LINESTRING EMPTY)";
@@ -399,6 +465,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection7() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)))";
@@ -416,6 +485,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection8() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POLYGON EMPTY)";
@@ -432,6 +504,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection9() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOINT((2 3), (7 8 9.5)))";
@@ -449,6 +524,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection10() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOINT EMPTY)";
@@ -465,6 +543,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection11() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTILINESTRING((0 2, 1 1), (1 0, 1 1)))";
@@ -482,6 +563,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection12() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTILINESTRING EMPTY)";
@@ -498,6 +582,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection13() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9))))";
@@ -515,6 +602,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection14() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9)), ((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7))))";
@@ -532,6 +622,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection15() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9), (12 12, 0 0, 12 12, 12 12), (1 0, 3 4, 4 5, 6 7, 1 0)), ((9 9, 9 10, 10 9, 9 9)), ((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7))))";
@@ -549,6 +642,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection16() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON(((9 9, 9 10, 10 9, 9 9))))";
@@ -566,6 +662,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection17() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON EMPTY)";
@@ -582,6 +681,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection18() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CIRCULARSTRING(2 1 3 4, 1 2 3, 0 7 3, 1 0 3, 2 1 3))";
@@ -599,6 +701,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection19() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CIRCULARSTRING EMPTY)";
@@ -615,6 +720,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection20() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE(CIRCULARSTRING(1 0 3, 0 1 3, 9 6 3, 8 7 3, -1 0 3), CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 77, 88 88 88, 2 6 4), (2 6 4, 3 3 6, 7 7 1)))";
@@ -632,6 +740,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection21() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE(CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 3, 88 88 3, 2 6 3), (2 6 3, 3 3 3, 2 6 3), CIRCULARSTRING(2 6 3, 0 1 3, 2 6 3)))";
@@ -649,6 +760,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection22() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE((1 1, 1 1)))";
@@ -666,6 +780,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection23() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE EMPTY)";
@@ -682,6 +799,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection24() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
@@ -699,6 +819,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection25() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CURVEPOLYGON((0 0, 0 0, 0 0, 0 0)))";
@@ -716,6 +839,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection26() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CURVEPOLYGON(CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3)))";
@@ -733,6 +859,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection27() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE((0 -23.43778, 0 23.43778)))";
@@ -750,6 +879,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection28() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE EMPTY)";
@@ -766,6 +898,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection29() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(3 3 1), LINESTRING(1 0, 0 1, -1 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2), (0 0 2, 1 10 3, 1 0 4, 0 0 2), (0 0 2, 1 10 3, 1 0 4, 0 0 2)), MULTIPOINT((2 3), (7 8 9.5)), MULTILINESTRING((0 2, 1 1), (1 0, 1 1)), MULTIPOLYGON(((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), ((9 9, 9 10, 10 9, 9 9))), COMPOUNDCURVE(CIRCULARSTRING(1 0 3, 0 1 3, 9 6 3, 8 7 3, -1 0 3), CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 77, 88 88 88, 2 6 4), (2 6 4, 3 3 6, 7 7 1)), CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))), POLYGON((0 0 2, 1 10 3, 1 0 4, 0 0 2))), GEOMETRYCOLLECTION EMPTY, CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778))))";
@@ -783,6 +918,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection30() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POINT EMPTY, POINT(1 2), GEOMETRYCOLLECTION(MULTIPOINT((2 3), (7 8 9.5))))";
@@ -800,6 +938,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection31() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE((0 -23.43778, 0 23.43778)), POLYGON EMPTY, LINESTRING EMPTY, POINT(1 2), MULTIPOINT EMPTY, MULTILINESTRING EMPTY, MULTIPOLYGON EMPTY, CIRCULARSTRING EMPTY, CURVEPOLYGON EMPTY, POLYGON EMPTY, COMPOUNDCURVE EMPTY, GEOMETRYCOLLECTION EMPTY, COMPOUNDCURVE((1 1, 1 1)))";
@@ -817,6 +958,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection32() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(3 4), GEOMETRYCOLLECTION EMPTY, MULTIPOINT((2 3), (7 8 9.5))))";
@@ -834,6 +978,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection33() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POINT(3 4), POLYGON EMPTY, POLYGON EMPTY, MULTIPOINT((2 3), (7 8 9.5)))";
@@ -851,6 +998,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection34() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(LINESTRING(1 0, 0 1, -1 0), POLYGON EMPTY, POLYGON EMPTY, LINESTRING(1 0, 0 1, -1 0))";
@@ -868,6 +1018,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection35() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)), POLYGON EMPTY, POLYGON EMPTY, POLYGON((0 0, 0 3, 3 3, 3 0, 0 0), (1 1, 1 2, 2 1, 1 1)))";
@@ -885,6 +1038,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection36() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOINT((2 3), (7 8 9.5)), POLYGON EMPTY, POLYGON EMPTY, MULTIPOINT((2 3), (7 8 9.5)))";
@@ -902,6 +1058,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection37() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTILINESTRING((0 2, 1 1), (1 0, 1 1)), POLYGON EMPTY, POLYGON EMPTY, MULTILINESTRING((0 2, 1 1), (1 0, 1 1)))";
@@ -919,6 +1078,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection38() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9))), POLYGON EMPTY, POLYGON EMPTY, MULTIPOLYGON(((1 1, 1 2, 2 1, 1 1), (0 0, 0 3, 3 3, 3 0, 0 0 7)), ((9 9, 9 10, 10 9, 9 9))))";
@@ -936,6 +1098,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection39() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CIRCULARSTRING(2 1 3 4, 1 2 3, 0 7 3, 1 0 3, 2 1 3), POLYGON EMPTY, POLYGON EMPTY, CIRCULARSTRING(2 1 3 4, 1 2 3, 0 7 3, 1 0 3, 2 1 3))";
@@ -953,6 +1118,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection40() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE((1 1, 1 1)), POLYGON EMPTY, POLYGON EMPTY, COMPOUNDCURVE((1 1, 1 1)))";
@@ -970,6 +1138,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection41() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(CURVEPOLYGON((0 0, 0 0, 0 0, 0 0)), POLYGON EMPTY, POLYGON EMPTY, CURVEPOLYGON((0 0, 0 0, 0 0, 0 0)))";
@@ -987,6 +1158,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection42() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(COMPOUNDCURVE((0 -23.43778, 0 23.43778)), POLYGON EMPTY, POLYGON EMPTY, COMPOUNDCURVE((0 -23.43778, 0 23.43778)))";
@@ -1004,6 +1178,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests geometrycollection scenario.
+     */
     @Test
     public void testGeometryCollection43() throws SQLException {
         String geoWKT = "GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(3 3 1)), POLYGON EMPTY, POLYGON EMPTY, GEOMETRYCOLLECTION(POINT(3 3 1)))";
@@ -1021,6 +1198,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic circularstring scenario.
+     */
     @Test
     public void testCircularString() throws SQLException {
         String geoWKT = "CIRCULARSTRING(2 1 3 4, 1 2 3, 0 7 3, 1 0 3, 2 1 3)";
@@ -1038,6 +1218,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty circularstring scenario.
+     */
     @Test
     public void testCircularString2() throws SQLException {
         String geoWKT = "CIRCULARSTRING EMPTY";
@@ -1052,6 +1235,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic compoundcurve scenario.
+     */
     @Test
     public void testCompoundCurve() throws SQLException {
         String geoWKT = "COMPOUNDCURVE(CIRCULARSTRING(1 0 3, 0 1 3, 9 6 3, 8 7 3, -1 0 3), CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 77, 88 88 88, 2 6 4), (2 6 4, 3 3 6, 7 7 1))";
@@ -1069,6 +1255,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic compoundcurve scenario.
+     */
     @Test
     public void testCompoundCurve2() throws SQLException {
         String geoWKT = "COMPOUNDCURVE(CIRCULARSTRING(-1 0 3, 7 9 3, -10 2 3), (-10 2 3, 77 77 3, 88 88 3, 2 6 3), (2 6 3, 3 3 3, 2 6 3), CIRCULARSTRING(2 6 3, 0 1 3, 2 6 3))";
@@ -1086,6 +1275,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic compoundcurve scenario.
+     */
     @Test
     public void testCompoundCurve3() throws SQLException {
         String geoWKT = "COMPOUNDCURVE((1 1, 1 1))";
@@ -1103,6 +1295,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty compoundcurve scenario.
+     */
     @Test
     public void testCompoundCurve4() throws SQLException {
         String geoWKT = "COMPOUNDCURVE EMPTY";
@@ -1117,6 +1312,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic curvepolygon scenario.
+     */
     @Test
     public void testCurvePolygon() throws SQLException {
         String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0), CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3), COMPOUNDCURVE((0 -23.43778, 0 23.43778), CIRCULARSTRING(0 23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 -23.43778, 7 7, 0 23.43778), CIRCULARSTRING(0 23.43778, 8 8, 8 8, -45 23.43778, -90 23.43778), (-90 23.43778, -90 -23.43778), CIRCULARSTRING(-90 -23.43778, -45 -23.43778, 0 -23.43778)), COMPOUNDCURVE((0 1, 0 2), CIRCULARSTRING(0 2, 3 4, 0 1)), COMPOUNDCURVE((0 1, 0 2), CIRCULARSTRING(0 2, 3 4, 0 1)))";
@@ -1134,6 +1332,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic curvepolygon scenario.
+     */
     @Test
     public void testCurvePolygon2() throws SQLException {
         String geoWKT = "CURVEPOLYGON((0 0, 0 0, 0 0, 0 0))";
@@ -1151,6 +1352,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic curvepolygon scenario.
+     */
     @Test
     public void testCurvePolygon3() throws SQLException {
         String geoWKT = "CURVEPOLYGON(CIRCULARSTRING(1 3, 3 5, 4 7, 7 3, 1 3))";
@@ -1168,15 +1372,15 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests empty curvepolygon scenario.
+     */
     @Test
     public void testCurvePolygon4() throws SQLException {
-        String geoWKT = "COMPOUNDCURVE((0 -23.43778, 0 23.43778))";
-        byte[] geomCLR = hexStringToByteArray(
-                "100000000204020000000000000000000000C7D79E59127037C00000000000000000C7D79E591270374001000000030000000001000000FFFFFFFF00000000090100000002");
-        byte[] geogCLR = hexStringToByteArray(
-                "E6100000020402000000C7D79E59127037C00000000000000000C7D79E5912703740000000000000000001000000030000000001000000FFFFFFFF00000000090100000002");
-        byte[] geoWKB = hexStringToByteArray(
-                "0109000000010000000102000000020000000000000000000000C7D79E59127037C00000000000000000C7D79E5912703740");
+        String geoWKT = "CURVEPOLYGON EMPTY";
+        byte[] geomCLR = hexStringToByteArray("100000000204000000000000000001000000FFFFFFFFFFFFFFFF0A");
+        byte[] geogCLR = hexStringToByteArray("E61000000204000000000000000001000000FFFFFFFFFFFFFFFF0A");
+        byte[] geoWKB = hexStringToByteArray("010A00000000000000");
         Geometry geomWKT = Geometry.deserialize(geomCLR);
         Geography geogWKT = Geography.deserialize(geogCLR);
         assertEquals(geomWKT.asTextZM(), geoWKT);
@@ -1185,20 +1389,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
-    @Test
-    public void testCurvePolygon5() throws SQLException {
-        String geoWKT = "COMPOUNDCURVE EMPTY";
-        byte[] geomCLR = hexStringToByteArray("100000000204000000000000000001000000FFFFFFFFFFFFFFFF09");
-        byte[] geogCLR = hexStringToByteArray("E61000000204000000000000000001000000FFFFFFFFFFFFFFFF09");
-        byte[] geoWKB = hexStringToByteArray("010900000000000000");
-        Geometry geomWKT = Geometry.deserialize(geomCLR);
-        Geography geogWKT = Geography.deserialize(geogCLR);
-        assertEquals(geomWKT.asTextZM(), geoWKT);
-        assertEquals(geogWKT.asTextZM(), geoWKT);
-        assertTrue(Arrays.equals(geomWKT.STAsBinary(), geoWKB));
-        assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
-    }
-
+    /**
+     * Tests fullglobe scenario.
+     */
     @Test
     public void testFullGlobe() throws SQLException {
         String geoWKT = "FULLGLOBE";
@@ -1209,6 +1402,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
+    /**
+     * Tests basic point scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testPointWkt() throws SQLException {
@@ -1220,6 +1416,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic linestring scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testLineStringWkt() throws SQLException {
@@ -1231,6 +1430,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic polygon scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testPolygonWkt() throws SQLException {
@@ -1242,6 +1444,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic multipoint scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testMultiPointWkt() throws SQLException {
@@ -1253,6 +1458,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic multiline scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testMultiLineStringWkt() throws SQLException {
@@ -1264,6 +1472,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic multipolygon scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testMultiPolygonWkt() throws SQLException {
@@ -1275,6 +1486,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic geometrycollection scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testGeometryCollectionWkt() throws SQLException {
@@ -1295,6 +1509,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT);
     }
 
+    /**
+     * Tests basic circularstring scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCircularStringWkt() throws SQLException {
@@ -1308,6 +1525,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests basic compoundcurve scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCompoundCurveWkt() throws SQLException {
@@ -1321,6 +1541,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests basic curvepolygon scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCurvePolygonWkt() throws SQLException {
@@ -1334,6 +1557,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests basic fullglobe scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testFullGlobeWkt() throws SQLException {
@@ -1365,6 +1591,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests irregular string scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testIrregularCases() throws SQLException {
@@ -1377,6 +1606,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT, geoWKTSS);
     }
 
+    /**
+     * Tests illegal scenario against a SQL Server.
+     */
     @Test
     public void testIllegalCases() throws SQLException {
         // Not enough closing bracket case
@@ -1479,6 +1711,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests all basic scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testAllTypes() throws SQLException {
@@ -1631,6 +1866,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests all mixed scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testMixedAllTypes() throws SQLException {
@@ -1788,6 +2026,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests decimal rounding scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testDecimalRounding() throws SQLException {
@@ -1799,6 +2040,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         testWkt(geoWKT, geoWKTSS);
     }
 
+    /**
+     * Tests advanced geometrycollection scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testParse() throws SQLException {
@@ -1840,6 +2084,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
     }
 
+    /**
+     * Tests basic point scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSendBasicPoint() throws SQLException {
@@ -1880,6 +2127,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests setObject scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSetObject() throws SQLException {
@@ -1920,6 +2170,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests STAsText scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSTAsText() throws SQLException {
@@ -1959,6 +2212,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests geometry metadata scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCheckGeomMetaData() throws SQLException {
@@ -1984,6 +2240,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests geography metadata scenario against a SQL Server.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCheckGeogMetaData() throws SQLException {
@@ -2009,6 +2268,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests getY scenario.
+     */
     @Test
     public void testGetXGetY() throws SQLException {
         Geometry geom = Geometry.STGeomFromText("POINT (1 2 3 4)", 0);
@@ -2025,6 +2287,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         assertEquals(y, 1);
     }
 
+    /**
+     * Tests null scenario.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testNull() throws SQLException {
@@ -2095,6 +2360,9 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests wrong type scenario.
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testWrongtype() throws SQLException {
