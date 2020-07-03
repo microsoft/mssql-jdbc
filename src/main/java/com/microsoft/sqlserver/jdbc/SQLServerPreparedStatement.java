@@ -2727,12 +2727,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on Connection
+                /*
+                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                 *  on one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 *  batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
@@ -2744,12 +2748,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 encryptionMetadataIsRetrieved = true;
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on Connection
+                /*
+                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                 *  on one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 *  batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
