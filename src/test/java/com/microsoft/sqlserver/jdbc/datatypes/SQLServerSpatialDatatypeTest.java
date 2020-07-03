@@ -69,7 +69,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty point scenario.
      */
     @Test
-    public void testPoint2() throws SQLException {
+    public void testPointEmpty() throws SQLException {
         String geoWKT = "POINT EMPTY";
         byte[] geomCLR = hexStringToByteArray("407100000104000000000000000001000000FFFFFFFFFFFFFFFF01");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF01");
@@ -96,7 +96,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty linestring scenario.
      */
     @Test
-    public void testLineString2() throws SQLException {
+    public void testLineStringEmpty() throws SQLException {
         String geoWKT = "LINESTRING EMPTY";
         byte[] geomCLR = hexStringToByteArray("FFFF00000104000000000000000001000000FFFFFFFFFFFFFFFF02");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF02");
@@ -123,7 +123,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty polygon scenario.
      */
     @Test
-    public void testPolygon2() throws SQLException {
+    public void testPolygonEmpty() throws SQLException {
         String geoWKT = "POLYGON EMPTY";
         byte[] geomCLR = hexStringToByteArray("FFFF00000104000000000000000001000000FFFFFFFFFFFFFFFF03");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF03");
@@ -150,7 +150,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty multipoint scenario.
      */
     @Test
-    public void testMultiPoint2() throws SQLException {
+    public void testMultiPointEmpty() throws SQLException {
         String geoWKT = "MULTIPOINT EMPTY";
         byte[] geomCLR = hexStringToByteArray("FFFF00000104000000000000000001000000FFFFFFFFFFFFFFFF04");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF04");
@@ -177,7 +177,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty multilinestring scenario.
      */
     @Test
-    public void testMultiLineString2() throws SQLException {
+    public void testMultiLineStringEmpty() throws SQLException {
         String geoWKT = "MULTILINESTRING EMPTY";
         byte[] geomCLR = hexStringToByteArray("FFFF00000104000000000000000001000000FFFFFFFFFFFFFFFF05");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF05");
@@ -249,7 +249,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty multipolygon scenario.
      */
     @Test
-    public void testMultiPolygon5() throws SQLException {
+    public void testMultiPolygonEmpty() throws SQLException {
         String geoWKT = "MULTIPOLYGON EMPTY";
         byte[] geomCLR = hexStringToByteArray("000000000104000000000000000001000000FFFFFFFFFFFFFFFF06");
         byte[] geogCLR = hexStringToByteArray("E61000000104000000000000000001000000FFFFFFFFFFFFFFFF06");
@@ -922,7 +922,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty circularstring scenario.
      */
     @Test
-    public void testCircularString2() throws SQLException {
+    public void testCircularStringEmpty() throws SQLException {
         String geoWKT = "CIRCULARSTRING EMPTY";
         byte[] geomCLR = hexStringToByteArray("100000000204000000000000000001000000FFFFFFFFFFFFFFFF08");
         byte[] geogCLR = hexStringToByteArray("E61000000204000000000000000001000000FFFFFFFFFFFFFFFF08");
@@ -979,7 +979,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty compoundcurve scenario.
      */
     @Test
-    public void testCompoundCurve4() throws SQLException {
+    public void testCompoundCurveEmpty() throws SQLException {
         String geoWKT = "COMPOUNDCURVE EMPTY";
         byte[] geomCLR = hexStringToByteArray("100000000204000000000000000001000000FFFFFFFFFFFFFFFF09");
         byte[] geogCLR = hexStringToByteArray("E61000000204000000000000000001000000FFFFFFFFFFFFFFFF09");
@@ -1036,7 +1036,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * Tests empty curvepolygon scenario.
      */
     @Test
-    public void testCurvePolygon4() throws SQLException {
+    public void testCurvePolygonEmpty() throws SQLException {
         String geoWKT = "CURVEPOLYGON EMPTY";
         byte[] geomCLR = hexStringToByteArray("100000000204000000000000000001000000FFFFFFFFFFFFFFFF0A");
         byte[] geogCLR = hexStringToByteArray("E61000000204000000000000000001000000FFFFFFFFFFFFFFFF0A");
