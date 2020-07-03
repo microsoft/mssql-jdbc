@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1053,7 +1054,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         byte[] geogCLR = hexStringToByteArray("E61000000224000000000000000001000000FFFFFFFFFFFFFFFF0B");
         byte[] geoWKB = hexStringToByteArray("017E000000");
         Geography geogWKT = Geography.deserialize(geogCLR);
-        assertEquals(geogWKT.asTextZM(), geoWKT);
+        assertEquals(geoWKT, geogWKT.asTextZM());
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
 
@@ -1228,7 +1229,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try {
                     Geometry.STGeomFromText(geoWKT, 0);
                 } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "Fullglobe is not supported for Geometry.");
+                    assertEquals("Fullglobe is not supported for Geometry.", e.getMessage());
                 }
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
@@ -1239,7 +1240,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                             .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                         rs.next();
-                        assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
+                        assertEquals(geoWKT, rs.getGeography(1).asTextZM());
                     }
                 }
             }
@@ -1274,7 +1275,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"90"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Not enough closing and opening bracket case
@@ -1285,7 +1286,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"14"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Too many closing bracket
@@ -1296,7 +1297,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"91"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Too many opening bracket
@@ -1307,7 +1308,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"15"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Too many coordinates
@@ -1318,7 +1319,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"23"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Too little coordinates
@@ -1329,7 +1330,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"17"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // Incorrect data type
@@ -1340,7 +1341,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"14"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // too many commas
@@ -1351,7 +1352,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"35"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
 
         // too little commas
@@ -1362,7 +1363,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(TestResource.getResource("R_illegalCharWktPosition"));
             Object[] msgArgs1 = {"35"};
-            assertEquals(e.getMessage(), form.format(msgArgs1));
+            assertEquals(form.format(msgArgs1), e.getMessage());
         }
     }
 
@@ -1451,7 +1452,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
-                            assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
+                            assertEquals(geoWKTList.get(i), rs.getGeometry(1).asTextZM());
                         }
                     }
                 }
@@ -1513,7 +1514,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
-                            assertEquals(rs.getGeography(1).asTextZM(), geoWKTList.get(i));
+                            assertEquals(geoWKTList.get(i), rs.getGeography(1).asTextZM());
                         }
                     }
                 }
@@ -1669,11 +1670,11 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             "select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
-                            assertEquals(rs.getGeometry(1).asTextZM(), geoWKTList.get(i));
-                            assertEquals(rs.getGeography(2).asTextZM(), geoWKTList.get(i));
-                            assertEquals(rs.getString(3), s);
-                            assertEquals((Double) rs.getDouble(4), d);
-                            assertEquals(rs.getInt(5), i2);
+                            assertEquals(geoWKTList.get(i), rs.getGeometry(1).asTextZM());
+                            assertEquals(geoWKTList.get(i), rs.getGeography(2).asTextZM());
+                            assertEquals(s, rs.getString(3));
+                            assertEquals(d, (Double) rs.getDouble(4));
+                            assertEquals(i2, rs.getInt(5));
                         }
                     }
                 }
@@ -1718,8 +1719,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                    assertEquals(geoWKT, rs.getGeometry(1).asTextZM());
+                    assertEquals(0, rs.getGeometry(1).getSrid());
                 }
             }
 
@@ -1731,8 +1732,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                    assertEquals(geoWKT, rs.getGeography(1).asTextZM());
+                    assertEquals(4326, rs.getGeography(1).getSrid());
                 }
             }
         }
@@ -1762,8 +1763,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                    assertEquals(geoWKT, rs.getGeometry(1).asTextZM());
+                    assertEquals(0, rs.getGeometry(1).getSrid());
                 }
             }
 
@@ -1775,8 +1776,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                    assertEquals(geoWKT, rs.getGeography(1).asTextZM());
+                    assertEquals(4326, rs.getGeography(1).getSrid());
                 }
             }
         }
@@ -1805,8 +1806,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                    assertEquals(geoWKT, rs.getGeometry(1).asTextZM());
+                    assertEquals(0, rs.getGeometry(1).getSrid());
                 }
             }
 
@@ -1818,8 +1819,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), geoWKT);
-                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                    assertEquals(geoWKT, rs.getGeography(1).asTextZM());
+                    assertEquals(4326, rs.getGeography(1).getSrid());
                 }
             }
         }
@@ -1849,7 +1850,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).STAsText(), geoWKTSS);
+                    assertEquals(geoWKTSS, rs.getGeometry(1).STAsText());
                 }
             }
 
@@ -1861,7 +1862,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).STAsText(), geoWKTSS);
+                    assertEquals(geoWKTSS, rs.getGeography(1).STAsText());
                 }
             }
         }
@@ -1885,12 +1886,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
             int sqlType = paramMetaData.getParameterType(1);
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
-            assertEquals(sqlType, -157);
-            assertEquals(sqlTypeName, "geometry");
+            assertEquals(-157, sqlType);
+            assertEquals("geometry", sqlTypeName);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
-                assertEquals(rsmd.getColumnType(1), -157);
+                assertEquals(-157, rsmd.getColumnType(1));
             }
         }
     }
@@ -1913,12 +1914,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
             int sqlType = paramMetaData.getParameterType(1);
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
-            assertEquals(sqlType, -158);
+            assertEquals(-158, sqlType);
             assertEquals(sqlTypeName, "geography");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
-                assertEquals(rsmd.getColumnType(1), -158);
+                assertEquals(-158, rsmd.getColumnType(1));
             }
         }
     }
@@ -1933,13 +1934,13 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
         double x = geom.getX();
         double y = geom.getY();
-        assertEquals(x, 1);
-        assertEquals(y, 2);
+        assertEquals(1, x);
+        assertEquals(2, y);
 
         x = geog.getLatitude();
         y = geog.getLongitude();
-        assertEquals(x, 2);
-        assertEquals(y, 1);
+        assertEquals(2, x);
+        assertEquals(1, y);
     }
 
     /**
@@ -2003,11 +2004,11 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                             "select * from " + AbstractSQLGenerator.escapeIdentifier(spatialDatatypeTableName))) {
                         for (int i = 0; i < geoWKTList.size(); i++) {
                             rs.next();
-                            assertEquals(rs.getGeometry(1).asTextZM(), geoWKTListExpected.get(i));
-                            assertEquals(rs.getGeography(2).asTextZM(), geoWKTListExpected.get(i));
-                            assertEquals(rs.getString(3), s);
-                            assertEquals((Double) rs.getDouble(4), d);
-                            assertEquals(rs.getInt(5), i2);
+                            assertEquals(geoWKTListExpected.get(i), rs.getGeometry(1).asTextZM());
+                            assertEquals(geoWKTListExpected.get(i), rs.getGeography(2).asTextZM());
+                            assertEquals(s, rs.getString(3));
+                            assertEquals(d, (Double) rs.getDouble(4));
+                            assertEquals(i2, rs.getInt(5));
                         }
                     }
                 }
@@ -2040,7 +2041,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     rs.getGeography(1); // should fail
                     fail();
                 } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from GEOMETRY to GEOGRAPHY is unsupported.");
+                    assertEquals("The conversion from GEOMETRY to GEOGRAPHY is unsupported.", e.getMessage());
                 }
             }
 
@@ -2056,7 +2057,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     rs.getGeometry(1); // should fail
                     fail();
                 } catch (SQLServerException e) {
-                    assertEquals(e.getMessage(), "The conversion from GEOGRAPHY to GEOMETRY is unsupported.");
+                    assertEquals("The conversion from GEOGRAPHY to GEOMETRY is unsupported.", e.getMessage());
                 }
             }
         }
@@ -2090,11 +2091,11 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), wktLargeGeometry);
-                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                    assertEquals(wktLargeGeometry, rs.getGeometry(1).asTextZM());
+                    assertEquals(0, rs.getGeometry(1).getSrid());
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), wktLargeGeometry);
-                    assertEquals(rs.getGeometry(1).getSrid(), 0);
+                    assertEquals(wktLargeGeometry, rs.getGeometry(1).asTextZM());
+                    assertEquals(0, rs.getGeometry(1).getSrid());
                 }
             }
 
@@ -2109,11 +2110,11 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), wktLargeGeography);
-                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                    assertEquals(wktLargeGeography, rs.getGeography(1).asTextZM());
+                    assertEquals(4326, rs.getGeography(1).getSrid());
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), wktLargeGeography);
-                    assertEquals(rs.getGeography(1).getSrid(), 4326);
+                    assertEquals(wktLargeGeography, rs.getGeography(1).asTextZM());
+                    assertEquals(4326, rs.getGeography(1).getSrid());
                 }
             }
         }
@@ -2156,7 +2157,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeometry(1).asTextZM(), geoWKTSS);
+                    assertEquals(geoWKTSS, rs.getGeometry(1).asTextZM());
                 }
             }
 
@@ -2168,7 +2169,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                         .executeQuery("select c1 from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                     rs.next();
-                    assertEquals(rs.getGeography(1).asTextZM(), geoWKTSS);
+                    assertEquals(geoWKTSS, rs.getGeography(1).asTextZM());
                 }
             }
         }
@@ -2190,8 +2191,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         Geography geogWKT = Geography.deserialize(geogCLR);
         assertEquals(geoWKT, geomWKT.asTextZM());
         assertEquals(geoWKT, geogWKT.asTextZM());
-        assertTrue(Arrays.equals(geomWKT.STAsBinary(), geoWKB));
-        assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
+        assertArrayEquals(geoWKB, geomWKT.STAsBinary());
+        assertArrayEquals(geoWKB, geogWKT.STAsBinary());
     }
 
     /**
