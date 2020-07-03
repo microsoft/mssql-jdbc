@@ -2188,8 +2188,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
             byte[] geoWKB) throws SQLServerException {
         Geometry geomWKT = Geometry.deserialize(geomCLR);
         Geography geogWKT = Geography.deserialize(geogCLR);
-        assertEquals(geomWKT.asTextZM(), geoWKT);
-        assertEquals(geogWKT.asTextZM(), geoWKT);
+        assertEquals(geoWKT, geomWKT.asTextZM());
+        assertEquals(geoWKT, geogWKT.asTextZM());
         assertTrue(Arrays.equals(geomWKT.STAsBinary(), geoWKB));
         assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
     }
