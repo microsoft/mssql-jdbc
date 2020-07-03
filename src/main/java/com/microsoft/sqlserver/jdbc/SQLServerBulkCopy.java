@@ -2561,11 +2561,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // this should not really happen, since ClassCastException should only happen when colValue is not null.
                 // just do one more checking here to make sure
                 throwInvalidArgument("colValue");
+            } else {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+                Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
+                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                        DriverError.NOT_SET, ex);
             }
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-            Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
-                    DriverError.NOT_SET, ex);
         }
     }
 

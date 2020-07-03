@@ -455,6 +455,36 @@ enum SQLServerDriverBooleanProperty {
 }
 
 
+enum SensitivityRank {
+    NOT_DEFINED(-1),
+    NONE(0),
+    LOW(10),
+    MEDIUM(20),
+    HIGH(30),
+    CRITICAL(40);
+
+    private static final SensitivityRank[] VALUES = values();
+    private int rank;
+
+    private SensitivityRank(int rank) {
+        this.rank = rank;
+    }
+
+    public int getValue() {
+        return rank;
+    }
+
+    static boolean isValid(int rank) throws SQLServerException {
+        for (SensitivityRank r : VALUES) {
+            if (r.getValue() == rank) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
 /**
  * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
  */
