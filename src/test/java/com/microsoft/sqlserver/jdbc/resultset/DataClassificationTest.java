@@ -44,8 +44,7 @@ public class DataClassificationTest extends AbstractTest {
     /**
      * Tests data classification metadata information from SQL Server
      * 
-     * TODO: remove xAzureSQLDW tag once issue on server is fixed
-     * (currently DW not returning rank info) VSO issue 12931
+     * TODO: remove xAzureSQLDW tag once issue on server is fixed (currently DW not returning rank info) VSO issue 12931
      * 
      * @throws Exception
      */
@@ -64,7 +63,8 @@ public class DataClassificationTest extends AbstractTest {
                     createTable(connection, stmt);
                     addSensitivity(connection, stmt, i.toString());
                     insertData(connection, stmt);
-                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName)) {
+                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName
+                            + "ORDER BY [CompanyName], [ContactTitle], [CountryName], [Phone], [Fax]")) {
                         verifySensitivityClassification(rs, i.getValue());
                     }
                     dropTable();

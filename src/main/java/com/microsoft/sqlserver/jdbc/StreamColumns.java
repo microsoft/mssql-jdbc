@@ -281,7 +281,7 @@ final class StreamColumns extends StreamPacket {
                 .getServerSupportedDataClassificationVersion() >= TDS.DATA_CLASSIFICATION_VERSION_ADDED_RANK_SUPPORT;
 
         // get sensitivity rank if supported
-        int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();;
+        int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();
         if (sensitivityRankSupported) {
             sensitivityRank = tdsReader.readInt();
             if (!SensitivityRank.isValid(sensitivityRank)) {
@@ -326,6 +326,8 @@ final class StreamColumns extends StreamPacket {
                     }
                     // add sensitivity properties for the source
                     sensitivityProperties.add(new SensitivityProperty(label, informationType, sensitivityRankProperty));
+                } else {
+                    sensitivityProperties.add(new SensitivityProperty(label, informationType));
                 }
             }
             columnSensitivities.add(new ColumnSensitivity(sensitivityProperties));
