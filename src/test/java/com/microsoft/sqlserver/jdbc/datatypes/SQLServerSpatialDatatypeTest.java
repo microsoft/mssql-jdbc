@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -17,7 +16,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
@@ -1055,7 +1053,7 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         byte[] geoWKB = hexStringToByteArray("017E000000");
         Geography geogWKT = Geography.deserialize(geogCLR);
         assertEquals(geoWKT, geogWKT.asTextZM());
-        assertTrue(Arrays.equals(geogWKT.STAsBinary(), geoWKB));
+        assertArrayEquals(geogWKT.STAsBinary(), geoWKB);
     }
 
     /**
