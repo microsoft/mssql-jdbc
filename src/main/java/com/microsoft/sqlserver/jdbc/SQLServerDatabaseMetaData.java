@@ -2557,7 +2557,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @return the database compatibility level value (from sys.databases table).
      * @throws SQLException
      *         if error getting compatability level
-
      */
     public int getDatabaseCompatibilityLevel() throws SQLException {
         checkClosed();
