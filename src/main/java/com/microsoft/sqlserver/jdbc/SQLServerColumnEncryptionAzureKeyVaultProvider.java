@@ -94,10 +94,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *        Identifier of the client requesting the token.
      * @param clientKey
      *        Key of the client requesting the token.
+     * @param tenantId
+     *        The tenant ID of the application.
      * @throws SQLServerException
      *         when an error occurs
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId,
+                                                          String clientKey,
+                                                          String tenantId) throws SQLServerException {
         if (clientId == null || clientId.isEmpty()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
             Object[] msgArgs1 = {"Client ID"};
@@ -111,6 +115,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         createKeyvaultClients(new ClientSecretCredentialBuilder()
               .clientId(clientId)
               .clientSecret(clientKey)
+              .tenantId(tenantId)
               .build());
     }
 
