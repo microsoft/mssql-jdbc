@@ -179,6 +179,7 @@ public final class TestResource extends ListResourceBundle {
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
+            {"R_incorrectSyntaxP0", "Incorrect syntax near '@P0'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
             {"R_OperandTypeClash", "Operand type clash"},
             {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"},
@@ -188,5 +189,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_invalidEnclaveType", "Invalid enclave type {0}."},
             {"R_keystorePassword", "keystore password was incorrect"},
             {"R_enclaveNotEnabled", "The statement triggers enclave computations"},
+            {"R_aeStreamReadError", "The multi-part identifier"},
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }
