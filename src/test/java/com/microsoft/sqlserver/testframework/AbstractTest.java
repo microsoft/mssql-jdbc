@@ -178,7 +178,7 @@ public abstract class AbstractTest {
                     props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey, tenantID);
                 map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             } finally {
                 if (null != file) {
