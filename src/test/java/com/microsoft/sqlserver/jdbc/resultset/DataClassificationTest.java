@@ -27,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
 import com.microsoft.sqlserver.jdbc.dataclassification.Label;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification.SensitivityRank;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -39,16 +40,17 @@ public class DataClassificationTest extends AbstractTest {
 
     private static final String addSensitivitySql = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='%s', INFORMATION_TYPE_ID='%s'%s)";
     private static final String sensitivityRankSql = ", RANK=%s";
-    private static String sensitivityRank[][] = {{"NONE", "0"}, {"LOW", "10"}, {"MEDIUM", "20"}, {"HIGH", "30"},
-            {"CRITICAL", "40"}};
 
     /**
      * Tests data classification metadata information from SQL Server
+     * 
+     * TODO: remove xAzureSQLDW tag once issue on server is fixed (currently DW not returning rank info) VSO issue 12931
      * 
      * @throws Exception
      */
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testDataClassificationMetadata() throws Exception {
         try (Statement stmt = connection.createStatement();) {
@@ -56,14 +58,17 @@ public class DataClassificationTest extends AbstractTest {
                 fail(TestResource.getResource("R_dataClassificationNotSupported"));
             }
 
-            for (int i = 0; i < sensitivityRank.length; i++) {
-                createTable(connection, stmt);
-                addSensitivity(connection, stmt, sensitivityRank[i][0]);
-                insertData(connection, stmt);
-                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName)) {
-                    verifySensitivityClassification(rs, Integer.parseInt(sensitivityRank[i][1]));
+            for (SensitivityRank i : SensitivityRank.values()) {
+                if (SensitivityRank.NOT_DEFINED != i) {
+                    createTable(connection, stmt);
+                    addSensitivity(connection, stmt, i.toString());
+                    insertData(connection, stmt);
+                    try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT * FROM " + tableName
+                            + "ORDER BY [CompanyName], [ContactTitle], [CountryName], [Phone], [Fax]")) {
+                        verifySensitivityClassification(rs, i.getValue());
+                    }
+                    dropTable();
                 }
-                dropTable();
             }
         }
     }
@@ -173,7 +178,10 @@ public class DataClassificationTest extends AbstractTest {
 
                     verifyLabel(sp.getLabel());
                     verifyInfoType(sp.getInformationType(), columnPos);
-                    assertEquals(sp.getSensitivityRank(), rank, TestResource.getResource("R_valuesAreDifferent"));
+                    assertEquals(rank, sp.getSensitivityRank(), TestResource.getResource("R_valuesAreDifferent"));
+
+                    int sensitivityRank = rs.getSensitivityClassification().getSensitivityRank();
+                    assertEquals(rank, sensitivityRank, TestResource.getResource("R_valuesAreDifferent"));
                 }
             }
         }
