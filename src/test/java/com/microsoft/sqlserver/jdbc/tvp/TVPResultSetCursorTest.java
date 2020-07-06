@@ -223,12 +223,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
                 pstmt.setStructured(1, tvpName, rs);
                 pstmt.execute();
             } catch (SQLException e) {
-                if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
+                if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))
+                        && !(ds.getColumnEncryptionSetting().equalsIgnoreCase(Constants.ENABLED)
+                                && e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxP0")))) {
                     fail(e.getMessage());
                 }
-            } finally {
-                dropProcedure();
             }
+        } finally {
+            dropProcedure();
         }
     }
 

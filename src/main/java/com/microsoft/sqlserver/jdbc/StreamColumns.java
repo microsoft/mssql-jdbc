@@ -12,6 +12,7 @@ import com.microsoft.sqlserver.jdbc.dataclassification.ColumnSensitivity;
 import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
 import com.microsoft.sqlserver.jdbc.dataclassification.Label;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification.SensitivityRank;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 
 
@@ -28,6 +29,8 @@ final class StreamColumns extends StreamPacket {
     private CekTable cekTable = null;
 
     private boolean shouldHonorAEForRead = false;
+
+    private boolean sensitivityRankSupported = false;
 
     /* Returns the CekTable */
     CekTable getCekTable() {
@@ -259,42 +262,54 @@ final class StreamColumns extends StreamPacket {
         SensitivityClassification sensitivityClassification = null;
 
         // get the label count
-        int numLabels = tdsReader.readUnsignedShort();
-        List<Label> labels = new ArrayList<Label>(numLabels);
+        int sensitivityLabelCount = tdsReader.readUnsignedShort();
+        List<Label> sensitivityLabels = new ArrayList<Label>(sensitivityLabelCount);
 
-        for (int i = 0; i < numLabels; i++) {
-            labels.add(readSensitivityLabel(tdsReader));
+        for (int i = 0; i < sensitivityLabelCount; i++) {
+            sensitivityLabels.add(readSensitivityLabel(tdsReader));
         }
 
         // get the information type count
-        int numInformationTypes = tdsReader.readUnsignedShort();
+        int informationTypeCount = tdsReader.readUnsignedShort();
 
-        List<InformationType> informationTypes = new ArrayList<InformationType>(numInformationTypes);
-        for (int i = 0; i < numInformationTypes; i++) {
+        List<InformationType> informationTypes = new ArrayList<InformationType>(informationTypeCount);
+        for (int i = 0; i < informationTypeCount; i++) {
             informationTypes.add(readSensitivityInformationType(tdsReader));
         }
 
-        // get the per column classification data (corresponds to order of output columns for query)
-        int numResultColumns = tdsReader.readUnsignedShort();
+        sensitivityRankSupported = tdsReader
+                .getServerSupportedDataClassificationVersion() >= TDS.DATA_CLASSIFICATION_VERSION_ADDED_RANK_SUPPORT;
 
-        List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultColumns);
-        for (int columnNum = 0; columnNum < numResultColumns; columnNum++) {
+        // get sensitivity rank if supported
+        int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();
+        if (sensitivityRankSupported) {
+            sensitivityRank = tdsReader.readInt();
+            if (!SensitivityRank.isValid(sensitivityRank)) {
+                tdsReader.throwInvalidTDS();
+            }
+        }
+
+        // get the per column classification data (corresponds to order of output columns for query)
+        int numResultSetColumns = tdsReader.readUnsignedShort();
+
+        List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultSetColumns);
+        for (int columnNum = 0; columnNum < numResultSetColumns; columnNum++) {
 
             // get sensitivity properties for all the different sources which were used in generating the column output
-            int numSources = tdsReader.readUnsignedShort();
-            List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(numSources);
-            for (int sourceNum = 0; sourceNum < numSources; sourceNum++) {
+            int numSensitivityProperties = tdsReader.readUnsignedShort();
+            List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(
+                    numSensitivityProperties);
+            for (int sourceNum = 0; sourceNum < numSensitivityProperties; sourceNum++) {
 
                 // get the label index and then lookup label to use for source
-                int labelIndex = tdsReader.readUnsignedShort();
+                int sensitivityLabelIndex = tdsReader.readUnsignedShort();
                 Label label = null;
-                if (labelIndex != Integer.MAX_VALUE) {
-                    if (labelIndex >= labels.size()) {
+                if (sensitivityLabelIndex != Integer.MAX_VALUE) {
+                    if (sensitivityLabelIndex >= sensitivityLabels.size()) {
                         tdsReader.throwInvalidTDS();
                     }
-                    label = labels.get(labelIndex);
+                    label = sensitivityLabels.get(sensitivityLabelIndex);
                 }
-
                 // get the information type index and then lookup information type to use for source
                 int informationTypeIndex = tdsReader.readUnsignedShort();
                 InformationType informationType = null;
@@ -302,12 +317,29 @@ final class StreamColumns extends StreamPacket {
                     if (informationTypeIndex >= informationTypes.size()) {}
                     informationType = informationTypes.get(informationTypeIndex);
                 }
-                // add sensitivity properties for the source
-                sensitivityProperties.add(new SensitivityProperty(label, informationType));
+
+                int sensitivityRankProperty = SensitivityRank.NOT_DEFINED.getValue();
+                if (sensitivityRankSupported) {
+                    sensitivityRankProperty = tdsReader.readInt();
+                    if (!SensitivityRank.isValid(sensitivityRankProperty)) {
+                        tdsReader.throwInvalidTDS();
+                    }
+                    // add sensitivity properties for the source
+                    sensitivityProperties.add(new SensitivityProperty(label, informationType, sensitivityRankProperty));
+                } else {
+                    sensitivityProperties.add(new SensitivityProperty(label, informationType));
+                }
             }
             columnSensitivities.add(new ColumnSensitivity(sensitivityProperties));
         }
-        sensitivityClassification = new SensitivityClassification(labels, informationTypes, columnSensitivities);
+        if (sensitivityRankSupported) {
+            sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
+                    columnSensitivities, sensitivityRank);
+        } else {
+            sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
+                    columnSensitivities);
+        }
+
         return sensitivityClassification;
     }
 

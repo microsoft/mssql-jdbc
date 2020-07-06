@@ -2561,11 +2561,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // this should not really happen, since ClassCastException should only happen when colValue is not null.
                 // just do one more checking here to make sure
                 throwInvalidArgument("colValue");
+            } else {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+                Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
+                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                        DriverError.NOT_SET, ex);
             }
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-            Object[] msgArgs = {colValue.getClass().getSimpleName(), JDBCType.of(bulkJdbcType)};
-            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
-                    DriverError.NOT_SET, ex);
         }
     }
 
@@ -2926,9 +2927,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return sourceResultSet.getDate(srcColOrdinal);
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
-                    // We can safely cast the result set to a SQLServerResultSet as the DatetimeOffset type is only
-                    // available in the JDBC driver.
-                    return ((SQLServerResultSet) sourceResultSet).getDateTimeOffset(srcColOrdinal);
+                    return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
 
                 case microsoft.sql.Types.SQL_VARIANT:
                     return sourceResultSet.getObject(srcColOrdinal);

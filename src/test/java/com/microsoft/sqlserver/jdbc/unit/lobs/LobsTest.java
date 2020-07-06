@@ -201,7 +201,9 @@ public class LobsTest extends AbstractTest {
                         if (!verified) {
                             // Odd CharacterStream length will throw this exception
                             if (!e.getMessage().contains(TestResource.getResource("R_badStreamLength"))) {
-                                assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")));
+                                assertTrue(e.getMessage().contains(TestResource.getResource("R_streamReadError")) || (ds
+                                        .getColumnEncryptionSetting().equalsIgnoreCase(Constants.ENABLED)
+                                        && e.getMessage().contains(TestResource.getResource("R_aeStreamReadError"))));
                             }
 
                         }

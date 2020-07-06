@@ -178,6 +178,7 @@ public final class TestResource extends ListResourceBundle {
                     "Column name or number of supplied values does not match table definition."},
             {"R_incorrectSyntaxTable", "Incorrect syntax near the keyword 'table'."},
             {"R_incorrectSyntaxTableDW", "Incorrect syntax near 'table'."},
+            {"R_incorrectSyntaxP0", "Incorrect syntax near '@P0'."},
             {"R_ConnectionStringNull", "Connection String should not be null"},
             {"R_OperandTypeClash", "Operand type clash"},
             {"R_NoPrivilege", "The EXECUTE permission was denied on the object {0}"},
@@ -196,5 +197,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_notAuthandIS", "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
             {"R_notAuthandUserPassword",
                     "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-            {"R_resultset_IsClosed", "The result set is closed."}, {"R_socketClosed", "Socket closed"},};
+            {"R_resultset_IsClosed", "The result set is closed."}, {"R_socketClosed", "Socket closed"},
+            {"R_aeStreamReadError", "The multi-part identifier"},
+            {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }
