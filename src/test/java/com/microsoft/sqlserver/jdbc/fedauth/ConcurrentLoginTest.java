@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,71 +28,61 @@ public class ConcurrentLoginTest extends FedauthCommon {
         Random rand = new Random();
         int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
 
-        for (int i = 0; i < numberOfThreadsForEachType; i++) {
+        Runnable r1 = () -> {
             // Access token based authentication
-            new Thread() {
-                public void run() {
-                    try {
-                        SQLServerDataSource ds = new SQLServerDataSource();
-                        ds.setServerName(azureServer);
-                        ds.setDatabaseName(azureDatabase);
-                        ds.setAccessToken(accessToken);
+            try {
+                SQLServerDataSource ds = new SQLServerDataSource();
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
+                ds.setAccessToken(accessToken);
 
-                        try (Connection conn = ds.getConnection()) {
-                            testUserName(conn, azureUserName, SqlAuthentication.NotSpecified);
-                        }
-                    } catch (SQLException e) {
-                        fail(e.getMessage());
-                    }
+                try (Connection conn = ds.getConnection()) {
+                    testUserName(conn, azureUserName, SqlAuthentication.NotSpecified);
                 }
-            }.start();
-
-            // active directory password
-            new Thread() {
-                public void run() {
-                    try {
-                        SQLServerDataSource ds = new SQLServerDataSource();
-                        ds.setServerName(azureServer);
-                        ds.setDatabaseName(azureDatabase);
-                        ds.setUser(azureUserName);
-                        ds.setPassword(azurePassword);
-                        ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
-
-                        try (Connection conn = ds.getConnection()) {
-                            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
-                        }
-                    } catch (SQLException e) {
-                        fail(e.getMessage());
-                    }
-                }
-            }.start();
-
-            // active directory integrated
-            if (isWindows && enableADIntegrated) {
-                new Thread() {
-                    public void run() {
-                        try {
-                            SQLServerDataSource ds = new SQLServerDataSource();
-                            ds.setServerName(azureServer);
-                            ds.setDatabaseName(azureDatabase);
-                            ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
-
-                            try (Connection conn = ds.getConnection()) {
-                                testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
-                            }
-                        } catch (SQLException e) {
-                            fail(e.getMessage());
-                        }
-                    }
-                }.start();
+            } catch (SQLException e) {
+                fail(e.getMessage());
             }
-        }
+        };
 
-        // sleep in order to catch exception from other threads if tests fail.
-        try {
-            Thread.sleep(TimeUnit.SECONDS.toMillis(60));
-        } catch (InterruptedException e) {
-            fail(e.getMessage());
+        Runnable r2 = () -> {
+            // active directory password
+            try {
+                SQLServerDataSource ds = new SQLServerDataSource();
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
+                ds.setUser(azureUserName);
+                ds.setPassword(azurePassword);
+                ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
+
+                try (Connection conn = ds.getConnection()) {
+                    testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
+                }
+            } catch (SQLException e) {
+                fail(e.getMessage());
+            }
+        };
+
+        Runnable r3 = () -> {
+            // active directory integrated
+            try {
+                SQLServerDataSource ds = new SQLServerDataSource();
+                ds.setServerName(azureServer);
+                ds.setDatabaseName(azureDatabase);
+                ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
+
+                try (Connection conn = ds.getConnection()) {
+                    testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
+                }
+            } catch (SQLException e) {
+                fail(e.getMessage());
+            }
+        };
+
+        for (int i = 0; i < numberOfThreadsForEachType; i++) {
+            new Thread(r1).start();
+            new Thread(r2).start();
+            if (isWindows && enableADIntegrated)
+                new Thread(r3).start();
         }
     }
 }
