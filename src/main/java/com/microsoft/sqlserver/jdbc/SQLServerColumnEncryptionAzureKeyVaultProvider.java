@@ -60,8 +60,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     String name = "AZURE_KEY_VAULT";
 
-    private final String baseUrl = "https://{vaultBaseUrl}";
-
     private static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
     private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
     private static final List<String> akvTrustedEndpoints;
@@ -155,8 +153,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     private void createKeyvaultClients(TokenCredential credential) {
+        String vaultBaseUrl = System.getenv("vaultBaseUrl");
+        String vaultFullUrl = "https://" + vaultBaseUrl;
+
         this.keyVaultClient = new KeyClientBuilder()
             .credential(credential)
+            .vaultUrl(vaultFullUrl)
             .buildClient();
         this.cryptoClient = new CryptographyClientBuilder()
             .credential(credential)
