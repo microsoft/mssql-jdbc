@@ -66,7 +66,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     static {
         akvTrustedEndpoints = getTrustedEndpoints();
     }
-    private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
+//    private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
     /**
      * Algorithm version
@@ -449,9 +449,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             encryptionAlgorithm = "RSA_OAEP";
         }
 
-        if (!rsaEncryptionAlgorithmWithOAEPForAKV.equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!"RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm.trim())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeyEncryptionAlgorithm"));
-            Object[] msgArgs = {encryptionAlgorithm, rsaEncryptionAlgorithmWithOAEPForAKV};
+            Object[] msgArgs = {encryptionAlgorithm, "RSA_OAEP"};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
