@@ -24,7 +24,9 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.fedauth.FedauthCommon.SqlAuthentication;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -158,55 +160,51 @@ public class PooledConnectionTest extends FedauthCommon {
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
             Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
 
+            Runnable r1 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, authentication);
+                } catch (SQLException e) {
+                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                            e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
+                }
+            };
+
+            Runnable r2 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, authentication);
+                } catch (SQLException e) {
+                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                            e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
+                }
+            };
+
+            Runnable r3 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, authentication);
+                } catch (SQLException e) {
+                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                            e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
+                                    || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
+                }
+            };
+
             Random rand = new Random();
             int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
-
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                new Thread() {
-                    public void run() {
-
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, authentication);
-                        } catch (SQLException e) {
-                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
-                        }
-                    }
-                }.start();
-
-                new Thread() {
-                    public void run() {
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, authentication);
-                        } catch (SQLException e) {
-                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
-                        }
-                    }
-                }.start();
-
-                new Thread() {
-                    public void run() {
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, authentication);
-                        } catch (SQLException e) {
-                            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                                    e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
-                                            || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
-                        }
-                    }
-                }.start();
+                new Thread(r1).start();
+                new Thread(r2).start();
+                new Thread(r3).start();
             }
 
             // sleep in order to catch exception from other threads if tests fail.
@@ -239,38 +237,36 @@ public class PooledConnectionTest extends FedauthCommon {
                 testUserName(connection1, azureUserName, SqlAuthentication.NotSpecified);
             }
 
+            Runnable r1 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
+            };
+
+            Runnable r2 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
+            };
+
+            Runnable r3 = () -> {
+                try (Connection connection2 = pc.getConnection()) {
+                    testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
+                } catch (SQLException e) {
+                    fail(e.getMessage());
+                }
+            };
+
             Random rand = new Random();
             int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                new Thread() {
-                    public void run() {
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
-                        } catch (SQLException e) {
-                            fail(e.getMessage());
-                        }
-                    }
-                }.start();
-
-                new Thread() {
-                    public void run() {
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
-                        } catch (SQLException e) {
-                            fail(e.getMessage());
-                        }
-                    }
-                }.start();
-
-                new Thread() {
-                    public void run() {
-                        try (Connection connection2 = pc.getConnection()) {
-                            testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
-                        } catch (SQLException e) {
-                            fail(e.getMessage());
-                        }
-                    }
-                }.start();
+                new Thread(r1).start();
+                new Thread(r2).start();
+                new Thread(r3).start();
             }
 
             // sleep in order to catch exception from other threads if tests fail.
