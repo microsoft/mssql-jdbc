@@ -121,7 +121,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
      * KeyVaultClient at runtime to authenticate to Azure Key Vault.
      */
-    SQLServerColumnEncryptionAzureKeyVaultProvider() {
+    SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
         createKeyvaultClients(new ManagedIdentityCredentialBuilder().build());
     }
 
@@ -148,13 +148,19 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param tokenCredential
      *        The TokenCredential to use to authenticate to Azure Key Vault.
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) {
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
         createKeyvaultClients(tokenCredential);
     }
 
-    private void createKeyvaultClients(TokenCredential credential) {
+    private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
         String vaultBaseUrl = System.getenv("vaultBaseUrl");
         String vaultFullUrl = "https://" + vaultBaseUrl;
+
+        if (null == vaultBaseUrl || vaultBaseUrl.isEmpty()) {
+            // TODO externalise string
+//            throw new SQLServerException(SQLServerException.getErrString("R_NullEncryptedColumnEncryptionKey"), null);
+            throw new SQLServerException("vaultBaseUrl is not valid: " + vaultBaseUrl, null);
+        }
 
         this.keyVaultClient = new KeyClientBuilder()
             .credential(credential)
