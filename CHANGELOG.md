@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
-- Added database name to AEv2 enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
+- Added database name to Always Encrypted enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
 
 ## [8.3.1] Preview Release
 ### Added
