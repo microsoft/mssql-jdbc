@@ -426,8 +426,10 @@ final class EnclaveSessionCache {
         sessionCache = new Hashtable<>(0);
     }
 
-    void addEntry(String servername, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
-        sessionCache.put(servername + attestationUrl, new EnclaveCacheEntry(b, e));
+    void addEntry(String servername, String catalog, String attestationUrl, BaseAttestationRequest b, EnclaveSession e) {
+        StringBuilder sb = new StringBuilder(servername);
+        sb.append(catalog).append(attestationUrl);
+        sessionCache.put(sb.toString(), new EnclaveCacheEntry(b, e));
     }
 
     void removeEntry(EnclaveSession e) {
