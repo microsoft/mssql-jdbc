@@ -19,7 +19,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed an issue with batch insertion failing when Always Encrypted is enabled [#1378](https://github.com/microsoft/mssql-jdbc/pull/1378)
 
 ### Changed
-- Updated Gradle build file to fix Azure pipelines  [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
+- Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
+- Added database name to AEv2 enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
 
 ## [8.3.1] Preview Release
 ### Added
