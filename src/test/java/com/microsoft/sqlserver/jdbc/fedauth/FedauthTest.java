@@ -175,7 +175,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(isWindows);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
