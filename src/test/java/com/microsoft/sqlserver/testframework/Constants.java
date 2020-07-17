@@ -40,7 +40,7 @@ public final class Constants {
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
     public static final String clientCertAuth = "clientCertAuth";
-    public static final String Fedauth = "Fedauth";
+    public static final String fedAuth = "fedAuth";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

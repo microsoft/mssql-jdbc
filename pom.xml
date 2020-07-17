@@ -54,7 +54,7 @@
 			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,Fedauth</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
 		<releaseExt></releaseExt>

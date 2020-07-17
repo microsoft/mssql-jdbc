@@ -280,7 +280,7 @@ public class AESetup extends AbstractTest {
      * @param lookupValue
      * @throws IOException
      */
-    protected static void readFromFile(String inputFile, String lookupValue) throws IOException {
+    private static void readFromFile(String inputFile, String lookupValue) throws IOException {
         String filePath = TestUtils.getCurrentClassPath();
         try {
             File f = new File(filePath + inputFile);

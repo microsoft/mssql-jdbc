@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag("slow")
-@Tag(Constants.Fedauth)
+@Tag(Constants.fedAuth)
 public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(

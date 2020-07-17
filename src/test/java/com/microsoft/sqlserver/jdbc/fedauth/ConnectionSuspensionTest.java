@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(JUnitPlatform.class)
 @Tag("slow")
-@Tag(Constants.Fedauth)
+@Tag(Constants.fedAuth)
 public class ConnectionSuspensionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(

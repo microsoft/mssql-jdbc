@@ -33,7 +33,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.Fedauth)
+@Tag(Constants.fedAuth)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));

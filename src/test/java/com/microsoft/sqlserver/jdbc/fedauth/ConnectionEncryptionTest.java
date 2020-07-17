@@ -26,7 +26,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.Fedauth)
+@Tag(Constants.fedAuth)
 public class ConnectionEncryptionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
