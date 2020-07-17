@@ -10,10 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
 
 ### Fixed issues
-- Fixed an issue with fetching column information provides wrong order of columns intermittently [#1348](https://github.com/microsoft/mssql-jdbc/pull/1348)
+- Fixed an issue with DatabaseMetaData.getColumns() intermittently returning table column descriptions in incorrect order [#1348](https://github.com/microsoft/mssql-jdbc/pull/1348)
 - Fixed an issue with spatial datatypes casting error when Always Encrypted is enabled [#1353](https://github.com/microsoft/mssql-jdbc/pull/1353)
-- Fixed an issue with getColumns() not returning correct type for IS_AUTOINCREMENT and IS_GENERATEDCOLUMN against Azure Data Warehouse [#1356](https://github.com/microsoft/mssql-jdbc/pull/1356)
-- Fixed an issue with STAsBinary returning WKB format instead of CLR format [#1364](https://github.com/microsoft/mssql-jdbc/pull/1364)
+- Fixed an issue with DatabaseMetaData.getColumns() not returning correct type for IS_AUTOINCREMENT and IS_GENERATEDCOLUMN against Azure Data Warehouse [#1356](https://github.com/microsoft/mssql-jdbc/pull/1356)
+- Fixed an issue with Geography.STAsBinary() and Geometry.STAsBinary() returning WKB format instead of CLR format [#1364](https://github.com/microsoft/mssql-jdbc/pull/1364)
 - Fixed an issue with allowing non-MSSQL ResultSets to bulk copy DateTimeOffset [#1365](https://github.com/microsoft/mssql-jdbc/pull/1365)
 - Fixed issues identified by SonarQube [#1369](https://github.com/microsoft/mssql-jdbc/pull/1369)
 - Fixed an issue with batch insertion failing when Always Encrypted is enabled [#1378](https://github.com/microsoft/mssql-jdbc/pull/1378)
