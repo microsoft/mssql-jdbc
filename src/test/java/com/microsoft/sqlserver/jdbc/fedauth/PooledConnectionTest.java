@@ -24,9 +24,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.jdbc.fedauth.FedauthCommon.SqlAuthentication;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
