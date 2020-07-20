@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
@@ -61,8 +62,10 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
+            MessageFormat form = new MessageFormat(TestUtils.R_BUNDLE.getString("R_sslFailed"));
+            Object[] msgArgs = {e.getCause().getLocalizedMessage()};
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_SQL_AUTH_FAILED_SSL));
+                    e.getMessage().contains(form.format(msgArgs)));
         }
     }
 

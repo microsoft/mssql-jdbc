@@ -194,10 +194,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_toSigninAdd", "To sign into this application, the account must be added to"},
             {"R_sslConnectionError",
                     "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."},
-            {"R_notAuthandIS", "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
-            {"R_notAuthandUserPassword",
-                    "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-            {"R_resultset_IsClosed", "The result set is closed."}, {"R_socketClosed", "Socket closed"},
-            {"R_aeStreamReadError", "The multi-part identifier"},
+            {"R_socketClosed", "Socket closed"}, {"R_aeStreamReadError", "The multi-part identifier"},
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }

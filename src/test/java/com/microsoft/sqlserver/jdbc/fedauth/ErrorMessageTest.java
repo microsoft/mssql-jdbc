@@ -674,7 +674,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_ACTIVEPASSWORD));
         }
     }
 
@@ -694,7 +694,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_ACTIVEPASSWORD));
         }
     }
 
@@ -708,7 +708,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_ACTIVEPASSWORD));
         }
     }
 
@@ -722,7 +722,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_ACTIVEPASSWORD));
         }
     }
 
@@ -742,7 +742,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD));
         }
     }
 
@@ -762,7 +762,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD));
         }
     }
 
@@ -776,7 +776,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD));
         }
     }
 
@@ -790,7 +790,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD));
+                    e.getMessage().startsWith(ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD));
         }
     }
 
