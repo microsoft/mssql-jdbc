@@ -37,7 +37,7 @@ class CertificateDetails {
         try {
             certificate.checkValidity();
         } catch (CertificateExpiredException | CertificateNotYetValidException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
         }
         this.privateKey = privateKey;
     }
