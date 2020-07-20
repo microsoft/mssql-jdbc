@@ -124,8 +124,10 @@ public class ErrorMessageTest extends FedauthCommon {
             }
 
             String wrongUserName = azureUserName.split("@")[1];
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage()
-                    .startsWith(ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login."));
+            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    e.getMessage().startsWith(
+                            ERR_MSG_CANNOT_OPEN_SERVER + " \"" + wrongUserName + "\" requested by the login.")
+                            || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
         }
     }
 
