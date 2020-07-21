@@ -265,7 +265,8 @@ public class FedauthTest extends FedauthCommon {
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
                 assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER));
+                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
+                                || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
         }
     }
@@ -298,7 +299,8 @@ public class FedauthTest extends FedauthCommon {
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
                 assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER));
+                        e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
+                                || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
         }
     }
