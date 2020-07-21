@@ -126,9 +126,6 @@ public class FedauthCommon extends AbstractTest {
                 + ";Authentication=" + SqlAuthentication.ActiveDirectoryIntegrated.toString();
 
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
-        if (!isWindows) {
-            fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
-        }
         fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases", "").split(Constants.SEMI_COLON);
 
         spn = getConfiguredProperty("spn");

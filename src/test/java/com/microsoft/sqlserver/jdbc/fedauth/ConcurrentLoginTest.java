@@ -7,8 +7,8 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -23,8 +23,17 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.fedAuth)
 public class ConcurrentLoginTest extends FedauthCommon {
 
+    final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
+    Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            throwableRef.set(e);
+        }
+    };
+
     @Test
-    public void testConcurrentLogin() {
+    public void testConcurrentLogin() throws Exception {
         Random rand = new Random();
         int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
 
@@ -39,7 +48,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                 try (Connection conn = ds.getConnection()) {
                     testUserName(conn, azureUserName, SqlAuthentication.NotSpecified);
                 }
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 fail(e.getMessage());
             }
         };
@@ -57,7 +66,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
                 try (Connection conn = ds.getConnection()) {
                     testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
                 }
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 fail(e.getMessage());
             }
         };
@@ -73,16 +82,33 @@ public class ConcurrentLoginTest extends FedauthCommon {
                 try (Connection conn = ds.getConnection()) {
                     testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
                 }
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 fail(e.getMessage());
             }
         };
 
         for (int i = 0; i < numberOfThreadsForEachType; i++) {
-            new Thread(r1).start();
-            new Thread(r2).start();
-            if (isWindows && enableADIntegrated)
-                new Thread(r3).start();
+            Thread t1 = new Thread(r1);
+            Thread t2 = new Thread(r2);
+            t1.setUncaughtExceptionHandler(handler);
+            t2.setUncaughtExceptionHandler(handler);
+
+            t1.start();
+            t2.start();
+            if (isWindows && enableADIntegrated) {
+                Thread t3 = new Thread(r3);
+                t3.setUncaughtExceptionHandler(handler);
+                t3.start();
+                t3.join();
+            }
+            t1.join();
+            t2.join();
+
+            Throwable throwable = (Throwable) throwableRef.get();
+            if (throwable != null) {
+                fail(throwable.getMessage());
+            }
+
         }
     }
 }
