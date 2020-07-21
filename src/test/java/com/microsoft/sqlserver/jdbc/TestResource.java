@@ -192,8 +192,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_failedToAuthenticate", "Failed to authenticate"},
             {"R_signinTooManyTimes", "You've tried to sign in too many times with an incorrect user ID or password."},
             {"R_toSigninAdd", "To sign into this application, the account must be added to"},
-            {"R_sslConnectionError",
-                    "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption."},
             {"R_socketClosed", "Socket closed"}, {"R_aeStreamReadError", "The multi-part identifier"},
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
 }
