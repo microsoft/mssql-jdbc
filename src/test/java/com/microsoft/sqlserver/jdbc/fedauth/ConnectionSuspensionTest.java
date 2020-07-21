@@ -145,7 +145,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
 
                 while (secondsPassed < secondsBeforeExpiration) {
-                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
+                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 5 minutes
 
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;
                     testUserName(connection, azureUserName, authentication);
