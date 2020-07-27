@@ -3609,10 +3609,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return sCatalog;
     }
 
-    String getSCatalog() throws SQLServerException {
-        return sCatalog;
-    }
-
     @Override
     public void setTransactionIsolation(int level) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
