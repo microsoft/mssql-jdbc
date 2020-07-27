@@ -5,9 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.4.0] Stable Release
 ### Added
-- Added support for Data Classification v2 [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338)
+- Added support for Data Classification v2 [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
 - Added public API to return the database compatibility level [#1345](https://github.com/microsoft/mssql-jdbc/pull/1345)
-- Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
+- Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357)
 
 ### Fixed issues
 - Fixed an issue with DatabaseMetaData.getColumns() intermittently returning table column descriptions in incorrect order [#1348](https://github.com/microsoft/mssql-jdbc/pull/1348)
