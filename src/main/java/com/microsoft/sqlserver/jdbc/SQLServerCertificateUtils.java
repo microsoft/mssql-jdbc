@@ -31,6 +31,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
@@ -95,6 +96,7 @@ final class SQLServerCertificateUtils {
     private static KeyManager[] readPKCS8Certificate(String certPath, String keyPath,
             String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
         Certificate clientCertificate = loadCertificate(certPath);
+        ((X509Certificate)clientCertificate).checkValidity();
         PrivateKey privateKey = loadPrivateKey(keyPath, keyPassword);
 
         KeyStore keyStore = KeyStore.getInstance(JAVA_KEY_STORE);
