@@ -3,13 +3,12 @@ package com.microsoft.sqlserver.jdbc.callablestatement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.text.MessageFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -39,6 +38,7 @@ public class CallableStatementTest extends AbstractTest {
     private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");
     private static String setNullProcedureName = RandomUtil.getIdentifier("CallableStatementTest_setNull_SP");
     private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
+    private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
 
     /**
      * Setup before test
@@ -53,11 +53,13 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
             createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
+            createGetObjectLocalDateTimeProcedure(stmt);
         }
     }
 
@@ -120,6 +122,45 @@ public class CallableStatementTest extends AbstractTest {
             String actual = cs2.getString(3);
 
             assertEquals(expected, actual);
+        }
+    }
+
+
+    /**
+     * Tests getObject(n, java.time.LocalDateTime.class).
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void getObjectAsLocalDateTime() throws SQLException {
+        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName) + " (?)}";
+        try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
+            cs.registerOutParameter(1, Types.TIMESTAMP);
+            TimeZone prevTimeZone = TimeZone.getDefault();
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
+
+            // a local date/time that does not actually exist because of Daylight Saving Time
+            final String testValueDate = "2018-03-11";
+            final String testValueTime = "02:00:00.1234567";
+            final String testValueDateTime = testValueDate + "T" + testValueTime;
+
+            try {
+                cs.execute();
+
+                LocalDateTime expectedLocalDateTime = LocalDateTime.parse(testValueDateTime);
+                LocalDateTime actualLocalDateTime = cs.getObject(1, LocalDateTime.class);
+                assertEquals(expectedLocalDateTime, actualLocalDateTime);
+
+                LocalDate expectedLocalDate = LocalDate.parse(testValueDate);
+                LocalDate actualLocalDate = cs.getObject(1, LocalDate.class);
+                assertEquals(expectedLocalDate, actualLocalDate);
+
+                LocalTime expectedLocalTime = LocalTime.parse(testValueTime);
+                LocalTime actualLocalTime = cs.getObject(1, LocalTime.class);
+                assertEquals(expectedLocalTime, actualLocalTime);
+            } finally {
+                TimeZone.setDefault(prevTimeZone);
+            }
         }
     }
 
@@ -205,6 +246,13 @@ public class CallableStatementTest extends AbstractTest {
                 + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
                 + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
 
+        stmt.execute(sql);
+    }
+
+    private static void createGetObjectLocalDateTimeProcedure(Statement stmt) throws SQLException {
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName)
+                + "(@p1 datetime2(7) OUTPUT) AS "
+                + "SELECT @p1 = '2018-03-11T02:00:00.1234567'";
         stmt.execute(sql);
     }
 }
