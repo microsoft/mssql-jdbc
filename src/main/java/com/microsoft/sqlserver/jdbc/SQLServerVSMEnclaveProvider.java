@@ -58,22 +58,26 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+        // Check if the session exists in our cache
+        StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
+                .append(attestationUrl);
+        EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
+        if (null != entry) {
+            this.enclaveSession = entry.getEnclaveSession();
+            this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+        }
         ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
                 parameterNames);
-        if (null != hgsResponse && !connection.enclaveEstablished()) {
-            // Check if the session exists in our cache
-            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationUrl);
-            if (null != entry) {
-                this.enclaveSession = entry.getEnclaveSession();
-                this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
-                return b;
-            }
+        if (connection.enclaveEstablished()) {
+            return b;
+        } else if (null != hgsResponse && !connection.enclaveEstablished()) {
+
             // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams,
-                        enclaveSession);
+                enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
+                        connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
