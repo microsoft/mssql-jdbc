@@ -499,7 +499,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_AEKeypathEmpty",
                     "Internal error. Certificate path cannot be null. Use the following format: \"certificate location/certificate store/certificate thumbprint\", "
                             + "where \"certificate location\" is either LocalMachine or CurrentUser."},
-            {"R_AEWinApiErr", "Windows Api native error."},
+            {"R_AEWinApiErr", "Windows Api native error. {0}"},
             {"R_AECertpathBad",
                     "Internal error. Invalid certificate path: {0}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", "
                             + "where \"certificate location\" is either LocalMachine or CurrentUser."},

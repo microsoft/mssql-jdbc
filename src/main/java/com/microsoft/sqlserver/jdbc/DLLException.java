@@ -94,6 +94,12 @@ class DLLException extends Exception {
             msgArgs[1] = parameter1 + "/" + parameter2 + "/" + parameter3;
         } else if ("R_AECertHashEmpty".equalsIgnoreCase(errMessage)) {
             msgArgs[0] = parameter1 + "/" + parameter2 + "/" + parameter3;
+        } else if ("R_AEWinApiErr".equalsIgnoreCase(errMessage)) {
+            if (null != parameter1) {
+                msgArgs[0] = parameter1;
+            } else {
+                msgArgs[0] = "";
+            }
         } else {
             msgArgs[0] = parameter1;
             msgArgs[1] = parameter2;
