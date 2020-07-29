@@ -5,8 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [8.4.0] Stable Release
 ### Added
-- Added support for Data Classification v2 [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
-- Added public API to return the database compatibility level [#1345](https://github.com/microsoft/mssql-jdbc/pull/1345)
+- Added support for sensitivity ranking when using SQL Data Discovery and Classification [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
+- Added SQLServerDatabaseMetaData.getDatabaseCompatibilityLevel() API to return the database compatibility level [#1345](https://github.com/microsoft/mssql-jdbc/pull/1345)
 - Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357)
 
 ### Fixed issues
@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
 - Added database name to Always Encrypted enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
+- No longer validating certificate expiry date when creating encrypted connection [#1394](https://github.com/microsoft/mssql-jdbc/pull/1394)
 
 ## [8.3.1] Preview Release
 ### Added
