@@ -12,8 +12,6 @@ import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 
@@ -34,11 +32,6 @@ class CertificateDetails {
 
     CertificateDetails(X509Certificate certificate, Key privateKey) throws SQLServerException {
         this.certificate = certificate;
-        try {
-            certificate.checkValidity();
-        } catch (CertificateExpiredException | CertificateNotYetValidException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
-        }
         this.privateKey = privateKey;
     }
 }
