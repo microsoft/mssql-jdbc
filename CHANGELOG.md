@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
 - Added database name to Always Encrypted enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
-- Added functionality to validate both beginning and expiration dates when creating encrypted connection [#1394](https://github.com/microsoft/mssql-jdbc/pull/1394)
+- Added functionality to validate both certificate beginning and expiration dates when creating encrypted connection [#1394](https://github.com/microsoft/mssql-jdbc/pull/1394)
 
 ## [8.3.1] Preview Release
 ### Added
