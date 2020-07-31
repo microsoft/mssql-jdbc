@@ -70,13 +70,12 @@ public abstract class AbstractTest {
 
     protected static String trustStorePath = "";
 
+    protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
-
-    protected static String windowsKeyPath = null;
 
     // properties needed for MSI
     protected static String msiClientId = null;
@@ -105,6 +104,10 @@ public abstract class AbstractTest {
     private static PrintStream logPrintStream = null;
     private static Properties configProperties = null;
 
+    protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    public static Properties properties = null;
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -129,7 +132,9 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
@@ -565,7 +570,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value or default value
      */
-    private static String getConfiguredProperty(String key, String defaultValue) {
+    protected static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (null == value) {
