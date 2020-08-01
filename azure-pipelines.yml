@@ -10,10 +10,10 @@ jobs:
     matrix:
       SQL-2019:
         Target_SQL: 'HGS-2k19-01'
-        Ex_Groups: 'xSQLv15,MSI,clientCertAuth'
+        Ex_Groups: 'xSQLv15,MSI,clientCertAuth,fedAuth'
       SQL-2012:
         Target_SQL: 'SQL-2K12-SP3-1'
-        Ex_Groups: 'xSQLv12,MSI'
+        Ex_Groups: 'xSQLv12,MSI,fedAuth'
     maxParallel: 2
   steps:
   - powershell: |

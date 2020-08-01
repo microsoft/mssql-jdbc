@@ -3408,7 +3408,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param delayedDurability
      *        flag to indicate whether the commit will occur with delayed durability on.
      * @throws SQLServerException
-     *         Exception if a database access error occurs,
+     *         Exception if a database access error occurs
      */
     public void commit(boolean delayedDurability) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "commit");
