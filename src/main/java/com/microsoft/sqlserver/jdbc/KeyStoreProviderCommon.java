@@ -30,7 +30,7 @@ class CertificateDetails {
     X509Certificate certificate;
     Key privateKey;
 
-    CertificateDetails(X509Certificate certificate, Key privateKey) {
+    CertificateDetails(X509Certificate certificate, Key privateKey) throws SQLServerException {
         this.certificate = certificate;
         this.privateKey = privateKey;
     }

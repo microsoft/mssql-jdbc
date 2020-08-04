@@ -13,7 +13,10 @@ AE_Certificates/
 *.bak
 *.swp
 *~.nib
+*.cer
+*.jks
 local.properties
+config.properties
 .classpath
 .vscode/
 .settings/
