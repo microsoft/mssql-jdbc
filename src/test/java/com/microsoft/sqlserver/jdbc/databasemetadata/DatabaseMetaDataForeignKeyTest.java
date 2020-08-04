@@ -53,15 +53,11 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupVariation() throws SQLException {
+        cleanup();
+
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             catalog = conn.getCatalog();
             schema = conn.getSchema();
-
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table3), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table4), stmt);
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table5), stmt);
 
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(table2)
                     + " (c21 int NOT NULL PRIMARY KEY)");
@@ -111,6 +107,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws SQLException {
+        cleanup();
+    }
+
+    private static void cleanup() {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(table2), stmt);
@@ -126,7 +126,6 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(PKTable1), stmt);
 
             TestUtils.dropSchemaIfExists(anotherSchema, stmt);
-
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
