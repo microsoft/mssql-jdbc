@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,6 +27,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -434,7 +438,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLServerException e) {
             assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                     TestResource.getResource("R_wrongExceptionMessage"));
-          assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
+            assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
         }
     }
 
@@ -569,7 +573,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
                         TestResource.getResource("R_wrongExceptionMessage"));
-              assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
+                assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
             }
         }
 
@@ -801,6 +805,46 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(conn.getServerNameString(null) == null);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
+    /*
+     * Basic test to make sure lobs work with ConnectionPoolProxy as well
+     */
+    @Test
+    @DisplayName("testConnectionPoolProxyWithLobs")
+    public void testConnectionPoolProxyWithLobs() throws SQLException, IOException {
+        String cString = getConnectionString() + ";delayLoadingLobs=false;";
+        String data = "testConnectionPoolProxyWithLobs";
+        try (Connection conn = PrepUtil.getConnection(cString);
+                SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy((SQLServerConnection) conn)) {
+            try (Statement stmt = proxy.createStatement()) {
+                String tableName = RandomUtil.getIdentifier("streamingTest");
+                stmt.execute(
+                        "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (lob varchar(max))");
+                stmt.execute(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES ('" + data + "')");
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    while (rs.next()) {
+                        Clob c = rs.getClob(1);
+                        try (Reader r = c.getCharacterStream()) {
+                            long clobLength = c.length();
+                            // read the Reader contents into a buffer and return the complete string
+                            final StringBuilder stringBuilder = new StringBuilder((int) clobLength);
+                            char[] buffer = new char[(int) clobLength];
+                            int amountRead = -1;
+                            while ((amountRead = r.read(buffer, 0, (int) clobLength)) != -1) {
+                                stringBuilder.append(buffer, 0, amountRead);
+                            }
+                            String received = stringBuilder.toString();
+                            c.free();
+                            assertEquals(data, received);// compare streamed string to initial
+                                                                               // string
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
@@ -2082,9 +2083,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     private void configureLobs(SQLServerLob lob) throws SQLServerException {
         if (null != stmt) {
-            SQLServerConnection c = (SQLServerConnection) stmt.getConnection();
-            if (null != c && !c.getDelayLoadingLobs()) {
-                lob.setDelayLoadingLob();
+            Connection c = stmt.getConnection();
+            if (c instanceof ISQLServerConnection) {
+                if (null != c && !((ISQLServerConnection) c).getDelayLoadingLobs()) {
+                    lob.setDelayLoadingLob();
+                }
             }
         }
         activeLOB = lob;
@@ -2638,7 +2641,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
         return value;
     }
-    
+
     LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
         checkClosed();
