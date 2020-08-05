@@ -360,17 +360,17 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setUseFmtOnly(boolean useFmtOnly);
     
     /**
-     * Returns the current flag value for useFmtOnly.
+     * Returns the current flag value for delayLoadingLobs.
      *
-     * @return 'useFmtOnly' property value.
+     * @return 'delayLoadingLobs' property value.
      */
     boolean getDelayLoadingLobs();
 
     /**
-     * Specifies the flag to use FMTONLY for parameter metadata queries.
+     * Specifies the flag to immediately load LOB objects into memory.
      *
-     * @param useFmtOnly
-     *        boolean value for 'useFmtOnly'.
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
 }
