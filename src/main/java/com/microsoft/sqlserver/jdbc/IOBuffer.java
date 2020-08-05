@@ -1486,7 +1486,7 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Forwarding ClientTrusted.");
             defaultTrustManager.checkClientTrusted(chain, authType);
-            // Explicitly validate the expire dates
+            // Explicitly validate the expiry dates
             for (X509Certificate cert : chain) {
                 cert.checkValidity();
             }
@@ -1496,7 +1496,7 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Forwarding Trusting server certificate");
             defaultTrustManager.checkServerTrusted(chain, authType);
-            // Explicitly validate the expire dates
+            // Explicitly validate the expiry dates
             for (X509Certificate cert : chain) {
                 cert.checkValidity();
             }

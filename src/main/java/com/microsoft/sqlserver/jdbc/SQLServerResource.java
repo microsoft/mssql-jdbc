@@ -267,7 +267,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_sendTemporalDataTypesAsStringForBulkCopyPropertyDescription",
                     "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
             {"R_delayLoadingLobsPropertyDescription",
-                    "Boolean flag which indicates whether the driver will load LOB datatypes into memeory."},
+                    "Boolean flag which indicates whether the driver will load LOB datatypes into memory."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
