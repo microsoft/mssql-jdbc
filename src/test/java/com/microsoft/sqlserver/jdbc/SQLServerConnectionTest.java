@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -812,7 +811,6 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Basic test to make sure lobs work with ConnectionPoolProxy as well
      */
     @Test
-    @DisplayName("testConnectionPoolProxyWithLobs")
     public void testConnectionPoolProxyWithLobs() throws SQLException, IOException {
         String cString = getConnectionString() + ";delayLoadingLobs=false;";
         String data = "testConnectionPoolProxyWithLobs";
