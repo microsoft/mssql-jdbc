@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -812,10 +811,10 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Basic test to make sure lobs work with ConnectionPoolProxy as well
      */
     @Test
-    @DisplayName("testConnectionPoolProxyWithLobs")
     public void testConnectionPoolProxyWithLobs() throws SQLException, IOException {
         String cString = getConnectionString() + ";delayLoadingLobs=false;";
         String data = "testConnectionPoolProxyWithLobs";
+        Clob c = null;
         try (Connection conn = PrepUtil.getConnection(cString);
                 SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy((SQLServerConnection) conn)) {
             try (Statement stmt = proxy.createStatement()) {
@@ -827,7 +826,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 try (ResultSet rs = stmt
                         .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     while (rs.next()) {
-                        Clob c = rs.getClob(1);
+                        c = rs.getClob(1);
                         try (Reader r = c.getCharacterStream()) {
                             long clobLength = c.length();
                             // read the Reader contents into a buffer and return the complete string
@@ -838,13 +837,26 @@ public class SQLServerConnectionTest extends AbstractTest {
                                 stringBuilder.append(buffer, 0, amountRead);
                             }
                             String received = stringBuilder.toString();
-                            c.free();
-                            assertEquals(data, received);// compare streamed string to initial
-                                                                               // string
+                            assertEquals(data, received);
                         }
                     }
+                } finally {
+                    TestUtils.dropTableIfExists(tableName, stmt);
                 }
             }
+        }
+        // Read the lob after it's been closed
+        try (Reader r = c.getCharacterStream()) {
+            long clobLength = c.length();
+            // read the Reader contents into a buffer and return the complete string
+            final StringBuilder stringBuilder = new StringBuilder((int) clobLength);
+            char[] buffer = new char[(int) clobLength];
+            int amountRead = -1;
+            while ((amountRead = r.read(buffer, 0, (int) clobLength)) != -1) {
+                stringBuilder.append(buffer, 0, amountRead);
+            }
+            String received = stringBuilder.toString();
+            assertEquals(data, received);
         }
     }
 }
