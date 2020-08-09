@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.sql.PooledConnection;
 
@@ -36,6 +37,15 @@ public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
+
+    final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
+    Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            throwableRef.set(e);
+        }
+    };
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
@@ -200,17 +210,23 @@ public class PooledConnectionTest extends FedauthCommon {
             Random rand = new Random();
             int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                new Thread(r1).start();
-                new Thread(r2).start();
-                new Thread(r3).start();
-            }
+                Thread t1 = new Thread(r1);
+                Thread t2 = new Thread(r2);
+                Thread t3 = new Thread(r3);
+                t1.setUncaughtExceptionHandler(handler);
+                t2.setUncaughtExceptionHandler(handler);
+                t3.setUncaughtExceptionHandler(handler);
+                t1.start();
+                t2.start();
+                t3.start();
+                t1.join();
+                t2.join();
+                t3.join();
 
-            // sleep in order to catch exception from other threads if tests fail.
-            try {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(60));
-
-            } catch (InterruptedException e) {
-                fail(e.getMessage());
+                Throwable throwable = (Throwable) throwableRef.get();
+                if (throwable != null) {
+                    fail(throwable.getMessage());
+                }
             }
         } catch (Exception e) {
             fail(e.getMessage());
@@ -247,6 +263,8 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                 } catch (SQLException e) {
+                    System.out.println("exception r2: "+e.getMessage());
+
                     fail(e.getMessage());
                 }
             };
@@ -255,6 +273,8 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                 } catch (SQLException e) {
+                    System.out.println("exception r3: "+e.getMessage());
+
                     fail(e.getMessage());
                 }
             };
@@ -262,16 +282,23 @@ public class PooledConnectionTest extends FedauthCommon {
             Random rand = new Random();
             int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                new Thread(r1).start();
-                new Thread(r2).start();
-                new Thread(r3).start();
-            }
+                Thread t1 = new Thread(r1);
+                Thread t2 = new Thread(r2);
+                Thread t3 = new Thread(r3);
+                t1.setUncaughtExceptionHandler(handler);
+                t2.setUncaughtExceptionHandler(handler);
+                t3.setUncaughtExceptionHandler(handler);
+                t1.start();
+                t2.start();
+                t3.start();
+                t1.join();
+                t2.join();
+                t3.join();
 
-            // sleep in order to catch exception from other threads if tests fail.
-            try {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(60));
-            } catch (InterruptedException e) {
-                fail(e.getMessage());
+                Throwable throwable = (Throwable) throwableRef.get();
+                if (throwable != null) {
+                    fail(throwable.getMessage());
+                }
             }
         } catch (Exception e) {
             fail(e.getMessage());
