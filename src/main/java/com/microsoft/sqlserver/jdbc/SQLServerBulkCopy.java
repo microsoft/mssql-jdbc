@@ -32,6 +32,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1839,7 +1840,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // if no mapping is provided for csv file and metadata is missing for some columns throw error
                 if (null != serverBulkData) {
                     Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
-                    Iterator<Integer> columnsIterator = columnOrdinals.iterator();
+                    List<Integer> sortedList = new ArrayList<>(columnOrdinals);
+                    Collections.sort(sortedList);
+                    Iterator<Integer> columnsIterator = sortedList.iterator();
                     int j = 1;
                     while (columnsIterator.hasNext()) {
                         int currentOrdinal = columnsIterator.next();
