@@ -11,6 +11,7 @@ package com.microsoft.sqlserver.jdbc.dataclassification;
 public class SensitivityProperty {
     private Label label;
     private InformationType informationType;
+    private int sensitivityRank;
 
     /**
      * Constructs a SensitivityProperty
@@ -23,6 +24,22 @@ public class SensitivityProperty {
     public SensitivityProperty(Label label, InformationType informationType) {
         this.label = label;
         this.informationType = informationType;
+    }
+
+    /**
+     * Constructs a SensitivityProperty
+     * 
+     * @param label
+     *        Label as received from SQL Server for this SensitivityProperty
+     * @param informationType
+     *        InformationType as received from SQL Server for this SensitivityProperty
+     * @param sensitivityRank
+     *        sensitivity rank as received from SQL Server for this SensitivityProperty
+     */
+    public SensitivityProperty(Label label, InformationType informationType, int sensitivityRank) {
+        this.label = label;
+        this.informationType = informationType;
+        this.sensitivityRank = sensitivityRank;
     }
 
     /**
@@ -41,5 +58,9 @@ public class SensitivityProperty {
      */
     public InformationType getInformationType() {
         return informationType;
+    }
+
+    public int getSensitivityRank() {
+        return sensitivityRank;
     }
 }

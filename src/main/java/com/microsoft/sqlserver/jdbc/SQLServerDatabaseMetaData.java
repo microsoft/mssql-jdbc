@@ -750,7 +750,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     } else {
                         azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                     }
-                    
+
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(azureDwSelectBuilder.toString());
                     userRs = (SQLServerResultSet) resultPstmt.executeQuery();
@@ -2550,12 +2550,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /* -------------- MSSQL-JDBC Extension methods start here --------------- */
 
     /**
-     * Returns the database compatibility level setting for the current database.  This is useful if the
-     * database's compatibility level is lower than the engine version.  In this case the database will only
-     * support SQL commands at its compatibility level, and not the wider set of commands accepted by the
-     * engine.
+     * Returns the database compatibility level setting for the current database. This is useful if the database's
+     * compatibility level is lower than the engine version. In this case the database will only support SQL commands at
+     * its compatibility level, and not the wider set of commands accepted by the engine.
      *
      * @return the database compatibility level value (from sys.databases table).
+     * @throws SQLException
+     *         if error getting compatability level
      */
     public int getDatabaseCompatibilityLevel() throws SQLException {
         checkClosed();
