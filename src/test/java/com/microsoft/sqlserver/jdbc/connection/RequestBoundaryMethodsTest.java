@@ -67,7 +67,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String sCatalog1 = "master";
         boolean useBulkCopyForBatchInsert1 = true;
         boolean useFmtOnly1 = true;
-        boolean delayLoadingLobs1 = true;
+        boolean delayLoadingLobs1 = false;
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
@@ -81,7 +81,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
         boolean useBulkCopyForBatchInsert2 = false;
         boolean useFmtOnly2 = false;
-        boolean delayLoadingLobs2 = false;
+        boolean delayLoadingLobs2 = true;
 
         try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
