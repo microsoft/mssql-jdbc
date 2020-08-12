@@ -73,8 +73,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     private final byte[] firstVersion = new byte[] {0x01};
 
-//    private CryptographyClient cryptoClient;
+    private CryptographyClient cryptoClient;
     private KeyClient keyVaultClient;
+    private TokenCredential credential;
 
     public void setName(String name) {
         this.name = name;
@@ -162,13 +163,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException("vaultBaseUrl is not valid: " + vaultBaseUrl, null);
         }
 
+        this.credential = credential;
+
         this.keyVaultClient = new KeyClientBuilder()
             .credential(credential)
             .vaultUrl(vaultFullUrl)
             .buildClient();
-//        this.cryptoClient = new CryptographyClientBuilder()
-//            .credential(credential)
-//            .buildClient();
     }
 
     /**
@@ -450,14 +450,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                     false);
         }
 
-        // Transform to standard format (underscore instead of dash) to support enum lookup
-        if ("RSA-OAEP".equalsIgnoreCase(encryptionAlgorithm)) {
-            encryptionAlgorithm = "RSA_OAEP";
+        // Transform to standard format (dash instead of underscore) to support enum lookup
+        if ("RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm)) {
+            encryptionAlgorithm = "RSA-OAEP";
         }
 
-        if (!"RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!"RSA-OAEP".equalsIgnoreCase(encryptionAlgorithm.trim())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeyEncryptionAlgorithm"));
-            Object[] msgArgs = {encryptionAlgorithm, "RSA_OAEP"};
+            Object[] msgArgs = {encryptionAlgorithm, "RSA-OAEP"};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
@@ -522,10 +522,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(SQLServerException.getErrString("R_CEKNull"), null);
         }
 
-        throw new RuntimeException("Testing key path: " + masterKeyPath);
-//        WrapResult wrappedKey = cryptoClient.wrapKey(encryptionAlgorithm, columnEncryptionKey);
-//
-//        return wrappedKey.getEncryptedKey();
+        WrapResult wrappedKey = cryptoClient.wrapKey(KeyWrapAlgorithm.RSA_OAEP, columnEncryptionKey);
+        return wrappedKey.getEncryptedKey();
     }
 
     /**
@@ -550,10 +548,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(SQLServerException.getErrString("R_EmptyEncryptedCEK"), null);
         }
 
-        throw new RuntimeException("Testing key path: " + masterKeyPath);
-//        UnwrapResult unwrappedKey = cryptoClient.unwrapKey(encryptionAlgorithm, encryptedColumnEncryptionKey);
-//
-//        return unwrappedKey.getKey();
+        UnwrapResult unwrappedKey = cryptoClient.unwrapKey(encryptionAlgorithm, encryptedColumnEncryptionKey);
+
+        return unwrappedKey.getKey();
     }
 
     /**
@@ -569,10 +566,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private byte[] AzureKeyVaultSignHashedData(byte[] dataToSign, String masterKeyPath) throws SQLServerException {
         assert ((null != dataToSign) && (0 != dataToSign.length));
 
-        throw new RuntimeException("Testing key path: " + masterKeyPath);
-//        SignResult signedData = cryptoClient.sign(SignatureAlgorithm.RS256, dataToSign);
-//
-//        return signedData.getSignature();
+        SignResult signedData = cryptoClient.sign(SignatureAlgorithm.RS256, dataToSign);
+        return signedData.getSignature();
     }
 
     /**
@@ -590,10 +585,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         assert ((null != dataToVerify) && (0 != dataToVerify.length));
         assert ((null != signature) && (0 != signature.length));
 
-        throw new RuntimeException("Testing key path: " + masterKeyPath);
-//        VerifyResult valid = cryptoClient.verify(SignatureAlgorithm.RS256, dataToVerify, signature);
-//
-//        return valid.isValid();
+        VerifyResult valid = cryptoClient.verify(SignatureAlgorithm.RS256, dataToVerify, signature);
+
+        return valid.isValid();
     }
 
     /**
@@ -606,6 +600,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *         when an error occurs
      */
     private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
+        masterKeyPath = "Always-Encrypted-Auto1";
         KeyVaultKey retrievedKey = keyVaultClient.getKey(masterKeyPath);
 
         if (null == retrievedKey) {
@@ -620,6 +615,13 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
             Object[] msgArgs = {retrievedKey.getKeyType().toString()};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+
+        if (cryptoClient == null) {
+            cryptoClient = new CryptographyClientBuilder()
+                .credential(credential)
+                .keyIdentifier(retrievedKey.getId())
+                .buildClient();
         }
 
         return retrievedKey.getKey().getN().length;
