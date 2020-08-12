@@ -185,6 +185,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private String localUserSQL;
 
+    private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
+
     // Internal function used in tracing
     String getClassNameInternal() {
         return "SQLServerPreparedStatement";
@@ -2694,7 +2696,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2720,18 +2721,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
-            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
+            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
+                    && !encryptionMetadataIsRetrieved) {
                 this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on
-                // Connection
+                /*
+                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                 *  on one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 *  batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
@@ -2740,22 +2745,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+                encryptionMetadataIsRetrieved = true;
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on
-                // Connection
+                /*
+                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
+                 *  on one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 *  batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
-            }
-
-            // Update the crypto metadata for this batch.
-            if (0 < numBatchesExecuted) {
+            } else {
                 // cryptoMetaBatch will be empty for non-AE connections/statements.
                 for (int i = 0; i < cryptoMetaBatch.size(); i++) {
                     batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
