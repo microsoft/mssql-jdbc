@@ -487,7 +487,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setTypeMap");
         verifiedMethodNames.add("createArrayOf");
         verifiedMethodNames.add("setUseFmtOnly");
-        verifiedMethodNames.add("delayLoadingLobs");
+        verifiedMethodNames.add("setDelayLoadingLobs");
 
         return verifiedMethodNames;
     }
