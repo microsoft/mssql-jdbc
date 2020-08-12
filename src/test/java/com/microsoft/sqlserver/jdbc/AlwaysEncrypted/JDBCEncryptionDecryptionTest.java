@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -125,9 +126,13 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testBadAkv(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                 (TokenCredential) null);
-        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (NullPointerException exception) {
+            assertNull(exception.getMessage());
+        }
     }
 
     /*
