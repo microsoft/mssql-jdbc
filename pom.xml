@@ -60,9 +60,8 @@
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>1.2.4</azure.keyvault.version>
-		<azure.adal4j.version>1.6.5</azure.adal4j.version>
-		<rest.client.version>1.7.4</rest.client.version>
+		<azure.keyvault.version>4.1.4</azure.keyvault.version>
+		<azure.identity.version>1.0.7</azure.identity.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
@@ -86,22 +85,14 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-keyvault</artifactId>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-security-keyvault-keys</artifactId>
 			<version>${azure.keyvault.version}</version>
-			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>adal4j</artifactId>
-			<version>${azure.adal4j.version}</version>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>com.microsoft.rest</groupId>
-			<artifactId>client-runtime</artifactId>
-			<version>${rest.client.version}</version>
-			<optional>true</optional>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>${azure.identity.version}</version>
 		</dependency>
 
 		<!-- dependencies for ANTLR -->

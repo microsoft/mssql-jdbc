@@ -363,6 +363,7 @@ enum SQLServerDriverStringProperty {
     MSI_CLIENT_ID("msiClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_ID("keyVaultProviderClientId", ""),
     KEY_VAULT_PROVIDER_CLIENT_KEY("keyVaultProviderClientKey", ""),
+    KEY_VAULT_PROVIDER_TENANT_ID("keyVaultProviderTenantId", ""),
     KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", ""),
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
