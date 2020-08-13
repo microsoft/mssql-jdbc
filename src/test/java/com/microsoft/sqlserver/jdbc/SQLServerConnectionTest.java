@@ -570,7 +570,8 @@ public class SQLServerConnectionTest extends AbstractTest {
                 conn.getClientConnectionId();
                 fail(TestResource.getResource("R_noExceptionClosedConnection"));
             } catch (SQLException e) {
-                assertEquals(e.getMessage(), TestResource.getResource("R_connectionIsClosed"),
+                assertEquals(TestResource.getResource("R_connectionIsClosed"), e.getMessage(),
+
                         TestResource.getResource("R_wrongExceptionMessage"));
                 assertEquals("08S01", e.getSQLState(), TestResource.getResource("R_wrongSqlState"));
             }
