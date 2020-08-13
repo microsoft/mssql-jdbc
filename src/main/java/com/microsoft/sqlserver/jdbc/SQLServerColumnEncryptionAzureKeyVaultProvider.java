@@ -154,7 +154,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
-        String vaultBaseUrl = System.getenv("vaultBaseUrl");
+        String vaultBaseUrl = "susanakv.vault.azure.net"; //System.getenv("vaultBaseUrl");
         String vaultFullUrl = "https://" + vaultBaseUrl;
 
         if (null == vaultBaseUrl || vaultBaseUrl.isEmpty()) {
