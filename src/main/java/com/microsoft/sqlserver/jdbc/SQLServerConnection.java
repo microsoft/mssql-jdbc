@@ -702,10 +702,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
     private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
+    /**
+     * Returns the current state of the delayLoadingLobs flag.
+     * 
+     * @return delayLoadingLobs indicates whether LOB objects will be immediately loaded into memory or not.
+     */
+    @Override
     public boolean getDelayLoadingLobs() {
         return delayLoadingLobs;
     }
-    
+
+    /**
+     * Sets the delayLoadingLobs flag.
+     * 
+     * @param b
+     *        boolean to set the flag to.
+     */
+    @Override
     public void setDelayLoadingLobs(boolean b) {
         delayLoadingLobs = b;
     }
