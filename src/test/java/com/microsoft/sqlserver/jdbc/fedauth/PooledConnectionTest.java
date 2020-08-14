@@ -263,8 +263,6 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                 } catch (SQLException e) {
-                    System.out.println("exception r2: "+e.getMessage());
-
                     fail(e.getMessage());
                 }
             };
@@ -273,8 +271,6 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                 } catch (SQLException e) {
-                    System.out.println("exception r3: "+e.getMessage());
-
                     fail(e.getMessage());
                 }
             };
