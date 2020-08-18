@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -159,7 +160,7 @@ public class FedauthCommon extends AbstractTest {
 
             final IAuthenticationResult authenticationResult = future.get();
 
-            secondsBeforeExpiration = authenticationResult.expiresOnDate().getTime();
+            secondsBeforeExpiration = TimeUnit.MILLISECONDS.toSeconds(authenticationResult.expiresOnDate().getTime());
             accessToken = authenticationResult.accessToken();
         } catch (Exception e) {
             fail(e.getMessage());
