@@ -25,10 +25,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentic
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 
-class SQLServerADAL4JUtils {
+class SQLServerMSAL4JUtils {
 
-    static final private java.util.logging.Logger adal4jLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerADAL4JUtils");
+    static final private java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
@@ -85,8 +85,8 @@ class SQLServerADAL4JUtils {
             KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
             String user = kerberosPrincipal.getName();
 
-            if (adal4jLogger.isLoggable(Level.FINE)) {
-                adal4jLogger.fine(adal4jLogger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(logger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
             }
 
             final PublicClientApplication clientApplication = PublicClientApplication

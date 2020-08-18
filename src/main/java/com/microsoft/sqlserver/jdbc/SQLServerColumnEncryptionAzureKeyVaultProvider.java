@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
+import com.azure.core.http.HttpPipeline;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -19,13 +20,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Level;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
@@ -39,12 +38,11 @@ import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
  * be decryptable by this provider and vice versa.
- * 
+ *
  * Envelope Format for the encrypted column encryption key version + keyPathLength + ciphertextLength + keyPath +
  * ciphertext + signature version: A single byte indicating the format version. keyPathLength: Length of the keyPath.
  * ciphertextLength: ciphertext length keyPath: keyPath used to encrypt the column encryption key. This is only used for
@@ -62,11 +60,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
     private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
+    private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
+
     private static final List<String> akvTrustedEndpoints;
     static {
         akvTrustedEndpoints = getTrustedEndpoints();
     }
-//    private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
     /**
      * Algorithm version
@@ -74,7 +73,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private final byte[] firstVersion = new byte[] {0x01};
 
     private CryptographyClient cryptoClient;
-    private KeyClient keyVaultClient;
+    private KeyClient keyClient;
     private TokenCredential credential;
 
     public void setName(String name) {
@@ -85,10 +84,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         return this.name;
     }
 
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        KeyVaultCredential keyVaultCredential = new KeyVaultCredential(clientId, clientKey);
+        HttpPipeline pipeline = new KeyVaultHttpPipelineBuilder()
+                .credential(keyVaultCredential)
+                .buildPipeline();
+
+        keyClient = new KeyClientBuilder()
+                .pipeline(pipeline)
+                .vaultUrl("https://susanakv.vault.azure.net")
+                .buildClient();
+    }
+
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
      * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
-     * 
+     *
      * @param clientId
      *        Identifier of the client requesting the token.
      * @param clientKey
@@ -165,7 +176,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         this.credential = credential;
 
-        this.keyVaultClient = new KeyClientBuilder()
+        this.keyClient = new KeyClientBuilder()
             .credential(credential)
             .vaultUrl(vaultFullUrl)
             .buildClient();
@@ -173,7 +184,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Decrypts an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
-     * 
+     *
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
      * @param encryptionAlgorithm
@@ -309,7 +320,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Encrypts CEK with RSA encryption algorithm using the asymmetric key specified by the key path.
-     * 
+     *
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
      * @param encryptionAlgorithm
@@ -452,12 +463,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         // Transform to standard format (dash instead of underscore) to support enum lookup
         if ("RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm)) {
-            encryptionAlgorithm = "RSA-OAEP";
+            encryptionAlgorithm = RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV;
         }
 
-        if (!"RSA-OAEP".equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV.equalsIgnoreCase(encryptionAlgorithm.trim())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeyEncryptionAlgorithm"));
-            Object[] msgArgs = {encryptionAlgorithm, "RSA-OAEP"};
+            Object[] msgArgs = {encryptionAlgorithm, RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
@@ -466,7 +477,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Checks if the Azure Key Vault key path is Empty or Null (and raises exception if they are).
-     * 
+     *
      * @param masterKeyPath
      * @throws SQLServerException
      */
@@ -506,7 +517,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Encrypts the text using specified Azure Key Vault key.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault key url.
      * @param encryptionAlgorithm
@@ -528,7 +539,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Encrypts the text using specified Azure Key Vault key.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault key url.
      * @param encryptionAlgorithm
@@ -555,7 +566,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Generates signature based on RSA PKCS#v1.5 scheme using a specified Azure Key Vault Key URL.
-     * 
+     *
      * @param dataToSign
      *        - Text to sign.
      * @param masterKeyPath
@@ -572,7 +583,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Verifies the given RSA PKCSv1.5 signature.
-     * 
+     *
      * @param dataToVerify
      * @param signature
      * @param masterKeyPath
@@ -592,7 +603,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Returns the public Key size in bytes.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault Key path
      * @return Key size in bytes
@@ -600,12 +611,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *         when an error occurs
      */
     private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
-        masterKeyPath = "Always-Encrypted-Auto1";
-        KeyVaultKey retrievedKey = keyVaultClient.getKey(masterKeyPath);
+        String[] keyTokens = masterKeyPath.split("/");
+        String keyName = keyTokens[keyTokens.length - 2];
+        KeyVaultKey retrievedKey = keyClient.getKey(keyName);
 
         if (null == retrievedKey) {
-            String[] keyTokens = masterKeyPath.split("/");
-
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
             Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
@@ -617,7 +627,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
 
-        if (cryptoClient == null) {
+        if (null == cryptoClient) {
             cryptoClient = new CryptographyClientBuilder()
                 .credential(credential)
                 .keyIdentifier(retrievedKey.getId())
