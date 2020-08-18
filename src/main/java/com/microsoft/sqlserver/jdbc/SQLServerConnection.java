@@ -4449,7 +4449,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALMissing"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
                 }
-                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
+                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         authenticationString);
 
@@ -4541,7 +4541,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
                     }
-                    fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
                 break;

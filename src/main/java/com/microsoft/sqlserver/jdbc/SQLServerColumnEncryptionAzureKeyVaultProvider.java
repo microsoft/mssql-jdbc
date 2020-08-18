@@ -19,13 +19,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Level;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClient;
 import com.azure.security.keyvault.keys.KeyClientBuilder;
@@ -39,7 +37,6 @@ import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
@@ -62,11 +59,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
     private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
+    private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
+
     private static final List<String> akvTrustedEndpoints;
     static {
         akvTrustedEndpoints = getTrustedEndpoints();
     }
-//    private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
     /**
      * Algorithm version
@@ -83,6 +81,10 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     public String getName() {
         return this.name;
+    }
+
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        this(clientId, clientKey, null);
     }
 
     /**
@@ -452,12 +454,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         // Transform to standard format (dash instead of underscore) to support enum lookup
         if ("RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm)) {
-            encryptionAlgorithm = "RSA-OAEP";
+            encryptionAlgorithm = RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV;
         }
 
-        if (!"RSA-OAEP".equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV.equalsIgnoreCase(encryptionAlgorithm.trim())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeyEncryptionAlgorithm"));
-            Object[] msgArgs = {encryptionAlgorithm, "RSA-OAEP"};
+            Object[] msgArgs = {encryptionAlgorithm, RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
@@ -600,12 +602,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *         when an error occurs
      */
     private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
-        masterKeyPath = "Always-Encrypted-Auto1";
-        KeyVaultKey retrievedKey = keyVaultClient.getKey(masterKeyPath);
+        String[] keyTokens = masterKeyPath.split("/");
+        String keyName = keyTokens[keyTokens.length - 2];
+        KeyVaultKey retrievedKey = keyVaultClient.getKey(keyName);
 
         if (null == retrievedKey) {
-            String[] keyTokens = masterKeyPath.split("/");
-
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
             Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
@@ -617,7 +618,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
 
-        if (cryptoClient == null) {
+        if (null == cryptoClient) {
             cryptoClient = new CryptographyClientBuilder()
                 .credential(credential)
                 .keyIdentifier(retrievedKey.getId())
