@@ -2085,7 +2085,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (null != stmt) {
             Connection c = stmt.getConnection();
             if (c instanceof ISQLServerConnection) {
-                if (null != c && !((ISQLServerConnection) c).getDelayLoadingLobs()) {
+                if (null != c && !((ISQLServerConnection) c).getDelayLoadingLobs() && null != lob) {
                     lob.setDelayLoadingLob();
                 }
             }
