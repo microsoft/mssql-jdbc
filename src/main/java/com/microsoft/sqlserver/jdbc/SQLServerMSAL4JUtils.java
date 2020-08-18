@@ -25,7 +25,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentic
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 
-class SQLServerADAL4JUtils {
+class SQLServerMSAL4JUtils {
 
     static final private java.util.logging.Logger adal4jLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerADAL4JUtils");

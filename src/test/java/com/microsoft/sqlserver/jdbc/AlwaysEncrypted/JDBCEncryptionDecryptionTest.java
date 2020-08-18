@@ -18,8 +18,6 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
@@ -89,6 +87,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testAkvName(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
