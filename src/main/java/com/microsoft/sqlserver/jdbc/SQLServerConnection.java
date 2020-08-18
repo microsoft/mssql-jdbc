@@ -1388,12 +1388,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
         }
 
-        if (null == tenantId) {
-            throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderTenantIdNotSet"), null);
-        }
-
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                clientId, clientKey, tenantId);
+                clientId, clientKey);
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
         keyStoreMap.put(provider.getName(), provider);
         registerColumnEncryptionKeyStoreProviders(keyStoreMap);
@@ -4445,7 +4441,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                if (!adalContextExists()) {
+                if (!msalContextExists()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALMissing"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
                 }
@@ -4531,12 +4527,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         sleepInterval = sleepInterval * 2;
                     }
                 }
-                // else choose ADAL4J for integrated authentication. This option is supported for both windows and unix,
+                // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
                 // so we don't need to check the
                 // OS version here.
                 else {
-                    // Check if ADAL4J library is available
-                    if (!adalContextExists()) {
+                    // Check if MSAL4J library is available
+                    if (!msalContextExists()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandADALMissing"));
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
@@ -4551,9 +4547,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return fedAuthToken;
     }
 
-    private boolean adalContextExists() {
+    private boolean msalContextExists() {
         try {
-            Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
+            Class.forName("com.microsoft.aad.msal4j.PublicClientApplication");
         } catch (ClassNotFoundException e) {
             return false;
         }
