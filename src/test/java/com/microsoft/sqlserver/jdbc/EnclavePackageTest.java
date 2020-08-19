@@ -308,7 +308,7 @@ public class EnclavePackageTest extends AbstractTest {
 
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider aksp = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    "","", "");
+                    "","");
         } catch (SQLServerException e) {
             assertEquals(e.getMessage(), "Client ID cannot be null.");
         }

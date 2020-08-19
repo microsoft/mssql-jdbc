@@ -1362,7 +1362,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     break;
                 case KeyVaultClientSecret:
-                    registerKeyVaultProvider(keyStorePrincipalId, keyStoreSecret, keyVaultProviderTenantId);
+                    registerKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
                     SQLServerColumnEncryptionAzureKeyVaultProvider provider;
@@ -1382,7 +1382,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private void registerKeyVaultProvider(String clientId, String clientKey, String tenantId) throws SQLServerException {
+    private void registerKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
         // need a secret to use the secret method
         if (null == keyStoreSecret) {
             throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
@@ -1640,8 +1640,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         registerKeyVaultProvider(
                                 keyVaultColumnEncryptionProviderClientId,
-                                keyVaultColumnEncryptionProviderClientKey,
-                                keyVaultProviderTenantId);
+                                keyVaultColumnEncryptionProviderClientKey);
                     }
                 }
             }
