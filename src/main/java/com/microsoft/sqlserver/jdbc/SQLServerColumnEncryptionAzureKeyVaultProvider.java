@@ -20,7 +20,9 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import com.azure.core.credential.TokenCredential;
@@ -53,6 +55,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         private final static java.util.logging.Logger akvLogger = java.util.logging.Logger
                 .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
+        private HttpPipeline keyVaultPipeline;
+        private KeyVaultCredential keyVaultCredential;
         /**
          * Column Encryption Key Store Provider string
          */
@@ -63,6 +67,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
 
         private static final List<String> akvTrustedEndpoints;
+        private Map<String, KeyClient> cachedKeyClients = new ConcurrentHashMap<>();
+        private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
 
         static {
                 akvTrustedEndpoints = getTrustedEndpoints();
@@ -73,8 +79,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
          */
         private final byte[] firstVersion = new byte[] {0x01};
 
-        private CryptographyClient cryptoClient;
-        private KeyClient keyClient;
         private TokenCredential credential;
 
         public void setName(String name) {
@@ -98,12 +102,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                         throw new SQLServerException(form.format(msgArgs1), null);
                 }
 
-                KeyVaultCredential keyVaultCredential = new KeyVaultCredential(clientId, clientKey);
-                HttpPipeline pipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultCredential)
+                keyVaultCredential = new KeyVaultCredential(clientId, clientKey);
+                keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultCredential)
                         .buildPipeline();
-
-                keyClient = new KeyClientBuilder().pipeline(pipeline).vaultUrl("https://susanakv.vault.azure.net")
-                        .buildClient();
         }
 
         /**
@@ -141,18 +142,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
-                String vaultBaseUrl = "susanakv.vault.azure.net"; //System.getenv("vaultBaseUrl");
-                String vaultFullUrl = "https://" + vaultBaseUrl;
-
-                if (null == vaultBaseUrl || vaultBaseUrl.isEmpty()) {
-                        // TODO externalise string
-                        //            throw new SQLServerException(SQLServerException.getErrString("R_NullEncryptedColumnEncryptionKey"), null);
-                        throw new SQLServerException("vaultBaseUrl is not valid: " + vaultBaseUrl, null);
-                }
-
                 this.credential = credential;
-
-                this.keyClient = new KeyClientBuilder().credential(credential).vaultUrl(vaultFullUrl).buildClient();
         }
 
         /**
@@ -507,6 +497,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                         throw new SQLServerException(SQLServerException.getErrString("R_CEKNull"), null);
                 }
 
+                CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
                 WrapResult wrappedKey = cryptoClient.wrapKey(KeyWrapAlgorithm.RSA_OAEP, columnEncryptionKey);
                 return wrappedKey.getEncryptedKey();
         }
@@ -530,9 +521,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                         throw new SQLServerException(SQLServerException.getErrString("R_EmptyEncryptedCEK"), null);
                 }
 
+                CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
+
                 UnwrapResult unwrappedKey = cryptoClient.unwrapKey(encryptionAlgorithm, encryptedColumnEncryptionKey);
 
                 return unwrappedKey.getKey();
+        }
+
+        private CryptographyClient getCryptographyClient(String masterKeyPath) throws SQLServerException {
+                if (this.cachedCryptographyClients.containsKey(masterKeyPath)) {
+                        return cachedCryptographyClients.get(masterKeyPath);
+                }
+
+                KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
+                return this.cachedCryptographyClients.putIfAbsent(masterKeyPath,
+                        new CryptographyClientBuilder().credential(credential).keyIdentifier(retrievedKey.getId())
+                                .buildClient());
         }
 
         /**
@@ -546,6 +550,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         private byte[] AzureKeyVaultSignHashedData(byte[] dataToSign, String masterKeyPath) throws SQLServerException {
                 assert ((null != dataToSign) && (0 != dataToSign.length));
 
+                CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
                 SignResult signedData = cryptoClient.sign(SignatureAlgorithm.RS256, dataToSign);
                 return signedData.getSignature();
         }
@@ -564,6 +569,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 assert ((null != dataToVerify) && (0 != dataToVerify.length));
                 assert ((null != signature) && (0 != signature.length));
 
+                CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
                 VerifyResult valid = cryptoClient.verify(SignatureAlgorithm.RS256, dataToVerify, signature);
 
                 return valid.isValid();
@@ -577,9 +583,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
          * @throws SQLServerException when an error occurs
          */
         private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
+                KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
+                return retrievedKey.getKey().getN().length;
+        }
+
+        private KeyVaultKey getKeyVaultKey(String masterKeyPath)
+                throws SQLServerException {
                 String[] keyTokens = masterKeyPath.split("/");
                 String keyName = keyTokens[keyTokens.length - 2];
-                KeyVaultKey retrievedKey = keyClient.getKey(keyName);
+                String keyVersion = keyTokens[keyTokens.length - 1];
+                KeyClient keyClient = getKeyClient(masterKeyPath);
+                KeyVaultKey retrievedKey = keyClient.getKey(keyName, keyVersion);
 
                 if (null == retrievedKey) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
@@ -592,13 +606,28 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                         Object[] msgArgs = {retrievedKey.getKeyType().toString()};
                         throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
                 }
+                return retrievedKey;
+        }
 
-                if (null == cryptoClient) {
-                        cryptoClient = new CryptographyClientBuilder().credential(credential)
-                                .keyIdentifier(retrievedKey.getId()).buildClient();
+        private KeyClient getKeyClient(String masterKeyPath) {
+                if (cachedKeyClients.containsKey(masterKeyPath)) {
+                        return cachedKeyClients.get(masterKeyPath);
                 }
+                String vaultUrl = getVaultUrl(masterKeyPath);
 
-                return retrievedKey.getKey().getN().length;
+                KeyClient keyClient;
+                if (credential != null) {
+                        keyClient = new KeyClientBuilder().credential(credential).vaultUrl(vaultUrl).buildClient();
+                } else {
+                        keyClient = new KeyClientBuilder().pipeline(keyVaultPipeline).vaultUrl(vaultUrl).buildClient();
+                }
+                return cachedKeyClients.putIfAbsent(masterKeyPath, keyClient);
+        }
+
+        private static String getVaultUrl(String masterKeyPath) {
+                String[] keyTokens = masterKeyPath.split("/");
+                String hostName = keyTokens[2];
+                return "https://" + hostName;
         }
 
         @Override public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
