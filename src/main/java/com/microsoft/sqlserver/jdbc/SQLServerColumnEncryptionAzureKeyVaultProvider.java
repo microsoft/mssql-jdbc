@@ -40,7 +40,6 @@ import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
 
-
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
  * be decryptable by this provider and vice versa.
@@ -67,19 +66,18 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
 
         private static final List<String> akvTrustedEndpoints;
-        private Map<String, KeyClient> cachedKeyClients = new ConcurrentHashMap<>();
-        private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
-
-        static {
-                akvTrustedEndpoints = getTrustedEndpoints();
-        }
-
         /**
          * Algorithm version
          */
         private final byte[] firstVersion = new byte[] {0x01};
 
+        private Map<String, KeyClient> cachedKeyClients = new ConcurrentHashMap<>();
+        private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
         private TokenCredential credential;
+
+        static {
+                akvTrustedEndpoints = getTrustedEndpoints();
+        }
 
         public void setName(String name) {
                 this.name = name;
@@ -534,9 +532,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 }
 
                 KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
-                return this.cachedCryptographyClients.putIfAbsent(masterKeyPath,
-                        new CryptographyClientBuilder().credential(credential).keyIdentifier(retrievedKey.getId())
-                                .buildClient());
+
+                CryptographyClient cryptoClient;
+                if (credential != null) {
+                        cryptoClient = new CryptographyClientBuilder().credential(credential)
+                                .keyIdentifier(retrievedKey.getId()).buildClient();
+                } else {
+                        cryptoClient = new CryptographyClientBuilder().pipeline(keyVaultPipeline)
+                                .keyIdentifier(retrievedKey.getId()).buildClient();
+                }
+                cachedCryptographyClients.putIfAbsent(masterKeyPath, cryptoClient);
+                return cachedCryptographyClients.get(masterKeyPath);
         }
 
         /**
@@ -621,7 +627,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 } else {
                         keyClient = new KeyClientBuilder().pipeline(keyVaultPipeline).vaultUrl(vaultUrl).buildClient();
                 }
-                return cachedKeyClients.putIfAbsent(masterKeyPath, keyClient);
+                cachedKeyClients.putIfAbsent(masterKeyPath, keyClient);
+                return cachedKeyClients.get(masterKeyPath);
         }
 
         private static String getVaultUrl(String masterKeyPath) {
