@@ -110,8 +110,8 @@ repositories {
 dependencies {
 	compile 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.compendium:5.0.0'
-	compileOnly 'com.azure:azure-security-keyvault-keys:4.1.4',
-			'com.azure:azure-identity:1.0.7',
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.2.0',
+			'com.azure:azure-identity:1.1.0',
 			'org.antlr:antlr4-runtime:4.7.2',
 			'com.google.code.gson:gson:2.8.6',
 			'org.bouncycastle:bcprov-jdk15on:1.65',

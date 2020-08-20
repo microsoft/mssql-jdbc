@@ -1,10 +1,13 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 
 package com.microsoft.sqlserver.jdbc;
 
 import com.azure.core.annotation.Immutable;
 import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.util.logging.ClientLogger;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
@@ -21,18 +24,11 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
-
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
- *
- * <p><strong>Sample: Construct a simple KeyVaultCredential</strong></p>
- * {@codesnippet com.azure.identity.credential.clientsecretcredential.construct}
- *
- * <p><strong>Sample: Construct a KeyVaultCredential behind a proxy</strong></p>
- * {@codesnippet com.azure.identity.credential.clientsecretcredential.constructwithproxy}
  */
 @Immutable
-class KeyVaultCredential {
+class KeyVaultCredential implements TokenCredential {
     private final ClientLogger logger = new ClientLogger(KeyVaultCredential.class);
     private final String clientId;
     private final String clientSecret;
@@ -52,6 +48,7 @@ class KeyVaultCredential {
         this.clientSecret = clientSecret;
     }
 
+    @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
         return authenticateWithConfidentialClientCache(request)
                        .onErrorResume(t -> Mono.empty())

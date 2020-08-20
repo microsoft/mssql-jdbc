@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -160,7 +161,8 @@ public class FedauthCommon extends AbstractTest {
 
             final IAuthenticationResult authenticationResult = future.get();
 
-            secondsBeforeExpiration = TimeUnit.MILLISECONDS.toSeconds(authenticationResult.expiresOnDate().getTime());
+            secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                    .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
             accessToken = authenticationResult.accessToken();
         } catch (Exception e) {
             fail(e.getMessage());
