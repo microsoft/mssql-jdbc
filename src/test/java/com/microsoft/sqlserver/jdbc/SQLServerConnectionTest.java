@@ -838,7 +838,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                                 stringBuilder.append(buffer, 0, amountRead);
                             }
                             String received = stringBuilder.toString();
-                            assertEquals(data, received);
+                            assertTrue(data.equals(received), "Expected String: " + data + "\nReceived String: " + received);
                         }
                     }
                 } finally {
@@ -857,7 +857,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 stringBuilder.append(buffer, 0, amountRead);
             }
             String received = stringBuilder.toString();
-            assertEquals(data, received);
+            assertTrue(data.equals(received), "Expected String: " + data + "\nReceived String: " + received);
         }
     }
 }
