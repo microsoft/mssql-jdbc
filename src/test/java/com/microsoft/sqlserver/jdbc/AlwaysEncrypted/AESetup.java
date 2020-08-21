@@ -194,6 +194,7 @@ public class AESetup extends AbstractTest {
     @BeforeAll
     public static void setupAETest() throws Exception {
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
+
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
 
         AEInfo = new Properties();
@@ -541,12 +542,7 @@ public class AESetup extends AbstractTest {
                         valuesDefault);
                 encryptedValue = "0x" + TestUtils.bytesToHexString(key, key.length);
             } else {
-                String cekEncryptedValue = getConfiguredProperty("cekEncryptedValue");
-                if (null == cekEncryptedValue || cekEncryptedValue.isEmpty()) {
-                    throw new IllegalArgumentException(
-                            "cekEncryptedValue is required to run Windows Certificate Store tests.");
-                }
-                encryptedValue = cekEncryptedValue;
+                encryptedValue = Constants.CEK_ENCRYPTED_VALUE;
             }
 
             String sql = "if not exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
