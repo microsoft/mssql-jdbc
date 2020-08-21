@@ -2,7 +2,7 @@
 Remove-Item -Path AE_Certificates -Force -Recurse -ErrorAction SilentlyContinue
 mkdir AE_Certificates | Out-Null
 cd AE_Certificates
-$cert = New-SelfSignedCertificate -Subject "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My -KeyExportPolicy Exportable -Type DocumentEncryptionCert -KeyUsage KeyEncipherment -KeySpec KeyExchange -KeyLength 2048
+$cert = New-SelfSignedCertificate -DnsName "AlwaysEncryptedCert" -CertStoreLocation Cert:CurrentUser\My -KeyExportPolicy Exportable -Type DocumentEncryptionCert -KeyUsage KeyEncipherment -KeySpec KeyExchange -KeyLength 2048
 $pwd = ConvertTo-SecureString -String "password" -Force -AsPlainText
 $path = 'cert:\CurrentUser\My\' + $cert.thumbprint
 $certificate = Export-PfxCertificate -cert $path -FilePath cert.pfx -Password $pwd
