@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [8.4.1] HotFix & Stable Release
 ### Fixed issues
 - Fixed issue with SQLServerConnectionPoolProxy not being compatible with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
+- Fixed a potential `NullPointerException` issue with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
 - Fixed issue with decrypting column encryption keys using Windows Certificate Store.
 
 ## [8.4.0] Stable Release
