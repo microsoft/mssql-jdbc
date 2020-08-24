@@ -8,7 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.MessageFormat;
-import java.util.Set;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +40,7 @@ class SQLServerMSAL4JUtils {
                     .authority(fedAuthInfo.stsurl)
                     .build();
             final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(UserNamePasswordParameters.builder(
-                    Set.of(fedAuthInfo.spn + "/.default"),
+                    Collections.singleton(fedAuthInfo.spn + "/.default"),
                     user,
                     password.toCharArray()
             ).build());
@@ -95,7 +95,7 @@ class SQLServerMSAL4JUtils {
                 .authority(fedAuthInfo.stsurl)
                 .build();
             final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(IntegratedWindowsAuthenticationParameters.builder(
-                Set.of(fedAuthInfo.spn + "/.default"),
+                Collections.singleton(fedAuthInfo.spn + "/.default"),
                 user
             ).build());
 
