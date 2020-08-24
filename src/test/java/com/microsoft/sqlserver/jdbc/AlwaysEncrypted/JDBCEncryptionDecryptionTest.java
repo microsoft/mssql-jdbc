@@ -20,7 +20,6 @@ import java.sql.Timestamp;
 import java.util.LinkedList;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -92,7 +91,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                createTokenCredential());
+                applicationClientID, applicationKey);
         String keystoreName = "keystoreName";
         akv.setName(keystoreName);
         assertTrue(akv.getName().equals(keystoreName));
@@ -178,7 +177,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
 
         // null encryptedColumnEncryptionKey
         try {
@@ -257,7 +256,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(createTokenCredential());
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
 
         // null akvpath
         try {
@@ -2227,13 +2226,5 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values1);
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values2);
         }
-    }
-
-    private TokenCredential createTokenCredential() {
-        return new ClientSecretCredentialBuilder()
-                .clientId(applicationClientID)
-                .clientSecret(applicationKey)
-                .tenantId(tenantID)
-                .build();
     }
 }
