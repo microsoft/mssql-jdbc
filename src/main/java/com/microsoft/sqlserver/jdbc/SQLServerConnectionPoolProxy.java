@@ -593,4 +593,14 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public boolean getUseFmtOnly() {
         return wrappedConnection.getUseFmtOnly();
     }
+
+    @Override
+    public boolean getDelayLoadingLobs() {
+        return wrappedConnection.getDelayLoadingLobs();
+    }
+
+    @Override
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        wrappedConnection.setDelayLoadingLobs(delayLoadingLobs);
+    }
 }
