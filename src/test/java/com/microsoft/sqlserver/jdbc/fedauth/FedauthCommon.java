@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
@@ -154,7 +155,7 @@ public class FedauthCommon extends AbstractTest {
                 .build();
             final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(
                 UserNamePasswordParameters.builder(
-                Set.of(spn + "/.default"),
+                Collections.singleton(spn + "/.default"),
                     azureUserName,
                     azurePassword.toCharArray()
             ).build());
