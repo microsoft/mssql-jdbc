@@ -704,8 +704,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     // Boolean that indicates whether LOB objects created by this connection should be loaded into memory
     private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
-    boolean getDelayLoadingLobs() {
+    @Override
+    public boolean getDelayLoadingLobs() {
         return delayLoadingLobs;
+    }
+
+    @Override
+    public void setDelayLoadingLobs(boolean b) {
+        delayLoadingLobs = b;
     }
 
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
@@ -5849,6 +5855,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private volatile SQLWarning originalSqlWarnings;
     private List<ISQLServerStatement> openStatements;
     private boolean originalUseFmtOnly;
+    private boolean originalDelayLoadingLobs;
 
     int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
 
@@ -5870,6 +5877,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<ISQLServerStatement>();
                 originalUseFmtOnly = useFmtOnly;
+                originalDelayLoadingLobs = delayLoadingLobs;
                 requestStarted = true;
             }
         }
@@ -5918,6 +5926,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (getUseBulkCopyForBatchInsert() != originalUseBulkCopyForBatchInsert) {
                     setUseBulkCopyForBatchInsert(originalUseBulkCopyForBatchInsert);
+                }
+                if (delayLoadingLobs != originalDelayLoadingLobs) {
+                    setDelayLoadingLobs(originalDelayLoadingLobs);
                 }
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
