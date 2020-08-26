@@ -811,6 +811,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     /*
      * Basic test to make sure lobs work with ConnectionPoolProxy as well
      */
+    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testConnectionPoolProxyWithLobs() throws SQLException, IOException {
         String cString = getConnectionString() + ";delayLoadingLobs=false;";
