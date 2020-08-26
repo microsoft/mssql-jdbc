@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -188,6 +186,25 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
             }
+        }
+    }
+    
+    /**
+     * test simple csv file for bulkcopy, for GitHub issue 1391
+     * Tests to ensure that the set returned by getColumnOrdinals doesn't have to be ordered
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord GitHb 1391")
+    public void testCSV1391() {
+        String fileName = filePath + inputFile;
+        try (SQLServerBulkCSVFileRecord f1 = new BulkData1391(fileName, encoding, delimiter, true);
+                SQLServerBulkCSVFileRecord f2 = new BulkData1391(fileName, encoding, delimiter, true);) {
+            testBulkCopyCSV(f1, true);
+
+            f2.setEscapeColumnDelimitersCSV(true);
+            testBulkCopyCSV(f2, true);
+        } catch (SQLException e) {
+            fail(e.getMessage());
         }
     }
 
