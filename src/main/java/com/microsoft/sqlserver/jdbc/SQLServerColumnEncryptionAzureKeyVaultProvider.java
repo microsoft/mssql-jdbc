@@ -88,14 +88,21 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 return this.name;
         }
 
+        /**
+         * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD using the client id and
+         * client key. This is used by KeyVault client at runtime to authenticate to Azure Key Vault.
+         * @param clientId Identifier of the client requesting the token.
+         * @param clientKey Secret key of the client requesting the token.
+         * @throws SQLServerException If either {@code clientId} or {@code clientKey} are {@code null}.
+         */
         public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey)
                 throws SQLServerException {
-                if (clientId == null || clientId.isEmpty()) {
+                if (null == clientId || clientId.isEmpty()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
                         Object[] msgArgs1 = {"Client ID"};
                         throw new SQLServerException(form.format(msgArgs1), null);
                 }
-                if (clientKey == null || clientKey.isEmpty()) {
+                if (null == clientKey || clientKey.isEmpty()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
                         Object[] msgArgs1 = {"Client Key"};
                         throw new SQLServerException(form.format(msgArgs1), null);
@@ -121,7 +128,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
          * @param clientId Identifier of the client requesting the token.
          */
         SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
-                if (clientId == null || clientId.isEmpty()) {
+                if (null == clientId || clientId.isEmpty()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
                         Object[] msgArgs1 = {"Client ID"};
                         throw new SQLServerException(form.format(msgArgs1), null);
@@ -535,7 +542,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
 
                 CryptographyClient cryptoClient;
-                if (credential != null) {
+                if (null != credential) {
                         cryptoClient = new CryptographyClientBuilder().credential(credential)
                                 .keyIdentifier(retrievedKey.getId()).buildClient();
                 } else {
@@ -623,7 +630,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 String vaultUrl = getVaultUrl(masterKeyPath);
 
                 KeyClient keyClient;
-                if (credential != null) {
+                if (null != credential) {
                         keyClient = new KeyClientBuilder().credential(credential).vaultUrl(vaultUrl).buildClient();
                 } else {
                         keyClient = new KeyClientBuilder().pipeline(keyVaultPipeline).vaultUrl(vaultUrl).buildClient();

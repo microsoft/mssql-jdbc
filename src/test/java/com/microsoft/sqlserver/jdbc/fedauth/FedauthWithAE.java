@@ -300,28 +300,6 @@ public class FedauthWithAE extends FedauthCommon {
                 new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
     }
 
-//    private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVOld() throws SQLServerException {
-//        ExecutorService service = Executors.newFixedThreadPool(2);
-//        SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
-//            @Override
-//            public String getAccessToken(String authority, String resource, String scope) {
-//                AuthenticationResult result = null;
-//                try {
-//                    AuthenticationContext context = new AuthenticationContext(authority, false, service);
-//                    ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
-//
-//                    Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
-//                    result = future.get();
-//                    return result.getAccessToken();
-//                } catch (Exception e) {
-//                    fail(e.getMessage());
-//                    return null;
-//                }
-//            }
-//        };
-//        return new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
-//    }
-
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider(
             SQLServerColumnEncryptionKeyStoreProvider provider) throws SQLServerException {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map1 = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
