@@ -186,8 +186,8 @@ public class CallableStatementTest extends AbstractTest {
     public void testGetObjectAsOffsetDateTime() throws SQLException {
         String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName) + " (?, ?)}";
         try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
-            cs.registerOutParameter(1, Types.TIMESTAMP);
-            cs.registerOutParameter(2, Types.TIMESTAMP);
+            cs.registerOutParameter(1, Types.TIMESTAMP_WITH_TIMEZONE);
+            cs.registerOutParameter(2, Types.TIMESTAMP_WITH_TIMEZONE);
 
             final String testValue = "2018-01-02T11:22:33.123456700+12:34";
 
