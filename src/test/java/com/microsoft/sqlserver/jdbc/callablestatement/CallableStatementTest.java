@@ -138,7 +138,7 @@ public class CallableStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void getObjectAsLocalDateTime() throws SQLException {
+    public void testGetObjectAsLocalDateTime() throws SQLException {
         String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName) + " (?)}";
         try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP);
