@@ -669,8 +669,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStoreLocation = null;
     String keyStorePrincipalId = null;
 
-    String keyVaultProviderTenantId = null;
-
     private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
 
     private String enclaveType = null;
