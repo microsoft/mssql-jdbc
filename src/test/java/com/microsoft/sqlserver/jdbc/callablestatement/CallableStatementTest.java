@@ -301,7 +301,7 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createGetObjectOffsetDateTimeProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName)
-                + "(@p1 datetime2(7) DATETIMEOFFSET, @p2 datetime2(7) DATETIMEOFFSET) AS "
+                + "(@p1 DATETIMEOFFSET OUTPUT, @p2 DATETIMEOFFSET OUTPUT) AS "
                 + "SELECT @p1 = '2018-01-02T11:22:33.123456700+12:34', @p2 = NULL";
         stmt.execute(sql);
     }
