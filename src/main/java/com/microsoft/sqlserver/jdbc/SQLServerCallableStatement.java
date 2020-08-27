@@ -755,6 +755,20 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     returnValue = ldt.toLocalTime();
                 }
             }
+        } else if (type == java.time.OffsetDateTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime();
+            }
+        } else if (type == java.time.OffsetTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
+            }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(index);
         } else if (type == UUID.class) {

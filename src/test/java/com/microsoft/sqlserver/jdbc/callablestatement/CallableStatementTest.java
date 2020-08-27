@@ -1,6 +1,7 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.CallableStatement;
@@ -11,6 +12,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -45,6 +48,7 @@ public class CallableStatementTest extends AbstractTest {
     private static String setNullProcedureName = RandomUtil.getIdentifier("CallableStatementTest_setNull_SP");
     private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
     private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
+    private static String getObjectOffsetDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP");
 
     /**
      * Setup before test
@@ -60,12 +64,14 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName), stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
             createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
             createGetObjectLocalDateTimeProcedure(stmt);
+            createGetObjectOffsetDateTimeProcedure(stmt);
         }
     }
 
@@ -171,6 +177,35 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
+     * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetObjectAsOffsetDateTime() throws SQLException {
+        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName) + " (?)}";
+        try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
+            cs.registerOutParameter(1, Types.TIMESTAMP);
+            cs.registerOutParameter(2, Types.TIMESTAMP);
+
+            final String testValue = "2018-01-02T11:22:33.123456700+12:34";
+
+            cs.execute();
+
+            OffsetDateTime expected = OffsetDateTime.parse(testValue);
+            OffsetDateTime actual = cs.getObject(1, OffsetDateTime.class);
+            assertEquals(expected, actual);
+            assertNull(cs.getObject(2, OffsetDateTime.class));
+
+            OffsetTime expectedTime = OffsetTime.parse(testValue.split("T")[1]);
+            OffsetTime actualTime = cs.getObject(1, OffsetTime.class);
+            assertEquals(expectedTime, actualTime);
+            assertNull(cs.getObject(2, OffsetTime.class));
+        }
+    }
+
+    /**
      * recognize parameter names with and without leading '@'
      * 
      * @throws SQLException
@@ -227,6 +262,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName), stmt);
         }
     }
 
@@ -260,6 +296,13 @@ public class CallableStatementTest extends AbstractTest {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName)
                 + "(@p1 datetime2(7) OUTPUT) AS "
                 + "SELECT @p1 = '2018-03-11T02:00:00.1234567'";
+        stmt.execute(sql);
+    }
+
+    private static void createGetObjectOffsetDateTimeProcedure(Statement stmt) throws SQLException {
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName)
+                + "(@p1 datetime2(7) DATETIMEOFFSET, @p2 datetime2(7) DATETIMEOFFSET) AS "
+                + "SELECT @p1 = '2018-01-02T11:22:33.123456700+12:34', @p2 = NULL";
         stmt.execute(sql);
     }
 }
