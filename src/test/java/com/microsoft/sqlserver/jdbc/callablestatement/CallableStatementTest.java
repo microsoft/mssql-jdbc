@@ -226,6 +226,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
         }
     }
 
