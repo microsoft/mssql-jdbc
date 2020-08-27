@@ -184,7 +184,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
-        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName) + " (?)}";
+        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName) + " (?, ?)}";
         try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP);
             cs.registerOutParameter(2, Types.TIMESTAMP);
