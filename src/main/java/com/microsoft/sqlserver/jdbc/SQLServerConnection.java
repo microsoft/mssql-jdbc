@@ -1626,12 +1626,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 keyStorePrincipalId = sPropValue;
             }
 
-            sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_TENANT_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                keyVaultProviderTenantId = sPropValue;
-            }
-
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
             if (null == globalCustomColumnEncryptionKeyStoreProviders) {

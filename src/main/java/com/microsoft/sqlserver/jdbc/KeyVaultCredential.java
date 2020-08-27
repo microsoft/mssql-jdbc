@@ -56,7 +56,7 @@ class KeyVaultCredential implements TokenCredential {
     }
 
     public KeyVaultCredential setAuthorization(String authorization) {
-            if (this.authorization != null && this.authorization.equals(authorization)) {
+            if (null != this.authorization && this.authorization.equals(authorization)) {
                 return this;
             }
             this.authorization = authorization;
@@ -65,18 +65,18 @@ class KeyVaultCredential implements TokenCredential {
     }
 
     private ConfidentialClientApplication getConfidentialClientApplication() {
-        if (clientId == null) {
+        if (null == clientId) {
             throw logger.logExceptionAsError(new IllegalArgumentException(
                     "A non-null value for client ID must be provided for user authentication."));
         }
 
-        if (authorization == null) {
+        if (null == authorization) {
             throw logger.logExceptionAsError(new IllegalArgumentException(
                     "A non-null value for authorization must be provided for user authentication."));
         }
 
         IClientCredential credential;
-        if (clientSecret != null) {
+        if (null != clientSecret) {
             credential = ClientCredentialFactory.create(clientSecret);
         } else {
             throw logger.logExceptionAsError(

@@ -43,7 +43,7 @@ final class KeyVaultHttpPipelineBuilder {
     public HttpPipeline buildPipeline() {
         Configuration buildConfiguration = Configuration.getGlobalConfiguration().clone();
 
-        if (credential == null) {
+        if (null == credential) {
             throw logger.logExceptionAsError(new IllegalStateException("Token Credential should be specified."));
         }
 
