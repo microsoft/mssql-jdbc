@@ -3,7 +3,13 @@ package com.microsoft.sqlserver.jdbc.callablestatement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
