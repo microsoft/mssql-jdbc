@@ -1636,8 +1636,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (null != sPropValue) {
                         String keyVaultColumnEncryptionProviderClientKey = sPropValue;
 
-                        registerKeyVaultProvider(
-                                keyVaultColumnEncryptionProviderClientId,
+                        registerKeyVaultProvider(keyVaultColumnEncryptionProviderClientId,
                                 keyVaultColumnEncryptionProviderClientKey);
                     }
                 }

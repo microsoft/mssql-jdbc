@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+
 final class KeyVaultHttpPipelineBuilder {
     public static final String APPLICATION_ID = "ms-sql-jdbc";
     private static final String SDK_NAME = "azure-security-keyvault-keys";
@@ -58,17 +59,17 @@ final class KeyVaultHttpPipelineBuilder {
         HttpPolicyProviders.addAfterRetryPolicies(policies);
         policies.add(new HttpLoggingPolicy(httpLogOptions));
 
-        return new HttpPipelineBuilder()
-                .policies(policies.toArray(new HttpPipelinePolicy[0]))
-                .build();
+        return new HttpPipelineBuilder().policies(policies.toArray(new HttpPipelinePolicy[0])).build();
     }
 
     /**
      * Sets the credential to use when authenticating HTTP requests.
      *
-     * @param credential The credential to use for authenticating HTTP requests.
+     * @param credential
+     *        The credential to use for authenticating HTTP requests.
      * @return the updated KVHttpPipelineBuilder object.
-     * @throws NullPointerException if {@code credential} is {@code null}.
+     * @throws NullPointerException
+     *         if {@code credential} is {@code null}.
      */
     public KeyVaultHttpPipelineBuilder credential(KeyVaultCredential credential) {
         Objects.requireNonNull(credential);
@@ -76,4 +77,3 @@ final class KeyVaultHttpPipelineBuilder {
         return this;
     }
 }
-

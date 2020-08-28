@@ -18,7 +18,6 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -148,17 +147,11 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         try {
 
-            final PublicClientApplication clientApplication = PublicClientApplication
-                .builder(fedauthClientId)
-                .executorService(Executors.newFixedThreadPool(1))
-                .authority(stsurl)
-                .build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(
-                UserNamePasswordParameters.builder(
-                Collections.singleton(spn + "/.default"),
-                    azureUserName,
-                    azurePassword.toCharArray()
-            ).build());
+            final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
+                    .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
+                            azureUserName, azurePassword.toCharArray()).build());
 
             final IAuthenticationResult authenticationResult = future.get();
 

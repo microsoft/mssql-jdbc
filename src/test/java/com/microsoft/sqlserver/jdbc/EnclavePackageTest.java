@@ -223,8 +223,7 @@ public class EnclavePackageTest extends AbstractTest {
         AbstractTest.updateDataSource(cString, dsPool);
 
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
-                Connection con3 = dsPool.getConnection();
-                Connection con4 = PrepUtil.getConnection(cString)) {
+                Connection con3 = dsPool.getConnection(); Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
                 verifyEnclaveEnabled(con1, protocol);
             }
@@ -307,8 +306,8 @@ public class EnclavePackageTest extends AbstractTest {
         }
 
         try {
-            SQLServerColumnEncryptionAzureKeyVaultProvider aksp = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    "","");
+            SQLServerColumnEncryptionAzureKeyVaultProvider aksp = new SQLServerColumnEncryptionAzureKeyVaultProvider("",
+                    "");
         } catch (SQLServerException e) {
             assertEquals(e.getMessage(), "Client ID cannot be null.");
         }

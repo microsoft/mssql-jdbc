@@ -35,15 +35,12 @@ class SQLServerMSAL4JUtils {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
             final PublicClientApplication clientApplication = PublicClientApplication
-                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
-                    .executorService(executorService)
-                    .authority(fedAuthInfo.stsurl)
-                    .build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(UserNamePasswordParameters.builder(
-                    Collections.singleton(fedAuthInfo.spn + "/.default"),
-                    user,
-                    password.toCharArray()
-            ).build());
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .authority(fedAuthInfo.stsurl).build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(UserNamePasswordParameters
+                            .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user, password.toCharArray())
+                            .build());
 
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -90,14 +87,11 @@ class SQLServerMSAL4JUtils {
             }
 
             final PublicClientApplication clientApplication = PublicClientApplication
-                .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
-                .executorService(executorService)
-                .authority(fedAuthInfo.stsurl)
-                .build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(IntegratedWindowsAuthenticationParameters.builder(
-                Collections.singleton(fedAuthInfo.spn + "/.default"),
-                user
-            ).build());
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .authority(fedAuthInfo.stsurl).build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(IntegratedWindowsAuthenticationParameters
+                            .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user).build());
 
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
