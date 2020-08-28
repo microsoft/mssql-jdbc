@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
+
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
  */
@@ -38,8 +39,10 @@ class KeyVaultCredential implements TokenCredential {
     /**
      * Creates a KeyVaultCredential with the given identity client options.
      *
-     * @param clientId the client ID of the application
-     * @param clientSecret the secret value of the AAD application.
+     * @param clientId
+     *        the client ID of the application
+     * @param clientSecret
+     *        the secret value of the AAD application.
      */
     KeyVaultCredential(String clientId, String clientSecret) {
         Objects.requireNonNull(clientSecret, "'clientSecret' cannot be null.");
@@ -50,18 +53,17 @@ class KeyVaultCredential implements TokenCredential {
 
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
-        return authenticateWithConfidentialClientCache(request)
-                       .onErrorResume(t -> Mono.empty())
-                       .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
+        return authenticateWithConfidentialClientCache(request).onErrorResume(t -> Mono.empty())
+                .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
     }
 
     public KeyVaultCredential setAuthorization(String authorization) {
-            if (null != this.authorization && this.authorization.equals(authorization)) {
-                return this;
-            }
-            this.authorization = authorization;
-            confidentialClientApplication = getConfidentialClientApplication();
+        if (null != this.authorization && this.authorization.equals(authorization)) {
             return this;
+        }
+        this.authorization = authorization;
+        confidentialClientApplication = getConfidentialClientApplication();
+        return this;
     }
 
     private ConfidentialClientApplication getConfidentialClientApplication() {
@@ -79,11 +81,10 @@ class KeyVaultCredential implements TokenCredential {
         if (null != clientSecret) {
             credential = ClientCredentialFactory.create(clientSecret);
         } else {
-            throw logger.logExceptionAsError(
-                    new IllegalArgumentException("Must provide client secret."));
+            throw logger.logExceptionAsError(new IllegalArgumentException("Must provide client secret."));
         }
-        ConfidentialClientApplication.Builder applicationBuilder =
-                ConfidentialClientApplication.builder(clientId, credential);
+        ConfidentialClientApplication.Builder applicationBuilder = ConfidentialClientApplication.builder(clientId,
+                credential);
         try {
             applicationBuilder = applicationBuilder.authority(authorization);
         } catch (MalformedURLException e) {
@@ -102,8 +103,7 @@ class KeyVaultCredential implements TokenCredential {
                 return getFailedCompletableFuture(logger.logExceptionAsError(new RuntimeException(e)));
             }
         }).map(ar -> new AccessToken(ar.accessToken(),
-                OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC)))
-        .filter(t -> !t.isExpired());
+                OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC))).filter(t -> !t.isExpired());
     }
 
     private CompletableFuture<IAuthenticationResult> getFailedCompletableFuture(Exception e) {
@@ -113,8 +113,9 @@ class KeyVaultCredential implements TokenCredential {
     }
 
     private Mono<AccessToken> authenticateWithConfidentialClient(TokenRequestContext request) {
-        return Mono.fromFuture(() -> confidentialClientApplication
-                .acquireToken(ClientCredentialParameters.builder(new HashSet<>(request.getScopes())).build()))
+        return Mono
+                .fromFuture(() -> confidentialClientApplication
+                        .acquireToken(ClientCredentialParameters.builder(new HashSet<>(request.getScopes())).build()))
                 .map(ar -> new AccessToken(ar.accessToken(),
                         OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC)));
     }

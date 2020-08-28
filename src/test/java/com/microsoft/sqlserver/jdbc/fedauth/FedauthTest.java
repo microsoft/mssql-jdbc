@@ -41,8 +41,6 @@ public class FedauthTest extends FedauthCommon {
     static class TrustStore {
         private File trustStoreFile;
 
-        static final String TRUST_STORE_PASSWORD = "Any_Password_<>_Not_Used_In_This_Code";
-
         TrustStore(String certificateName) throws Exception {
             trustStoreFile = File.createTempFile("myTrustStore", null, new File("."));
             trustStoreFile.deleteOnExit();
@@ -52,7 +50,7 @@ public class FedauthTest extends FedauthCommon {
             ks.setCertificateEntry(certificateName, getCertificate(certificateName));
 
             try (FileOutputStream os = new FileOutputStream(trustStoreFile)) {
-                ks.store(os, TRUST_STORE_PASSWORD.toCharArray());
+                ks.store(os, "Any_String_<>_Not_Used_In_This_Code".toCharArray());
                 os.flush();
             }
         }
