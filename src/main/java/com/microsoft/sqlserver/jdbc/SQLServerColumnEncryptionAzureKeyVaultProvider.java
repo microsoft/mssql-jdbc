@@ -142,12 +142,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
          *
          * @param tokenCredential The TokenCredential to use to authenticate to Azure Key Vault.
          */
-        public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential)
-                throws SQLServerException {
+        public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) {
                 createKeyvaultClients(tokenCredential);
         }
 
-        private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
+        private void createKeyvaultClients(TokenCredential credential) {
                 this.credential = Objects.requireNonNull(credential);
         }
 
