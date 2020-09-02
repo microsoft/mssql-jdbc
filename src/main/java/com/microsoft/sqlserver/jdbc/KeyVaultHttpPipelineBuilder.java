@@ -21,7 +21,7 @@ import java.util.List;
 
 
 final class KeyVaultHttpPipelineBuilder {
-    private static final String APPLICATION_ID = "ms-sql-jdbc";
+    private static final String APPLICATION_ID = "mssql-jdbc";
     private static final String SDK_NAME = "azure-security-keyvault-keys";
     private static final String SDK_VERSION = "4.2.0";
 
