@@ -15,9 +15,10 @@ import com.azure.core.http.policy.RetryPolicy;
 import com.azure.core.http.policy.UserAgentPolicy;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.logging.ClientLogger;
+
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 
 final class KeyVaultHttpPipelineBuilder {
@@ -41,12 +42,8 @@ final class KeyVaultHttpPipelineBuilder {
         policies = new ArrayList<>();
     }
 
-    public HttpPipeline buildPipeline() {
+    HttpPipeline buildPipeline() throws SQLServerException {
         Configuration buildConfiguration = Configuration.getGlobalConfiguration().clone();
-
-        if (null == credential) {
-            throw logger.logExceptionAsError(new IllegalStateException("Token Credential should be specified."));
-        }
 
         // Closest to API goes first, closest to wire goes last.
         final List<HttpPipelinePolicy> policies = new ArrayList<>();
@@ -68,11 +65,15 @@ final class KeyVaultHttpPipelineBuilder {
      * @param credential
      *        The credential to use for authenticating HTTP requests.
      * @return the updated KVHttpPipelineBuilder object.
-     * @throws NullPointerException
-     *         if {@code credential} is {@code null}.
+     * @throws SQLServerException
      */
-    public KeyVaultHttpPipelineBuilder credential(KeyVaultCredential credential) {
-        Objects.requireNonNull(credential);
+    KeyVaultHttpPipelineBuilder credential(KeyVaultCredential credential) throws SQLServerException {
+        if (null == credential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
         this.credential = credential;
         return this;
     }

@@ -11,10 +11,11 @@ import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.core.util.CoreUtils;
+
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import reactor.core.publisher.Mono;
 
 
@@ -33,9 +34,15 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      *
      * @param credential
      *        the token credential to authenticate the request
+     * @throws SQLServerException
      */
-    public KeyVaultCustomCredentialPolicy(KeyVaultCredential credential) {
-        Objects.requireNonNull(credential, "'credential' cannot be null.");
+    public KeyVaultCustomCredentialPolicy(KeyVaultCredential credential) throws SQLServerException {
+        if (null == credential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
         this.cache = new ScopeTokenCache(credential::getToken);
         this.keyVaultCredential = credential;
     }

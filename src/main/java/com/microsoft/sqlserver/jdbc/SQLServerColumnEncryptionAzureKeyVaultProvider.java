@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -146,13 +145,20 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *
      * @param tokenCredential
      *        The TokenCredential to use to authenticate to Azure Key Vault.
+     * @throws SQLServerException
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) {
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
         createKeyvaultClients(tokenCredential);
     }
 
-    private void createKeyvaultClients(TokenCredential credential) {
-        this.credential = Objects.requireNonNull(credential);
+    private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
+        if (null == credential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        this.credential = credential;
     }
 
     /**
