@@ -23,7 +23,7 @@ import java.util.Map.Entry;
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
  * data types from an ArrayList of Parameters that were provided by pstmt/cstmt.
  */
-public class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
+class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
 
     /**
      * Update serialVersionUID when making changes to this file
@@ -43,7 +43,7 @@ public class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     /*
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
-    public SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
+    SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
             ArrayList<String> valueList, String encoding) throws SQLServerException {
         initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
