@@ -35,8 +35,8 @@ jobs:
     inputs:
       secureFile: 'pkcs12_truststore'
   - task: DownloadSecureFile@1
-    name: mssql-jdbc_auth DLL
-    displayName: 'mssql-jdbc_auth'
+    name: mssql-jdbc_auth
+    displayName: 'Download mssql-jdbc_auth DLL'
     inputs:
       secureFile: 'mssql-jdbc_auth*.dll'
   - task: Maven@3
