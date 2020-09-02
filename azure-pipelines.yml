@@ -34,7 +34,7 @@ jobs:
     displayName: 'Download PKCS12 truststore file'
     inputs:
       secureFile: 'pkcs12_truststore'
-  - task: DownloadSecureFile@2
+  - task: DownloadSecureFile@1
     name: mssql-jdbc_auth DLL
     displayName: 'Download mssql-jdbc_auth DLL'
     inputs:
