@@ -128,8 +128,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     (TokenCredential) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (NullPointerException exception) {
-            assertNull(exception.getMessage());
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
     }
 

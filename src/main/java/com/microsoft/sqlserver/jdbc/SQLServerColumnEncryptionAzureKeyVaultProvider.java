@@ -57,6 +57,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
     private HttpPipeline keyVaultPipeline;
     private KeyVaultCredential keyVaultCredential;
+
     /**
      * Column Encryption Key Store Provider string
      */
@@ -67,6 +68,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
 
     private static final List<String> akvTrustedEndpoints;
+
     /**
      * Algorithm version
      */
@@ -97,7 +99,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param clientKey
      *        Secret key of the client requesting the token.
      * @throws SQLServerException
-     *         If either {@code clientId} or {@code clientKey} are {@code null}.
+     *         when an error occurs
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
@@ -118,6 +120,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
      * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
      */
     SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
         createKeyvaultClients(new ManagedIdentityCredentialBuilder().build());
@@ -129,6 +134,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *
      * @param clientId
      *        Identifier of the client requesting the token.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
      */
     SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
@@ -145,9 +153,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *
      * @param tokenCredential
      *        The TokenCredential to use to authenticate to Azure Key Vault.
+     * 
      * @throws SQLServerException
+     *         when an error occurs
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
+        if (null == tokenCredential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Token Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
         createKeyvaultClients(tokenCredential);
     }
 

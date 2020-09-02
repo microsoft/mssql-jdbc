@@ -37,12 +37,12 @@ class KeyVaultCredential implements TokenCredential {
     private ConfidentialClientApplication confidentialClientApplication;
 
     /**
-     * Creates a KeyVaultCredential with the given identity client options
+     * Creates a KeyVaultCredential with the given identity client options.
      *
      * @param clientId
      *        the client ID of the application
      * @param clientSecret
-     *        the secret value of the AAD application.
+     *        the secret value of the AAD application
      * @throws SQLServerException
      */
     KeyVaultCredential(String clientId, String clientSecret) throws SQLServerException {
@@ -79,21 +79,25 @@ class KeyVaultCredential implements TokenCredential {
 
     private ConfidentialClientApplication getConfidentialClientApplication() {
         if (null == clientId) {
-            throw logger.logExceptionAsError(new IllegalArgumentException(
-                    "A non-null value for client ID must be provided for user authentication."));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
         if (null == authorization) {
-            throw logger.logExceptionAsError(new IllegalArgumentException(
-                    "A non-null value for authorization must be provided for user authentication."));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Authoriziation"};
+            throw new IllegalArgumentException(form.format(msgArgs1), null);
+        }
+
+        if (null == clientSecret) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client Secret"};
+            throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
         IClientCredential credential;
-        if (null != clientSecret) {
-            credential = ClientCredentialFactory.create(clientSecret);
-        } else {
-            throw logger.logExceptionAsError(new IllegalArgumentException("Must provide client secret."));
-        }
+        credential = ClientCredentialFactory.create(clientSecret);
         ConfidentialClientApplication.Builder applicationBuilder = ConfidentialClientApplication.builder(clientId,
                 credential);
         try {

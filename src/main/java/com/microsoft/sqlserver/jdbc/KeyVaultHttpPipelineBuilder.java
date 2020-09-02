@@ -14,7 +14,6 @@ import com.azure.core.http.policy.HttpPolicyProviders;
 import com.azure.core.http.policy.RetryPolicy;
 import com.azure.core.http.policy.UserAgentPolicy;
 import com.azure.core.util.Configuration;
-import com.azure.core.util.logging.ClientLogger;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,11 +21,9 @@ import java.util.List;
 
 
 final class KeyVaultHttpPipelineBuilder {
-    public static final String APPLICATION_ID = "ms-sql-jdbc";
+    private static final String APPLICATION_ID = "mssql-jdbc";
     private static final String SDK_NAME = "azure-security-keyvault-keys";
     private static final String SDK_VERSION = "4.2.0";
-
-    private final ClientLogger logger = new ClientLogger(KeyVaultHttpPipelineBuilder.class);
 
     private final List<HttpPipelinePolicy> policies;
     private KeyVaultCredential credential;
@@ -36,7 +33,7 @@ final class KeyVaultHttpPipelineBuilder {
     /**
      * The constructor with defaults.
      */
-    public KeyVaultHttpPipelineBuilder() {
+    KeyVaultHttpPipelineBuilder() {
         retryPolicy = new RetryPolicy();
         httpLogOptions = new HttpLogOptions();
         policies = new ArrayList<>();
