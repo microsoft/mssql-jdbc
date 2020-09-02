@@ -17,10 +17,10 @@ import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.SilentParameters;
 import java.net.MalformedURLException;
+import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
@@ -37,16 +37,27 @@ class KeyVaultCredential implements TokenCredential {
     private ConfidentialClientApplication confidentialClientApplication;
 
     /**
-     * Creates a KeyVaultCredential with the given identity client options.
+     * Creates a KeyVaultCredential with the given identity client options
      *
      * @param clientId
      *        the client ID of the application
      * @param clientSecret
      *        the secret value of the AAD application.
+     * @throws SQLServerException
      */
-    KeyVaultCredential(String clientId, String clientSecret) {
-        Objects.requireNonNull(clientSecret, "'clientSecret' cannot be null.");
-        Objects.requireNonNull(clientSecret, "'clientId' cannot be null.");
+    KeyVaultCredential(String clientId, String clientSecret) throws SQLServerException {
+        if (null == clientId || clientId.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        if (null == clientSecret || clientSecret.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client Secret"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
         this.clientId = clientId;
         this.clientSecret = clientSecret;
     }
@@ -57,7 +68,7 @@ class KeyVaultCredential implements TokenCredential {
                 .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
     }
 
-    public KeyVaultCredential setAuthorization(String authorization) {
+    KeyVaultCredential setAuthorization(String authorization) {
         if (null != this.authorization && this.authorization.equals(authorization)) {
             return this;
         }
