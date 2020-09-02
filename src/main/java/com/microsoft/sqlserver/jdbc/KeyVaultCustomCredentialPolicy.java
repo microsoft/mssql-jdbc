@@ -36,7 +36,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      *        the token credential to authenticate the request
      * @throws SQLServerException
      */
-    public KeyVaultCustomCredentialPolicy(KeyVaultCredential credential) throws SQLServerException {
+    KeyVaultCustomCredentialPolicy(KeyVaultCredential credential) throws SQLServerException {
         if (null == credential) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
             Object[] msgArgs1 = {"Credential"};
@@ -59,8 +59,9 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
         if ("http".equals(context.getHttpRequest().getUrl().getProtocol())) {
-            return Mono.error(new RuntimeException("Token credentials require a URL using the HTTPS protocol scheme"));
+            return Mono.error(new RuntimeException(SQLServerException.getErrString("R_TokenRequireUrl")));
         }
+
         return next.clone().process()
                 // Ignore body
                 .doOnNext(HttpResponse::close).map(res -> res.getHeaderValue(WWW_AUTHENTICATE))
@@ -106,7 +107,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      *        The authentication header containing all the challenges.
      * @param authChallengePrefix
      *        The authentication challenge name.
-     * @return A boolean indicating tha challenge is valid or not.
+     * @return A boolean indicating the challenge is valid or not.
      */
     private static boolean isValidChallenge(String authenticateHeader, String authChallengePrefix) {
         return (!CoreUtils.isNullOrEmpty(authenticateHeader) && authenticateHeader.toLowerCase(Locale.ROOT)

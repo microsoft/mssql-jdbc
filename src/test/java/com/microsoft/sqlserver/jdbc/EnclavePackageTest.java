@@ -302,14 +302,15 @@ public class EnclavePackageTest extends AbstractTest {
                     "keystore", null);
             assertFalse(jksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
 
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider aksp = new SQLServerColumnEncryptionAzureKeyVaultProvider("",
                     "");
+            assertFalse(aksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            assertEquals(e.getMessage(), "Client ID cannot be null.");
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
     }
 
