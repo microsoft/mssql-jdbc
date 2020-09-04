@@ -11,9 +11,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.sql.PooledConnection;
 
@@ -37,15 +42,6 @@ public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_PooledConnection")));
-
-    final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
-    Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
-
-        @Override
-        public void uncaughtException(Thread t, Throwable e) {
-            throwableRef.set(e);
-        }
-    };
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
@@ -168,7 +164,7 @@ public class PooledConnectionTest extends FedauthCommon {
             Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
             Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
 
-            Runnable r1 = () -> {
+            Callable<Void> c = () -> {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, authentication);
                 } catch (SQLException e) {
@@ -179,55 +175,22 @@ public class PooledConnectionTest extends FedauthCommon {
                                     || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
                                     || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
                 }
-            };
-
-            Runnable r2 = () -> {
-                try (Connection connection2 = pc.getConnection()) {
-                    testUserName(connection2, azureUserName, authentication);
-                } catch (SQLException e) {
-                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                            e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
-                }
-            };
-
-            Runnable r3 = () -> {
-                try (Connection connection2 = pc.getConnection()) {
-                    testUserName(connection2, azureUserName, authentication);
-                } catch (SQLException e) {
-                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                            e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_HAS_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_HAS_BEEN_CLOSED)
-                                    || e.getMessage().contains(ERR_MSG_SOCKET_CLOSED));
-                }
+                return null;
             };
 
             Random rand = new Random();
-            int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
+            int numberOfThreadsForEachType = (rand.nextInt(15) + 1) * 3; // 3 to 45
+            ExecutorService es = Executors.newFixedThreadPool(3);
+            List<Future<Void>> results = new ArrayList<>(numberOfThreadsForEachType);
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                Thread t1 = new Thread(r1);
-                Thread t2 = new Thread(r2);
-                Thread t3 = new Thread(r3);
-                t1.setUncaughtExceptionHandler(handler);
-                t2.setUncaughtExceptionHandler(handler);
-                t3.setUncaughtExceptionHandler(handler);
-                t1.start();
-                t2.start();
-                t3.start();
-                t1.join();
-                t2.join();
-                t3.join();
-
-                Throwable throwable = (Throwable) throwableRef.get();
-                if (throwable != null) {
-                    fail(throwable.getMessage());
-                }
+                results.add(es.submit(c));
             }
+
+            // get is blocking, will wait for thread to finish
+            for (Future<Void> f : results) {
+                f.get();
+            }
+            es.shutdown();
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -251,51 +214,28 @@ public class PooledConnectionTest extends FedauthCommon {
                 testUserName(connection1, azureUserName, SqlAuthentication.NotSpecified);
             }
 
-            Runnable r1 = () -> {
+            Callable<Void> r = () -> {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
                 } catch (SQLException e) {
                     fail(e.getMessage());
                 }
-            };
-
-            Runnable r2 = () -> {
-                try (Connection connection2 = pc.getConnection()) {
-                    testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
-            };
-
-            Runnable r3 = () -> {
-                try (Connection connection2 = pc.getConnection()) {
-                    testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
-                } catch (SQLException e) {
-                    fail(e.getMessage());
-                }
+                return null;
             };
 
             Random rand = new Random();
-            int numberOfThreadsForEachType = rand.nextInt(15) + 1; // 1 to 15
+            int numberOfThreadsForEachType = (rand.nextInt(15) + 1) * 3; // 3 to 45
+            ExecutorService es = Executors.newFixedThreadPool(3);
+            List<Future<Void>> results = new ArrayList<>(numberOfThreadsForEachType);
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
-                Thread t1 = new Thread(r1);
-                Thread t2 = new Thread(r2);
-                Thread t3 = new Thread(r3);
-                t1.setUncaughtExceptionHandler(handler);
-                t2.setUncaughtExceptionHandler(handler);
-                t3.setUncaughtExceptionHandler(handler);
-                t1.start();
-                t2.start();
-                t3.start();
-                t1.join();
-                t2.join();
-                t3.join();
-
-                Throwable throwable = (Throwable) throwableRef.get();
-                if (throwable != null) {
-                    fail(throwable.getMessage());
-                }
+                results.add(es.submit(r));
             }
+
+            // get is blocking, will wait for thread to finish
+            for (Future<Void> f : results) {
+                f.get();
+            }
+            es.shutdown();
         } catch (Exception e) {
             fail(e.getMessage());
         }
