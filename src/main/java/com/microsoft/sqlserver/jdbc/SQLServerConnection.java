@@ -2154,6 +2154,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
             }
 
+            sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                activeConnectionProperties.setProperty(sPropKey, "0");
+            }
+
             sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {

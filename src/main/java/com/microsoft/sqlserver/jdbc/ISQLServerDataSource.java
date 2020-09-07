@@ -1021,4 +1021,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
+    String getMaxResultBuffer();
+
+    void setMaxResultBuffer(String maxResultBuffer);
 }
