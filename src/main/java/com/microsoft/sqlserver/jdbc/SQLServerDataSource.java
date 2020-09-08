@@ -1035,7 +1035,7 @@ public class SQLServerDataSource
     @Override
     public String getMaxResultBuffer() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
-                                 SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue());
+                SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue());
     }
 
     @Override

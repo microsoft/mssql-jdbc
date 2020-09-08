@@ -2157,7 +2157,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
-                activeConnectionProperties.setProperty(sPropKey, "0");
+                activeConnectionProperties.setProperty(sPropKey, "-1");
             }
 
             sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();

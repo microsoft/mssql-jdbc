@@ -1008,7 +1008,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /*
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
-     * 
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
@@ -1021,7 +1020,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
+    /**
+     * Returns value of 'maxResultBuffer' from Connection String.
+     * 
+     * @return 'maxResultBuffer' property.
+     */
     String getMaxResultBuffer();
 
+    /**
+     * Specifies value for 'maxResultBuffer' property
+     * 
+     * @param maxResultBuffer
+     *        String value for 'maxResultBuffer'
+     */
     void setMaxResultBuffer(String maxResultBuffer);
 }
