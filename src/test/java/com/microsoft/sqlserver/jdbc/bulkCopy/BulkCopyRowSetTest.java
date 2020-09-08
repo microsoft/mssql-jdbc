@@ -80,6 +80,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
+            String unicodeData =  "ああ";
             rsmd.setColumnCount(1);
             rsmd.setColumnName(1, "c1");
             rsmd.setColumnType(1, java.sql.Types.VARCHAR);
@@ -87,12 +88,17 @@ public class BulkCopyRowSetTest extends AbstractTest {
 
             crs.setMetaData(rsmd);
             crs.moveToInsertRow();
-            crs.updateString("c1", "ああ");
+            crs.updateString("c1", unicodeData);
             crs.insertRow();
             crs.moveToCurrentRow();
 
             bulkCopy.setDestinationTableName(tableName2);
             bulkCopy.writeToServer(crs);
+            
+            try (ResultSet rs = stmt.executeQuery("select * from " + tableName2)) {
+                rs.next();
+                assertEquals(unicodeData, (String) rs.getString(1));
+            }
         }
     }
 
