@@ -17,8 +17,6 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,7 +29,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -255,26 +252,6 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         }
     }
 }
-
-
-// Used for testing issue reported in https://github.com/microsoft/mssql-jdbc/issues/1391
-class BulkData1391 extends SQLServerBulkCSVFileRecord {
-
-    public BulkData1391(String fileToParse, String encoding, String delimiter,
-            boolean firstLineIsColumnNames) throws SQLServerException {
-        super(fileToParse, encoding, delimiter, firstLineIsColumnNames);
-    }
-
-    @Override
-    public Set<Integer> getColumnOrdinals() {
-        List<Integer> list = new ArrayList<>(columnMetadata.keySet());
-        Integer temp = list.get(0);
-        list.set(0, list.get(1));
-        list.set(1, temp);
-        return new LinkedHashSet<>(list);
-    }
-}
-
 
 class BulkData implements ISQLServerBulkData {
     private static final long serialVersionUID = 1L;

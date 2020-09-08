@@ -18,7 +18,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,6 +36,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -205,6 +210,24 @@ public class BulkCopyCSVTest extends AbstractTest {
             testBulkCopyCSV(f2, true);
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+    
+    // Used for testing issue reported in https://github.com/microsoft/mssql-jdbc/issues/1391
+    private class BulkData1391 extends SQLServerBulkCSVFileRecord {
+
+        public BulkData1391(String fileToParse, String encoding, String delimiter,
+                boolean firstLineIsColumnNames) throws SQLServerException {
+            super(fileToParse, encoding, delimiter, firstLineIsColumnNames);
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            List<Integer> list = new ArrayList<>(columnMetadata.keySet());
+            Integer temp = list.get(0);
+            list.set(0, list.get(1));
+            list.set(1, temp);
+            return new LinkedHashSet<>(list);
         }
     }
 
