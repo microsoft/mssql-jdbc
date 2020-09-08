@@ -31,7 +31,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.xAzureSQLDW)
 public class BulkCopyRowSetTest extends AbstractTest {
 
     private static String tableName = AbstractSQLGenerator
@@ -40,6 +39,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest2"));
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testBulkCopyFloatRowSet() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = connection.createStatement()) {
             RowSetFactory rsf = RowSetProvider.newFactory();
