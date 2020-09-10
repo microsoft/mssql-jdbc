@@ -32,6 +32,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1841,13 +1842,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
                     Iterator<Integer> columnsIterator = columnOrdinals.iterator();
                     int j = 1;
+                    outerWhileLoop:
                     while (columnsIterator.hasNext()) {
                         int currentOrdinal = columnsIterator.next();
                         if (j != currentOrdinal) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
-                            Object[] msgArgs = {currentOrdinal};
-                            throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND,
-                                    DriverError.NOT_SET, null);
+                            /*
+                             * GitHub issue #1391: attempt to sort the set before throwing an exception, in case the set
+                             * was not sorted.
+                             */
+                            List<Integer> sortedList = new ArrayList<>(columnOrdinals);
+                            Collections.sort(sortedList);
+                            columnsIterator = sortedList.iterator();
+                            j = 1;
+                            while (columnsIterator.hasNext()) {
+                                currentOrdinal = columnsIterator.next();
+                                if (j != currentOrdinal) {
+                                    MessageFormat form = new MessageFormat(
+                                            SQLServerException.getErrString("R_invalidColumn"));
+                                    Object[] msgArgs = {currentOrdinal};
+                                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND,
+                                            DriverError.NOT_SET, null);
+                                }
+                                j++;
+                            }
+                            // if the sorted set doesn't throw an error, break out of the outer while loop
+                            break outerWhileLoop;
                         }
                         j++;
                     }
