@@ -259,12 +259,12 @@ class SQLServerSecurityUtility {
 
         // MSI_ENDPOINT and MSI_SECRET can be used instead of IDENTITY_ENDPOINT and IDENTITY_HEADER
         String identityEndpoint = System.getenv("IDENTITY_ENDPOINT");
-        if (null == identityEndpoint) {
+        if (null == identityEndpoint || identityEndpoint.trim().isEmpty()) {
             identityEndpoint = System.getenv("MSI_ENDPOINT");
         }
 
         String identityHeader = System.getenv("IDENTITY_HEADER");
-        if (null == identityHeader) {
+        if (null == identityHeader || identityHeader.trim().isEmpty()) {
             identityHeader = System.getenv("MSI_SECRET");
         }
 
