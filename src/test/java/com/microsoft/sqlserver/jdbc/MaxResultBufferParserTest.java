@@ -36,7 +36,7 @@ class MaxResultBufferParserTest {
      * Method with input data for testValidateMaxResultBufferException Tests
      */
     public static Iterable<Object[]> exceptionData() {
-        return Arrays.asList(new Object[][] {{"ASD"}, {"123PRECD"}, {"0101D"}, {"1@D"},});
+        return Arrays.asList(new Object[][] {{"ASD"}, {"123PRECD"}, {"0101D"}, {"1@D"}, {"-1"}});
     }
 
     /**

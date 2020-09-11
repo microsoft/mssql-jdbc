@@ -27,11 +27,7 @@ public class MaxResultBufferCounter implements ICounter {
     public void increaseCounter(long bytes) throws SQLServerException {
         if (maxResultBuffer > 0) {
             counter += bytes;
-            if (counter > maxResultBuffer) {
-                logger.log(Level.WARNING, "MaxResultBuffer exceeded: {0} .Property was set to {1}",
-                        new Object[] {counter, maxResultBuffer});
-                throwExceededMaxResultBufferException(maxResultBuffer, counter);
-            }
+            checkForMaxResultBufferOverflow(counter);
         }
     }
 
@@ -39,9 +35,16 @@ public class MaxResultBufferCounter implements ICounter {
         counter = 0;
     }
 
+    private void checkForMaxResultBufferOverflow(long number) throws SQLServerException {
+        if (number > maxResultBuffer) {
+            logger.log(Level.WARNING, "MaxResultBuffer exceeded: {0}. Property was set to {1}.",
+                    new Object[] {number, maxResultBuffer});
+            throwExceededMaxResultBufferException(maxResultBuffer, counter);
+        }
+    }
+
     private void throwExceededMaxResultBufferException(Object... arguments) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_maxResultBufferPropertyDescription"));
-        Object[] msgArgs = {arguments};
-        throw new SQLServerException(form.format(msgArgs), null);
+        throw new SQLServerException(form.format(arguments), null);
     }
 }
