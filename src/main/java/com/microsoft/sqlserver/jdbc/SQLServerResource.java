@@ -649,5 +649,5 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
             {"R_InvalidCSVQuotes",
                     "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
-            {"R_maxResultBufferPropertyDescription", "Result Set size: {0} exceeded maxResultBuffer property: {1}."},};
+            {"R_maxResultBufferPropertyDescription", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},};
 }

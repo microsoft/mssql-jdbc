@@ -25,11 +25,16 @@ class MaxResultBufferParserTest {
      * Method with input data for testValidateMaxResultBuffer Tests
      */
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][] {{"10p", (long) (0.1 * getMaxMemory())},
-                {"10pct", (long) (0.1 * getMaxMemory())}, {"10percent", (long) (0.1 * getMaxMemory())}, {"100", 100},
-                {"100k", 100 * 1000}, {"100m", 100 * 1000 * 1000},
+        return Arrays.asList(new Object[][] {
+                {"10p", (long) (0.1 * getMaxMemory())},
+                {"10pct", (long) (0.1 * getMaxMemory())},
+                {"10percent", (long) (0.1 * getMaxMemory())},
+                {"100", 100},
+                {"100k", 100 * 1000},
+                {"100m", 100 * 1000 * 1000},
                 // these values are too big
-                {"100G", (long) (0.9 * getMaxMemory())}, {"100T", (long) (0.9 * getMaxMemory())},});
+                {"100G", (long) (0.9 * getMaxMemory())},
+                {"100T", (long) (0.9 * getMaxMemory())},});
     }
 
     /**

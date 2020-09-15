@@ -39,7 +39,7 @@ public class MaxResultBufferCounter implements ICounter {
         if (number > maxResultBuffer) {
             logger.log(Level.WARNING, "MaxResultBuffer exceeded: {0}. Property was set to {1}.",
                     new Object[] {number, maxResultBuffer});
-            throwExceededMaxResultBufferException(maxResultBuffer, counter);
+            throwExceededMaxResultBufferException(counter, maxResultBuffer);
         }
     }
 
