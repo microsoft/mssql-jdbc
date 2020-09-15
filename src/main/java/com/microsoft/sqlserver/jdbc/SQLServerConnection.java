@@ -2708,6 +2708,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey,
                     clientKeyPassword);
         }
+        
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
