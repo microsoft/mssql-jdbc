@@ -97,7 +97,7 @@ class KeyVaultCredential implements TokenCredential {
         }
 
         IClientCredential credential;
-        credential = ClientCredentialFactory.create(clientSecret);
+        credential = ClientCredentialFactory.createFromSecret(clientSecret);
         ConfidentialClientApplication.Builder applicationBuilder = ConfidentialClientApplication.builder(clientId,
                 credential);
         try {

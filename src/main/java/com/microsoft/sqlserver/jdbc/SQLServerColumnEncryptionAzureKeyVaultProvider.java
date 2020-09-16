@@ -55,6 +55,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final static java.util.logging.Logger akvLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
+    public static final int KEY_NAME_INDEX = 4;
+    public static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
+    public static final String KEY_URL_DELIMITER = "/";
     private HttpPipeline keyVaultPipeline;
     private KeyVaultCredential keyVaultCredential;
 
@@ -635,11 +638,20 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     private KeyVaultKey getKeyVaultKey(String masterKeyPath) throws SQLServerException {
-        String[] keyTokens = masterKeyPath.split("/");
-        String keyName = keyTokens[keyTokens.length - 2];
-        String keyVersion = keyTokens[keyTokens.length - 1];
+        String[] keyTokens = masterKeyPath.split(KEY_URL_DELIMITER);
+        String keyName = keyTokens[KEY_NAME_INDEX];
+        String keyVersion = null;
+        if (keyTokens.length == KEY_URL_SPLIT_LENGTH_WITH_VERSION) {
+            keyVersion = keyTokens[keyTokens.length - 1];
+        }
         KeyClient keyClient = getKeyClient(masterKeyPath);
-        KeyVaultKey retrievedKey = keyClient.getKey(keyName, keyVersion);
+        KeyVaultKey retrievedKey;
+        if (keyVersion != null) {
+            retrievedKey = keyClient.getKey(keyName, keyVersion);
+        } else {
+            retrievedKey = keyClient.getKey(keyName);
+        }
+
 
         if (null == retrievedKey) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));

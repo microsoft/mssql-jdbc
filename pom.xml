@@ -60,8 +60,8 @@
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>4.1.4</azure.keyvault.version>
-		<azure.identity.version>1.0.7</azure.identity.version>
+		<azure.keyvault.version>4.2.1</azure.keyvault.version>
+		<azure.identity.version>1.1.2</azure.identity.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
