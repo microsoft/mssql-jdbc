@@ -2308,15 +2308,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                     tdsWriter.writeShort((short) bytes.length);
                                     tdsWriter.writeBytes(bytes);
                                 } else {
-                                    tdsWriter.writeShort((short) (colValueStr.length()));
                                     // converting string into destination collation using Charset
-
                                     SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                    if (null != destCollation) {
-                                        tdsWriter.writeBytes(colValueStr.getBytes(
-                                                destColumnMetadata.get(destColOrdinal).collation.getCharset()));
 
+                                    if (null != destCollation) {
+                                        byte[] value = colValueStr.getBytes(
+                                                destColumnMetadata.get(destColOrdinal).collation.getCharset());
+                                        tdsWriter.writeShort((short) value.length);
+                                        tdsWriter.writeBytes(value);
                                     } else {
+                                        tdsWriter.writeShort((short) (colValueStr.length()));
                                         tdsWriter.writeBytes(colValueStr.getBytes());
                                     }
                                 }
