@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 import com.azure.core.credential.TokenCredential;
@@ -39,7 +40,6 @@ import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
-
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
@@ -59,7 +59,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
     public static final String KEY_URL_DELIMITER = "/";
     private HttpPipeline keyVaultPipeline;
-    private KeyVaultCredential keyVaultCredential;
+    private KeyVaultTokenCredential keyVaultTokenCredential;
 
     /**
      * Column Encryption Key Store Provider string
@@ -116,8 +116,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(form.format(msgArgs1), null);
         }
 
-        keyVaultCredential = new KeyVaultCredential(clientId, clientKey);
-        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultCredential).buildPipeline();
+        keyVaultTokenCredential = new KeyVaultTokenCredential(clientId, clientKey);
+        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultTokenCredential).buildPipeline();
     }
 
     /**
@@ -168,6 +168,52 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         createKeyvaultClients(tokenCredential);
+    }
+
+
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
+     * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for
+     * removal in next stable release.
+     *
+     * @param authenticationCallback
+     *        - Callback function used for authenticating to AAD.
+     * @param executorService
+     *        - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This
+     *        parameter can be passed as 'null'
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    @Deprecated
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(
+            SQLServerKeyVaultAuthenticationCallback authenticationCallback,
+            ExecutorService executorService) throws SQLServerException {
+        this(authenticationCallback);
+    }
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD. This
+     * is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * @param authenticationCallback
+     *        - Callback function used for authenticating to AAD.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    @Deprecated
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(
+            SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
+        if (null == authenticationCallback) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        keyVaultTokenCredential = new KeyVaultTokenCredential(authenticationCallback);
+        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultTokenCredential).buildPipeline();
     }
 
     private void createKeyvaultClients(TokenCredential credential) throws SQLServerException {
@@ -646,7 +692,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
         KeyClient keyClient = getKeyClient(masterKeyPath);
         KeyVaultKey retrievedKey;
-        if (keyVersion != null) {
+        if (null != keyVersion) {
             retrievedKey = keyClient.getKey(keyName, keyVersion);
         } else {
             retrievedKey = keyClient.getKey(keyName);

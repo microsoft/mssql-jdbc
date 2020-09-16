@@ -24,17 +24,19 @@ import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
-
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
  */
 @Immutable
-class KeyVaultCredential implements TokenCredential {
-    private final ClientLogger logger = new ClientLogger(KeyVaultCredential.class);
+class KeyVaultTokenCredential implements TokenCredential {
+    private final ClientLogger logger = new ClientLogger(KeyVaultTokenCredential.class);
     private final String clientId;
     private final String clientSecret;
+    private final SQLServerKeyVaultAuthenticationCallback authenticationCallback;
     private String authorization;
     private ConfidentialClientApplication confidentialClientApplication;
+    private String resource;
+    private String scope;
 
     /**
      * Creates a KeyVaultCredential with the given identity client options.
@@ -45,7 +47,7 @@ class KeyVaultCredential implements TokenCredential {
      *        the secret value of the AAD application
      * @throws SQLServerException
      */
-    KeyVaultCredential(String clientId, String clientSecret) throws SQLServerException {
+    KeyVaultTokenCredential(String clientId, String clientSecret) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
             Object[] msgArgs1 = {"Client ID"};
@@ -60,15 +62,27 @@ class KeyVaultCredential implements TokenCredential {
 
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.authenticationCallback = null;
+    }
+
+    KeyVaultTokenCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
+        this.authenticationCallback = authenticationCallback;
+        this.clientId = null;
+        this.clientSecret = null;
     }
 
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
+        if (null == authenticationCallback) {
+            String accessToken = authenticationCallback.getAccessToken(this.authorization, this.resource, this.scope);
+            return Mono.just(new AccessToken(accessToken, OffsetDateTime.MIN));
+        }
+
         return authenticateWithConfidentialClientCache(request).onErrorResume(t -> Mono.empty())
                 .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
     }
 
-    KeyVaultCredential setAuthorization(String authorization) {
+    KeyVaultTokenCredential setAuthorization(String authorization) {
         if (null != this.authorization && this.authorization.equals(authorization)) {
             return this;
         }
@@ -86,7 +100,7 @@ class KeyVaultCredential implements TokenCredential {
 
         if (null == authorization) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
-            Object[] msgArgs1 = {"Authoriziation"};
+            Object[] msgArgs1 = {"Authorization"};
             throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
@@ -133,5 +147,13 @@ class KeyVaultCredential implements TokenCredential {
                         .acquireToken(ClientCredentialParameters.builder(new HashSet<>(request.getScopes())).build()))
                 .map(ar -> new AccessToken(ar.accessToken(),
                         OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC)));
+    }
+
+    void setResource(String resource) {
+        this.resource = resource;
+    }
+
+    void setScope(String scope) {
+        this.scope = scope;
     }
 }

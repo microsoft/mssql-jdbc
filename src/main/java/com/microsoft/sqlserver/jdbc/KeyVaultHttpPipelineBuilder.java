@@ -26,7 +26,7 @@ final class KeyVaultHttpPipelineBuilder {
     private static final String SDK_VERSION = "4.2.0";
 
     private final List<HttpPipelinePolicy> policies;
-    private KeyVaultCredential credential;
+    private KeyVaultTokenCredential credential;
     private HttpLogOptions httpLogOptions;
     private final RetryPolicy retryPolicy;
 
@@ -64,7 +64,7 @@ final class KeyVaultHttpPipelineBuilder {
      * @return the updated KVHttpPipelineBuilder object.
      * @throws SQLServerException
      */
-    KeyVaultHttpPipelineBuilder credential(KeyVaultCredential credential) throws SQLServerException {
+    KeyVaultHttpPipelineBuilder credential(KeyVaultTokenCredential credential) throws SQLServerException {
         if (null == credential) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
             Object[] msgArgs1 = {"Credential"};
