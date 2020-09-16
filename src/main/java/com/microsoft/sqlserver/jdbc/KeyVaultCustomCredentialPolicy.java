@@ -27,7 +27,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
     private static final String AUTHORIZATION = "Authorization";
     private final ScopeTokenCache cache;
-    private final KeyVaultCredential keyVaultCredential;
+    private final KeyVaultTokenCredential keyVaultTokenCredential;
 
     /**
      * Creates KeyVaultCustomCredentialPolicy.
@@ -36,7 +36,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      *        the token credential to authenticate the request
      * @throws SQLServerException
      */
-    KeyVaultCustomCredentialPolicy(KeyVaultCredential credential) throws SQLServerException {
+    KeyVaultCustomCredentialPolicy(KeyVaultTokenCredential credential) throws SQLServerException {
         if (null == credential) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
             Object[] msgArgs1 = {"Credential"};
@@ -44,7 +44,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
         }
 
         this.cache = new ScopeTokenCache(credential::getToken);
-        this.keyVaultCredential = credential;
+        this.keyVaultTokenCredential = credential;
     }
 
     /**
@@ -66,7 +66,9 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
                 // Ignore body
                 .doOnNext(HttpResponse::close).map(res -> res.getHeaderValue(WWW_AUTHENTICATE))
                 .map(header -> extractChallenge(header, BEARER_TOKEN_PREFIX)).flatMap(map -> {
-                    keyVaultCredential.setAuthorization(map.get("authorization"));
+                    keyVaultTokenCredential.setAuthorization(map.get("authorization"));
+                    keyVaultTokenCredential.setResource(map.get("resource"));
+                    keyVaultTokenCredential.setScope(map.get("scope"));
                     cache.setRequest(new TokenRequestContext().addScopes(map.get("resource") + "/.default"));
                     return cache.getToken();
                 }).flatMap(token -> {
