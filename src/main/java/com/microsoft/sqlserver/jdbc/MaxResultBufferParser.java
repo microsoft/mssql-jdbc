@@ -33,17 +33,22 @@ public class MaxResultBufferParser {
      *         Is Thrown when maxResultProperty's syntax is wrong
      */
     public static long validateMaxResultBuffer(String input) throws SQLServerException {
+        final String errorMessage = "maxResultBuffer property is badly formatted: {0}";
         String numberString;
-        long number = 0;
+        long number = -1;
 
+        // check for null values and empty String "", if so return -1
+        if (StringUtils.isEmpty(input)) {
+            return number;
+        }
         // check PERCENT_PHRASES
         for (String percentPhrase : PERCENT_PHRASES) {
-            if (input.contains(percentPhrase)) {
+            if (input.endsWith(percentPhrase)) {
                 numberString = input.substring(0, input.length() - percentPhrase.length());
                 try {
                     number = Long.parseLong(numberString);
                 } catch (NumberFormatException e) {
-                    logger.log(Level.INFO, "maxResultBuffer property is badly formatted: {0}", new Object[] {input});
+                    logger.log(Level.INFO, errorMessage, new Object[] {input});
                     throwNewInvalidMaxResultBufferParameterException(e, numberString);
                 }
                 return adjustMemory(number);
@@ -51,26 +56,26 @@ public class MaxResultBufferParser {
         }
         // check if only number was supplied
         long multiplier = 1;
-        if (input.matches("\\d+")) {
+        if (StringUtils.isNumeric(input)) {
             number = Long.parseLong(input);
             return adjustMemory(number, multiplier);
         }
         // check if prefix was supplied
-        switch (input.substring(input.length() - 1).toUpperCase()) {
-            case "K":
+        switch (Character.toUpperCase(input.charAt(input.length() - 1))) {
+            case 'K':
                 multiplier = 1000L;
                 break;
-            case "M":
-                multiplier = 1000000L;
+            case 'M':
+                multiplier = 1000_000L;
                 break;
-            case "G":
-                multiplier = 1000000000L;
+            case 'G':
+                multiplier = 1000_000_000L;
                 break;
-            case "T":
-                multiplier = 1000000000000L;
+            case 'T':
+                multiplier = 1000_000_000_000L;
                 break;
             default:
-                logger.log(Level.INFO, "maxResultBuffer property is badly formatted: {0}", new Object[] {input});
+                logger.log(Level.INFO, errorMessage, new Object[] {input});
                 throwNewInvalidMaxResultBufferParameterException(null, input);
         }
 
@@ -79,7 +84,7 @@ public class MaxResultBufferParser {
         try {
             number = Long.parseLong(numberString);
         } catch (NumberFormatException e) {
-            logger.log(Level.INFO, "maxResultBuffer property is badly formatted: {0}", new Object[] {input});
+            logger.log(Level.INFO, errorMessage, new Object[] {input});
             throwNewInvalidMaxResultBufferParameterException(e, numberString);
         }
         return adjustMemory(number, multiplier);
