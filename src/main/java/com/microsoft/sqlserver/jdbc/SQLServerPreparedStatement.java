@@ -1050,7 +1050,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
+    public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         boolean rsclosed = false;
@@ -1063,7 +1063,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
-            SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
+            SQLServerResultSet emptyResultSet = buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
         } else if (resultSet != null) {
@@ -1080,21 +1080,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLServerException
      * @return the result set containing the meta data
      */
-    private ResultSet buildExecuteMetaData() throws SQLServerException {
+    private SQLServerResultSet buildExecuteMetaData() throws SQLServerException, SQLTimeoutException {
         String fmtSQL = userSQL;
 
-        ResultSet emptyResultSet = null;
+        SQLServerResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
-        } catch (SQLException sqle) {
+        } catch (SQLServerException sqle) {
+            // Ignore empty result set errors, otherwise propagate the server error.
             if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
-                // if the error is not no resultset then throw a processings error.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
-                Object[] msgArgs = {sqle.getMessage()};
-
-                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+                throw sqle;
             }
         }
         return emptyResultSet;
