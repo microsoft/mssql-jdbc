@@ -17,8 +17,8 @@ import java.util.logging.Logger;
 public class MaxResultBufferParser {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.MaxResultBufferParser");
-
     private static final String[] PERCENT_PHRASES = {"percent", "pct", "p"};
+    private static final String ERROR_MESSAGE = "maxResultBuffer property is badly formatted: {0}";
 
     private MaxResultBufferParser() {}
 
@@ -33,7 +33,6 @@ public class MaxResultBufferParser {
      *         Is Thrown when maxResultProperty's syntax is wrong
      */
     public static long validateMaxResultBuffer(String input) throws SQLServerException {
-        final String errorMessage = "maxResultBuffer property is badly formatted: {0}";
         String numberString;
         long number = -1;
 
@@ -48,7 +47,7 @@ public class MaxResultBufferParser {
                 try {
                     number = Long.parseLong(numberString);
                 } catch (NumberFormatException e) {
-                    logger.log(Level.INFO, errorMessage, new Object[] {input});
+                    logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
                     throwNewInvalidMaxResultBufferParameterException(e, numberString);
                 }
                 return adjustMemory(number);
@@ -61,33 +60,39 @@ public class MaxResultBufferParser {
             return adjustMemory(number, multiplier);
         }
         // check if prefix was supplied
-        switch (Character.toUpperCase(input.charAt(input.length() - 1))) {
-            case 'K':
-                multiplier = 1000L;
-                break;
-            case 'M':
-                multiplier = 1000_000L;
-                break;
-            case 'G':
-                multiplier = 1000_000_000L;
-                break;
-            case 'T':
-                multiplier = 1000_000_000_000L;
-                break;
-            default:
-                logger.log(Level.INFO, errorMessage, new Object[] {input});
-                throwNewInvalidMaxResultBufferParameterException(null, input);
-        }
+        multiplier = getMultiplier(input);
 
         numberString = input.substring(0, input.length() - 1);
 
         try {
             number = Long.parseLong(numberString);
         } catch (NumberFormatException e) {
-            logger.log(Level.INFO, errorMessage, new Object[] {input});
+            logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
             throwNewInvalidMaxResultBufferParameterException(e, numberString);
         }
         return adjustMemory(number, multiplier);
+    }
+
+    private static long getMultiplier(String input) throws SQLServerException {
+        long multiplier = 1;
+        switch (Character.toUpperCase(input.charAt(input.length() - 1))) {
+            case 'K':
+                multiplier = 1_000L;
+                break;
+            case 'M':
+                multiplier = 1_000_000L;
+                break;
+            case 'G':
+                multiplier = 1_000_000_000L;
+                break;
+            case 'T':
+                multiplier = 1_000_000_000_000L;
+                break;
+            default:
+                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                throwNewInvalidMaxResultBufferParameterException(null, input);
+        }
+        return multiplier;
     }
 
     private static long adjustMemory(long percentage) {
@@ -110,7 +115,7 @@ public class MaxResultBufferParser {
 
     private static void throwNewInvalidMaxResultBufferParameterException(Throwable cause,
             Object... arguments) throws SQLServerException {
-        MessageFormat form = new MessageFormat("Invalid syntax: {0} in maxResultBuffer parameter");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_maxResultBufferInvalidSyntax"));
         Object[] msgArgs = {arguments};
         throw new SQLServerException(form.format(msgArgs), cause);
     }
