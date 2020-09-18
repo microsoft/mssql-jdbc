@@ -65,6 +65,8 @@ class SQLServerADAL4JUtils {
 
                 throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
             }
+        } catch (Exception e) {
+            System.out.println("Exception caught: " + e.toString());
         } finally {
             executorService.shutdown();
         }
@@ -120,6 +122,8 @@ class SQLServerADAL4JUtils {
 
                 throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
             }
+        } catch (Exception e) {
+            System.out.println("Exception caught: " + e.toString());
         } finally {
             executorService.shutdown();
         }
