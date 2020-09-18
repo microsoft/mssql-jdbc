@@ -67,6 +67,29 @@ class SQLServerADAL4JUtils {
             }
         } catch (Exception e) {
             System.out.println("Exception caught: " + e.toString());
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            Object[] msgArgs = {user, authenticationString, e.getMessage()};
+
+            /*
+             * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+             * correct format
+             */
+            if (null == e.getCause() || null == e.getCause().getMessage()) {
+                throw new SQLServerException(form.format(msgArgs), null);
+            } else {
+                String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+                AuthenticationException correctedAuthenticationException = new AuthenticationException(
+                        correctedErrorMessage);
+
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
+                ExecutionException correctedExecutionException = new ExecutionException(
+                        correctedAuthenticationException);
+
+                throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            }
         } finally {
             executorService.shutdown();
         }
@@ -124,6 +147,30 @@ class SQLServerADAL4JUtils {
             }
         } catch (Exception e) {
             System.out.println("Exception caught: " + e.toString());
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            Object[] msgArgs = {"", authenticationString, e.getMessage()};
+
+            if (null == e.getCause() || null == e.getCause().getMessage()) {
+                // the case when Future's outcome has no AuthenticationResult but exception
+                throw new SQLServerException(form.format(msgArgs), null);
+            } else {
+                /*
+                 * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+                 * correct format
+                 */
+                String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+                AuthenticationException correctedAuthenticationException = new AuthenticationException(
+                        correctedErrorMessage);
+
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
+                ExecutionException correctedExecutionException = new ExecutionException(
+                        correctedAuthenticationException);
+
+                throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            }
         } finally {
             executorService.shutdown();
         }
