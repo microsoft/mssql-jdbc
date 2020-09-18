@@ -42,8 +42,12 @@ class SQLServerADAL4JUtils {
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException | AuthenticationException e) {
+            if (adal4jLogger.isLoggable(Level.FINE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
+            }
+
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {user, authenticationString, e.getMessage()};
+            Object[] msgArgs = {user, authenticationString};
 
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
@@ -96,8 +100,12 @@ class SQLServerADAL4JUtils {
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException | AuthenticationException e) {
+            if (adal4jLogger.isLoggable(Level.FINE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
+            }
+
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {"", authenticationString, e.getMessage()};
+            Object[] msgArgs = {"", authenticationString};
 
             if (null == e.getCause() || null == e.getCause().getMessage()) {
                 // the case when Future's outcome has no AuthenticationResult but exception
