@@ -41,7 +41,7 @@ class SQLServerADAL4JUtils {
             return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | AuthenticationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {user, authenticationString, e.getMessage()};
 
@@ -95,7 +95,7 @@ class SQLServerADAL4JUtils {
             return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | AuthenticationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {"", authenticationString, e.getMessage()};
 
