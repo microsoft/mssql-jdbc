@@ -8,6 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IClientCredential;
+import com.microsoft.aad.msal4j.PublicClientApplication;
+import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ParameterMetaData;
@@ -17,9 +23,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.azure.core.credential.TokenCredential;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -2227,4 +2237,70 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             testRichQuery(stmt, NUMERIC_TABLE_AE, table, values2);
         }
     }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testAkvNameWithAuthCallback(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    authenticationCallback);
+            String keystoreName = "keystoreName";
+            akv.setName(keystoreName);
+            assertTrue(akv.getName().equals(keystoreName));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testAkvBadEncryptColumnEncryptionKeyWithAuthCallback(String serverName, String url,
+            String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
+        try {
+            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null encryptedColumnEncryptionKey
+        try {
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")));
+        }
+        // empty encryptedColumnEncryptionKey
+        try {
+            byte[] emptyCek = new byte[0];
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")));
+        }
+    }
+
+    SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
+        @Override
+        public String getAccessToken(String authority, String resource, String scope) {
+            try {
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                ConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplication
+                        .builder(applicationClientID, credential).authority(authority).build();
+                Set<String> scopes = new HashSet<>();
+                scopes.add(scope);
+                return confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build())
+                        .get().accessToken();
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+            return null;
+        }
+    };
 }
