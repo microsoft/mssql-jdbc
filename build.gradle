@@ -3,8 +3,8 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre14 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre14
+ * jre15 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre15
  * jre11 - - PS> gradle build -PbuildProfile=jre11
  * jre8  - - PS> gradle build -PbuildProfile=jre8
  *
@@ -31,21 +31,21 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','Fedauth')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth')
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre14")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre15")){
 	
-	jreVersion = "jre14"
+	jreVersion = "jre15"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 14
-	targetCompatibility = 14
+	sourceCompatibility = 15
+	targetCompatibility = 15
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
@@ -70,7 +70,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','Fedauth','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42')
 		}
 	}
 }
