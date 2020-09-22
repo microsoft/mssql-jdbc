@@ -47,7 +47,7 @@ class SQLServerMSAL4JUtils {
 
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {user, authenticationString};
 
@@ -97,9 +97,9 @@ class SQLServerMSAL4JUtils {
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {"", authenticationString};
+            Object[] msgArgs = {"", authenticationString, e.getMessage()};
 
             if (null == e.getCause() || null == e.getCause().getMessage()) {
                 // the case when Future's outcome has no AuthenticationResult but exception
