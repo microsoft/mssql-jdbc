@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
+
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
  */
@@ -111,7 +112,7 @@ class KeyVaultTokenCredential implements TokenCredential {
         }
 
         IClientCredential credential;
-        credential = ClientCredentialFactory.createFromSecret(clientSecret);
+        credential = ClientCredentialFactory.create(clientSecret);
         ConfidentialClientApplication.Builder applicationBuilder = ConfidentialClientApplication.builder(clientId,
                 credential);
         try {
