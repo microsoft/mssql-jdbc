@@ -169,12 +169,7 @@ public class FedauthCommon extends AbstractTest {
             if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
                 assertTrue(user.equals(rs.getString(1)));
             } else {
-                if (isWindows) {
-                    assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
-                } else {
-                    // cannot verify user in kerberos tickets so just check it's not empty
-                    assertTrue(!rs.getString(1).isEmpty());
-                }
+                assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
             }
         }
     }
