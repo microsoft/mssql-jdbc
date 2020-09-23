@@ -120,7 +120,7 @@ public class FedauthCommon extends AbstractTest {
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
         String prop = getConfiguredProperty("enableADIntegrated");
-        enableADIntegrated = (isWindows && null != prop && prop.equalsIgnoreCase("true")) ? true : false;
+        enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
 
         adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
                 + azureUserName + ";password=" + azurePassword + ";Authentication="
@@ -169,7 +169,12 @@ public class FedauthCommon extends AbstractTest {
             if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
                 assertTrue(user.equals(rs.getString(1)));
             } else {
-                assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                if (isWindows) {
+                    assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                } else {
+                    // cannot verify user in kerberos tickets so just check it's not empty
+                    assertTrue(!rs.getString(1).isEmpty());
+                }
             }
         }
     }
