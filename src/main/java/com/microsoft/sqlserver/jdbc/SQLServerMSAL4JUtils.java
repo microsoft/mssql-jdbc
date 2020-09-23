@@ -49,7 +49,7 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
-            Object[] msgArgs = {user, authenticationString, e.getMessage()};
+            Object[] msgArgs = {user, authenticationString};
 
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide

@@ -2290,7 +2290,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         @Override
         public String getAccessToken(String authority, String resource, String scope) {
             try {
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                IClientCredential credential = ClientCredentialFactory.create(applicationKey);
                 ConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).authority(authority).build();
                 Set<String> scopes = new HashSet<>();
