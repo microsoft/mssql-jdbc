@@ -307,12 +307,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre14</id>
+			<id>jre15</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre14${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre15${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -322,8 +322,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>14</source>
-							<target>14</target>
+							<source>15</source>
+							<target>15</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -430,7 +430,7 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>4.2.0</version>
+				<version>5.1.1</version>
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
@@ -484,7 +484,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.5</version>
+				<version>0.8.6</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

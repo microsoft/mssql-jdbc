@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
+
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
  */
@@ -73,7 +74,7 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
-        if (null == authenticationCallback) {
+        if (null != authenticationCallback) {
             String accessToken = authenticationCallback.getAccessToken(this.authorization, this.resource, this.scope);
             return Mono.just(new AccessToken(accessToken, OffsetDateTime.MIN));
         }

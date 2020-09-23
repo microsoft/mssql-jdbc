@@ -41,6 +41,7 @@ import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
 
+
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
  * be decryptable by this provider and vice versa.
@@ -170,8 +171,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         createKeyvaultClients(tokenCredential);
     }
 
-
-
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
      * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
@@ -253,7 +252,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Validate encryptionAlgorithm
-        KeyWrapAlgorithm _encryptionAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
+        KeyWrapAlgorithm keyWrapAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
 
         // Validate whether the key is RSA one or not and then get the key size
         int keySizeInBytes = getAKVKeySize(masterKeyPath);
@@ -341,7 +340,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Decrypt the CEK
-        byte[] decryptedCEK = this.AzureKeyVaultUnWrap(masterKeyPath, _encryptionAlgorithm, cipherText);
+        byte[] decryptedCEK = this.AzureKeyVaultUnWrap(masterKeyPath, keyWrapAlgorithm, cipherText);
 
         return decryptedCEK;
     }
@@ -389,7 +388,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Validate encryptionAlgorithm
-        KeyWrapAlgorithm _encryptionAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
+        KeyWrapAlgorithm keyWrapAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
 
         // Validate whether the key is RSA one or not and then get the key size
         int keySizeInBytes = getAKVKeySize(masterKeyPath);
@@ -409,7 +408,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         keyPathLength[1] = (byte) (((short) masterKeyPathBytes.length) >> 8 & 0xff);
 
         // Encrypt the plain text
-        byte[] cipherText = this.AzureKeyVaultWrap(masterKeyPath, _encryptionAlgorithm, columnEncryptionKey);
+        byte[] cipherText = this.AzureKeyVaultWrap(masterKeyPath, keyWrapAlgorithm, columnEncryptionKey);
 
         byte[] cipherTextLength = new byte[2];
         cipherTextLength[0] = (byte) (((short) cipherText.length) & 0xff);
@@ -697,7 +696,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         } else {
             retrievedKey = keyClient.getKey(keyName);
         }
-
 
         if (null == retrievedKey) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
