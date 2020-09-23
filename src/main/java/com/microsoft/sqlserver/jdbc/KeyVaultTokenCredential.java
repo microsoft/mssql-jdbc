@@ -73,7 +73,7 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
-        if (null == authenticationCallback) {
+        if (null != authenticationCallback) {
             String accessToken = authenticationCallback.getAccessToken(this.authorization, this.resource, this.scope);
             return Mono.just(new AccessToken(accessToken, OffsetDateTime.MIN));
         }
