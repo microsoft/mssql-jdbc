@@ -106,7 +106,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testActiveDirectoryIntegratedDS() throws Exception {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(azureServer);
@@ -173,7 +173,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
@@ -200,7 +200,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);

@@ -58,7 +58,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         // suspend 5 mins
         testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, SqlAuthentication.ActiveDirectoryIntegrated);
@@ -132,7 +132,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         testPooledConnectionMultiThread(secondsBeforeExpiration, SqlAuthentication.ActiveDirectoryIntegrated);
     }

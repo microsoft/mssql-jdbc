@@ -95,7 +95,7 @@ public class ConcurrentLoginTest extends FedauthCommon {
 
             t1.start();
             t2.start();
-            if (enableADIntegrated) {
+            if (isWindows && enableADIntegrated) {
                 Thread t3 = new Thread(r3);
                 t3.setUncaughtExceptionHandler(handler);
                 t3.start();

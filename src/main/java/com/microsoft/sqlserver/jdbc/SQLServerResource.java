@@ -404,7 +404,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "FEDAUTHINFO token stream is not long enough ({0}) to contain the data it claims to."},
             {"R_FedAuthInfoDoesNotContainStsurlAndSpn",
                     "FEDAUTHINFO token stream does not contain both STSURL and SPN."},
-            {"R_ADALExecution", "Failed to authenticate the user {0} in Active Directory (Authentication={1}). {2}"},
+            {"R_ADALExecution", "Failed to authenticate the user {0} in Active Directory (Authentication={1})."},
             {"R_UnrequestedFeatureAckReceived", "Unrequested feature acknowledge is received. Feature ID: {0}."},
             {"R_FedAuthFeatureAckContainsExtraData",
                     "Federated authentication feature extension ack for ADAL and Security Token includes extra data."},

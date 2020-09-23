@@ -26,7 +26,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.fedAuth)
 public class ErrorMessageTest extends FedauthCommon {
 
-    String badUserName = "abc" + azureUserName;
+    String userName = "abc" + azureUserName;
     String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
 
     @Test
@@ -214,14 +214,13 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUserName() throws SQLException {
-        try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";userName=" + badUserName + ";password=" + azurePassword
-                        + ";Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString())) {
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";userName=" + userName + ";password="
+                + azurePassword + ";Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString())) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                     e.getMessage()
-                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
+                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + userName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                             && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
         }
@@ -233,7 +232,7 @@ public class ErrorMessageTest extends FedauthCommon {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setServerName(azureServer);
             ds.setDatabaseName(azureDatabase);
-            ds.setUser(badUserName);
+            ds.setUser(userName);
             ds.setPassword(azurePassword);
             ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
 
@@ -242,7 +241,7 @@ public class ErrorMessageTest extends FedauthCommon {
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                     e.getMessage()
-                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
+                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + userName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                             && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
         }
@@ -250,13 +249,13 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testADPasswordUnregisteredUserWithConnectionStringUser() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + badUserName + ";password="
+        try (Connection connection = DriverManager.getConnection(connectionUrl + ";user=" + userName + ";password="
                 + azurePassword + ";Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString())) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
                     e.getMessage()
-                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
+                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + userName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                             && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
         }
@@ -269,20 +268,20 @@ public class ErrorMessageTest extends FedauthCommon {
         info.put("Authentication", SqlAuthentication.ActiveDirectoryPassword.toString());
 
         try (Connection connection = DriverManager
-                .getConnection(connectionUrl + ";user=" + badUserName + ";password=" + azurePassword, info)) {
+                .getConnection(connectionUrl + ";user=" + userName + ";password=" + azurePassword, info)) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE
-                    + " the user " + badUserName + " in Active Directory (Authentication=ActiveDirectoryPassword)."));
+                    + " the user " + userName + " in Active Directory (Authentication=ActiveDirectoryPassword)."));
         }
     }
 
     @Test
     public void testAuthenticationAgainstSQLServerWithActivedirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
+        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
 
         java.util.Properties info = new Properties();
         info.put("TrustServerCertificate", "true");

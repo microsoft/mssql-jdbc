@@ -120,7 +120,7 @@ public class FedauthCommon extends AbstractTest {
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
 
         String prop = getConfiguredProperty("enableADIntegrated");
-        enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
+        enableADIntegrated = (isWindows && null != prop && prop.equalsIgnoreCase("true")) ? true : false;
 
         adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
                 + azureUserName + ";password=" + azurePassword + ";Authentication="
