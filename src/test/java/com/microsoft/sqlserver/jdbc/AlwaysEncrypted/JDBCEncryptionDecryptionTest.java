@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -12,7 +11,6 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IClientCredential;
-import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -28,8 +26,6 @@ import java.util.LinkedList;
 
 import com.azure.core.credential.TokenCredential;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -2290,7 +2286,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         @Override
         public String getAccessToken(String authority, String resource, String scope) {
             try {
-                IClientCredential credential = ClientCredentialFactory.create(applicationKey);
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
                 ConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).authority(authority).build();
                 Set<String> scopes = new HashSet<>();
