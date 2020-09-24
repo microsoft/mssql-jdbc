@@ -12,8 +12,6 @@ import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.core.http.policy.HttpPolicyProviders;
 import com.azure.core.http.policy.RetryPolicy;
-import com.azure.core.http.policy.UserAgentPolicy;
-import com.azure.core.util.Configuration;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -21,9 +19,6 @@ import java.util.List;
 
 
 final class KeyVaultHttpPipelineBuilder {
-    private static final String APPLICATION_ID = "mssql-jdbc";
-    private static final String SDK_NAME = "azure-security-keyvault-keys";
-    private static final String SDK_VERSION = "4.2.0";
 
     private final List<HttpPipelinePolicy> policies;
     private KeyVaultTokenCredential credential;
@@ -40,12 +35,9 @@ final class KeyVaultHttpPipelineBuilder {
     }
 
     HttpPipeline buildPipeline() throws SQLServerException {
-        Configuration buildConfiguration = Configuration.getGlobalConfiguration().clone();
-
         // Closest to API goes first, closest to wire goes last.
         final List<HttpPipelinePolicy> policies = new ArrayList<>();
 
-        policies.add(new UserAgentPolicy(APPLICATION_ID, SDK_NAME, SDK_VERSION, buildConfiguration));
         HttpPolicyProviders.addBeforeRetryPolicies(policies);
         policies.add(retryPolicy);
         policies.add(new KeyVaultCustomCredentialPolicy(credential));
