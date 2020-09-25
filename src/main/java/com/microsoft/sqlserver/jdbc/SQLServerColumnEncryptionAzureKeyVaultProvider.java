@@ -56,9 +56,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final static java.util.logging.Logger akvLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
-    public static final int KEY_NAME_INDEX = 4;
-    public static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
-    public static final String KEY_URL_DELIMITER = "/";
+    private static final int KEY_NAME_INDEX = 4;
+    private static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
+    private static final String KEY_URL_DELIMITER = "/";
     private HttpPipeline keyVaultPipeline;
     private KeyVaultTokenCredential keyVaultTokenCredential;
 
@@ -122,8 +122,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
-     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by KeyVault
+     * client at runtime to authenticate to Azure Key Vault.
      * 
      * @throws SQLServerException
      *         when an error occurs
@@ -133,8 +133,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
-     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by KeyVault
+     * client at runtime to authenticate to Azure Key Vault.
      *
      * @param clientId
      *        Identifier of the client requesting the token.
@@ -153,7 +153,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider using the provided TokenCredential to authenticate to
-     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * AAD. This is used by KeyVault client at runtime to authenticate to Azure Key Vault.
      *
      * @param tokenCredential
      *        The TokenCredential to use to authenticate to Azure Key Vault.
@@ -173,15 +173,15 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
-     * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * an executor service.. This is used by KeyVault client at runtime to authenticate to Azure Key Vault.
      *
-     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for
+     * This constructor is present to maintain backwards compatibility with 8.0 version of the driver. Deprecated for
      * removal in next stable release.
      *
      * @param authenticationCallback
      *        - Callback function used for authenticating to AAD.
      * @param executorService
-     *        - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This
+     *        - The ExecutorService, previously used to create the keyVault client, but not in use anymore. - This
      *        parameter can be passed as 'null'
      * @throws SQLServerException
      *         when an error occurs
@@ -195,8 +195,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD. This
-     * is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * is used by KeyVault client at runtime to authenticate to Azure Key Vault.
      *
+     * This constructor is present to maintain backwards compatibility with 8.0 version of the driver. Deprecated for
+     * removal in next stable release.
+     * 
      * @param authenticationCallback
      *        - Callback function used for authenticating to AAD.
      * @throws SQLServerException

@@ -93,6 +93,12 @@
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
 			<version>${azure.identity.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>stax</groupId>
+					<artifactId>stax-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- dependencies for ANTLR -->
