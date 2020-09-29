@@ -18,7 +18,6 @@ import java.util.Locale;
 import java.util.Map;
 import reactor.core.publisher.Mono;
 
-
 /**
  * A policy that authenticates requests with Azure Key Vault service.
  */

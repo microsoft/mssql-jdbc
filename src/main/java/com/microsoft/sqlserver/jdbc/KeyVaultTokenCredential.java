@@ -66,6 +66,11 @@ class KeyVaultTokenCredential implements TokenCredential {
         this.authenticationCallback = null;
     }
 
+    /**
+     * Creates a KeyVaultCredential with the given identity client options.
+     *
+     * @param authenticationCallback The authentication callback that gets invoked when an access token is requested.
+     */
     KeyVaultTokenCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
         this.authenticationCallback = authenticationCallback;
         this.clientId = null;
@@ -75,14 +80,24 @@ class KeyVaultTokenCredential implements TokenCredential {
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
         if (null != authenticationCallback) {
+            // If the callback is not null, invoke the callback to get the token. This gets invoked each time
+            // this method is called and will not cache the token. It's the callback's responsibility to return a valid
+            // token each time it's invoked.
             String accessToken = authenticationCallback.getAccessToken(this.authorization, this.resource, this.scope);
             return Mono.just(new AccessToken(accessToken, OffsetDateTime.MIN));
         }
 
+        // gets the token from MSAL
         return authenticateWithConfidentialClientCache(request).onErrorResume(t -> Mono.empty())
                 .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
     }
 
+    /**
+     * Sets the authority that will be used for authentication.
+     *
+     * @param authorization The name of the authorization.
+     * @return The updated {@link KeyVaultTokenCredential} instance.
+     */
     KeyVaultTokenCredential setAuthorization(String authorization) {
         if (null != this.authorization && this.authorization.equals(authorization)) {
             return this;
@@ -92,6 +107,11 @@ class KeyVaultTokenCredential implements TokenCredential {
         return this;
     }
 
+    /**
+     * Creates an instance of {@link ConfidentialClientApplication} using the provided client id and secret.
+     *
+     * @return An instance of {@link ConfidentialClientApplication}.
+     */
     private ConfidentialClientApplication getConfidentialClientApplication() {
         if (null == clientId) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
@@ -111,6 +131,7 @@ class KeyVaultTokenCredential implements TokenCredential {
             throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
+        // Create the credential using the MSAL factory method.
         IClientCredential credential;
         credential = ClientCredentialFactory.createFromSecret(clientSecret);
         ConfidentialClientApplication.Builder applicationBuilder = ConfidentialClientApplication.builder(clientId,
@@ -123,6 +144,12 @@ class KeyVaultTokenCredential implements TokenCredential {
         return applicationBuilder.build();
     }
 
+    /**
+     * Attempts to get the access token from the client cache if it's not expired. If it's expired this returns an
+     * empty response.
+     * @param request The context for requesting the token including the scope.
+     * @return The cached access token if it's not expired.
+     */
     private Mono<AccessToken> authenticateWithConfidentialClientCache(TokenRequestContext request) {
         return Mono.fromFuture(() -> {
             SilentParameters.SilentParametersBuilder parametersBuilder = SilentParameters
@@ -136,12 +163,22 @@ class KeyVaultTokenCredential implements TokenCredential {
                 OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC))).filter(t -> !t.isExpired());
     }
 
+    /**
+     * If fetching the token resulted in an error, this method returns the error wrapped in a completable future.
+     * @param e The original exception.
+     * @return A {@link CompletableFuture} that completes with an error.
+     */
     private CompletableFuture<IAuthenticationResult> getFailedCompletableFuture(Exception e) {
         CompletableFuture<IAuthenticationResult> completableFuture = new CompletableFuture<>();
         completableFuture.completeExceptionally(e);
         return completableFuture;
     }
 
+    /**
+     * Attempts to get the access token from the {@link ConfidentialClientApplication} for the requested scope.
+     * @param request The context for requesting the token that includes the scope.
+     * @return The access token.
+     */
     private Mono<AccessToken> authenticateWithConfidentialClient(TokenRequestContext request) {
         return Mono
                 .fromFuture(() -> confidentialClientApplication
@@ -150,10 +187,18 @@ class KeyVaultTokenCredential implements TokenCredential {
                         OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC)));
     }
 
+    /**
+     * Sets the resource name.
+     * @param resource The resource name.
+     */
     void setResource(String resource) {
         this.resource = resource;
     }
 
+    /**
+     * Sets the scope for the access token.
+     * @param scope The scope for the access token.
+     */
     void setScope(String scope) {
         this.scope = scope;
     }
