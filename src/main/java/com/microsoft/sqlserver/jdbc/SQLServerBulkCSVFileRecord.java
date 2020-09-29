@@ -194,10 +194,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (firstLineIsColumnNames) {
             currentLine = fileReader.readLine();
             if (null != currentLine) {
-                columnNames = (escapeDelimiters && currentLine.contains("\""))
-                                                                               ? escapeQuotesRFC4180(currentLine.split(
-                                                                                       delimiter + escapeSplitPattern, -1))
-                                                                               : currentLine.split(delimiter, -1);
+                columnNames = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
+                        currentLine.split(delimiter + escapeSplitPattern, -1)) : currentLine.split(delimiter, -1);
             }
         }
     }
@@ -241,10 +239,8 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
              * Binary data may be corrupted The limit in split() function should be a negative value, otherwise trailing
              * empty strings are discarded. Empty string is returned if there is no value.
              */
-            String[] data = (escapeDelimiters && currentLine.contains("\""))
-                                                                             ? escapeQuotesRFC4180(currentLine.split(
-                                                                                     delimiter + escapeSplitPattern, -1))
-                                                                             : currentLine.split(delimiter, -1);
+            String[] data = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
+                    currentLine.split(delimiter + escapeSplitPattern, -1)) : currentLine.split(delimiter, -1);
 
             // Cannot go directly from String[] to Object[] and expect it to act as an array.
 
