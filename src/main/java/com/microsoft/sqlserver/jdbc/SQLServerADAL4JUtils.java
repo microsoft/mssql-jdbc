@@ -42,7 +42,7 @@ class SQLServerADAL4JUtils {
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException | AuthenticationException e) {
-            if (adal4jLogger.isLoggable(Level.FINE)) {
+            if (adal4jLogger.isLoggable(Level.SEVERE)) {
                 adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
             }
 
@@ -100,7 +100,7 @@ class SQLServerADAL4JUtils {
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException | AuthenticationException e) {
-            if (adal4jLogger.isLoggable(Level.FINE)) {
+            if (adal4jLogger.isLoggable(Level.SEVERE)) {
                 adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
             }
 
