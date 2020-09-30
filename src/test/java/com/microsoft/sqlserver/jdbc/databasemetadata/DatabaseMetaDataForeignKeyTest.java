@@ -46,6 +46,7 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String FKTable1 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_FKTable1");
     private static String PKTable2 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_PKTable2");
     private static String FKTable2 = RandomUtil.getIdentifier("DatabaseMetaDataForeignKeyTest_FKTable2");
+    private static String fkName = RandomUtil.getIdentifier("fk_DuplicateName");
 
     private static String schema = null;
     private static String anotherSchema = RandomUtil.getIdentifier("anotherSchema");
@@ -89,14 +90,14 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
                     + AbstractSQLGenerator.escapeIdentifier(PKTable2) + " (col int NOT NULL PRIMARY KEY)");
 
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(schema) + "."
-                    + AbstractSQLGenerator.escapeIdentifier(FKTable1)
-                    + " (col int, CONSTRAINT fk_DuplicateName FOREIGN KEY ([col]) REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(FKTable1) + " (col int, CONSTRAINT "
+                    + AbstractSQLGenerator.escapeIdentifier(fkName) + " FOREIGN KEY ([col]) REFERENCES "
                     + AbstractSQLGenerator.escapeIdentifier(schema) + "."
                     + AbstractSQLGenerator.escapeIdentifier(PKTable1) + "([col])" + ")");
 
             stmt.execute("Create table " + AbstractSQLGenerator.escapeIdentifier(anotherSchema) + "."
-                    + AbstractSQLGenerator.escapeIdentifier(FKTable2)
-                    + " (col int, CONSTRAINT fk_DuplicateName FOREIGN KEY ([col]) REFERENCES "
+                    + AbstractSQLGenerator.escapeIdentifier(FKTable2) + " (col int, CONSTRAINT "
+                    + AbstractSQLGenerator.escapeIdentifier(fkName) + " FOREIGN KEY ([col]) REFERENCES "
                     + AbstractSQLGenerator.escapeIdentifier(anotherSchema) + "."
                     + AbstractSQLGenerator.escapeIdentifier(PKTable2) + "([col])" + ")");
 
