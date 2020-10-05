@@ -11,16 +11,16 @@ package com.microsoft.sqlserver.jdbc;
  */
 public interface SQLServerKeyVaultAuthenticationCallback {
 
-        /**
-         * Returns the acesss token of the authentication request
-         *
-         * @param authority
-         *        - Identifier of the authority, a URL.
-         * @param resource
-         *        - Identifier of the target resource that is the recipient of the requested token, a URL.
-         * @param scope
-         *        - The scope of the authentication request.
-         * @return access token
-         */
-        String getAccessToken(String authority, String resource, String scope);
+    /**
+     * Returns the acesss token of the authentication request
+     *
+     * @param authority
+     *        - Identifier of the authority, a URL.
+     * @param resource
+     *        - Identifier of the target resource that is the recipient of the requested token, a URL.
+     * @param scope
+     *        - The scope of the authentication request.
+     * @return access token
+     */
+    String getAccessToken(String authority, String resource, String scope);
 }
