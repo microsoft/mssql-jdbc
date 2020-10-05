@@ -9,7 +9,6 @@ import com.azure.core.annotation.Immutable;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.core.util.logging.ClientLogger;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -30,7 +29,6 @@ import reactor.core.publisher.Mono;
  */
 @Immutable
 class KeyVaultTokenCredential implements TokenCredential {
-    private final ClientLogger logger = new ClientLogger(KeyVaultTokenCredential.class);
     private final String clientId;
     private final String clientSecret;
     private final SQLServerKeyVaultAuthenticationCallback authenticationCallback;
@@ -139,7 +137,7 @@ class KeyVaultTokenCredential implements TokenCredential {
         try {
             applicationBuilder = applicationBuilder.authority(authorization);
         } catch (MalformedURLException e) {
-            throw logger.logExceptionAsWarning(new IllegalStateException(e));
+            throw new RuntimeException(e);
         }
         return applicationBuilder.build();
     }
@@ -157,7 +155,7 @@ class KeyVaultTokenCredential implements TokenCredential {
             try {
                 return confidentialClientApplication.acquireTokenSilently(parametersBuilder.build());
             } catch (MalformedURLException e) {
-                return getFailedCompletableFuture(logger.logExceptionAsError(new RuntimeException(e)));
+                return getFailedCompletableFuture(new RuntimeException(e));
             }
         }).map(ar -> new AccessToken(ar.accessToken(),
                 OffsetDateTime.ofInstant(ar.expiresOnDate().toInstant(), ZoneOffset.UTC))).filter(t -> !t.isExpired());
