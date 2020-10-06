@@ -48,7 +48,11 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
+            }
+
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
             Object[] msgArgs = {user, authenticationString};
 
             /*
@@ -98,7 +102,11 @@ class SQLServerMSAL4JUtils {
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
+            }
+
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
             Object[] msgArgs = {"", authenticationString};
 
             if (null == e.getCause() || null == e.getCause().getMessage()) {

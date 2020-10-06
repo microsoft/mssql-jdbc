@@ -57,7 +57,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      */
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        if ("http".equals(context.getHttpRequest().getUrl().getProtocol())) {
+        if ("https".equals(context.getHttpRequest().getUrl().getProtocol())) {
             return Mono.error(new RuntimeException(SQLServerException.getErrString("R_TokenRequireUrl")));
         }
 

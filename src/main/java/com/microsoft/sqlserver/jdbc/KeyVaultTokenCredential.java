@@ -67,7 +67,8 @@ class KeyVaultTokenCredential implements TokenCredential {
     /**
      * Creates a KeyVaultCredential with the given identity client options.
      *
-     * @param authenticationCallback The authentication callback that gets invoked when an access token is requested.
+     * @param authenticationCallback
+     *        The authentication callback that gets invoked when an access token is requested.
      */
     KeyVaultTokenCredential(SQLServerKeyVaultAuthenticationCallback authenticationCallback) {
         this.authenticationCallback = authenticationCallback;
@@ -78,9 +79,11 @@ class KeyVaultTokenCredential implements TokenCredential {
     @Override
     public Mono<AccessToken> getToken(TokenRequestContext request) {
         if (null != authenticationCallback) {
-            // If the callback is not null, invoke the callback to get the token. This gets invoked each time
-            // this method is called and will not cache the token. It's the callback's responsibility to return a valid
-            // token each time it's invoked.
+            /*
+             * If the callback is not null, invoke the callback to get the token. This gets invoked each time this
+             * method is called and will not cache the token. It's the callback's responsibility to return a valid token
+             * each time it's invoked.
+             */
             String accessToken = authenticationCallback.getAccessToken(this.authorization, this.resource, this.scope);
             return Mono.just(new AccessToken(accessToken, OffsetDateTime.MIN));
         }
@@ -93,7 +96,8 @@ class KeyVaultTokenCredential implements TokenCredential {
     /**
      * Sets the authority that will be used for authentication.
      *
-     * @param authorization The name of the authorization.
+     * @param authorization
+     *        The name of the authorization.
      * @return The updated {@link KeyVaultTokenCredential} instance.
      */
     KeyVaultTokenCredential setAuthorization(String authorization) {
@@ -143,9 +147,11 @@ class KeyVaultTokenCredential implements TokenCredential {
     }
 
     /**
-     * Attempts to get the access token from the client cache if it's not expired. If it's expired this returns an
-     * empty response.
-     * @param request The context for requesting the token including the scope.
+     * Attempts to get the access token from the client cache if it's not expired. If it's expired this returns an empty
+     * response.
+     * 
+     * @param request
+     *        The context for requesting the token including the scope.
      * @return The cached access token if it's not expired.
      */
     private Mono<AccessToken> authenticateWithConfidentialClientCache(TokenRequestContext request) {
@@ -163,7 +169,9 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     /**
      * If fetching the token resulted in an error, this method returns the error wrapped in a completable future.
-     * @param e The original exception.
+     * 
+     * @param e
+     *        The original exception.
      * @return A {@link CompletableFuture} that completes with an error.
      */
     private CompletableFuture<IAuthenticationResult> getFailedCompletableFuture(Exception e) {
@@ -174,7 +182,9 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     /**
      * Attempts to get the access token from the {@link ConfidentialClientApplication} for the requested scope.
-     * @param request The context for requesting the token that includes the scope.
+     * 
+     * @param request
+     *        The context for requesting the token that includes the scope.
      * @return The access token.
      */
     private Mono<AccessToken> authenticateWithConfidentialClient(TokenRequestContext request) {
@@ -187,7 +197,9 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     /**
      * Sets the resource name.
-     * @param resource The resource name.
+     * 
+     * @param resource
+     *        The resource name.
      */
     void setResource(String resource) {
         this.resource = resource;
@@ -195,7 +207,9 @@ class KeyVaultTokenCredential implements TokenCredential {
 
     /**
      * Sets the scope for the access token.
-     * @param scope The scope for the access token.
+     * 
+     * @param scope
+     *        The scope for the access token.
      */
     void setScope(String scope) {
         this.scope = scope;
