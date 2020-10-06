@@ -6,9 +6,12 @@
 package com.microsoft.sqlserver.testframework;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -57,13 +60,27 @@ public abstract class AbstractTest {
     protected static String applicationKey = null;
     protected static String[] keyIDs = null;
 
+    protected static String[] enclaveServer = null;
+    protected static String[] enclaveAttestationUrl = null;
+    protected static String[] enclaveAttestationProtocol = null;
+
+    protected static String clientCertificate = null;
+    protected static String clientKey = null;
+    protected static String clientKeyPassword = "";
+
+    protected static String trustStorePath = "";
+
+    protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
-    protected static String windowsKeyPath = null;
+    // properties needed for MSI
+    protected static String msiClientId = null;
+    protected static String keyStorePrincipalId = null;
+    protected static String keyStoreSecret = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -75,8 +92,10 @@ public abstract class AbstractTest {
     protected static String connectionStringNTLM;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
+    private static boolean determinedSqlOS = false;
     private static boolean isSqlAzure = false;
     private static boolean isSqlAzureDW = false;
+    private static boolean isSqlLinux = false;
 
     /**
      * Byte Array containing streamed logging output. Content can be retrieved using toByteArray() or toString()
@@ -84,6 +103,10 @@ public abstract class AbstractTest {
     private static ByteArrayOutputStream logOutputStream = null;
     private static PrintStream logPrintStream = null;
     private static Properties configProperties = null;
+
+    protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    public static Properties properties = null;
 
     /**
      * This will take care of all initialization before running the Test Suite.
@@ -109,20 +132,62 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
+
+        String prop;
+        prop = getConfiguredProperty("enclaveServer", null);
+        if (null == prop) {
+            // default to server in connection string
+            String serverName = (connectionString.substring(Constants.JDBC_PREFIX.length())
+                    .split(Constants.SEMI_COLON)[0]).split(":")[0];
+            enclaveServer = new String[1];
+            enclaveServer[0] = new String(serverName);
+        } else {
+            enclaveServer = prop.split(Constants.SEMI_COLON);
+        }
+
+        prop = getConfiguredProperty("enclaveAttestationUrl", null);
+        enclaveAttestationUrl = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+
+        prop = getConfiguredProperty("enclaveAttestationProtocol", null);
+        enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
+
+        clientCertificate = getConfiguredProperty("clientCertificate", null);
+
+        clientKey = getConfiguredProperty("clientKey", null);
+
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
+
+        trustStorePath = getConfiguredProperty("trustStore", "");
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
+            map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider) {
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
-            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+            File file = null;
+            try {
+                file = new File(Constants.MSSQL_JDBC_PROPERTIES);
+                try (OutputStream os = new FileOutputStream(file);) {
+                    Properties props = new Properties();
+                    // Append to the list of hardcoded endpoints.
+                    props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
+                    props.store(os, "");
+                }
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } finally {
+                if (null != file) {
+                    file.delete();
+                }
+            }
         }
 
         if (!isKspRegistered) {
@@ -153,6 +218,11 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
         }
 
+        // MSI properties
+        msiClientId = getConfiguredProperty("msiClientId");
+        keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
+        keyStoreSecret = getConfiguredProperty("keyStoreSecret");
+
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
         dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
@@ -167,6 +237,8 @@ public abstract class AbstractTest {
                 connection = getConnection();
             }
             isSqlAzureOrAzureDW(connection);
+
+            checkSqlOS(connection);
         } catch (Exception e) {
             throw e;
         }
@@ -252,6 +324,35 @@ public abstract class AbstractTest {
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
                             break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTID:
+                            ds.setKeyVaultProviderClientId(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTKEY:
+                            ds.setKeyVaultProviderClientKey(value);
+                            break;
+                        case Constants.KEYSTORE_AUTHENTICATION:
+                            ds.setKeyStoreAuthentication(value);
+                            break;
+                        case Constants.KEYSTORE_PRINCIPALID:
+                            ds.setKeyStorePrincipalId(value);
+                            break;
+                        case Constants.KEYSTORE_SECRET:
+                            ds.setKeyStoreSecret(value);
+                            break;
+                        case Constants.MSICLIENTID:
+                            ds.setMSIClientId(value);
+                            break;
+                        case Constants.CLIENT_CERTIFICATE:
+                            ds.setClientCertificate(value);
+                            break;
+                        case Constants.CLIENT_KEY:
+                            ds.setClientKey(value);
+                            break;
+                        case Constants.CLIENT_KEY_PASSWORD:
+                            ds.setClientKeyPassword(value);
+                            break;
+                        case Constants.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY:
+                            ds.setSendTemporalDataTypesAsStringForBulkCopy(Boolean.parseBoolean(value));
                         default:
                             break;
                     }
@@ -381,6 +482,15 @@ public abstract class AbstractTest {
     }
 
     /**
+     * Returns if target Server is SQL Linux
+     *
+     * @return true/false
+     */
+    public static boolean isSqlLinux() {
+        return isSqlLinux;
+    }
+
+    /**
      * Determines the server's type.
      * 
      * @param con
@@ -401,6 +511,24 @@ public abstract class AbstractTest {
                     || engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             isSqlAzureDW = (engineEdition == Constants.ENGINE_EDITION_FOR_SQL_AZURE_DW);
             determinedSqlAzureOrSqlServer = true;
+        }
+    }
+
+    /**
+     * Determines the server's OSF
+     *
+     * @param con
+     * @throws SQLException
+     */
+    private static void checkSqlOS(Connection con) throws SQLException {
+        if (determinedSqlOS) {
+            return;
+        }
+
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT @@VERSION")) {
+            rs.next();
+            isSqlLinux = rs.getString(1).contains("Linux");
+            determinedSqlOS = true;
         }
     }
 
@@ -442,7 +570,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value or default value
      */
-    private static String getConfiguredProperty(String key, String defaultValue) {
+    protected static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (null == value) {

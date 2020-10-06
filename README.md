@@ -48,14 +48,14 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre13`. This creates JRE 13 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `mvn install -Pjre14`. This creates JRE 14 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 14+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre13`. This creates JRE 13 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `gradle build -PbuildProfile=jre14`. This creates JRE 14 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 14+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
@@ -70,7 +70,7 @@ This driver is documented on [Microsoft's Documentation web site](https://docs.m
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be downloaded from the [Microsoft Download Center](https://docs.microsoft.com/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
 
 ### Download the driver
 Don't want to compile anything?
@@ -81,7 +81,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>7.4.1.jre12</version>
+	<version>8.4.1.jre14</version>
 </dependency>
 ```
 The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>8.3.1.jre14-preview</version>
 </dependency>
 ```
 
@@ -108,6 +108,8 @@ Compile Time:
  - `com.microsoft.azure:azure-keyvault-webkey` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
  - `com.microsoft.azure:adal4j` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
  - `com.microsoft.rest:client-runtime` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
+ - `org.bouncycastle:bcprov-jdk15on` : Bouncy Castle Provider for Always Encrypted with secure enclaves feature with JAVA 8 only (optional)
+ - `com.google.code.gson:gson` : Gson for Always Encrypted with secure enclaves feature (optional)
 
 Test Time:
  - `junit:jar`   : For Unit Test cases.
@@ -127,20 +129,20 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>8.4.1.jre14</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.15</version>
+	<version>1.7.4</version>
 </dependency>
 ```
 
@@ -150,26 +152,26 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>8.4.1.jre14</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<version>1.6.5</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.rest</groupId>
 	<artifactId>client-runtime</artifactId>
-	<version>1.6.15</version>
+	<version>1.7.4</version>
 </dependency>
 
 <dependency>
 	<groupId>com.microsoft.azure</groupId>
 	<artifactId>azure-keyvault</artifactId>
-	<version>1.2.2</version>
+	<version>1.2.4</version>
 </dependency>
 ```
 
@@ -183,7 +185,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>8.4.1.jre14</version>
 </dependency>
 
 <dependency>
@@ -223,7 +225,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Version conventions
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1 and so on
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1 and so on
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project. 

@@ -11,9 +11,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.MGF1ParameterSpec;
@@ -55,22 +58,26 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+        // Check if the session exists in our cache
+        StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
+                .append(attestationUrl);
+        EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
+        if (null != entry) {
+            this.enclaveSession = entry.getEnclaveSession();
+            this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+        }
         ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
                 parameterNames);
-        if (null != hgsResponse && !connection.enclaveEstablished()) {
-            // Check if the session exists in our cache
-            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationUrl);
-            if (null != entry) {
-                this.enclaveSession = entry.getEnclaveSession();
-                this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
-                return b;
-            }
+        if (connection.enclaveEstablished()) {
+            return b;
+        } else if (null != hgsResponse && !connection.enclaveEstablished()) {
+
             // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams,
-                        enclaveSession);
+                enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
+                        connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -93,16 +100,17 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private VSMAttestationResponse validateAttestationResponse(VSMAttestationResponse ar) throws SQLServerException {
-        try {
-            byte[] attestationCerts = getAttestationCertificates();
-            ar.validateCert(attestationCerts);
-            ar.validateStatementSignature();
-            ar.validateDHPublicKey();
-        } catch (IOException | GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+    private void validateAttestationResponse() throws SQLServerException {
+        if (null != hgsResponse) {
+            try {
+                byte[] attestationCerts = getAttestationCertificates();
+                hgsResponse.validateCert(attestationCerts);
+                hgsResponse.validateStatementSignature();
+                hgsResponse.validateDHPublicKey();
+            } catch (IOException | GeneralSecurityException e) {
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            }
         }
-        return ar;
     }
 
     private static Hashtable<String, X509CertificateEntry> certificateCache = new Hashtable<>();
@@ -119,7 +127,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         if (null == certData) {
             java.net.URL url = new java.net.URL(attestationUrl + "/attestationservice.svc/v2.0/signingCertificates/");
             java.net.URLConnection con = url.openConnection();
-            String s = new String(con.getInputStream().readAllBytes());
+            byte[] buff = new byte[con.getInputStream().available()];
+            con.getInputStream().read(buff, 0, buff.length);
+            String s = new String(buff);
             // omit the square brackets that come with the JSON
             String[] bytesString = s.substring(1, s.length() - 1).split(",");
             certData = new byte[bytesString.length];
@@ -135,30 +145,31 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
-        ResultSet rs = null;
-        try (PreparedStatement stmt = connection.prepareStatement(proc)) {
-            rs = executeProc(stmt, userSql, preparedTypeDefinitions, vsmParams);
-            if (null == rs) {
-                // No results. Meaning no parameter.
-                // Should never happen.
-                return enclaveRequestedCEKs;
-            }
-            processAev1SPDE(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
-                    enclaveRequestedCEKs);
-            // Process the third resultset.
-            if (connection.isAEv2() && stmt.getMoreResults()) {
-                rs = (SQLServerResultSet) stmt.getResultSet();
-                while (rs.next()) {
-                    hgsResponse = new VSMAttestationResponse(rs.getBytes(1));
-                    // This validates and establishes the enclave session if valid
-                    if (!connection.enclaveEstablished()) {
-                        hgsResponse = validateAttestationResponse(hgsResponse);
+        try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
+            try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
+                    preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams)) {
+                if (null == rs) {
+                    // No results. Meaning no parameter.
+                    // Should never happen.
+                    return enclaveRequestedCEKs;
+                }
+                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
+                        enclaveRequestedCEKs);
+                // Process the third resultset.
+                if (connection.isAEv2() && stmt.getMoreResults()) {
+                    try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
+                        if (hgsRs.next()) {
+                            hgsResponse = new VSMAttestationResponse(hgsRs.getBytes(1));
+                            // This validates and establishes the enclave session if valid
+                            validateAttestationResponse();
+                        } else {
+                            SQLServerException.makeFromDriverError(null, this,
+                                    SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0", false);
+                        }
                     }
                 }
             }
-            // Null check for rs is done already.
-            rs.close();
-        } catch (SQLException e) {
+        } catch (SQLException | IOException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
             } else {
@@ -181,14 +192,14 @@ class VSMAttestationParameters extends BaseAttestationRequest {
     }
 
     @Override
-    byte[] getBytes() {
+    byte[] getBytes() throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.writeBytes(ENCLAVE_TYPE);
-        os.writeBytes(enclaveChallenge);
-        os.writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
-        os.writeBytes(ECDH_MAGIC);
-        os.writeBytes(x);
-        os.writeBytes(y);
+        os.write(ENCLAVE_TYPE);
+        os.write(enclaveChallenge);
+        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
+        os.write(ECDH_MAGIC);
+        os.write(x);
+        os.write(y);
         return os.toByteArray();
     }
 }
@@ -269,9 +280,10 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                         .generateCertificates(new ByteArrayInputStream(b));
                 for (X509Certificate cert : certs) {
                     try {
+                        cert.checkValidity();
                         healthCert.verify(cert.getPublicKey());
                         return;
-                    } catch (SignatureException e) {
+                    } catch (SignatureException | CertificateExpiredException e) {
                         // Doesn't match, but continue looping through the rest of the certificates
                     }
                 }
@@ -319,7 +331,17 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                     SQLServerResource.getResource("R_EnclavePackageLengthError"), "0", false);
         }
 
-        Signature sig = Signature.getInstance("RSASSA-PSS");
+        Signature sig = null;
+        try {
+            sig = Signature.getInstance("RSASSA-PSS");
+        } catch (NoSuchAlgorithmException e) {
+            /*
+             * RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
+             * Remove this logic if JDK 8 stops being supported or backports RSASSA-PSS
+             */
+            SQLServerBouncyCastleLoader.loadBouncyCastle();
+            sig = Signature.getInstance("RSASSA-PSS");
+        }
         PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
         sig.setParameter(pss);
         sig.initVerify(healthCert);

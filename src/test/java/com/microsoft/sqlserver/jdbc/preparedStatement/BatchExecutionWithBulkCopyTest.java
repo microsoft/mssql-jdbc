@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.jdbc.Geometry;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -570,7 +571,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (BatchUpdateException e) {
+        } catch (BatchUpdateException | SQLServerException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
 
@@ -592,7 +593,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (BatchUpdateException e) {
+        } catch (BatchUpdateException | SQLServerException e) {
             if (isSqlAzureDW()) {
                 assertEquals(TestResource.getResource("R_incorrectColumnNumInsertDW"), e.getMessage());
             } else {
@@ -622,7 +623,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (BatchUpdateException e) {
+        } catch (BatchUpdateException | SQLServerException e) {
             if (isSqlAzureDW()) {
                 assertTrue(e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxTableDW")));
             } else {
@@ -646,7 +647,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             pstmt.executeBatch();
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (BatchUpdateException e) {
+        } catch (BatchUpdateException | SQLServerException e) {
             assertEquals(TestResource.getResource("R_incorrectColumnNum"), e.getMessage());
         }
     }

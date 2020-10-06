@@ -353,7 +353,7 @@ class PLPInputStream extends BaseInputStream {
     /**
      * Marks the current position in this input stream.
      * 
-     * @param readlimit
+     * @param readLimit
      *        the number of bytes to hold (this implementation ignores this).
      */
     @Override

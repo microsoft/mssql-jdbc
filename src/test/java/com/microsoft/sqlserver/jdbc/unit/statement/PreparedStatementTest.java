@@ -647,6 +647,11 @@ public class PreparedStatementTest extends AbstractTest {
                 assertNotSame(0, handle);
             }
 
+            // AE has 1 more prepared statement handle as it calls sp_describe_parameter_encryption
+            if (ds.getColumnEncryptionSetting().equalsIgnoreCase(Constants.ENABLED)) {
+                handle++;
+            }
+
             // Execute statement again and verify same handle was used.
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
                 pstmt.execute(); // sp_execute

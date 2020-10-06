@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
@@ -2080,6 +2081,18 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
+    private void configureLobs(SQLServerLob lob) throws SQLServerException {
+        if (null != stmt) {
+            Connection c = stmt.getConnection();
+            if (c instanceof ISQLServerConnection) {
+                if (null != c && !((ISQLServerConnection) c).getDelayLoadingLobs() && null != lob) {
+                    lob.setDelayLoadingLob();
+                }
+            }
+        }
+        activeLOB = lob;
+    }
+
     @Override
     public java.io.InputStream getAsciiStream(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getAsciiStream", columnIndex);
@@ -2394,12 +2407,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
                 || type == java.time.LocalTime.class) {
             java.time.LocalDateTime ldt = getLocalDateTime(columnIndex);
-            if (type == java.time.LocalDateTime.class) {
-                returnValue = ldt;
-            } else if (type == java.time.LocalDate.class) {
-                returnValue = ldt.toLocalDate();
+            if (null == ldt) {
+                returnValue = null;
             } else {
-                returnValue = ldt.toLocalTime();
+                if (type == java.time.LocalDateTime.class) {
+                    returnValue = ldt;
+                } else if (type == java.time.LocalDate.class) {
+                    returnValue = ldt.toLocalDate();
+                } else {
+                    returnValue = ldt.toLocalTime();
+                }
             }
         } else if (type == java.time.OffsetDateTime.class) {
             microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
@@ -2624,7 +2641,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
         return value;
     }
-    
+
     LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
         checkClosed();
@@ -2778,7 +2795,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2788,7 +2805,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2798,7 +2815,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2808,7 +2825,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2818,7 +2835,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2828,7 +2845,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 

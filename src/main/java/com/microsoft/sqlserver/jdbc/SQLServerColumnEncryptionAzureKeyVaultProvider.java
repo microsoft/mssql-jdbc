@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -14,8 +16,12 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
 
 import com.microsoft.azure.AzureResponseBuilder;
 import com.microsoft.azure.keyvault.KeyVaultClient;
@@ -43,6 +49,8 @@ import retrofit2.Retrofit;
  */
 public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerColumnEncryptionKeyStoreProvider {
 
+    private final static java.util.logging.Logger akvLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
     /**
      * Column Encryption Key Store Provider string
      */
@@ -50,15 +58,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final String baseUrl = "https://{vaultBaseUrl}";
 
-    /**
-     * List of Azure trusted endpoints https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault
-     */
-    private final String azureTrustedEndpoints[] = {"vault.azure.net", // default
-            "vault.azure.cn", // Azure China
-            "vault.usgovcloudapi.net", // US Government
-            "vault.microsoftazure.de" // Azure Germany
-    };
-
+    private static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
+    private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
+    private static final List<String> akvTrustedEndpoints;
+    static {
+        akvTrustedEndpoints = getTrustedEndpoints();
+    }
     private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
 
     /**
@@ -76,6 +81,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     public String getName() {
         return this.name;
+    }
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
+     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * 
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * @param clientKey
+     *        Key of the client requesting the token.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        credentials = new KeyVaultCredential(clientId, clientKey);
+        keyVaultClient = new KeyVaultClient(credentials);
     }
 
     /**
@@ -124,23 +145,34 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
-     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
      * 
-     * @param clientId
-     *        Identifier of the client requesting the token.
-     * @param clientKey
-     *        Key of the client requesting the token.
      * @throws SQLServerException
      *         when an error occurs
      */
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
-        credentials = new KeyVaultCredential(clientId, clientKey);
+    SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
+        credentials = new KeyVaultCredential();
         keyVaultClient = new KeyVaultClient(credentials);
     }
 
     /**
-     * Decryptes an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
+     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     *
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
+        credentials = new KeyVaultCredential(clientId);
+        keyVaultClient = new KeyVaultClient(credentials);
+    }
+
+    /**
+     * Decrypts an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
      * 
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
@@ -455,7 +487,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                 if (null != host) {
                     host = host.toLowerCase(Locale.ENGLISH);
                 }
-                for (final String endpoint : azureTrustedEndpoints) {
+                for (final String endpoint : akvTrustedEndpoints) {
                     if (null != host && host.endsWith(endpoint)) {
                         return;
                     }
@@ -627,5 +659,58 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
+    }
+
+    private static List<String> getTrustedEndpoints() {
+        Properties mssqlJdbcProperties = getMssqlJdbcProperties();
+        List<String> trustedEndpoints = new ArrayList<String>();
+        boolean append = true;
+        if (null != mssqlJdbcProperties) {
+            String endpoints = mssqlJdbcProperties.getProperty(AKV_TRUSTED_ENDPOINTS_KEYWORD);
+            if (null != endpoints && !endpoints.trim().isEmpty()) {
+                endpoints = endpoints.trim();
+                // Append if the list starts with a semicolon.
+                if (';' != endpoints.charAt(0)) {
+                    append = false;
+                } else {
+                    endpoints = endpoints.substring(1);
+                }
+                String[] entries = endpoints.split(";");
+                for (String entry : entries) {
+                    if (null != entry && !entry.trim().isEmpty()) {
+                        trustedEndpoints.add(entry.trim());
+                    }
+                }
+            }
+        }
+        /*
+         * List of Azure trusted endpoints
+         * https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault
+         */
+        if (append) {
+            trustedEndpoints.add("vault.azure.net");
+            trustedEndpoints.add("vault.azure.cn");
+            trustedEndpoints.add("vault.usgovcloudapi.net");
+            trustedEndpoints.add("vault.microsoftazure.de");
+        }
+        return trustedEndpoints;
+    }
+
+    /**
+     * Attempt to read MSSQL_JDBC_PROPERTIES.
+     *
+     * @return corresponding Properties object or null if failed to read the file.
+     */
+    private static Properties getMssqlJdbcProperties() {
+        Properties props = null;
+        try (FileInputStream in = new FileInputStream(MSSQL_JDBC_PROPERTIES)) {
+            props = new Properties();
+            props.load(in);
+        } catch (IOException e) {
+            if (akvLogger.isLoggable(Level.FINER)) {
+                akvLogger.finer("Unable to load the mssql-jdbc.properties file: " + e);
+            }
+        }
+        return (null != props && !props.isEmpty()) ? props : null;
     }
 }

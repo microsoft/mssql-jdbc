@@ -4,31 +4,29 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
-import java.security.cert.CertificateException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
-import org.opentest4j.TestAbortedException;
+import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
-import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -37,19 +35,126 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Tests Enclave decryption and encryption of values
  *
  */
-@RunWith(JUnitPlatform.class)
+@RunWith(Parameterized.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
-public class EnclaveTest extends JDBCEncryptionDecryptionTest {
+public class EnclaveTest extends AESetup {
+    /**
+     * Tests basic connection.
+     * 
+     * @throws Exception
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testBasicConnection(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
+    }
 
-    private boolean nullable = false;
-    private static boolean isAEv2 = false;
+    /**
+     * Tests invalid connection property combinations.
+     * 
+     * @throws Exception
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInvalidProperties(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testInvalidProperties(serverName, url, protocol);
+    }
 
-    @BeforeAll
-    public static void setupEnclave() throws TestAbortedException, Exception {
+    /*
+     * Test calling verifyColumnMasterKeyMetadata for non enclave computation
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVerifyCMKNoEnclave(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testVerifyCMKNoEnclave();
+    }
+
+    /*
+     * Test calling verifyColumnMasterKeyMetadata with untrusted key path
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVerifyCMKUntrusted(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testVerifyCMKUntrusted();
+    }
+
+    /*
+     * Test getEnclavePackage with null enclaveSession
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testGetEnclavePackage(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testGetEnclavePackage();
+    }
+
+    /*
+     * Test invalidEnclaveSession
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testInvalidEnclaveSession(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testInvalidEnclaveSession(serverName, url, protocol);
+    }
+
+    /*
+     * Test VSM createSessionSecret with bad server response
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testNullSessionSecret(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testNullSessionSecret();
+    }
+
+    /*
+     * Test bad session secret
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testBadSessionSecret(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testBadSessionSecret();
+    }
+
+    /*
+     * Test null Attestation response
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testNullAttestationResponse(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testNullAttestationResponse();
+    }
+
+    /*
+     * Test bad Attestation response
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testBadAttestationResponse(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testBadAttestationResponse();
+    }
+
+    /*
+     * Test bad certificate signature
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testBadCertSignature(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testBadCertSignature();
+    }
+
+    /*
+     * Negative Test - AEv2 not supported
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        boolean isAEv2 = false;
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             isAEv2 = TestUtils.isAEv2(con);
         } catch (SQLException e) {
@@ -57,132 +162,30 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
-
-        org.junit.Assume.assumeTrue(isAEv2);
-
-        EnclavePackageTest.setupEnclave();
-    }
-
-    /**
-     * Tests basic connection.
-     * 
-     * @throws SQLException
-     *         when an error occurs
-     */
-    @Test
-    public void testBasicConnection() throws SQLException {
-        org.junit.Assume.assumeTrue(isAEv2);
-
-        EnclavePackageTest.testBasicConnection();
-    }
-
-    /**
-     * Tests invalid connection property combinations.
-     */
-    @Test
-    public void testInvalidProperties() {
-        org.junit.Assume.assumeTrue(isAEv2);
-
-        EnclavePackageTest.testInvalidProperties();
-    }
-
-    /*
-     * Test calling verifyColumnMasterKeyMetadata for non enclave computation
-     */
-    @Test
-    public void testVerifyCMKNoEnclave() {
-        EnclavePackageTest.testVerifyCMKNoEnclave();
-    }
-
-    /*
-     * Test calling verifyColumnMasterKeyMetadata with untrusted key path
-     */
-    @Test
-    public void testVerifyCMKUntrusted() {
-        EnclavePackageTest.testVerifyCMKUntrusted();
-    }
-
-    /*
-     * Test getEnclavePackage with null enclaveSession
-     */
-    @Test
-    public void testGetEnclavePackage() {
-        EnclavePackageTest.testGetEnclavePackage();
-    }
-
-    /*
-     * Test invalidEnclaveSession
-     */
-    @Test
-    public void testInvalidEnclaveSession() {
-        EnclavePackageTest.testInvalidEnclaveSession();
-    }
-
-    /*
-     * Test VSM createSessionSecret with bad server response
-     */
-    @Test
-    public void testNullSessionSecret() throws SQLServerException {
-        EnclavePackageTest.testNullSessionSecret();
-    }
-
-    /*
-     * Test bad session secret
-     */
-    @Test
-    public void testBadSessionSecret() throws SQLServerException {
-        EnclavePackageTest.testBadSessionSecret();
-    }
-
-    /*
-     * Test null Attestation response
-     */
-    @Test
-    public void testNullAttestationResponse() throws SQLServerException {
-        EnclavePackageTest.testNullAttestationResponse();
-    }
-
-    /*
-     * Test bad Attestation response
-     */
-    @Test
-    public void testBadAttestationResponse() throws SQLServerException {
-        EnclavePackageTest.testBadAttestationResponse();
-    }
-
-    /*
-     * Test bad certificate signature
-     */
-    @Test
-    public void testBadCertSignature() throws SQLServerException, CertificateException {
-        EnclavePackageTest.testBadCertSignature();
-    }
-
-    /*
-     * Negative Test - AEv2 not supported
-     */
-    @Test
-    public void testAEv2NotSupported() {
         org.junit.Assume.assumeFalse(isAEv2);
-
-        EnclavePackageTest.testAEv2NotSupported();
+        EnclavePackageTest.testAEv2NotSupported(serverName, url, protocol);
     }
 
     /*
      * Negative Test = AEv2 not enabled
      */
-    @Test
-    public void testAEv2Disabled() throws SQLException {
-        org.junit.Assume.assumeTrue(isAEv2);
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAEv2Disabled(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
 
         // connection string w/o AEv2
-        String testConnectionString = TestUtils.removeProperty(AETestConnectionString, "enclaveAttestationUrl");
-        testConnectionString = TestUtils.removeProperty(testConnectionString, "enclaveAttestationProtocol");
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                Constants.ENCLAVE_ATTESTATIONURL);
+        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
 
         try (SQLServerConnection con = PrepUtil.getConnection(testConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, true);
+            String[] values = createCharValues(false);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            populateCharNormalCase(values);
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Throwable e) {
             // testChars called fail()
@@ -190,559 +193,35 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
         }
     }
 
-    /**
-     * Test case for char set string for string values
-     * 
-     * @throws SQLException
+    /*
+     * Tests alter column encryption on char tables
      */
-    @Test
-    public void testCharSpecificSetter() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testChar(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-
-            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, true);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
         }
     }
 
-    /**
-     * Test case for char set string for string values using windows certificate store
-     * 
-     * @throws SQLException
+    /*
+     * Tests alter column encryption on char tables with AKV
      */
-    @Test
-    public void testCharSpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
-
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharAkv(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-
-            testChars(stmt, cekWin, charTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for char set object for string values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testCharSetObject() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, true);
-        }
-    }
-
-    /**
-     * Test case for char set object for jdbc string values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testCharSetObjectWithJDBCTypes() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = createCharValues(nullable);
-
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-        }
-    }
-
-    /**
-     * Test case for char set string for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testCharSpecificSetterNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
-
-            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for char set object for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testCharSetObjectNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
-
-            testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.SETOBJECT, true);
-        }
-    }
-
-    /**
-     * Test case for char set null for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testCharSetNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
-
-            testChars(stmt, cekJks, charTable, values, TestCase.NULL, true);
-            testChars(stmt, cekAkv, charTable, values, TestCase.NULL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set binary for binary values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySpecificSetter() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(false);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set binary for binary values using windows certificate store
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(false);
-
-            testBinaries(stmt, cekWin, binaryTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set object for binary values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySetobject() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(false);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT, true);
-        }
-    }
-
-    /**
-     * Test case for binary set null for binary values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySetNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(true);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NULL, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NULL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set binary for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySpecificSetterNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(true);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.NORMAL, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set object for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarysetObjectNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(true);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_NULL, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_NULL, true);
-        }
-    }
-
-    /**
-     * Test case for binary set object for jdbc type binary values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testBinarySetObjectWithJDBCTypes() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<byte[]> values = createBinaryValues(false);
-
-            testBinaries(stmt, cekJks, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-            testBinaries(stmt, cekAkv, binaryTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-        }
-    }
-
-    /**
-     * Test case for date set date for date values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSpecificSetter() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for date set date for date values using windows certificate store
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSpecificSetterWindows() throws SQLException {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekWin, dateTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for date set object for date values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSetObject() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT, true);
-        }
-    }
-
-    /**
-     * Test case for date set object for java date values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSetObjectWithJavaType() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JAVATYPES, true);
-        }
-    }
-
-    /**
-     * Test case for date set object for jdbc date values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSetObjectWithJDBCType() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-        }
-    }
-
-    /**
-     * Test case for date set date for min/max date values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSpecificSetterMinMaxValue() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            RandomData.returnMinMax = true;
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.NORMAL, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for date set date for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSetNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            RandomData.returnNull = true;
-            nullable = true;
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.NULL, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.NULL, true);
-        }
-
-        nullable = false;
-        RandomData.returnNull = false;
-    }
-
-    /**
-     * Test case for date set object for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testDateSetObjectNull() throws SQLException {
-        RandomData.returnNull = true;
-        nullable = true;
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            LinkedList<Object> values = createTemporalTypes(nullable);
-
-            testDates(stmt, cekJks, dateTable, values, TestCase.SETOBJECT_NULL, true);
-            testDates(stmt, cekAkv, dateTable, values, TestCase.SETOBJECT_NULL, true);
-        }
-
-        nullable = false;
-        RandomData.returnNull = false;
-    }
-
-    /**
-     * Test case for numeric set numeric for numeric values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetter() throws TestAbortedException, Exception {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set numeric for numeric values using windows certificate store
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetterWindows() throws TestAbortedException, Exception {
-        org.junit.Assume.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
-
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekWin, numericTable, values1, values2, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set object for numeric values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSetObject() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set object for jdbc type numeric values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSetObjectWithJDBCTypes() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.SETOBJECT_WITH_JDBCTYPES, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set numeric for max numeric values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetterMaxValue() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-
-            String[] values1 = {Boolean.TRUE.toString(), "255", "32767", "2147483647", "9223372036854775807",
-                    "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
-                    "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
-                    "999999999999999999999999.9999"};
-            String[] values2 = {Boolean.TRUE.toString(), "255", "32767", "2147483647", "9223372036854775807",
-                    "1.79E308", "1.123", "3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
-                    "567812.78", "214748.3647", "922337203685477.5807", "999999999999999999999999.9999",
-                    "999999999999999999999999.9999"};
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set numeric for min numeric values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetterMinValue() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values1 = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648", "-9223372036854775808",
-                    "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
-                    "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
-                    "999999999999999999999999.9999"};
-            String[] values2 = {Boolean.FALSE.toString(), "0", "-32768", "-2147483648", "-9223372036854775808",
-                    "-1.79E308", "1.123", "-3.4E38", "999999999999999999", "12345.12345", "999999999999999999",
-                    "567812.78", "-214748.3648", "-922337203685477.5808", "999999999999999999999999.9999",
-                    "999999999999999999999999.9999"};
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
-        }
-    }
-
-    /**
-     * Test case for numeric set numeric for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetterNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            nullable = true;
-            RandomData.returnNull = true;
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, true);
-        }
-
-        nullable = false;
-        RandomData.returnNull = false;
-    }
-
-    /**
-     * Test case for numeric set object for null values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericSpecificSetterSetObjectNull() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            nullable = true;
-            RandomData.returnNull = true;
-            String[] values1 = createNumericValues(nullable);
-            String[] values2 = new String[values1.length];
-            System.arraycopy(values1, 0, values2, 0, values1.length);
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NULL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NULL, true);
-        }
-
-        nullable = false;
-        RandomData.returnNull = false;
-    }
-
-    /**
-     * Test case for numeric set numeric for null normalization values
-     * 
-     * @throws SQLException
-     */
-    @Test
-    public void testNumericNormalization() throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values1 = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123", "1.123",
-                    "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
-                    "999999999999999999999999.9999", "999999999999999999999999.9999"};
-            String[] values2 = {Boolean.TRUE.toString(), "1", "127", "100", "100", "1.123", "1.123", "1.123",
-                    "123456789123456789", "12345.12345", "987654321123456789", "567812.78", "7812.7812", "7812.7812",
-                    "999999999999999999999999.9999", "999999999999999999999999.9999"};
-
-            testNumerics(stmt, cekJks, numericTable, values1, values2, TestCase.NORMAL, true);
-            testNumerics(stmt, cekAkv, numericTable, values1, values2, TestCase.NORMAL, true);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekAkv, charTable);
+            populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
         }
     }
 
@@ -751,19 +230,134 @@ public class EnclaveTest extends JDBCEncryptionDecryptionTest {
      * 
      * @throws SQLException
      */
-    @Test
-    public void testAEFMTOnly() throws SQLException {
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAEFMTOnly(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            dropTables(s);
             createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(NUMERIC_TABLE_AE) + " values( "
+            String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                    + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                    + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
-                assertTrue(pmd.getParameterCount() == 48);
+                assertTrue(48 == pmd.getParameterCount());
             }
+        }
+    }
+
+    /**
+     * Test alter column
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAlter(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+            pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+            pstmt.execute();
+        }
+    }
+
+    /**
+     * Rich Query with number compare
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testNumericRichQuery(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 2);
+            pstmt.setInt(3, 3);
+            pstmt.execute();
+            pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt = ?");
+            pstmt.setInt(1, 3);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    assertTrue(1 == rs.getInt(1));
+                    assertTrue(2 == rs.getInt(2));
+                    assertTrue(3 == rs.getInt(3));
+                }
+            }
+        }
+    }
+
+    /**
+     * Rich Query with string compare
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testStringRichQuery(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+            pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
+            pstmt.setString(1, "t%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    assertTrue(rs.getString(1).equalsIgnoreCase("a"));
+                    assertTrue(rs.getString(2).equalsIgnoreCase("b"));
+                    assertTrue(rs.getString(3).equalsIgnoreCase("test"));
+                }
+            }
+        }
+    }
+    
+    /**
+     * Test alter column with a non AEv2 connection
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAlterNoEncrypt(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+        }
+        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                Constants.ENCLAVE_ATTESTATIONURL);
+        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
+        try (Connection c = DriverManager.getConnection(testConnectionString)) {
+            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+            pstmt.execute();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")));
+        }
+    }
+    
+    @AfterAll
+    public static void dropAll() throws Exception {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(SCALE_DATE_TABLE_AE, stmt);
         }
     }
 }

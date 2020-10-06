@@ -41,7 +41,11 @@ class SQLServerADAL4JUtils {
             return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | AuthenticationException e) {
+            if (adal4jLogger.isLoggable(Level.SEVERE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
+            }
+
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {user, authenticationString};
 
@@ -49,17 +53,22 @@ class SQLServerADAL4JUtils {
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
              * correct format
              */
-            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-            AuthenticationException correctedAuthenticationException = new AuthenticationException(
-                    correctedErrorMessage);
+            if (null == e.getCause() || null == e.getCause().getMessage()) {
+                throw new SQLServerException(form.format(msgArgs), null);
+            } else {
+                String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+                AuthenticationException correctedAuthenticationException = new AuthenticationException(
+                        correctedErrorMessage);
 
-            /*
-             * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
-             * the exception tree before error message correction
-             */
-            ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
+                ExecutionException correctedExecutionException = new ExecutionException(
+                        correctedAuthenticationException);
 
-            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+                throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            }
         } finally {
             executorService.shutdown();
         }
@@ -90,7 +99,11 @@ class SQLServerADAL4JUtils {
             return new SqlFedAuthToken(authenticationResult.getAccessToken(), authenticationResult.getExpiresOnDate());
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | AuthenticationException e) {
+            if (adal4jLogger.isLoggable(Level.SEVERE)) {
+                adal4jLogger.fine(adal4jLogger.toString() + " ADAL exception:" + e.getMessage());
+            }
+
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
             Object[] msgArgs = {"", authenticationString};
 

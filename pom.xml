@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.0-SNAPSHOT</version>
+	<version>9.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -51,28 +51,31 @@
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
 			reqExternalSetup  - For tests requiring external setup (excluded by default)
+			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv15, NTLM, reqExternalSetup</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release.-->
-		<releaseExt></releaseExt>
+		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>1.2.2</azure.keyvault.version>
-		<azure.adal4j.version>1.6.4</azure.adal4j.version>
-		<rest.client.version>1.6.15</rest.client.version>
+		<azure.keyvault.version>1.2.4</azure.keyvault.version>
+		<azure.adal4j.version>1.6.5</azure.adal4j.version>
+		<rest.client.version>1.7.4</rest.client.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.7.2</antlr.runtime.version>
 		<google.gson.version>2.8.6</google.gson.version>
+		<bouncycastle.bcprov.version>1.65</bouncycastle.bcprov.version>
+		<bouncycastle.bcpkix.version>1.65</bouncycastle.bcpkix.version>
 
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
 		<junit.jupiter.version>5.5.2</junit.jupiter.version>
-		<hikaricp.version>3.4.1</hikaricp.version>
+		<hikaricp.version>3.4.2</hikaricp.version>
 		<dbcp2.version>2.7.0</dbcp2.version>
-		<slf4j.nop.version>1.7.29</slf4j.nop.version>
+		<slf4j.nop.version>1.7.30</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
 		<h2.version>1.4.200</h2.version>
 
@@ -116,7 +119,19 @@
 			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
-
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>${bouncycastle.bcprov.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<!-- dependencies for Client Certificate Authentication -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>${bouncycastle.bcpkix.version}</version>
+			<optional>true</optional>
+		</dependency>
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
 			<groupId>org.osgi</groupId>
@@ -210,6 +225,12 @@
 			<version>${h2.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-params</artifactId>
+			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<profiles>
@@ -254,6 +275,8 @@
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
+							<!-- needs to be overridden as illegal-access and MaxPermSize=256m not valid in java 8 -->
+							<argLine>-Xmx1024m -Djava.library.path=${dllPath}</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -293,12 +316,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre13</id>
+			<id>jre15</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre13${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre15${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -308,8 +331,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>13</source>
-							<target>13</target>
+							<source>15</source>
+							<target>15</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -356,43 +379,6 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
-				<executions>
-					<!-- Run shade goal on package phase -->
-					<execution>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<artifactSet>
-								<excludes>
-									<exclude>junit:junit</exclude>
-									<exclude>jmock:*</exclude>
-									<exclude>*:xml-apis</exclude>
-									<exclude>org.apache.maven:lib:tests</exclude>
-									<exclude>log4j:log4j:jar:</exclude>
-								</excludes>
-							</artifactSet>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<filters>
-								<filter>
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-										<exclude>META-INF/NOTICE*</exclude>
-									</excludes>
-								</filter>
-							</filters>
-							<outputFile>${project.build.directory}\${project.build.finalName}-shaded.jar</outputFile>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
 				<version>3.0.0-M2</version>
 				<executions>
@@ -431,7 +417,7 @@
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
 					<argLine>${argLine} --illegal-access=permit -Xmx1024m
-						-XX:MaxPermSize=256m
+						-XX:MaxPermSize=256m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
@@ -453,7 +439,7 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
-				<version>4.2.0</version>
+				<version>5.1.1</version>
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
@@ -507,7 +493,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.5</version>
+				<version>0.8.6</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

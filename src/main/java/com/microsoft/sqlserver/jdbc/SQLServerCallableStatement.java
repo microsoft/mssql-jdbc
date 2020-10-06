@@ -24,6 +24,7 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.TreeMap;
@@ -740,6 +741,34 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             returnValue = getTime(index);
         } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(index);
+        } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
+                || type == java.time.LocalTime.class) {
+            java.time.LocalDateTime ldt = getLocalDateTime(index);
+            if (null == ldt) {
+                returnValue = null;
+            } else {
+                if (type == java.time.LocalDateTime.class) {
+                    returnValue = ldt;
+                } else if (type == java.time.LocalDate.class) {
+                    returnValue = ldt.toLocalDate();
+                } else {
+                    returnValue = ldt.toLocalTime();
+                }
+            }
+        } else if (type == java.time.OffsetDateTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime();
+            }
+        } else if (type == java.time.OffsetTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
+            }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(index);
         } else if (type == UUID.class) {
@@ -890,6 +919,14 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(name), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        return value;
+    }
+
+    LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
+        checkClosed();
+        LocalDateTime value = (LocalDateTime) getValue(columnIndex, JDBCType.LOCALDATETIME);
+        loggerExternal.exiting(getClassNameLogging(), "getLocalDateTime", value);
         return value;
     }
 
@@ -1547,7 +1584,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, sqlType});
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == sqlType) {
-            tvpName = getTVPNameIfNull(findColumn(parameterName), null);
+            tvpName = getTVPNameFromObject(findColumn(parameterName), value);
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
         } else
