@@ -325,6 +325,7 @@
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre15${releaseExt}</finalName>
 				<plugins>
