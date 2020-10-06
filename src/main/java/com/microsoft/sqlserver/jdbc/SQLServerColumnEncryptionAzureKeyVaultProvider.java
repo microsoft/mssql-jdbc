@@ -23,7 +23,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 import com.azure.core.credential.TokenCredential;
@@ -199,8 +198,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Sets the credential that will be used for authenticating requests to Key Vault service.
-     * @param credential A credential of type {@link TokenCredential}.
-     * @throws SQLServerException If the credential is null.
+     * 
+     * @param credential
+     *        A credential of type {@link TokenCredential}.
+     * @throws SQLServerException
+     *         If the credential is null.
      */
     private void setCredential(TokenCredential credential) throws SQLServerException {
         if (null == credential) {
@@ -670,11 +672,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Fetches the key from Azure Key Vault for given key path. If the key path includes a version, then that
-     * specific version of the key is retrieved, otherwise the latest key will be retrieved.
-     * @param masterKeyPath The key path associated with the key
+     * Fetches the key from Azure Key Vault for given key path. If the key path includes a version, then that specific
+     * version of the key is retrieved, otherwise the latest key will be retrieved.
+     * 
+     * @param masterKeyPath
+     *        The key path associated with the key
      * @return The Key Vault key.
-     * @throws SQLServerException If there was an error retrieving the key from Key Vault.
+     * @throws SQLServerException
+     *         If there was an error retrieving the key from Key Vault.
      */
     private KeyVaultKey getKeyVaultKey(String masterKeyPath) throws SQLServerException {
         String[] keyTokens = masterKeyPath.split(KEY_URL_DELIMITER);
@@ -707,10 +712,11 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Creates a new {@link KeyClient} if one does not exist for the given key path. If the client already exists,
-     * the client is returned from the cache. As the client is stateless, it's safe to cache the client for each key
-     * path.
-     * @param masterKeyPath The key path for which the {@link KeyClient} will be created, if it does not exist.
+     * Creates a new {@link KeyClient} if one does not exist for the given key path. If the client already exists, the
+     * client is returned from the cache. As the client is stateless, it's safe to cache the client for each key path.
+     * 
+     * @param masterKeyPath
+     *        The key path for which the {@link KeyClient} will be created, if it does not exist.
      * @return The {@link KeyClient} associated with the key path.
      */
     private KeyClient getKeyClient(String masterKeyPath) {
@@ -731,7 +737,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Returns the vault url extracted from the master key path.
-     * @param masterKeyPath The master key path.
+     * 
+     * @param masterKeyPath
+     *        The master key path.
      * @return The vault url.
      */
     private static String getVaultUrl(String masterKeyPath) {
