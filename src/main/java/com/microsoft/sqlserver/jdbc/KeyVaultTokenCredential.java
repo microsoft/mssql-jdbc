@@ -38,7 +38,7 @@ class KeyVaultTokenCredential implements TokenCredential {
     private String scope;
 
     /**
-     * Creates a KeyVaultCredential with the given identity client options.
+     * Creates a KeyVaultTokenCredential with the given identity client options.
      *
      * @param clientId
      *        the client ID of the application

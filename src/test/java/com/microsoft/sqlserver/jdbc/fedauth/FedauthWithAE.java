@@ -7,6 +7,10 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -16,6 +20,9 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -121,7 +128,7 @@ public class FedauthWithAE extends FedauthCommon {
             dropCMK(stmt, cmkName3);
             setupCMK_AKVOld(cmkName3, stmt);
 
-            createCEK(cmkName3, setupKeyStoreProvider_AKVNew(), stmt, keyIDs[0]);
+            createCEK(cmkName3, setupKeyStoreProvider_AKVOld(), stmt, keyIDs[0]);
             createCharTable(stmt, charTableOld);
 
             populateCharNormalCase(charValues, connection, charTableOld);
@@ -298,6 +305,28 @@ public class FedauthWithAE extends FedauthCommon {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         return registerAKVProvider(
                 new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
+    }
+
+    private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVOld() throws SQLServerException {
+        ExecutorService service = Executors.newFixedThreadPool(2);
+        SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
+            @Override
+            public String getAccessToken(String authority, String resource, String scope) {
+                AuthenticationResult result = null;
+                try {
+                    AuthenticationContext context = new AuthenticationContext(authority, false, service);
+                    ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
+
+                    Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
+                    result = future.get();
+                    return result.getAccessToken();
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                    return null;
+                }
+            }
+        };
+        return new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider(
