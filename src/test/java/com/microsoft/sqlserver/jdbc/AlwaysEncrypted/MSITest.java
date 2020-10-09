@@ -300,7 +300,6 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getCause() instanceof MsalServiceException);
             // https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-aadsts-error-codes
             assertTrue(e.getMessage().contains("AADSTS700016"));
         }
