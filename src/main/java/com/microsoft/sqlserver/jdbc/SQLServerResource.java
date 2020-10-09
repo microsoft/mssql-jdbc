@@ -649,5 +649,5 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
             {"R_InvalidCSVQuotes",
                     "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
-            {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme"},};
+            {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},};
 };

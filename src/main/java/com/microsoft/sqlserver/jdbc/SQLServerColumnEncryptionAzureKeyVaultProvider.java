@@ -689,26 +689,30 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             keyVersion = keyTokens[keyTokens.length - 1];
         }
 
-        KeyClient keyClient = getKeyClient(masterKeyPath);
-        KeyVaultKey retrievedKey;
-        if (null != keyVersion) {
-            retrievedKey = keyClient.getKey(keyName, keyVersion);
-        } else {
-            retrievedKey = keyClient.getKey(keyName);
+        try {
+            KeyClient keyClient = getKeyClient(masterKeyPath);
+            KeyVaultKey retrievedKey;
+            if (null != keyVersion) {
+                retrievedKey = keyClient.getKey(keyName, keyVersion);
+            } else {
+                retrievedKey = keyClient.getKey(keyName);
+            }
+            if (null == retrievedKey) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
+                Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+
+            if (retrievedKey.getKeyType() != KeyType.RSA && retrievedKey.getKeyType() != KeyType.RSA_HSM) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
+                Object[] msgArgs = {retrievedKey.getKeyType().toString()};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+            return retrievedKey;
+        } catch (RuntimeException e) {
+            throw new SQLServerException(e.getMessage(), e);
         }
 
-        if (null == retrievedKey) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
-            Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-        }
-
-        if (retrievedKey.getKeyType() != KeyType.RSA && retrievedKey.getKeyType() != KeyType.RSA_HSM) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
-            Object[] msgArgs = {retrievedKey.getKeyType().toString()};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-        }
-        return retrievedKey;
     }
 
     /**

@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import reactor.core.publisher.Mono;
 
+
 /**
  * A policy that authenticates requests with Azure Key Vault service.
  */
@@ -57,7 +58,7 @@ class KeyVaultCustomCredentialPolicy implements HttpPipelinePolicy {
      */
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        if ("https".equals(context.getHttpRequest().getUrl().getProtocol())) {
+        if (!"https".equals(context.getHttpRequest().getUrl().getProtocol())) {
             return Mono.error(new RuntimeException(SQLServerException.getErrString("R_TokenRequireUrl")));
         }
 
