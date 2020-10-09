@@ -2707,7 +2707,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey,
                     clientKeyPassword);
+            clientKeyPassword = "";
         }
+        
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
