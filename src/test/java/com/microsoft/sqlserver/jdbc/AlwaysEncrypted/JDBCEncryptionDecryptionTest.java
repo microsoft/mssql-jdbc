@@ -28,6 +28,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -2268,6 +2271,26 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     authenticationCallback);
+            String keystoreName = "keystoreName";
+            akv.setName(keystoreName);
+            assertTrue(akv.getName().equals(keystoreName));
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testAkvNameWithTokenCredential(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        ClientSecretCredential credential = new ClientSecretCredentialBuilder().tenantId(tenantID)
+                .clientId(applicationClientID).clientSecret(applicationKey).build();
+
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    credential);
             String keystoreName = "keystoreName";
             akv.setName(keystoreName);
             assertTrue(akv.getName().equals(keystoreName));

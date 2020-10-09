@@ -65,7 +65,7 @@ class KeyVaultTokenCredential implements TokenCredential {
     }
 
     /**
-     * Creates a KeyVaultCredential with the given identity client options.
+     * Creates a KeyVaultTokenCredential with the given identity client options.
      *
      * @param authenticationCallback
      *        The authentication callback that gets invoked when an access token is requested.

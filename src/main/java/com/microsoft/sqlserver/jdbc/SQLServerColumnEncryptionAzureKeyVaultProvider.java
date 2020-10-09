@@ -70,7 +70,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
     private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
 
-    private static final List<String> akvTrustedEndpoints;
+    private static final List<String> akvTrustedEndpoints = getTrustedEndpoints();
 
     /**
      * Algorithm version
@@ -80,10 +80,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private Map<String, KeyClient> cachedKeyClients = new ConcurrentHashMap<>();
     private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
     private TokenCredential credential;
-
-    static {
-        akvTrustedEndpoints = getTrustedEndpoints();
-    }
 
     public void setName(String name) {
         this.name = name;
