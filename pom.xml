@@ -150,7 +150,7 @@
 			<artifactId>adal4j</artifactId>
 			<version>${azure.adal4j.version}</version>
 			<scope>test</scope>
-        </dependency>
+		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-console</artifactId>
