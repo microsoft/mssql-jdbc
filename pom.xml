@@ -89,13 +89,13 @@
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-keys</artifactId>
 			<version>${azure.keyvault.version}</version>
-            <optional>true</optional>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
 			<version>${azure.identity.version}</version>
-            <optional>true</optional>
+			<optional>true</optional>
 			<exclusions>
 				<exclusion>
 					<groupId>stax</groupId>
