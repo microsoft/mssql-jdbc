@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 
+import com.azure.core.http.HttpPipeline;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -19,28 +20,31 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
-import com.microsoft.azure.AzureResponseBuilder;
-import com.microsoft.azure.keyvault.KeyVaultClient;
-import com.microsoft.azure.keyvault.models.KeyBundle;
-import com.microsoft.azure.keyvault.models.KeyOperationResult;
-import com.microsoft.azure.keyvault.models.KeyVerifyResult;
-import com.microsoft.azure.keyvault.webkey.JsonWebKeyEncryptionAlgorithm;
-import com.microsoft.azure.keyvault.webkey.JsonWebKeySignatureAlgorithm;
-import com.microsoft.azure.serializer.AzureJacksonAdapter;
-import com.microsoft.rest.RestClient;
-
-import okhttp3.OkHttpClient;
-import retrofit2.Retrofit;
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.security.keyvault.keys.KeyClient;
+import com.azure.security.keyvault.keys.KeyClientBuilder;
+import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
+import com.azure.security.keyvault.keys.cryptography.CryptographyClientBuilder;
+import com.azure.security.keyvault.keys.cryptography.models.KeyWrapAlgorithm;
+import com.azure.security.keyvault.keys.cryptography.models.SignResult;
+import com.azure.security.keyvault.keys.cryptography.models.SignatureAlgorithm;
+import com.azure.security.keyvault.keys.cryptography.models.UnwrapResult;
+import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
+import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
+import com.azure.security.keyvault.keys.models.KeyType;
+import com.azure.security.keyvault.keys.models.KeyVaultKey;
 
 
 /**
  * Provides implementation similar to certificate store provider. A CEK encrypted with certificate store provider should
  * be decryptable by this provider and vice versa.
- * 
+ *
  * Envelope Format for the encrypted column encryption key version + keyPathLength + ciphertextLength + keyPath +
  * ciphertext + signature version: A single byte indicating the format version. keyPathLength: Length of the keyPath.
  * ciphertextLength: ciphertext length keyPath: keyPath used to encrypt the column encryption key. This is only used for
@@ -51,29 +55,31 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private final static java.util.logging.Logger akvLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider");
+    private static final int KEY_NAME_INDEX = 4;
+    private static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
+    private static final String KEY_URL_DELIMITER = "/";
+    private HttpPipeline keyVaultPipeline;
+    private KeyVaultTokenCredential keyVaultTokenCredential;
+
     /**
      * Column Encryption Key Store Provider string
      */
     String name = "AZURE_KEY_VAULT";
 
-    private final String baseUrl = "https://{vaultBaseUrl}";
-
     private static final String MSSQL_JDBC_PROPERTIES = "mssql-jdbc.properties";
     private static final String AKV_TRUSTED_ENDPOINTS_KEYWORD = "AKVTrustedEndpoints";
-    private static final List<String> akvTrustedEndpoints;
-    static {
-        akvTrustedEndpoints = getTrustedEndpoints();
-    }
-    private final String rsaEncryptionAlgorithmWithOAEPForAKV = "RSA-OAEP";
+    private static final String RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV = "RSA-OAEP";
+
+    private static final List<String> akvTrustedEndpoints = getTrustedEndpoints();
 
     /**
      * Algorithm version
      */
     private final byte[] firstVersion = new byte[] {0x01};
 
-    private KeyVaultClient keyVaultClient;
-
-    private KeyVaultCredential credentials;
+    private Map<String, KeyClient> cachedKeyClients = new ConcurrentHashMap<>();
+    private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
+    private TokenCredential credential;
 
     public void setName(String name) {
         this.name = name;
@@ -84,46 +90,90 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a client id and client key to authenticate to
-     * AAD. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD using the client id and client
+     * key. This is used by KeyVault client at runtime to authenticate to Azure Key Vault.
      * 
      * @param clientId
      *        Identifier of the client requesting the token.
      * @param clientKey
-     *        Key of the client requesting the token.
+     *        Secret key of the client requesting the token.
      * @throws SQLServerException
      *         when an error occurs
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
-        credentials = new KeyVaultCredential(clientId, clientKey);
-        keyVaultClient = new KeyVaultClient(credentials);
+        if (null == clientId || clientId.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+        if (null == clientKey || clientKey.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client Key"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        // create a token credential with given client id and secret which internally identifies the tenant id.
+        keyVaultTokenCredential = new KeyVaultTokenCredential(clientId, clientKey);
+        // create the pipeline with the custom Key Vault credential
+        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultTokenCredential).buildPipeline();
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD and
-     * an executor service.. This is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by KeyVault
+     * client at runtime to authenticate to Azure Key Vault.
      * 
-     * This constructor is present to maintain backwards compatibility with 6.0 version of the driver. Deprecated for
-     * removal in next stable release.
-     * 
-     * @param authenticationCallback
-     *        - Callback function used for authenticating to AAD.
-     * @param executorService
-     *        - The ExecutorService, previously used to create the keyVaultClient, but not in use anymore. - This
-     *        parameter can be passed as 'null'
      * @throws SQLServerException
      *         when an error occurs
      */
-    @Deprecated
-    public SQLServerColumnEncryptionAzureKeyVaultProvider(
-            SQLServerKeyVaultAuthenticationCallback authenticationCallback,
-            ExecutorService executorService) throws SQLServerException {
-        this(authenticationCallback);
+    SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
+        setCredential(new ManagedIdentityCredentialBuilder().build());
+    }
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by KeyVault
+     * client at runtime to authenticate to Azure Key Vault.
+     *
+     * @param clientId
+     *        Identifier of the client requesting the token.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
+        if (null == clientId || clientId.isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Client ID"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+        setCredential(new ManagedIdentityCredentialBuilder().clientId(clientId).build());
+    }
+
+    /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider using the provided TokenCredential to authenticate to
+     * AAD. This is used by KeyVault client at runtime to authenticate to Azure Key Vault.
+     *
+     * @param tokenCredential
+     *        The TokenCredential to use to authenticate to Azure Key Vault.
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
+        if (null == tokenCredential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Token Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        setCredential(tokenCredential);
     }
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD. This
-     * is used by KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * is used by KeyVault client at runtime to authenticate to Azure Key Vault.
+     *
+     * This constructor is present to maintain backwards compatibility with 8.0 version of the driver. Deprecated for
+     * removal in next stable release.
      * 
      * @param authenticationCallback
      *        - Callback function used for authenticating to AAD.
@@ -137,43 +187,32 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
-        credentials = new KeyVaultCredential(authenticationCallback);
-        RestClient restClient = new RestClient.Builder(new OkHttpClient.Builder(), new Retrofit.Builder())
-                .withBaseUrl(baseUrl).withCredentials(credentials).withSerializerAdapter(new AzureJacksonAdapter())
-                .withResponseBuilderFactory(new AzureResponseBuilder.Factory()).build();
-        keyVaultClient = new KeyVaultClient(restClient);
+
+        keyVaultTokenCredential = new KeyVaultTokenCredential(authenticationCallback);
+        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultTokenCredential).buildPipeline();
     }
 
     /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
-     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
+     * Sets the credential that will be used for authenticating requests to Key Vault service.
      * 
+     * @param credential
+     *        A credential of type {@link TokenCredential}.
      * @throws SQLServerException
-     *         when an error occurs
+     *         If the credential is null.
      */
-    SQLServerColumnEncryptionAzureKeyVaultProvider() throws SQLServerException {
-        credentials = new KeyVaultCredential();
-        keyVaultClient = new KeyVaultClient(credentials);
-    }
+    private void setCredential(TokenCredential credential) throws SQLServerException {
+        if (null == credential) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            Object[] msgArgs1 = {"Credential"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
 
-    /**
-     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD. This is used by
-     * KeyVaultClient at runtime to authenticate to Azure Key Vault.
-     *
-     * @param clientId
-     *        Identifier of the client requesting the token.
-     * 
-     * @throws SQLServerException
-     *         when an error occurs
-     */
-    SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
-        credentials = new KeyVaultCredential(clientId);
-        keyVaultClient = new KeyVaultClient(credentials);
+        this.credential = credential;
     }
 
     /**
      * Decrypts an encrypted CEK with RSA encryption algorithm using the asymmetric key specified by the key path
-     * 
+     *
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
      * @param encryptionAlgorithm
@@ -198,7 +237,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Validate encryptionAlgorithm
-        encryptionAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
+        KeyWrapAlgorithm keyWrapAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
 
         // Validate whether the key is RSA one or not and then get the key size
         int keySizeInBytes = getAKVKeySize(masterKeyPath);
@@ -286,7 +325,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Decrypt the CEK
-        byte[] decryptedCEK = this.AzureKeyVaultUnWrap(masterKeyPath, encryptionAlgorithm, cipherText);
+        byte[] decryptedCEK = this.AzureKeyVaultUnWrap(masterKeyPath, keyWrapAlgorithm, cipherText);
 
         return decryptedCEK;
     }
@@ -309,7 +348,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Encrypts CEK with RSA encryption algorithm using the asymmetric key specified by the key path.
-     * 
+     *
      * @param masterKeyPath
      *        - Complete path of an asymmetric key in AKV
      * @param encryptionAlgorithm
@@ -334,7 +373,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         // Validate encryptionAlgorithm
-        encryptionAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
+        KeyWrapAlgorithm keyWrapAlgorithm = this.validateEncryptionAlgorithm(encryptionAlgorithm);
 
         // Validate whether the key is RSA one or not and then get the key size
         int keySizeInBytes = getAKVKeySize(masterKeyPath);
@@ -354,7 +393,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         keyPathLength[1] = (byte) (((short) masterKeyPathBytes.length) >> 8 & 0xff);
 
         // Encrypt the plain text
-        byte[] cipherText = this.AzureKeyVaultWrap(masterKeyPath, encryptionAlgorithm, columnEncryptionKey);
+        byte[] cipherText = this.AzureKeyVaultWrap(masterKeyPath, keyWrapAlgorithm, columnEncryptionKey);
 
         byte[] cipherTextLength = new byte[2];
         cipherTextLength[0] = (byte) (((short) cipherText.length) & 0xff);
@@ -437,36 +476,36 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Validates that the encryption algorithm is RSA_OAEP and if it is not, then throws an exception.
-     * 
+     *
      * @param encryptionAlgorithm
      *        - Asymmetric key encryptio algorithm
      * @return The encryption algorithm that is going to be used.
      * @throws SQLServerException
      */
-    private String validateEncryptionAlgorithm(String encryptionAlgorithm) throws SQLServerException {
+    private KeyWrapAlgorithm validateEncryptionAlgorithm(String encryptionAlgorithm) throws SQLServerException {
 
         if (null == encryptionAlgorithm) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_NullKeyEncryptionAlgorithm"), null, 0,
                     false);
         }
 
-        // Transform to standard format (dash instead of underscore) to support both "RSA_OAEP" and "RSA-OAEP"
+        // Transform to standard format (dash instead of underscore) to support enum lookup
         if ("RSA_OAEP".equalsIgnoreCase(encryptionAlgorithm)) {
-            encryptionAlgorithm = "RSA-OAEP";
+            encryptionAlgorithm = RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV;
         }
 
-        if (!rsaEncryptionAlgorithmWithOAEPForAKV.equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV.equalsIgnoreCase(encryptionAlgorithm.trim())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeyEncryptionAlgorithm"));
-            Object[] msgArgs = {encryptionAlgorithm, rsaEncryptionAlgorithmWithOAEPForAKV};
+            Object[] msgArgs = {encryptionAlgorithm, RSA_ENCRYPTION_ALGORITHM_WITH_OAEP_FOR_AKV};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        return encryptionAlgorithm;
+        return KeyWrapAlgorithm.fromString(encryptionAlgorithm);
     }
 
     /**
      * Checks if the Azure Key Vault key path is Empty or Null (and raises exception if they are).
-     * 
+     *
      * @param masterKeyPath
      * @throws SQLServerException
      */
@@ -506,7 +545,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     /**
      * Encrypts the text using specified Azure Key Vault key.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault key url.
      * @param encryptionAlgorithm
@@ -516,22 +555,20 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @return Returns an encrypted blob or throws an exception if there are any errors.
      * @throws SQLServerException
      */
-    private byte[] AzureKeyVaultWrap(String masterKeyPath, String encryptionAlgorithm,
+    private byte[] AzureKeyVaultWrap(String masterKeyPath, KeyWrapAlgorithm encryptionAlgorithm,
             byte[] columnEncryptionKey) throws SQLServerException {
         if (null == columnEncryptionKey) {
             throw new SQLServerException(SQLServerException.getErrString("R_CEKNull"), null);
         }
 
-        JsonWebKeyEncryptionAlgorithm jsonEncryptionAlgorithm = new JsonWebKeyEncryptionAlgorithm(encryptionAlgorithm);
-        KeyOperationResult wrappedKey = keyVaultClient.wrapKey(masterKeyPath, jsonEncryptionAlgorithm,
-                columnEncryptionKey);
-
-        return wrappedKey.result();
+        CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
+        WrapResult wrappedKey = cryptoClient.wrapKey(KeyWrapAlgorithm.RSA_OAEP, columnEncryptionKey);
+        return wrappedKey.getEncryptedKey();
     }
 
     /**
      * Encrypts the text using specified Azure Key Vault key.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault key url.
      * @param encryptionAlgorithm
@@ -541,7 +578,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @return Returns the decrypted plaintext Column Encryption Key or throws an exception if there are any errors.
      * @throws SQLServerException
      */
-    private byte[] AzureKeyVaultUnWrap(String masterKeyPath, String encryptionAlgorithm,
+    private byte[] AzureKeyVaultUnWrap(String masterKeyPath, KeyWrapAlgorithm encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
         if (null == encryptedColumnEncryptionKey) {
             throw new SQLServerException(SQLServerException.getErrString("R_EncryptedCEKNull"), null);
@@ -551,16 +588,35 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(SQLServerException.getErrString("R_EmptyEncryptedCEK"), null);
         }
 
-        JsonWebKeyEncryptionAlgorithm jsonEncryptionAlgorithm = new JsonWebKeyEncryptionAlgorithm(encryptionAlgorithm);
-        KeyOperationResult unwrappedKey = keyVaultClient.unwrapKey(masterKeyPath, jsonEncryptionAlgorithm,
-                encryptedColumnEncryptionKey);
+        CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
 
-        return unwrappedKey.result();
+        UnwrapResult unwrappedKey = cryptoClient.unwrapKey(encryptionAlgorithm, encryptedColumnEncryptionKey);
+
+        return unwrappedKey.getKey();
+    }
+
+    private CryptographyClient getCryptographyClient(String masterKeyPath) throws SQLServerException {
+        if (this.cachedCryptographyClients.containsKey(masterKeyPath)) {
+            return cachedCryptographyClients.get(masterKeyPath);
+        }
+
+        KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
+
+        CryptographyClient cryptoClient;
+        if (null != credential) {
+            cryptoClient = new CryptographyClientBuilder().credential(credential).keyIdentifier(retrievedKey.getId())
+                    .buildClient();
+        } else {
+            cryptoClient = new CryptographyClientBuilder().pipeline(keyVaultPipeline)
+                    .keyIdentifier(retrievedKey.getId()).buildClient();
+        }
+        cachedCryptographyClients.putIfAbsent(masterKeyPath, cryptoClient);
+        return cachedCryptographyClients.get(masterKeyPath);
     }
 
     /**
      * Generates signature based on RSA PKCS#v1.5 scheme using a specified Azure Key Vault Key URL.
-     * 
+     *
      * @param dataToSign
      *        - Text to sign.
      * @param masterKeyPath
@@ -571,15 +627,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private byte[] AzureKeyVaultSignHashedData(byte[] dataToSign, String masterKeyPath) throws SQLServerException {
         assert ((null != dataToSign) && (0 != dataToSign.length));
 
-        KeyOperationResult signedData = keyVaultClient.sign(masterKeyPath, JsonWebKeySignatureAlgorithm.RS256,
-                dataToSign);
-
-        return signedData.result();
+        CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
+        SignResult signedData = cryptoClient.sign(SignatureAlgorithm.RS256, dataToSign);
+        return signedData.getSignature();
     }
 
     /**
      * Verifies the given RSA PKCSv1.5 signature.
-     * 
+     *
      * @param dataToVerify
      * @param signature
      * @param masterKeyPath
@@ -592,15 +647,15 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         assert ((null != dataToVerify) && (0 != dataToVerify.length));
         assert ((null != signature) && (0 != signature.length));
 
-        KeyVerifyResult valid = keyVaultClient.verify(masterKeyPath, JsonWebKeySignatureAlgorithm.RS256, dataToVerify,
-                signature);
+        CryptographyClient cryptoClient = getCryptographyClient(masterKeyPath);
+        VerifyResult valid = cryptoClient.verify(SignatureAlgorithm.RS256, dataToVerify, signature);
 
-        return valid.value();
+        return valid.isValid();
     }
 
     /**
      * Returns the public Key size in bytes.
-     * 
+     *
      * @param masterKeyPath
      *        - Azure Key Vault Key path
      * @return Key size in bytes
@@ -608,31 +663,97 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *         when an error occurs
      */
     private int getAKVKeySize(String masterKeyPath) throws SQLServerException {
-        KeyBundle retrievedKey = keyVaultClient.getKey(masterKeyPath);
+        KeyVaultKey retrievedKey = getKeyVaultKey(masterKeyPath);
+        return retrievedKey.getKey().getN().length;
+    }
 
-        if (null == retrievedKey) {
-            String[] keyTokens = masterKeyPath.split("/");
-
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
-            Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+    /**
+     * Fetches the key from Azure Key Vault for given key path. If the key path includes a version, then that specific
+     * version of the key is retrieved, otherwise the latest key will be retrieved.
+     * 
+     * @param masterKeyPath
+     *        The key path associated with the key
+     * @return The Key Vault key.
+     * @throws SQLServerException
+     *         If there was an error retrieving the key from Key Vault.
+     */
+    private KeyVaultKey getKeyVaultKey(String masterKeyPath) throws SQLServerException {
+        String[] keyTokens = masterKeyPath.split(KEY_URL_DELIMITER);
+        String keyName = keyTokens[KEY_NAME_INDEX];
+        String keyVersion = null;
+        if (keyTokens.length == KEY_URL_SPLIT_LENGTH_WITH_VERSION) {
+            keyVersion = keyTokens[keyTokens.length - 1];
         }
 
-        if (!"RSA".equalsIgnoreCase(retrievedKey.key().kty().toString())
-                && !"RSA-HSM".equalsIgnoreCase(retrievedKey.key().kty().toString())) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
-            Object[] msgArgs = {retrievedKey.key().kty().toString()};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        try {
+            KeyClient keyClient = getKeyClient(masterKeyPath);
+            KeyVaultKey retrievedKey;
+            if (null != keyVersion) {
+                retrievedKey = keyClient.getKey(keyName, keyVersion);
+            } else {
+                retrievedKey = keyClient.getKey(keyName);
+            }
+            if (null == retrievedKey) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVKeyNotFound"));
+                Object[] msgArgs = {keyTokens[keyTokens.length - 1]};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+
+            if (retrievedKey.getKeyType() != KeyType.RSA && retrievedKey.getKeyType() != KeyType.RSA_HSM) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NonRSAKey"));
+                Object[] msgArgs = {retrievedKey.getKeyType().toString()};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+            return retrievedKey;
+        } catch (RuntimeException e) {
+            throw new SQLServerException(e.getMessage(), e);
         }
 
-        return retrievedKey.key().n().length;
+    }
+
+    /**
+     * Creates a new {@link KeyClient} if one does not exist for the given key path. If the client already exists, the
+     * client is returned from the cache. As the client is stateless, it's safe to cache the client for each key path.
+     * 
+     * @param masterKeyPath
+     *        The key path for which the {@link KeyClient} will be created, if it does not exist.
+     * @return The {@link KeyClient} associated with the key path.
+     */
+    private KeyClient getKeyClient(String masterKeyPath) {
+        if (cachedKeyClients.containsKey(masterKeyPath)) {
+            return cachedKeyClients.get(masterKeyPath);
+        }
+        String vaultUrl = getVaultUrl(masterKeyPath);
+
+        KeyClient keyClient;
+        if (null != credential) {
+            keyClient = new KeyClientBuilder().credential(credential).vaultUrl(vaultUrl).buildClient();
+        } else {
+            keyClient = new KeyClientBuilder().pipeline(keyVaultPipeline).vaultUrl(vaultUrl).buildClient();
+        }
+        cachedKeyClients.putIfAbsent(masterKeyPath, keyClient);
+        return cachedKeyClients.get(masterKeyPath);
+    }
+
+    /**
+     * Returns the vault url extracted from the master key path.
+     * 
+     * @param masterKeyPath
+     *        The master key path.
+     * @return The vault url.
+     */
+    private static String getVaultUrl(String masterKeyPath) {
+        String[] keyTokens = masterKeyPath.split("/");
+        String hostName = keyTokens[2];
+        return "https://" + hostName;
     }
 
     @Override
     public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {
-        if (!allowEnclaveComputations)
+        if (!allowEnclaveComputations) {
             return false;
+        }
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
 

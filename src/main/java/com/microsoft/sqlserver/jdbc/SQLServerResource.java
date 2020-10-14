@@ -404,7 +404,7 @@ public final class SQLServerResource extends ListResourceBundle {
                     "FEDAUTHINFO token stream is not long enough ({0}) to contain the data it claims to."},
             {"R_FedAuthInfoDoesNotContainStsurlAndSpn",
                     "FEDAUTHINFO token stream does not contain both STSURL and SPN."},
-            {"R_ADALExecution", "Failed to authenticate the user {0} in Active Directory (Authentication={1})."},
+            {"R_MSALExecution", "Failed to authenticate the user {0} in Active Directory (Authentication={1})."},
             {"R_UnrequestedFeatureAckReceived", "Unrequested feature acknowledge is received. Feature ID: {0}."},
             {"R_FedAuthFeatureAckContainsExtraData",
                     "Federated authentication feature extension ack for ADAL and Security Token includes extra data."},
@@ -590,9 +590,9 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_keyVaultProviderClientKeyPropertyDescription",
                     "The client key used to access the Key Vault where the column encryption master key is stored."},
             {"R_keyStorePrincipalIdPropertyDescription", "Principal Id of Azure Active Directory."},
-            {"R_ADALMissing", "Failed to load ADAL4J Java library for performing {0} authentication."},
-            {"R_DLLandADALMissing",
-                    "Failed to load both {0} and ADAL4J Java library for performing {1} authentication. Please install one of them to proceed."},
+            {"R_MSALLMissing", "Failed to load MSAL4J Java library for performing {0} authentication."},
+            {"R_DLLandMSALLMissing",
+                    "Failed to load both {0} and MSAL4J Java library for performing {1} authentication. Please install one of them to proceed."},
             {"R_MSITokenFailureImds", "MSI Token failure: Failed to acquire access token from IMDS"},
             {"R_MSITokenFailureImdsClientId",
                     "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
@@ -648,5 +648,6 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_clientCertError", "Reading client certificate failed. Please verify the location of the certificate."},
             {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
             {"R_InvalidCSVQuotes",
-                    "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},};
+                    "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
+            {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},};
 };
