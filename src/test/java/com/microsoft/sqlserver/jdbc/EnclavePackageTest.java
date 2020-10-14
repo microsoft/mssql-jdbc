@@ -223,8 +223,7 @@ public class EnclavePackageTest extends AbstractTest {
         AbstractTest.updateDataSource(cString, dsPool);
 
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
-                Connection con3 = dsPool.getConnection();
-                Connection con4 = PrepUtil.getConnection(cString)) {
+                Connection con3 = dsPool.getConnection(); Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
                 verifyEnclaveEnabled(con1, protocol);
             }
@@ -303,7 +302,7 @@ public class EnclavePackageTest extends AbstractTest {
                     "keystore", null);
             assertFalse(jksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
 
         try {
@@ -311,7 +310,7 @@ public class EnclavePackageTest extends AbstractTest {
                     "");
             assertFalse(aksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
     }
 

@@ -1366,16 +1366,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     break;
                 case KeyVaultClientSecret:
-                    // need a secret use use the secret method
+                    // need a secret to use the secret method
                     if (null == keyStoreSecret) {
                         throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
-                    } else {
-                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyStorePrincipalId, keyStoreSecret);
-                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-                        keyStoreMap.put(provider.getName(), provider);
-                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                     }
+                    registerKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
                     SQLServerColumnEncryptionAzureKeyVaultProvider provider;
@@ -1384,7 +1379,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } else {
                         provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
                     }
-                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
                     keyStoreMap.put(provider.getName(), provider);
                     registerColumnEncryptionKeyStoreProviders(keyStoreMap);
                     break;
@@ -1393,6 +1388,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
             }
         }
+    }
+
+    private void registerKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
+        // need a secret to use the secret method
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                clientId, clientKey);
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
+        keyStoreMap.put(provider.getName(), provider);
+        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
     }
 
     /**
@@ -1631,11 +1635,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     sPropValue = activeConnectionProperties.getProperty(sPropKey);
                     if (null != sPropValue) {
                         String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-                        SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
-                        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-                        keyStoreMap.put(akvProvider.getName(), akvProvider);
-                        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+
+                        registerKeyVaultProvider(keyVaultColumnEncryptionProviderClientId,
+                                keyVaultColumnEncryptionProviderClientKey);
                     }
                 }
             }
@@ -2707,7 +2709,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
             tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey,
                     clientKeyPassword);
+            clientKeyPassword = "";
         }
+
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
@@ -4435,11 +4440,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                if (!adalContextExists()) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ADALMissing"));
+                if (!msalContextExists()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALLMissing"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
                 }
-                fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
+                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         authenticationString);
 
@@ -4521,17 +4526,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         sleepInterval = sleepInterval * 2;
                     }
                 }
-                // else choose ADAL4J for integrated authentication. This option is supported for both windows and unix,
+                // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
                 // so we don't need to check the
                 // OS version here.
                 else {
-                    // Check if ADAL4J library is available
-                    if (!adalContextExists()) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandADALMissing"));
+                    // Check if MSAL4J library is available
+                    if (!msalContextExists()) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALLMissing"));
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
                     }
-                    fedAuthToken = SQLServerADAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
                 // Break out of the retry loop in successful case.
                 break;
@@ -4541,9 +4546,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return fedAuthToken;
     }
 
-    private boolean adalContextExists() {
+    private boolean msalContextExists() {
         try {
-            Class.forName("com.microsoft.aad.adal4j.AuthenticationContext");
+            Class.forName("com.microsoft.aad.msal4j.PublicClientApplication");
         } catch (ClassNotFoundException e) {
             return false;
         }

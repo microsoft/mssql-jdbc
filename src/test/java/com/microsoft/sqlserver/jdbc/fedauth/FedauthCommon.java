@@ -7,22 +7,26 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.PublicClientApplication;
+import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -142,11 +146,18 @@ public class FedauthCommon extends AbstractTest {
      */
     static void getFedauthInfo() {
         try {
-            AuthenticationContext context = new AuthenticationContext(stsurl, false, Executors.newFixedThreadPool(1));
-            Future<AuthenticationResult> future = context.acquireToken(spn, fedauthClientId, azureUserName,
-                    azurePassword, null);
-            secondsBeforeExpiration = future.get().getExpiresAfter();
-            accessToken = future.get().getAccessToken();
+
+            final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
+                    .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
+                            azureUserName, azurePassword.toCharArray()).build());
+
+            final IAuthenticationResult authenticationResult = future.get();
+
+            secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                    .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
+            accessToken = authenticationResult.accessToken();
         } catch (Exception e) {
             fail(e.getMessage());
         }

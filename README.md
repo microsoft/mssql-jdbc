@@ -48,14 +48,14 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre14`. This creates JRE 14 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 14+).
+        * Run `mvn install -Pjre15`. This creates JRE 15 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 15+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre14`. This creates JRE 14 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 14+).
+        * Run `gradle build -PbuildProfile=jre15`. This creates JRE 15 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 15+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.3.1.jre14-preview</version>
+	<version>9.1.0.jre15-preview</version>
 </dependency>
 ```
 
@@ -104,10 +104,8 @@ Starting from version 7.0.0, the driver Jars (jre10 and above) will expose 'Auto
 This project has following dependencies: 
 
 Compile Time:
- - `com.microsoft.azure:azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
- - `com.microsoft.azure:azure-keyvault-webkey` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
- - `com.microsoft.azure:adal4j` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
- - `com.microsoft.rest:client-runtime` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
+ - `com.azure:azure-security-keyvault-keys` : Microsoft Azure Client Library For KeyVault Keys (optional)
+ - `com.azure:azure-identity` : Microsoft Azure Client Library For Identity (optional)
  - `org.bouncycastle:bcprov-jdk15on` : Bouncy Castle Provider for Always Encrypted with secure enclaves feature with JAVA 8 only (optional)
  - `com.google.code.gson:gson` : Gson for Always Encrypted with secure enclaves feature (optional)
 
@@ -123,55 +121,44 @@ mvn dependency:tree
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
-***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* and *client-runtime* dependency in your project's POM file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to declare the *azure-identity* dependency in your project's POM file. Please see the following snippet: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.4.1.jre14</version>
+	<version>9.1.0.jre15-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>adal4j</artifactId>
-	<version>1.6.5</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-identity</artifactId>
+	<version>1.1.3</version>
 </dependency>
 
-<dependency>
-	<groupId>com.microsoft.rest</groupId>
-	<artifactId>client-runtime</artifactId>
-	<version>1.7.4</version>
-</dependency>
 ```
 
-***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault*, *azure-keyvault-webkey* dependency and *adal4j*, *client-runtime* dependency in your project's POM file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Key Vault feature* then you need to declare the *azure-identity* and *azure-security-keyvault-keys* dependencies in your project's POM file. Please see the following snippet: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.4.1.jre14</version>
+	<version>9.1.0.jre15-preview</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>adal4j</artifactId>
-	<version>1.6.5</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-identity</artifactId>
+	<version>1.1.3</version>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.rest</groupId>
-	<artifactId>client-runtime</artifactId>
-	<version>1.7.4</version>
-</dependency>
-
-<dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>azure-keyvault</artifactId>
-	<version>1.2.4</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-security-keyvault-keys</artifactId>
+	<version>4.2.1</version>
 </dependency>
 ```
 
@@ -185,7 +172,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.4.1.jre14</version>
+	<version>9.1.0.jre15-preview</version>
 </dependency>
 
 <dependency>
