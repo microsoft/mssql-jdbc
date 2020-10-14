@@ -3,6 +3,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.1.0] Preview Release
+### Added
+- Added support for already connected sockets when using custom socket factory [1420](https://github.com/microsoft/mssql-jdbc/pull/1420)
+- Added JAVA 15 support [#1434](https://github.com/microsoft/mssql-jdbc/pull/1434)
+- Added LocalDateTime and OffsetDateTime support in CallableStatement [1393](https://github.com/microsoft/mssql-jdbc/pull/1393)
+- Added new endpoints to the list of trusted Azure Key Vault endpoints [#1445](https://github.com/microsoft/mssql-jdbc/pull/1445)
+
+### Fixed issues
+- Fixed an issue with column ordinal mapping not being sorted when using bulk copy [#1406](https://github.com/microsoft/mssql-jdbc/pull/1406)
+- Fixed PooledConnectionTest to catch exceptions from threads [#1409](https://github.com/microsoft/mssql-jdbc/pull/1409)
+- Fixed an issue with bulk copy when inserting non-unicode multibyte strings [#1421](https://github.com/microsoft/mssql-jdbc/pull/1421)
+- Fixed intermittent deadlock issue in DBMetadatatest [#1423](https://github.com/microsoft/mssql-jdbc/pull/1423)
+- Fixed Gradle exclude tags [#1424](https://github.com/microsoft/mssql-jdbc/pull/1424)
+- Fixed an issue with SQLServerBulkCSVFileRecord ignoring empty trailing columns when using setEscapeColumnDelimitersCSV() API [#1438](https://github.com/microsoft/mssql-jdbc/pull/1438)
+
+### Changed
+- Changed visibility of SQLServerBulkBatchInsertRecord to package-private [#1408](https://github.com/microsoft/mssql-jdbc/pull/1408)
+- Upgraded to the latest Azure Key Vault libraries [#1413](https://github.com/microsoft/mssql-jdbc/pull/1413)
+- Updated API version when using MSI authentication [#1418](https://github.com/microsoft/mssql-jdbc/pull/1418)
+- Enabled Azure Active Directory integrated authentication tests on non-Windows clients [#1425](https://github.com/microsoft/mssql-jdbc/pull/1425)
+- Updated the driver to remove clientKeyPassword from memory [#1428](https://github.com/microsoft/mssql-jdbc/pull/1428)
+- Updated SQLServerPreparedStatement.getMetaData() to retain exception details [#1430](https://github.com/microsoft/mssql-jdbc/pull/1430)
+- Made ADALGetAccessTokenForWindowsIntegrated thread-safe [#1441](https://github.com/microsoft/mssql-jdbc/pull/1441)
+
 ## [8.4.1] HotFix & Stable Release
 ### Fixed issues
 - Fixed issue with SQLServerConnectionPoolProxy not being compatible with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
