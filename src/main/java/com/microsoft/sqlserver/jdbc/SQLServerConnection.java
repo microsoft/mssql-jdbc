@@ -434,7 +434,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     class ActiveDirectoryAuthentication {
         static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
         static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
-        static final String ADAL_GET_ACCESS_TOKEN_FUNCTION_NAME = "ADALGetAccessToken";
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
         static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
         static final String ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER = "\"expires_on\":\"";
@@ -4505,7 +4504,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
                                     adalException);
 
-                            form = new MessageFormat(SQLServerException.getErrString("R_ADALExecution"));
+                            form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
                             Object[] msgArgs = {user, authenticationString};
                             throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
                         }
