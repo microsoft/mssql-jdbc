@@ -3,8 +3,8 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre14 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre14
+ * jre15 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre15
  * jre11 - - PS> gradle build -PbuildProfile=jre11
  * jre8  - - PS> gradle build -PbuildProfile=jre8
  *
@@ -14,7 +14,7 @@
 
 apply plugin: 'java'
 
-version = '8.4.0'
+version = '9.1.0'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -31,21 +31,21 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','Fedauth')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth')
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre14")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre15")){
 	
-	jreVersion = "jre14"
+	jreVersion = "jre15"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 14
-	targetCompatibility = 14
+	sourceCompatibility = 15
+	targetCompatibility = 15
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
@@ -70,12 +70,12 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','Fedauth','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42')
 		}
 	}
 }
 
-jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}.jar"
+jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
@@ -110,14 +110,12 @@ repositories {
 dependencies {
 	compile 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.compendium:5.0.0'
-	compileOnly 'com.microsoft.azure:azure-keyvault:1.2.2',
-			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
-			'com.microsoft.rest:client-runtime:1.7.0',
-			'com.microsoft.azure:adal4j:1.6.4',
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.2.1',
+			'com.azure:azure-identity:1.1.3',
 			'org.antlr:antlr4-runtime:4.7.2',
 			'com.google.code.gson:gson:2.8.6',
-			'org.bouncycastle:bcprov-jdk15on:1.64',
-			'org.bouncycastle:bcpkix-jdk15on:1.64'
+			'org.bouncycastle:bcprov-jdk15on:1.65',
+			'org.bouncycastle:bcpkix-jdk15on:1.65'
 	testCompile 'org.junit.platform:junit-platform-console:1.5.2',
 			'org.junit.platform:junit-platform-commons:1.5.2',
 			'org.junit.platform:junit-platform-engine:1.5.2',
@@ -127,15 +125,15 @@ dependencies {
 			'org.junit.jupiter:junit-jupiter-api:5.6.0',
 			'org.junit.jupiter:junit-jupiter-engine:5.6.0',
 			'org.junit.jupiter:junit-jupiter-params:5.6.0',
-			'com.zaxxer:HikariCP:3.4.1',
-			'org.apache.commons:commons-dbcp2:2.6.0',
+			'com.zaxxer:HikariCP:3.4.2',
+			'org.apache.commons:commons-dbcp2:2.7.0',
 			'org.slf4j:slf4j-nop:1.7.29',
 			'org.antlr:antlr4-runtime:4.7.2',
 			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE',
 			'com.google.code.gson:gson:2.8.6',
-			'org.bouncycastle:bcprov-jdk15on:1.64',
-			'com.microsoft.azure:adal4j:1.6.4',
-			'com.microsoft.azure:azure-keyvault:1.2.2',
-			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
+			'org.bouncycastle:bcprov-jdk15on:1.65',
+			'com.azure:azure-security-keyvault-keys:4.2.1',
+			'com.azure:azure-identity:1.1.3',
+			'com.microsoft.azure:adal4j:1.6.5',
 			'com.h2database:h2:1.4.200'
 }

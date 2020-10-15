@@ -41,8 +41,6 @@ public class FedauthTest extends FedauthCommon {
     static class TrustStore {
         private File trustStoreFile;
 
-        static final String TRUST_STORE_PASSWORD = "Any_Password_<>_Not_Used_In_This_Code";
-
         TrustStore(String certificateName) throws Exception {
             trustStoreFile = File.createTempFile("myTrustStore", null, new File("."));
             trustStoreFile.deleteOnExit();
@@ -52,7 +50,7 @@ public class FedauthTest extends FedauthCommon {
             ks.setCertificateEntry(certificateName, getCertificate(certificateName));
 
             try (FileOutputStream os = new FileOutputStream(trustStoreFile)) {
-                ks.store(os, TRUST_STORE_PASSWORD.toCharArray());
+                ks.store(os, "Any_String_<>_Not_Used_In_This_Code".toCharArray());
                 os.flush();
             }
         }
@@ -108,7 +106,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testActiveDirectoryIntegratedDS() throws Exception {
-        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+        org.junit.Assume.assumeTrue(enableADIntegrated);
 
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(azureServer);
@@ -175,7 +173,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+        org.junit.Assume.assumeTrue(enableADIntegrated);
 
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
@@ -202,7 +200,7 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(isWindows && enableADIntegrated);
+        org.junit.Assume.assumeTrue(enableADIntegrated);
 
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
         testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);

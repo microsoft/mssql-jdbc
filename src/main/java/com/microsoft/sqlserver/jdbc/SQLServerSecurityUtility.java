@@ -253,25 +253,34 @@ class SQLServerSecurityUtility {
         // IMDS upgrade time can take up to 70s
         final int imdsUpgradeTimeInMs = 70 * 1000;
         final List<Integer> retrySlots = new ArrayList<>();
-        final String msiEndpoint = System.getenv("MSI_ENDPOINT");
-        final String msiSecret = System.getenv("MSI_SECRET");
 
         StringBuilder urlString = new StringBuilder();
         int retry = 1, maxRetry = 1;
 
+        // MSI_ENDPOINT and MSI_SECRET can be used instead of IDENTITY_ENDPOINT and IDENTITY_HEADER
+        String identityEndpoint = System.getenv("IDENTITY_ENDPOINT");
+        if (null == identityEndpoint || identityEndpoint.trim().isEmpty()) {
+            identityEndpoint = System.getenv("MSI_ENDPOINT");
+        }
+
+        String identityHeader = System.getenv("IDENTITY_HEADER");
+        if (null == identityHeader || identityHeader.trim().isEmpty()) {
+            identityHeader = System.getenv("MSI_SECRET");
+        }
+
         /*
          * isAzureFunction is used for identifying if the current client application is running in a Virtual Machine
-         * (without MSI environment variables) or App Service/Function (with MSI environment variables) as the APIs to
-         * be called for acquiring MSI Token are different for both cases.
+         * (without Managed Identity environment variables) or App Service/Function (with Managed Identity environment
+         * variables) as the APIs to be called for acquiring MSI Token are different for both cases.
          */
-        boolean isAzureFunction = null != msiEndpoint && !msiEndpoint.isEmpty() && null != msiSecret
-                && !msiSecret.isEmpty();
+        boolean isAzureFunction = null != identityEndpoint && !identityEndpoint.isEmpty() && null != identityHeader
+                && !identityHeader.isEmpty();
 
         if (isAzureFunction) {
-            urlString.append(msiEndpoint).append("?api-version=2019-08-01&resource=").append(resource);
+            urlString.append(identityEndpoint).append("?api-version=2019-08-01&resource=").append(resource);
         } else {
             urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
-            // Retry acquiring access token upto 20 times due to possible IMDS upgrade (Applies to VM only)
+            // Retry acquiring access token up to 20 times due to possible IMDS upgrade (Applies to VM only)
             maxRetry = 20;
             // Simplified variant of Exponential BackOff
             for (int x = 0; x < maxRetry; x++) {
@@ -293,14 +302,14 @@ class SQLServerSecurityUtility {
                 connection.setRequestMethod("GET");
 
                 if (isAzureFunction) {
-                    connection.setRequestProperty("X-IDENTITY-HEADER", msiSecret);
+                    connection.setRequestProperty("X-IDENTITY-HEADER", identityHeader);
                     if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.finer("Using Azure Function/App Service MSI auth: " + urlString);
+                        connectionlogger.finer("Using Azure Function/App Service Managed Identity auth: " + urlString);
                     }
                 } else {
                     connection.setRequestProperty("Metadata", "true");
                     if (connectionlogger.isLoggable(Level.FINER)) {
-                        connectionlogger.finer("Using Azure MSI auth: " + urlString);
+                        connectionlogger.finer("Using Azure Managed Identity auth: " + urlString);
                     }
                 }
 
