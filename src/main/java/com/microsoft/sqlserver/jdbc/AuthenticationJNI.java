@@ -153,7 +153,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     private static native int GetDNSName(String address, String[] DNSName, java.util.logging.Logger log);
 
-    private static native FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
+    private static synchronized native FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
             String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
             java.util.logging.Logger log);
 
