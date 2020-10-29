@@ -65,7 +65,8 @@ enum SqlAuthentication {
     SqlPassword,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI;
+    ActiveDirectoryMSI,
+    ActiveDirectoryInteractive;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -82,6 +83,9 @@ enum SqlAuthentication {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
             method = SqlAuthentication.ActiveDirectoryMSI;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
+            method = SqlAuthentication.ActiveDirectoryInteractive;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -582,7 +586,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
-                            SqlAuthentication.ActiveDirectoryMSI.toString()}),
+                            SqlAuthentication.ActiveDirectoryMSI.toString(),
+                            SqlAuthentication.ActiveDirectoryInteractive.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
