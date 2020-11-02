@@ -2681,7 +2681,9 @@ final class SocketFinder {
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
         selectedSocket = getSocketFactory().createSocket();
-        selectedSocket.connect(addr, timeoutInMilliSeconds);
+        if (!selectedSocket.isConnected()) {
+            selectedSocket.connect(addr, timeoutInMilliSeconds);
+        }
         return selectedSocket;
     }
 
