@@ -18,7 +18,7 @@ public class MaxResultBufferParser {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.MaxResultBufferParser");
     private static final String[] PERCENT_PHRASES = {"percent", "pct", "p"};
-    private static final String ERROR_MESSAGE = "maxResultBuffer property is badly formatted: {0}";
+    private static final String ERROR_MESSAGE = "MaxResultBuffer property is badly formatted: {0}.";
 
     private MaxResultBufferParser() {}
 
@@ -36,41 +36,53 @@ public class MaxResultBufferParser {
         String numberString;
         long number = -1;
 
-        // check for null values and empty String "", if so return -1
-        if (StringUtils.isEmpty(input)) {
+        // check for null values and empty String "", if so return -1 (default value)
+        if (StringUtils.isEmpty(input) || input.equals("-1")) {
             return number;
         }
-        // check PERCENT_PHRASES
-        for (String percentPhrase : PERCENT_PHRASES) {
-            if (input.endsWith(percentPhrase)) {
-                numberString = input.substring(0, input.length() - percentPhrase.length());
-                try {
-                    number = Long.parseLong(numberString);
-                } catch (NumberFormatException e) {
-                    logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
-                    throwNewInvalidMaxResultBufferParameterException(e, numberString);
-                }
-                return adjustMemory(number);
-            }
-        }
-        // check if only number was supplied
-        long multiplier = 1;
-        if (StringUtils.isNumeric(input)) {
+
+        // check if input is number
+        if (!StringUtils.isEmpty(input) && input.matches("-?\\d+(\\.\\d+)?")) {
             number = Long.parseLong(input);
+            return adjustMemory(number, 1);
+        } else {
+            // check PERCENT_PHRASES
+            for (String percentPhrase : PERCENT_PHRASES) {
+                if (input.endsWith(percentPhrase)) {
+                    numberString = input.substring(0, input.length() - percentPhrase.length());
+                    try {
+                        number = Long.parseLong(numberString);
+                    } catch (NumberFormatException e) {
+                        logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                        throwNewInvalidMaxResultBufferParameterException(e, numberString);
+                    }
+                    return adjustMemoryPercentage(number);
+                }
+            }
+
+            // check if prefix was supplied
+            long multiplier = getMultiplier(input);
+            numberString = input.substring(0, input.length() - 1);
+
+            try {
+                number = Long.parseLong(numberString);
+            } catch (NumberFormatException e) {
+                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                throwNewInvalidMaxResultBufferParameterException(e, numberString);
+            }
             return adjustMemory(number, multiplier);
         }
-        // check if prefix was supplied
-        multiplier = getMultiplier(input);
+    }
 
-        numberString = input.substring(0, input.length() - 1);
-
-        try {
-            number = Long.parseLong(numberString);
-        } catch (NumberFormatException e) {
-            logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
-            throwNewInvalidMaxResultBufferParameterException(e, numberString);
+    private static void checkForNegativeValue(long value) throws SQLServerException {
+        if (value <= 0) {
+            Object[] objectToThrow = new Object[] {value};
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_maxResultBufferNegativeParameterValue"));
+            logger.log(Level.INFO, SQLServerException.getErrString("R_maxResultBufferNegativeParameterValue"),
+                    objectToThrow);
+            throw new SQLServerException(form.format(objectToThrow), new Throwable());
         }
-        return adjustMemory(number, multiplier);
     }
 
     private static long getMultiplier(String input) throws SQLServerException {
@@ -95,14 +107,16 @@ public class MaxResultBufferParser {
         return multiplier;
     }
 
-    private static long adjustMemory(long percentage) {
+    private static long adjustMemoryPercentage(long percentage) throws SQLServerException {
+        checkForNegativeValue(percentage);
         if (percentage > 90)
             return (long) (0.9 * getMaxMemory());
         else
             return (long) ((percentage) / 100.0 * getMaxMemory());
     }
 
-    private static long adjustMemory(long size, long multiplier) {
+    private static long adjustMemory(long size, long multiplier) throws SQLServerException {
+        checkForNegativeValue(size);
         if (size * multiplier > 0.9 * getMaxMemory())
             return (long) (0.9 * getMaxMemory());
         else
@@ -116,8 +130,7 @@ public class MaxResultBufferParser {
     private static void throwNewInvalidMaxResultBufferParameterException(Throwable cause,
             Object... arguments) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_maxResultBufferInvalidSyntax"));
-        Object[] msgArgs = {arguments};
-        throw new SQLServerException(form.format(msgArgs), cause);
+        throw new SQLServerException(form.format(arguments), cause);
     }
 
 }

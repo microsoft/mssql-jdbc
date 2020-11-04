@@ -367,7 +367,7 @@ enum SQLServerDriverStringProperty {
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
-    MAX_RESULT_BUFFER("maxResultBuffer", "");
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
     private final String name;
     private final String defaultValue;

@@ -37,14 +37,15 @@ class MaxResultBufferParserTest {
                 {"100T", (long) (0.9 * getMaxMemory())},
                 //when maxResultBuffer property is not supplied, assume -1
                 {"", -1},
-                {null, -1},});
+                {null, -1},
+                {"-1", -1},});
     }
 
     /**
      * Method with input data for testValidateMaxResultBufferException Tests
      */
     public static Iterable<Object[]> exceptionData() {
-        return Arrays.asList(new Object[][] {{"ASD"}, {"123PRECD"}, {"0101D"}, {"1@D"}, {"-1"}, {" "},});
+        return Arrays.asList(new Object[][] {{"ASD"}, {"123precd"}, {"0101D"}, {"1@D"}, {"-123"}, {"-123p"}, {"-423pct"}, {"-100m"}, {"-500K"}, {"0"}, {" "},});
     }
 
     /**
