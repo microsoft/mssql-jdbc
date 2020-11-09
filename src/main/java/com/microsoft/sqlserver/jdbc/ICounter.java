@@ -8,7 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 /**
  * Interface for MaxResultBufferCounter
  */
-public interface ICounter {
+interface ICounter {
 
     /**
      * Increases the state of Counter

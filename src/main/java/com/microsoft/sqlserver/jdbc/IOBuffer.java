@@ -7364,14 +7364,14 @@ abstract class TDSCommand implements Serializable {
 
     protected ArrayList<byte[]> enclaveCEKs;
 
-    //Counter reference, so maxResultBuffer property can by acknowledged
+    // Counter reference, so maxResultBuffer property can by acknowledged
     private ICounter counter;
 
-    public ICounter getCounter() {
+    ICounter getCounter() {
         return counter;
     }
 
-    public void createCounter(ICounter previousCounter, Properties activeConnectionProperties) {
+    void createCounter(ICounter previousCounter, Properties activeConnectionProperties) {
         if (null == previousCounter) {
             String maxResultBuffer = activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString());
