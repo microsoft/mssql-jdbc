@@ -43,7 +43,12 @@ public class MaxResultBufferParser {
 
         // check if input is number
         if (!StringUtils.isEmpty(input) && input.matches("-?\\d+(\\.\\d+)?")) {
-            number = Long.parseLong(input);
+            try {
+                number = Long.parseLong(input);
+            } catch (NumberFormatException e) {
+                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                throwNewInvalidMaxResultBufferParameterException(e, input);
+            }
             return adjustMemory(number, 1);
         } else {
             // check PERCENT_PHRASES
