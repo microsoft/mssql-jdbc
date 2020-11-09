@@ -35,12 +35,14 @@ public class MaxResultBufferTest extends AbstractTest {
 
     @SuppressWarnings("SqlResolve")
     private static final String TEST_TABLE_NAME = "maxResultBufferTestTable";
+    private static String localConnectionString;
 
     /**
      * This sets value of maxResultBuffer for each test
      */
     @BeforeEach
     void prepareMaxResultBuffer() {
+        localConnectionString = new String(connectionString);
         setMaxResultBuffer("10k");
     }
 
@@ -199,7 +201,7 @@ public class MaxResultBufferTest extends AbstractTest {
      *         Exception is thrown when maxResultBuffer is exceeded
      */
     private void testResultSet(int resultSetType, int concurrencyMode) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = DriverManager.getConnection(localConnectionString);
                 Statement statement = connection.createStatement(resultSetType, concurrencyMode)) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME);
             try (ResultSet resultSet = statement.getResultSet()) {
@@ -218,7 +220,7 @@ public class MaxResultBufferTest extends AbstractTest {
     private void testPreparedStatementWithMultipleResultSets() throws SQLException {
         String selectSQL = "SELECT * FROM " + TEST_TABLE_NAME;
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = DriverManager.getConnection(localConnectionString);
                 PreparedStatement statement = connection.prepareStatement(selectSQL);
                 ResultSet resultSet = statement.executeQuery()) {
 
@@ -243,7 +245,7 @@ public class MaxResultBufferTest extends AbstractTest {
      *         Exception is thrown when maxResultBuffer is exceeded
      */
     private void testTwoQueriesInOneStatement() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = DriverManager.getConnection(localConnectionString);
                 Statement statement = connection.createStatement()) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME + ";SELECT * FROM " + TEST_TABLE_NAME);
 
@@ -269,12 +271,13 @@ public class MaxResultBufferTest extends AbstractTest {
 
     private static void setResponseBufferingAdaptive(boolean adaptive) {
         String value = adaptive ? "adaptive" : "full";
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "responseBuffering", value);
-        AbstractTest.updateDataSource(connectionString, ds);
+        localConnectionString = TestUtils.addOrOverrideProperty(localConnectionString, "responseBuffering", value);
+        AbstractTest.updateDataSource(localConnectionString, ds);
     }
 
     private static void setMaxResultBuffer(String maxResultBuffer) {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "maxResultBuffer", maxResultBuffer);
-        AbstractTest.updateDataSource(connectionString, ds);
+        localConnectionString = TestUtils.addOrOverrideProperty(localConnectionString, "maxResultBuffer",
+                maxResultBuffer);
+        AbstractTest.updateDataSource(localConnectionString, ds);
     }
 }
