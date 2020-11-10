@@ -12,9 +12,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -22,14 +21,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Random;
+
+import static org.junit.Assert.fail;
 
 
 /**
  * Class for testing maxResultBuffer property, all tests were performed on default connection settings
  * (defaultPacketLength = 8000), only changed were ResponsiveBuffering and MaxResultBuffer
  */
-@RunWith(JUnitPlatform.class)
 @DisplayName("maxResultBuffer Tests")
 public class MaxResultBufferTest extends AbstractTest {
 
@@ -38,17 +39,16 @@ public class MaxResultBufferTest extends AbstractTest {
     private static String localConnectionString;
 
     /**
-     * This sets value of maxResultBuffer for each test
+     * This copies value of localConnectionString from connectionString for each test
      */
     @BeforeEach
     void prepareMaxResultBuffer() {
         localConnectionString = new String(connectionString);
-        setMaxResultBuffer("10k");
     }
 
     /**
      * Create TEST_TABLE with 1 column nchar(precision) with numberOfRows. Let's calculate payload on example:
-     * numberOfRows = 800 precision = 10
+     * numberOfRows = 800, precision = 10
      *
      * Payload (in Bytes) = 49 (Header plus column metadata) + numberOfRows * (precision * 2 + 1 + 2) (3 extra bytes are
      * for column length and end of line character)
@@ -92,99 +92,266 @@ public class MaxResultBufferTest extends AbstractTest {
     }
 
     /**
-     * This method tests if ResultSets behave correctly when maxResultBuffer is set to 10000, they all should pass
-     * (assuming default packetLength = 8000 and responsiveBuffering = adaptive)
+     * Test shows influence of MaxResultBuffer on all types of ResultSet (considering state of response buffering). In
+     * this test, maxResultBuffer is not affecting the work of driver in any way.
+     * 
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering provided by source method
+     * @param resultSetType
+     *        type of ResultSet provided by source method
+     * @param concurrencyMode
+     *        type of ResultSet's concurrency provided by source method
+     */
+    @ParameterizedTest(
+            name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}, resultSetType = {2}, concurrencyMode = {3}")
+    @MethodSource("linearResultSetData")
+    void testResultSetLinear(String maxResultBuffer, boolean adaptiveBuffering, int resultSetType,
+            int concurrencyMode) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
+        try {
+            resultSet(resultSetType, concurrencyMode);
+        } catch (SQLException e) {
+            fail();
+        }
+    }
+
+    private static Iterable<Object[]> linearResultSetData() {
+        return Arrays.asList(new Object[][] {
+                // maxResultBuffer set to 5k
+                {"5k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"5k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"5k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"5k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"5k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"5k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"5k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"5k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                // maxResultBuffer set to 10k
+                {"10k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"10k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"10k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"10k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"10k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"10k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"10k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"10k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"10k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                // max ResultBuffer set to 15k
+                {"15k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"15k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"15k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"15k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"15k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"15k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"15k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"15k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"15k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                // maxResultBuffer set to 17k
+                {"17k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"17k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"17k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"17k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"17k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"17k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"17k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"17k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"17k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                // maxResultBuffer set to 20k
+                {"20k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"20k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"20k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"20k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"20k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"20k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"20k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"20k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"20k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"20k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},});
+    }
+
+    /**
+     * Test shows influence of MaxResultBuffer on all types of ResultSet (considering state of response buffering). In
+     * this test, driver is throwing exception because MaxResultBuffer property was exceeded.
      *
-     * @throws SQLException
-     *         Exception is thrown when maxResultBuffer is exceeded
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering connection property provided by source method
+     * @param resultSetType
+     *        type of ResultSet provided by source method
+     * @param concurrencyMode
+     *        type of ResultSet's concurrency provided by source method
      */
-    @Test
-    public void testResultSetLinearWithAdaptiveResponsiveBuffering() throws SQLException {
-        setResponseBufferingAdaptive(true);
+    @ParameterizedTest(
+            name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}, resultSetType = {2}, concurrencyMode = {3}")
+    @MethodSource("linearResultSetDataThrowsSQLException")
+    void testResultSetLinearThrowsSQLException(String maxResultBuffer, boolean adaptiveBuffering, int resultSetType,
+            int concurrencyMode) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
 
-        testResultSet(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        testResultSet(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testResultSet(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testResultSet(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testResultSet(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        Assertions.assertThrows(SQLServerException.class, () -> resultSet(resultSetType, concurrencyMode));
+    }
+
+    private static Iterable<Object[]> linearResultSetDataThrowsSQLException() {
+        return Arrays.asList(new Object[][] {
+                // maxResultBuffer set to 3k
+                {"3k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"3k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"3k", true, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"3k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"3k", true, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                {"3k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"3k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE},
+                {"3k", false, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"3k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY},
+                {"3k", false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE},
+                // maxResultBuffer set to 5k
+                {"5k", true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                {"5k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                // maxResultBuffer set to 10k
+                {"10k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                // maxResultBuffer set to 15k
+                {"15k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},
+                // maxResultBuffer set to 17k
+                {"17k", false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY},});
     }
 
     /**
-     * This method tests if ResultSets behave correctly when maxResultBuffer is set to 10000, they all should pass
-     * (assuming default packetLength = 8000 and responsiveBuffering = full)
+     * Test shows influence of MaxResultBuffer when multiple statements are executed, which result in multiple
+     * ResultSets (considering state of response buffering).
      * 
-     * @throws SQLException
-     *         Exception is thrown when maxResultBuffer is exceeded
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering connection property provided by source method
      */
-    @Test
-    public void testResultSetLinearWithFullResponsiveBuffering() throws SQLException {
-        setResponseBufferingAdaptive(false);
+    @ParameterizedTest(name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}")
+    @MethodSource("preparedStatementData")
+    void testPreparedStatementMultipleResultSets(String maxResultBuffer, boolean adaptiveBuffering) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
+        try {
+            preparedStatementWithMultipleResultSets();
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 
-        testResultSet(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-        testResultSet(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testResultSet(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        testResultSet(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    private static Iterable<Object[]> preparedStatementData() {
+        return Arrays.asList(new Object[][] {
+                {"20k", true},
+                {"20k", false},
+        });
     }
 
     /**
-     * This method tests if ResultSet behave correctly when maxResultBuffer is set to 10000, it should throw Exception
-     * (assuming default packetLength = 8000 and responsiveBuffering = full)
+     * Test shows influence of MaxResultBuffer when multiple statements are executed, which result in multiple
+     * ResultSets (considering state of response buffering). In this test, driver is throwing exception because
+     * MaxResultBuffer property was exceeded.
+     *
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering connection property provided by source method
      */
-    @Test
-    public void testResultSetLinearWithFullResponsiveBufferingException() {
-        setResponseBufferingAdaptive(false);
+    @ParameterizedTest(name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}")
+    @MethodSource("preparedStatementDataThrowsSQLException")
+    void testPreparedStatementMultipleResultSetsThrowsSQLException(String maxResultBuffer, boolean adaptiveBuffering) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
 
-        Assertions.assertThrows(SQLServerException.class,
-                () -> testResultSet(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY));
+        Assertions.assertThrows(SQLServerException.class, this::preparedStatementWithMultipleResultSets);
+    }
+
+    private static Iterable<Object[]> preparedStatementDataThrowsSQLException() {
+        return Arrays.asList(new Object[][] {
+                // maxResultBuffer set to 3k
+                {"3k", true},
+                {"3k", false},
+                // maxResultBuffer set to 5k
+                {"5k", true},
+                {"5k", false},
+                // maxResultBuffer set to 10k
+                {"10k", true},
+                {"10k", false},
+                // maxResultBuffer set to 15k
+                {"15k", true},
+                {"15k", false},
+                // maxResultBuffer set to 17k
+                {"17k", true},
+                {"17k", false},
+        });
     }
 
     /**
-     * This method tests if when calling multiple PreparedStatements with their own ResultSet, JDBC driver would behave
-     * appropriately, assuming maxResultBuffer is set to 10000, it should throw Exception (assuming default packetLength
-     * = 8000 and responsiveBuffering = adaptive)
+     * Test shows influence of MaxResultBuffer when multiple statements are executed in one call (considering state of
+     * response buffering).
+     *
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering connection property provided by source method
      */
-    @Test
-    public void testPreparedStatementMultipleResultSetsWithAdaptiveResponseBuffering() {
-        setResponseBufferingAdaptive(true);
+    @ParameterizedTest(name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}")
+    @MethodSource("twoQueriesData")
+    void testTwoQueriesInOneStatement(String maxResultBuffer, boolean adaptiveBuffering) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
+        try {
+            twoQueriesInOneStatement();
+        } catch (SQLException e) {
+            fail();
+        }
+    }
 
-        Assertions.assertThrows(SQLServerException.class, this::testPreparedStatementWithMultipleResultSets);
+    private static Iterable<Object[]> twoQueriesData() {
+        return Arrays.asList(new Object[][] {
+                {"10k", true},
+                {"15k", true},
+                {"17k", true},
+                {"20k", true},
+        });
     }
 
     /**
-     * This method tests if when calling multiple PreparedStatements with their own ResultSet, JDBC driver would behave
-     * appropriately, assuming maxResultBuffer is set to 10000, it should throw Exception (assuming default packetLength
-     * = 8000 and responsiveBuffering = full)
+     * Test shows influence of MaxResultBuffer when multiple statements are executed in one call (considering state of
+     * response buffering).In this test, driver is throwing exception because MaxResultBuffer property was exceeded.
+     *
+     * @param maxResultBuffer
+     *        value of MaxResultBuffer parameter provided by source method
+     * @param adaptiveBuffering
+     *        value of responseBuffering connection property provided by source method
      */
-    @Test
-    public void testPreparedStatementMultipleResultSetsWithFullResponseBuffering() {
-        setResponseBufferingAdaptive(false);
+    @ParameterizedTest(name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}")
+    @MethodSource("twoQueriesDataThrowsSQLException")
+    void testTwoQueriesInOneStatementThrowsSQLException(String maxResultBuffer, boolean adaptiveBuffering) {
+        setResponseBufferingAdaptive(adaptiveBuffering);
+        setMaxResultBuffer(maxResultBuffer);
 
-        Assertions.assertThrows(SQLServerException.class, this::testPreparedStatementWithMultipleResultSets);
+        Assertions.assertThrows(SQLServerException.class, this::twoQueriesInOneStatement);
     }
 
-    /**
-     * This method tests if calling multiple Queries in one Statement works properly. When maxResultBuffer is set to
-     * 10000, it should work properly (assuming default packetLength = 8000 and responsiveBuffering = adaptive)
-     * 
-     * @throws SQLException
-     *         Exception is thrown when maxResultBuffer is exceeded
-     */
-    @Test
-    public void testTwoQueriesInOneStatementWithAdaptiveResponseBuffering() throws SQLException {
-        setResponseBufferingAdaptive(true);
-
-        testTwoQueriesInOneStatement();
-    }
-
-    /**
-     * This method tests if calling multiple Queries in one Statement works properly. When maxResultBuffer is set to
-     * 10000, it should throw Exception (assuming default packetLength = 8000 and responsiveBuffering = full)
-     */
-    @Test
-    public void testTwoQueriesInOneStatementWithFullResponseBuffering() {
-        setResponseBufferingAdaptive(false);
-
-        Assertions.assertThrows(SQLServerException.class, this::testTwoQueriesInOneStatement);
+    private static Iterable<Object[]> twoQueriesDataThrowsSQLException() {
+        return Arrays.asList(new Object[][] {
+                // maxResultBuffer set to 3k
+                {"3k", true},
+                {"3k", false},
+                // maxResultBuffer set to 5k
+                {"5k", true},
+                {"5k", false},
+                // maxResultBuffer set to 10k
+                {"10k", false},
+                // maxResultBuffer set to 15k
+                {"15k", false},
+                // maxResultBuffer set to 17k
+                {"17k", false},
+                // maxResultBuffer set to 20k
+                {"20k", false},
+        });
     }
 
     /**
@@ -200,7 +367,7 @@ public class MaxResultBufferTest extends AbstractTest {
      * @throws SQLException
      *         Exception is thrown when maxResultBuffer is exceeded
      */
-    private void testResultSet(int resultSetType, int concurrencyMode) throws SQLException {
+    private void resultSet(int resultSetType, int concurrencyMode) throws SQLException {
         try (Connection connection = DriverManager.getConnection(localConnectionString);
                 Statement statement = connection.createStatement(resultSetType, concurrencyMode)) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME);
@@ -212,12 +379,12 @@ public class MaxResultBufferTest extends AbstractTest {
 
     /**
      * This method tests if Statements are detached properly, when first one hasn't been completely retrieved and second
-     * one have been executed
+     * one have been executed.
      *
      * @throws SQLException
      *         Exception is thrown when maxResultBuffer is exceeded
      */
-    private void testPreparedStatementWithMultipleResultSets() throws SQLException {
+    private void preparedStatementWithMultipleResultSets() throws SQLException {
         String selectSQL = "SELECT * FROM " + TEST_TABLE_NAME;
 
         try (Connection connection = DriverManager.getConnection(localConnectionString);
@@ -244,7 +411,7 @@ public class MaxResultBufferTest extends AbstractTest {
      * @throws SQLException
      *         Exception is thrown when maxResultBuffer is exceeded
      */
-    private void testTwoQueriesInOneStatement() throws SQLException {
+    private void twoQueriesInOneStatement() throws SQLException {
         try (Connection connection = DriverManager.getConnection(localConnectionString);
                 Statement statement = connection.createStatement()) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME + ";SELECT * FROM " + TEST_TABLE_NAME);
