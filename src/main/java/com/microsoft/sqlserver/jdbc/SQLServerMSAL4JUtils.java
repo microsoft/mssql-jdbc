@@ -24,6 +24,7 @@ import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
+import com.microsoft.aad.msal4j.MsalClientException;
 import com.microsoft.aad.msal4j.MsalException;
 import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
 import com.microsoft.aad.msal4j.MsalServiceException;
@@ -55,31 +56,11 @@ class SQLServerMSAL4JUtils {
 
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
-            }
-
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-            Object[] msgArgs = {user, authenticationString};
-
-            /*
-             * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
-             * correct format
-             */
-            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
-
-            /*
-             * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
-             * the exception tree before error message correction
-             */
-            ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
-
-            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            handleMSALException(e, user, authenticationString);
+            return null;
         } finally {
             executorService.shutdown();
         }
@@ -113,33 +94,8 @@ class SQLServerMSAL4JUtils {
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
-            }
-
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-            Object[] msgArgs = {"", authenticationString};
-
-            if (null == e.getCause() || null == e.getCause().getMessage()) {
-                // the case when Future's outcome has no AuthenticationResult but exception
-                throw new SQLServerException(form.format(msgArgs), null);
-            } else {
-                /*
-                 * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
-                 * correct format
-                 */
-                String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-                RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
-
-                /*
-                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
-                 * match the exception tree before error message correction
-                 */
-                ExecutionException correctedExecutionException = new ExecutionException(
-                        correctedAuthenticationException);
-
-                throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-            }
+            handleMSALException(e, "", authenticationString);
+            return null;
         } finally {
             executorService.shutdown();
         }
@@ -199,13 +155,13 @@ class SQLServerMSAL4JUtils {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
                 }
-
+                System.out.println("MSAL exception1:" + e.getMessage());
                 if (e instanceof MsalServiceException) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_MsalServiceException"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_MSALServiceException"), null);
                 } else if (e instanceof MsalThrottlingException) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_MsalThrottlingException"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_MSALThrottlingException"), null);
                 } else {
-                    throw new SQLServerException(SQLServerException.getErrString("MsalException"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_MSALException"), null);
                 }
             }
 
@@ -215,10 +171,10 @@ class SQLServerMSAL4JUtils {
                 // try to acquire token interactively with system browser
                 InteractiveRequestParameters parameters = InteractiveRequestParameters
                         .builder(new URI("http://localhost"))
-                        .systemBrowserOptions(
-                                SystemBrowserOptions.builder().htmlMessageSuccess("JDBC SUCCESS MSG").build())
-                        .loginHint("v-susanh@microsoft.com")
-                        .scopes(Collections.singleton(fedAuthInfo.spn + "/.default")).build();
+                        .systemBrowserOptions(SystemBrowserOptions.builder()
+                                .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete"))
+                                .htmlMessageError("JDBC Error MSG").build())
+                        .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + "/.default")).build();
 
                 // acquire token interactively with system browser
                 future = clientApplication.acquireToken(parameters);
@@ -230,29 +186,59 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
-            }
-
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-            Object[] msgArgs = {user, authenticationString};
-
-            /*
-             * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
-             * correct format
-             */
-            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
-            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
-
-            /*
-             * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
-             * the exception tree before error message correction
-             */
-            ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
-
-            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            handleMSALException(e, user, authenticationString);
+            return null;
         } finally {
             executorService.shutdown();
+        }
+    }
+
+    static void handleMSALException(ExecutionException e, String user,
+            String authenticationString) throws SQLServerException {
+        if (logger.isLoggable(Level.SEVERE)) {
+            logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
+        }
+
+        Throwable cause = e.getCause();
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+
+        if (null == cause || null == cause.getMessage()) {
+            Object[] msgArgs = {user, authenticationString, ""};
+            // the case when Future's outcome has no AuthenticationResult but exception
+            throw new SQLServerException(form.format(msgArgs), null);
+        } else if (cause instanceof MsalThrottlingException) {
+            Object[] msgArgs = {user, authenticationString, SQLServerResource.getResource("R_MSALThrottlingException")};
+            throw new SQLServerException(form.format(msgArgs), null);
+        } else {
+            if (cause instanceof MsalClientException) {
+                MessageFormat form2 = new MessageFormat(SQLServerException.getErrString("R_MSALClientErrorcode"));
+                Object[] msgArgs2 = {((MsalClientException) cause).errorCode()};
+                Object[] msgArgs = {user, authenticationString, form2.format(msgArgs2)};
+                form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+                throw new SQLServerException(form.format(msgArgs), null);
+            } else if (cause instanceof MsalServiceException) {
+                MessageFormat form2 = new MessageFormat(SQLServerException.getErrString("R_MSALServiceStatus"));
+                Object[] msgArgs2 = {((MsalServiceException) cause).statusMessage()};
+                Object[] msgArgs = {user, authenticationString, form2.format(msgArgs2)};
+                form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+                throw new SQLServerException(form.format(msgArgs), null);
+            } else {
+                /*
+                 * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
+                 * correct format
+                 */
+                String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+                RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
+
+                /*
+                 * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to
+                 * match the exception tree before error message correction
+                 */
+                ExecutionException correctedExecutionException = new ExecutionException(
+                        correctedAuthenticationException);
+                Object[] msgArgs = {user, authenticationString, correctedExecutionException};
+                throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            }
         }
     }
 }
