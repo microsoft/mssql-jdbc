@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,7 @@ import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
+
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 
@@ -42,9 +44,11 @@ class SQLServerMSAL4JUtils {
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
+    private static ConcurrentHashMap<String, PublicClientApplication> clientAppCache = null;
+    private static ExecutorService executorService = Executors.newFixedThreadPool(1);
+
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
         try {
             final PublicClientApplication clientApplication = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -61,15 +65,11 @@ class SQLServerMSAL4JUtils {
         } catch (ExecutionException e) {
             handleMSALException(e, user, authenticationString);
             return null;
-        } finally {
-            executorService.shutdown();
         }
     }
 
     static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
-
         try {
             /*
              * principal name does not matter, what matters is the realm name it gets the username in
@@ -96,8 +96,6 @@ class SQLServerMSAL4JUtils {
         } catch (ExecutionException e) {
             handleMSALException(e, "", authenticationString);
             return null;
-        } finally {
-            executorService.shutdown();
         }
     }
 
@@ -119,12 +117,23 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
-
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        String authority = fedAuthInfo.stsurl;
+        PublicClientApplication clientApplication = null;
         try {
-            final PublicClientApplication clientApplication = PublicClientApplication
-                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
-                    .authority(fedAuthInfo.stsurl).logPii(true).build();
+            if (null == clientAppCache) {
+                clientAppCache = new ConcurrentHashMap<String, PublicClientApplication>();
+                clientApplication = PublicClientApplication
+                        .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                        .authority(authority).logPii(true).build();
+                clientAppCache.putIfAbsent(authority, clientApplication);
+
+            } else {
+                clientApplication = clientAppCache.get(fedAuthInfo.stsurl);
+            }
+
+            if (null == clientApplication) {
+                return null;
+            }
 
             CompletableFuture<IAuthenticationResult> future = null;
             IAuthenticationResult authenticationResult = null;
@@ -189,7 +198,8 @@ class SQLServerMSAL4JUtils {
             handleMSALException(e, user, authenticationString);
             return null;
         } finally {
-            executorService.shutdown();
+            // this causes a problem
+            // executorService.shutdown();
         }
     }
 
