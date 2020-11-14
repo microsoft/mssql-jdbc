@@ -45,10 +45,12 @@ class SQLServerMSAL4JUtils {
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
     private static ConcurrentHashMap<String, PublicClientApplication> clientAppCache = null;
-    private static ExecutorService executorService = Executors.newFixedThreadPool(1);
+    //private static ExecutorService executorService = Executors.newFixedThreadPool(1);
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+
         try {
             final PublicClientApplication clientApplication = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -70,6 +72,8 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+
         try {
             /*
              * principal name does not matter, what matters is the realm name it gets the username in
@@ -119,6 +123,8 @@ class SQLServerMSAL4JUtils {
             String authenticationString) throws SQLServerException {
         String authority = fedAuthInfo.stsurl;
         PublicClientApplication clientApplication = null;
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+
         try {
             if (null == clientAppCache) {
                 clientAppCache = new ConcurrentHashMap<String, PublicClientApplication>();
@@ -199,7 +205,7 @@ class SQLServerMSAL4JUtils {
             return null;
         } finally {
             // this causes a problem
-            // executorService.shutdown();
+            executorService.shutdown();
         }
     }
 
