@@ -168,7 +168,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 try (Connection connection2 = pc.getConnection()) {
                     testUserName(connection2, azureUserName, authentication);
                 } catch (SQLException e) {
-                    assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                    assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                             e.getMessage().contains(ERR_MSG_CONNECTION_CLOSED)
                                     || e.getMessage().contains(ERR_MSG_CONNECTION_IS_CLOSED)
                                     || e.getMessage().contains(ERR_MSG_HAS_CLOSED)

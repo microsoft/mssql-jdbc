@@ -259,10 +259,10 @@ public class FedauthTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectorypassword")) {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                         e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
                                 || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
@@ -293,10 +293,10 @@ public class FedauthTest extends FedauthCommon {
             }
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                         e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
                                 || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
