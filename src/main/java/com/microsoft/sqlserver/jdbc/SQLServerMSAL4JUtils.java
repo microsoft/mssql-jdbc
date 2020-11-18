@@ -36,12 +36,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 class SQLServerMSAL4JUtils {
 
-    static final String redirectUri = "http://localhost";
+    static final String REDIRECTURI = "http://localhost";
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
-
-    private static PublicClientApplicationCache pcaCache = new PublicClientApplicationCache();;
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
@@ -62,6 +60,8 @@ class SQLServerMSAL4JUtils {
         } catch (ExecutionException e) {
             handleMSALException(e, user, authenticationString);
             return null;
+        } finally {
+            executorService.shutdown();
         }
     }
 
@@ -95,38 +95,26 @@ class SQLServerMSAL4JUtils {
         } catch (ExecutionException e) {
             handleMSALException(e, "", authenticationString);
             return null;
+        } finally {
+            executorService.shutdown();
         }
-    }
-
-    /**
-     * Helper function to return an account from a given set of accounts based on the given username, or return null if
-     * no accounts in the set match
-     */
-    private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
-        if (!accounts.isEmpty()) {
-            for (IAccount account : accounts) {
-                if (account.username().equals(username)) {
-                    return account;
-                }
-            }
-        }
-        return null;
     }
 
     static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
         try {
             String authority = fedAuthInfo.stsurl;
-            PublicClientApplicationKey pcaKey = new PublicClientApplicationKey(authority, redirectUri,
+            PublicClientApplicationKey pcaKey = new PublicClientApplicationKey(authority, REDIRECTURI,
                     ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID);
-            PublicClientApplicationEntry pcaEntry = pcaCache.get(pcaKey);
+
+            PublicClientApplicationCache cache = PublicClientApplicationCache.getCache();
+            PublicClientApplicationEntry pcaEntry = cache.get(pcaKey);
 
             PublicClientApplication pca = null;
             if (null != pcaEntry) {
                 pca = pcaEntry.getPublicClientApplication();
             } else {
-                ExecutorService executorService = Executors.newFixedThreadPool(1);
-
+                ExecutorService executorService = cache.getExecutorService();
                 if (logger.isLoggable(Level.FINE)) {
                     pca = PublicClientApplication.builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
                             .executorService(executorService).authority(authority).logPii(true).build();
@@ -136,7 +124,7 @@ class SQLServerMSAL4JUtils {
                 }
 
                 // cache public client application entry
-                pcaCache.put(pcaKey, new PublicClientApplicationEntry(pca, executorService));
+                cache.put(pcaKey, new PublicClientApplicationEntry(pca, executorService));
             }
 
             CompletableFuture<IAuthenticationResult> future = null;
@@ -170,7 +158,7 @@ class SQLServerMSAL4JUtils {
                 authenticationResult = future.get();
             } else {
                 // acquire token interactively with system browser
-                InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(redirectUri))
+                InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
                                 .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
                         .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + "/.default")).build();
@@ -188,7 +176,22 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static void handleMSALException(ExecutionException e, String user,
+    /**
+     * Helper function to return an account from a given set of accounts based on the given username, or return null if
+     * no accounts in the set match
+     */
+    private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
+        if (!accounts.isEmpty()) {
+            for (IAccount account : accounts) {
+                if (account.username().equals(username)) {
+                    return account;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void handleMSALException(ExecutionException e, String user,
             String authenticationString) throws SQLServerException {
         if (logger.isLoggable(Level.SEVERE)) {
             logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());

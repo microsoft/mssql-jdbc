@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.microsoft.aad.msal4j.PublicClientApplication;
 
@@ -56,12 +57,30 @@ class PublicClientApplicationEntry {
 
 /**
  * Cache for public client applications
- * 
  *
  */
 public class PublicClientApplicationCache {
 
-    private static ConcurrentHashMap<PublicClientApplicationKey, PublicClientApplicationEntry> cache = new ConcurrentHashMap<PublicClientApplicationKey, PublicClientApplicationEntry>();
+    private static PublicClientApplicationCache cache = null;
+
+    /* cache of public client applications */
+    private static ConcurrentHashMap<PublicClientApplicationKey, PublicClientApplicationEntry> map = null;
+
+    /* public client application executor service */
+    private static ExecutorService executorService = null;
+
+    public static PublicClientApplicationCache getCache() {
+        if (null == cache) {
+            cache = new PublicClientApplicationCache();
+            map = new ConcurrentHashMap<PublicClientApplicationKey, PublicClientApplicationEntry>();
+            executorService = Executors.newFixedThreadPool(1);
+        }
+        return cache;
+    }
+
+    ExecutorService getExecutorService() {
+        return executorService;
+    }
 
     /**
      * Get the entry to which the specified key is mapped
@@ -69,7 +88,7 @@ public class PublicClientApplicationCache {
      * @return entry to which key is mapped, or null if map contains no mapping for the key
      */
     PublicClientApplicationEntry get(PublicClientApplicationKey key) {
-        return cache.get(key);
+        return map.get(key);
     }
 
     /**
@@ -81,7 +100,7 @@ public class PublicClientApplicationCache {
      *        public client application entry
      */
     void put(PublicClientApplicationKey key, PublicClientApplicationEntry entry) {
-        cache.putIfAbsent(key, entry);
+        map.putIfAbsent(key, entry);
     }
 
     /**
@@ -89,15 +108,14 @@ public class PublicClientApplicationCache {
      * token provider library.
      */
     public static void clearUserTokenCache() {
-        if (null != cache && !cache.isEmpty()) {
-            for (ConcurrentHashMap.Entry<PublicClientApplicationKey, PublicClientApplicationEntry> entry : cache
-                    .entrySet()) {
-                ExecutorService executorService = entry.getValue().getExecutorService();
-                if (null != executorService) {
-                    executorService.shutdown();
-                }
+        if (null != cache) {
+            if (null != executorService) {
+                executorService.shutdown();
             }
-            cache.clear();
+
+            if (null != map) {
+                map.clear();
+            }
         }
     }
 }
