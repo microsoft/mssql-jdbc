@@ -1021,4 +1021,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
+    /**
+     * Returns the value for the connection property 'AADSecurePrincipalId'.
+     *
+     * @return 'AADSecurePrincipalId' property value.
+     */
+    String getAADSecurePrincipalId();
+
+    /**
+     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
+     *
+     * @param AADSecurePrincipalId
+     *        Active Directory Service Principal Id.
+     */
+    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'AADSecurePrincipalSecret'.
+     *
+     * @return 'AADSecurePrincipalSecret' property value.
+     */
+    String getAADSecurePrincipalSecret();
+
+    /**
+     * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
+     * authentication.
+     *
+     * @param AADSecurePrincipalSecret
+     *        Active Directory Service Principal secret.
+     */
+    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 }
