@@ -102,45 +102,26 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+
         try {
-            String authority = fedAuthInfo.stsurl;
-            PublicClientApplicationKey pcaKey = new PublicClientApplicationKey(authority, REDIRECTURI,
-                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID);
-
-            PublicClientApplicationCache cache = PublicClientApplicationCache.getCache();
-            PublicClientApplicationEntry pcaEntry = cache.get(pcaKey);
-
-            PublicClientApplication pca = null;
-            if (null != pcaEntry) {
-                pca = pcaEntry.getPublicClientApplication();
-            } else {
-                ExecutorService executorService = cache.getExecutorService();
-                if (logger.isLoggable(Level.FINE)) {
-                    pca = PublicClientApplication.builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
-                            .executorService(executorService).authority(authority).logPii(true).build();
-                } else {
-                    pca = PublicClientApplication.builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID)
-                            .executorService(executorService).authority(authority).build();
-                }
-
-                // cache public client application entry
-                cache.put(pcaKey, new PublicClientApplicationEntry(pca, executorService));
-            }
+            PublicClientApplication pca = PublicClientApplication
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .authority(fedAuthInfo.stsurl).logPii(true)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance()).build();
 
             CompletableFuture<IAuthenticationResult> future = null;
             IAuthenticationResult authenticationResult = null;
-
-            // try to acquire token silently, 1st call will fail as the token cache will not have any data for the user
+            
+            // try to acquire token silently if user in cache
             try {
                 Set<IAccount> accountsInCache = pca.getAccounts().join();
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
-
                     if (null != account) {
                         if (logger.isLoggable(Level.FINE)) {
                             logger.fine(logger.toString() + "Silent authentication for user:" + user);
                         }
-
                         SilentParameters silentParameters = SilentParameters
                                 .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), account).build();
 
@@ -158,6 +139,9 @@ class SQLServerMSAL4JUtils {
                 authenticationResult = future.get();
             } else {
                 // acquire token interactively with system browser
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(logger.toString() + "Interactive authentication");
+                }
                 InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
                                 .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
@@ -173,6 +157,8 @@ class SQLServerMSAL4JUtils {
         } catch (ExecutionException e) {
             handleMSALException(e, user, authenticationString);
             return null;
+        } finally {
+            executorService.shutdown();
         }
     }
 
