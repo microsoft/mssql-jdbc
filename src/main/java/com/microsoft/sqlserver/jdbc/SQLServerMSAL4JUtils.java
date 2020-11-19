@@ -107,13 +107,13 @@ class SQLServerMSAL4JUtils {
         try {
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
-                    .authority(fedAuthInfo.stsurl).logPii(true)
-                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance()).build();
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                    .authority(fedAuthInfo.stsurl).logPii((logger.isLoggable(Level.FINE)) ? true : false).build();
 
             CompletableFuture<IAuthenticationResult> future = null;
             IAuthenticationResult authenticationResult = null;
-            
-            // try to acquire token silently if user in cache
+
+            // try to acquire token silently if user account found in cache
             try {
                 Set<IAccount> accountsInCache = pca.getAccounts().join();
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
@@ -129,10 +129,7 @@ class SQLServerMSAL4JUtils {
                     }
                 }
             } catch (MsalInteractionRequiredException e) {
-                // valid error, get token interactively
-                if (logger.isLoggable(Level.INFO)) {
-                    logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
-                }
+                // not an error, need to get token interactively
             }
 
             if (null != future) {
@@ -162,10 +159,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    /**
-     * Helper function to return an account from a given set of accounts based on the given username, or return null if
-     * no accounts in the set match
-     */
+    // Helper function to return account containing user name from set of accounts, or null if no match
     private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
         if (!accounts.isEmpty()) {
             for (IAccount account : accounts) {
@@ -177,6 +171,7 @@ class SQLServerMSAL4JUtils {
         return null;
     }
 
+    // Handle MSAL exceptions
     private static void handleMSALException(ExecutionException e, String user,
             String authenticationString) throws SQLServerException {
         if (logger.isLoggable(Level.SEVERE)) {

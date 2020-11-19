@@ -12,9 +12,9 @@ import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 /**
  * Access aspect for accessing the token cache.
  * 
- * MSAL token cache only lasts for the lifetime of the application. This class implements the ITokenCacheAccessAspect
- * interface to persist the token cache between application instances so subsequent authentications will use the silent
- * authentication flow if the user account is in the token cache.
+ * MSAL token cache does not persist beyond lifetime of the application. This class implements the
+ * ITokenCacheAccessAspect interface to persist the token cache between application instances so subsequent
+ * authentications can use silent authentication if the user account is in the token cache.
  * 
  * @see <a href="https://aka.ms/msal4j-token-cache">https://aka.ms/msal4j-token-cache</a>
  */
