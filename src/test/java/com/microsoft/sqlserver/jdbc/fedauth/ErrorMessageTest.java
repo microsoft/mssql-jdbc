@@ -821,7 +821,6 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testInteractiveAuthTimeout() throws SQLException {
-        System.out.println("start testInteractiveAuthTimeout...");
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setServerName(azureServer);
@@ -839,10 +838,9 @@ public class ErrorMessageTest extends FedauthCommon {
             }
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                     e.getMessage()
-                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user "
+                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                                     + " in Active Directory (Authentication=ActiveDirectoryInteractive).")
                             && e.getCause().getMessage().contains(TestResource.getResource("R_noAuthorizationCode")));
         }
-        System.out.println("testInteractiveAuthTimeout done");
     }
 }

@@ -866,14 +866,15 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-   // @Test
-   // public void testPersistentTokenCacheAccessAspect() throws SQLException {
-    public static void setPersistentTokenCache() {
+    /*
+     * Test PersistentTokenCacheAccessAspect methods
+     */
+    @Test
+    public void testPersistentTokenCacheAccessAspect() throws SQLException {
         TokenCacheAccessContext tokenCacheAccessContext = TokenCacheAccessContext.builder().clientId(null)
                 .tokenCache(new TokenCache()).account(null).hasCacheChanged(true).build();
 
         PersistentTokenCacheAccessAspect persistentTokenAspect = PersistentTokenCacheAccessAspect.getInstance();
-
         persistentTokenAspect.afterCacheAccess(tokenCacheAccessContext);
         persistentTokenAspect.beforeCacheAccess(tokenCacheAccessContext);
     }
