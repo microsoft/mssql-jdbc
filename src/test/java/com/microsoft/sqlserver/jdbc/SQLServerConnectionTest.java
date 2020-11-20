@@ -32,6 +32,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.aad.msal4j.TokenCache;
+import com.microsoft.aad.msal4j.TokenCacheAccessContext;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -839,7 +842,8 @@ public class SQLServerConnectionTest extends AbstractTest {
                                 stringBuilder.append(buffer, 0, amountRead);
                             }
                             String received = stringBuilder.toString();
-                            assertTrue(data.equals(received), "Expected String: " + data + "\nReceived String: " + received);
+                            assertTrue(data.equals(received),
+                                    "Expected String: " + data + "\nReceived String: " + received);
                         }
                     }
                 } finally {
@@ -860,5 +864,17 @@ public class SQLServerConnectionTest extends AbstractTest {
             String received = stringBuilder.toString();
             assertTrue(data.equals(received), "Expected String: " + data + "\nReceived String: " + received);
         }
+    }
+
+   // @Test
+   // public void testPersistentTokenCacheAccessAspect() throws SQLException {
+    public static void setPersistentTokenCache() {
+        TokenCacheAccessContext tokenCacheAccessContext = TokenCacheAccessContext.builder().clientId(null)
+                .tokenCache(new TokenCache()).account(null).hasCacheChanged(true).build();
+
+        PersistentTokenCacheAccessAspect persistentTokenAspect = PersistentTokenCacheAccessAspect.getInstance();
+
+        persistentTokenAspect.afterCacheAccess(tokenCacheAccessContext);
+        persistentTokenAspect.beforeCacheAccess(tokenCacheAccessContext);
     }
 }

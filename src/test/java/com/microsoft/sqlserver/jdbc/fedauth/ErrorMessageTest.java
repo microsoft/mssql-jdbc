@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionTest;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -820,9 +821,11 @@ public class ErrorMessageTest extends FedauthCommon {
 
     @Test
     public void testInteractiveAuthTimeout() throws SQLException {
+        System.out.println("start testInteractiveAuthTimeout...");
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setServerName(azureServer);
+            ds.setUser(azureUserName);
             ds.setDatabaseName(azureDatabase);
             ds.setAuthentication("ActiveDirectoryInteractive");
 
@@ -840,6 +843,6 @@ public class ErrorMessageTest extends FedauthCommon {
                                     + " in Active Directory (Authentication=ActiveDirectoryInteractive).")
                             && e.getCause().getMessage().contains(TestResource.getResource("R_noAuthorizationCode")));
         }
+        System.out.println("testInteractiveAuthTimeout done");
     }
-
 }

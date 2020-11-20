@@ -33,18 +33,19 @@ class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect {
     /**
      * Token cache in JSON format
      */
-    static String cache = null;
+    private static String cache = null;
 
     @Override
     public synchronized void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
-        if (null != cache) {
+        if (null != cache && null != iTokenCacheAccessContext && null != iTokenCacheAccessContext.tokenCache()) {
             iTokenCacheAccessContext.tokenCache().deserialize(cache);
         }
     }
 
     @Override
     public synchronized void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
-        if (iTokenCacheAccessContext.hasCacheChanged()) {
+        if (null != iTokenCacheAccessContext && null != iTokenCacheAccessContext.tokenCache()
+                && iTokenCacheAccessContext.hasCacheChanged()) {
             cache = iTokenCacheAccessContext.tokenCache().serialize();
         }
     }
