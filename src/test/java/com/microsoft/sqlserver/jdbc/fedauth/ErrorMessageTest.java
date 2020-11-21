@@ -840,7 +840,8 @@ public class ErrorMessageTest extends FedauthCommon {
                     e.getMessage()
                             .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                                     + " in Active Directory (Authentication=ActiveDirectoryInteractive).")
-                            && e.getCause().getMessage().contains(TestResource.getResource("R_noAuthorizationCode")));
+                            && (isWindows ? e.getCause().getMessage()
+                                    .contains(TestResource.getResource("R_noAuthorizationCode")) : true));
         }
     }
 }
