@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.aad.msal4j.TokenCache;
 import com.microsoft.aad.msal4j.TokenCacheAccessContext;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;

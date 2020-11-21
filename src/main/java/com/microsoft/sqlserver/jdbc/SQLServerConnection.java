@@ -435,9 +435,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     class ActiveDirectoryAuthentication {
-        // static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
-        static final String JDBC_FEDAUTH_CLIENT_ID = "9dc996b6-7f95-44dd-81f6-73021ea61599"; // mfaapp
-
+        static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
         static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
         static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
