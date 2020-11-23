@@ -42,6 +42,8 @@ public class FedauthCommon extends AbstractTest {
     static String azureUserName = null;
     static String azurePassword = null;
     static String azureGroupUserName = null;
+    static String azureAADPrincipialId = null;
+    static String azureAADPrincipialSecret = null;
 
     static boolean enableADIntegrated = false;
 
@@ -83,7 +85,8 @@ public class FedauthCommon extends AbstractTest {
         NotSpecified,
         SqlPassword,
         ActiveDirectoryPassword,
-        ActiveDirectoryIntegrated;
+        ActiveDirectoryIntegrated,
+        ActiveDirectoryServicePrincipal;
 
         static SqlAuthentication valueOfString(String value) throws SQLServerException {
             SqlAuthentication method = null;
@@ -98,6 +101,9 @@ public class FedauthCommon extends AbstractTest {
             } else if (value.toLowerCase(Locale.US)
                     .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
                 method = SqlAuthentication.ActiveDirectoryIntegrated;
+            } else if (value.toLowerCase(Locale.US)
+                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+                method = SqlAuthentication.ActiveDirectoryServicePrincipal;
             }
             return method;
         }
@@ -118,6 +124,8 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
+        azureAADPrincipialId = getConfiguredProperty("AADSecurePrincipalId");
+        azureAADPrincipialSecret = getConfiguredProperty("AADSecurePrincipalSecret");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;

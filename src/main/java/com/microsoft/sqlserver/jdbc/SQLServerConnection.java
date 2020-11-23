@@ -137,6 +137,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientCertificate = null;
     private String clientKey = null;
     private String clientKeyPassword = "";
+    private String aadPrincipalID = "";
+    private String aadPrincipalSecret = "";
 
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
@@ -403,6 +405,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
                 case "ACTIVEDIRECTORYMSI":
                     this.authentication = SqlAuthentication.ActiveDirectoryMSI;
+                    break;
+                case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
+                    this.authentication = SqlAuthentication.ActiveDirectoryServicePrincipal;
                     break;
                 case "ACTIVEDIRECTORYINTERACTIVE":
                     this.authentication = SqlAuthentication.ActiveDirectoryInteractive;
@@ -1763,6 +1768,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
+            sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue();
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            aadPrincipalID = sPropValue;
+
+            sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue();
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            aadPrincipalSecret = sPropValue;
+
             // Must be set after STATEMENT_POOLING_CACHE_SIZE
             sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1867,6 +1888,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
                         null);
+            }
+
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
+                    && ((activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString()).isEmpty())
+                            || (activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
+                                    .isEmpty()))) {
+                if (connectionlogger.isLoggable(Level.SEVERE)) {
+                    connectionlogger.severe(toString() + " "
+                            + SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"));
+                }
+                throw new SQLServerException(
+                        SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
             }
 
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())
@@ -2718,6 +2753,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
+        aadPrincipalSecret = "";
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString());
         return inetSocketAddress;
     }
 
@@ -3876,6 +3913,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ActiveDirectoryInteractive:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
                             break;
+                        case ActiveDirectoryServicePrincipal:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;
+                            break;
                         default:
                             assert (false); // Unrecognized Authentication type for fedauth ADAL request
                             break;
@@ -3970,15 +4010,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         ntlmPasswordHash, hostName);
             }
         }
-
-        // If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
-        // response
-        // for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth Feature
-        // Extension
-        // in Login7, indicating the intent to use Active Directory Authentication Library for SQL Server.
+        /*
+         * If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin
+         * response for FEDAUTHREQUIRED option indicates Federated Authentication is required, we have to insert FedAuth
+         * Feature Extension in Login7, indicating the intent to use Active Directory Authentication Library for SQL
+         * Server.
+         */
         if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                        || authenticationString
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString()))
                         && fedAuthRequiredPreLoginResponse)) {
@@ -3990,16 +4032,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (null != accessTokenInByte) {
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(
                     TDS.TDS_FEDAUTH_LIBRARY_SECURITYTOKEN, fedAuthRequiredPreLoginResponse, accessTokenInByte);
-            // No need any further info from the server for token based authentication. So set
-            // _federatedAuthenticationRequested to true
+            /*
+             * No need any further info from the server for token based authentication. So set
+             * _federatedAuthenticationRequested to true
+             */
             federatedAuthenticationRequested = true;
         }
         try {
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
-
-            // If we got routed in the current attempt,
-            // the server closes the connection. So, we should not
-            // be sending anymore commands to the server in that case.
+            /*
+             * If we got routed in the current attempt, the server closes the connection. So, we should not be sending
+             * anymore commands to the server in that case.
+             */
             if (!isRoutedInCurrentAttempt) {
                 originalCatalog = sCatalog;
                 String sqlStmt = sqlStatementToInitialize();
@@ -4460,6 +4504,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+
+                // Break out of the retry loop in successful case.
+                break;
+            } else if (authenticationString
+                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
+                        aadPrincipalSecret, authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;

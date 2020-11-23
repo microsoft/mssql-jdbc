@@ -11,17 +11,20 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
-
 import javax.security.auth.kerberos.KerberosPrincipal;
-
 import com.microsoft.aad.msal4j.IAccount;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
 import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
@@ -58,8 +61,33 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | InterruptedException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            handleMSALException(e, user, authenticationString);
-            return null;
+            throw getCorrectedException(e, user, authenticationString);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    static SqlFedAuthToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
+            String aadPrincipalSecret, String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        try {
+            String defaultScopeSuffix = "/.default";
+            String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
+                                                                        : fedAuthInfo.spn + defaultScopeSuffix;
+            Set<String> scopes = new HashSet<String>();
+            scopes.add(scope);
+            IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
+            ConfidentialClientApplication clientApplication = ConfidentialClientApplication
+                    .builder(aadPrincipalID, credential).executorService(executorService).authority(fedAuthInfo.stsurl)
+                    .build();
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(ClientCredentialParameters.builder(scopes).build());
+            final IAuthenticationResult authenticationResult = future.get();
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+        } catch (MalformedURLException | InterruptedException e) {
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
         }
@@ -93,8 +121,7 @@ class SQLServerMSAL4JUtils {
         } catch (InterruptedException | IOException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            handleMSALException(e, "", authenticationString);
-            return null;
+            throw getCorrectedException(e, "", authenticationString);
         } finally {
             executorService.shutdown();
         }
@@ -152,8 +179,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
-            handleMSALException(e, user, authenticationString);
-            return null;
+            throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
         }
@@ -171,19 +197,18 @@ class SQLServerMSAL4JUtils {
         return null;
     }
 
-    // Handle MSAL exceptions
-    private static void handleMSALException(ExecutionException e, String user,
-            String authenticationString) throws SQLServerException {
+    private static SQLServerException getCorrectedException(ExecutionException e, String user,
+            String authenticationString) {
         if (logger.isLoggable(Level.SEVERE)) {
             logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
         }
 
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
         Object[] msgArgs = {user, authenticationString};
-        Throwable cause = e.getCause();
-        if (null == cause || null == cause.getMessage()) {
-            // the case when Future's outcome has no AuthenticationResult but exception
-            throw new SQLServerException(form.format(msgArgs), null);
+
+        if (null == e.getCause() || null == e.getCause().getMessage()) {
+            // The case when Future's outcome has no AuthenticationResult but Exception.
+            return new SQLServerException(form.format(msgArgs), null);
         } else {
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
@@ -197,7 +222,8 @@ class SQLServerMSAL4JUtils {
              * the exception tree before error message correction
              */
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
-            throw new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+
+            return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
         }
     }
 }
