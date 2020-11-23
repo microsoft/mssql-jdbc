@@ -876,5 +876,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         PersistentTokenCacheAccessAspect persistentTokenAspect = PersistentTokenCacheAccessAspect.getInstance();
         persistentTokenAspect.afterCacheAccess(tokenCacheAccessContext);
         persistentTokenAspect.beforeCacheAccess(tokenCacheAccessContext);
+        PersistentTokenCacheAccessAspect.clearUserTokenCache();
     }
 }

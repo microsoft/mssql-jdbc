@@ -49,4 +49,14 @@ class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect {
             cache = iTokenCacheAccessContext.tokenCache().serialize();
         }
     }
+
+    /**
+     * Clears token cache. This will clear all account info so interactive login will be required on the next request to
+     * acquire an access token.
+     */
+    public static void clearUserTokenCache() {
+        if (null != cache && !cache.isEmpty()) {
+            cache = null;
+        }
+    }
 }
