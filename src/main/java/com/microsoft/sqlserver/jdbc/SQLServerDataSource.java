@@ -1019,6 +1019,30 @@ public class SQLServerDataSource
     }
 
     @Override
+    public String getAADSecurePrincipalId() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
+    }
+
+    @Override
+    public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                AADSecurePrincipalId);
+    }
+
+    @Override
+    public String getAADSecurePrincipalSecret() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
+                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue());
+    }
+
+    @Override
+    public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
+                AADSecurePrincipalSecret);
+    }
+
+    @Override
     public boolean getSendTemporalDataTypesAsStringForBulkCopy() {
         return getBooleanProperty(connectionProps,
                 SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),

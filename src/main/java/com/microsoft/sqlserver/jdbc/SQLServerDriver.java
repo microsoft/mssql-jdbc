@@ -65,7 +65,8 @@ enum SqlAuthentication {
     SqlPassword,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI;
+    ActiveDirectoryMSI,
+    ActiveDirectoryServicePrincipal;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -82,6 +83,9 @@ enum SqlAuthentication {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
             method = SqlAuthentication.ActiveDirectoryMSI;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+            method = SqlAuthentication.ActiveDirectoryServicePrincipal;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -367,6 +371,8 @@ enum SQLServerDriverStringProperty {
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
+    AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
+    AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
     private final String name;
@@ -583,7 +589,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
-                            SqlAuthentication.ActiveDirectoryMSI.toString()}),
+                            SqlAuthentication.ActiveDirectoryMSI.toString(),
+                            SqlAuthentication.ActiveDirectoryServicePrincipal
+                                    .toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
@@ -636,6 +644,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY
                             .getDefaultValue()),
                     false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
+                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
                     SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),};
 

@@ -157,6 +157,8 @@ public final class Constants {
     public static final String KEYSTORE_LOCATION = "KEYSTORELOCATION";
     public static final String CLIENT_CERTIFICATE = "CLIENTCERTIFICATE";
     public static final String CLIENT_KEY = "CLIENTKEY";
+    public static final String AAD_SECURE_PRINCIPAL_ID = "AADSECUREPRINCIPALID";
+    public static final String AAD_SECURE_PRINCIPAL_SECRET = "AADSECUREPRINCIPALSECRET";
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
     public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";

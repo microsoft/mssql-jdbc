@@ -110,6 +110,7 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
