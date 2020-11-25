@@ -46,7 +46,9 @@ public class MaxResultBufferParser {
             try {
                 number = Long.parseLong(input);
             } catch (NumberFormatException e) {
-                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, ERROR_MESSAGE, new Object[] {input});
+                }
                 throwNewInvalidMaxResultBufferParameterException(e, input);
             }
             return adjustMemory(number, 1);
@@ -58,7 +60,9 @@ public class MaxResultBufferParser {
                     try {
                         number = Long.parseLong(numberString);
                     } catch (NumberFormatException e) {
-                        logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                        if (logger.isLoggable(Level.SEVERE)) {
+                            logger.log(Level.SEVERE, ERROR_MESSAGE, new Object[] {input});
+                        }
                         throwNewInvalidMaxResultBufferParameterException(e, numberString);
                     }
                     return adjustMemoryPercentage(number);
@@ -72,7 +76,9 @@ public class MaxResultBufferParser {
             try {
                 number = Long.parseLong(numberString);
             } catch (NumberFormatException e) {
-                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, ERROR_MESSAGE, new Object[] {input});
+                }
                 throwNewInvalidMaxResultBufferParameterException(e, numberString);
             }
             return adjustMemory(number, multiplier);
@@ -84,8 +90,10 @@ public class MaxResultBufferParser {
             Object[] objectToThrow = new Object[] {value};
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_maxResultBufferNegativeParameterValue"));
-            logger.log(Level.INFO, SQLServerException.getErrString("R_maxResultBufferNegativeParameterValue"),
-                    objectToThrow);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE, SQLServerException.getErrString("R_maxResultBufferNegativeParameterValue"),
+                        objectToThrow);
+            }
             throw new SQLServerException(form.format(objectToThrow), new Throwable());
         }
     }
@@ -106,7 +114,9 @@ public class MaxResultBufferParser {
                 multiplier = 1_000_000_000_000L;
                 break;
             default:
-                logger.log(Level.INFO, ERROR_MESSAGE, new Object[] {input});
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE, ERROR_MESSAGE, new Object[] {input});
+                }
                 throwNewInvalidMaxResultBufferParameterException(null, input);
         }
         return multiplier;

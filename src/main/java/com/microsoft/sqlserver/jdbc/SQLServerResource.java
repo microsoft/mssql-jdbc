@@ -654,7 +654,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
             {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
             {"R_maxResultBufferPropertyDescription",
-                    "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
+                    "Determines maximum amount of bytes that can be read during retrieval of result set"},
             {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
-            {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},};
+            {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
+            {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},};
 }
