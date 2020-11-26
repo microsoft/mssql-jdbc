@@ -46,7 +46,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         try {
             final PublicClientApplication pca = PublicClientApplication
@@ -69,7 +69,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
             String defaultScopeSuffix = "/.default";
             String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
@@ -95,7 +95,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         try {
             /*
@@ -129,7 +129,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         try {
             PublicClientApplication pca = PublicClientApplication

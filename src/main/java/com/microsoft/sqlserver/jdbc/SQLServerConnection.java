@@ -952,6 +952,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    /**
+     * Clears User token cache. This will clear all account info so interactive login will be required on the next request to
+     * acquire an access token.
+     */
+    public static synchronized void clearUserTokenCache() {
+        PersistentTokenCacheAccessAspect.clearUserTokenCache();
+    }
+
     Properties activeConnectionProperties; // the active set of connection properties
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private boolean ntlmAuthentication = false;
@@ -3910,8 +3918,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
                         case ActiveDirectoryMSI:
-                        case ActiveDirectoryInteractive:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
+                            break;
+                        case ActiveDirectoryInteractive:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
                             break;
                         case ActiveDirectoryServicePrincipal:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;

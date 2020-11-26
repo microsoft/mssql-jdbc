@@ -109,7 +109,9 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
-    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the closest we have.
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
+                                                                           // closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -2052,7 +2054,13 @@ final class TDSChannel implements Serializable {
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
+            // System.out.println("socket timeout:"+ tcpSocket.getSoTimeout());
+            // tcpSocket.setSoTimeout(10000);
+
             return inputStream.read(data, offset, length);
+        } catch (SocketException e) {
+            System.out.println("SocketTimeoutException:" + e.getMessage());
+            return 0; // Keep the compiler happy.
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());

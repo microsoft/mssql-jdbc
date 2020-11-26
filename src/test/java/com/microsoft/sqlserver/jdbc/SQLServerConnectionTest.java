@@ -866,7 +866,8 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     /*
-     * Test PersistentTokenCacheAccessAspect methods
+     * Test PersistentTokenCacheAccessAspect methods - this test just executes the methods in the class it does not test
+     * correct functionality as that requires manual interactive auth
      */
     @Test
     public void testPersistentTokenCacheAccessAspect() throws SQLException {
