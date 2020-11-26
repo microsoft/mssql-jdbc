@@ -953,8 +953,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Clears User token cache. This will clear all account info so interactive login will be required on the next request to
-     * acquire an access token.
+     * Clears User token cache. This will clear all account info so interactive login will be required on the next
+     * request to acquire an access token.
      */
     public static synchronized void clearUserTokenCache() {
         PersistentTokenCacheAccessAspect.clearUserTokenCache();
