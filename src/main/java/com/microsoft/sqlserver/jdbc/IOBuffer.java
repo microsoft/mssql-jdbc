@@ -2054,12 +2054,8 @@ final class TDSChannel implements Serializable {
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            // System.out.println("socket timeout:"+ tcpSocket.getSoTimeout());
-            // tcpSocket.setSoTimeout(10000);
-
             return inputStream.read(data, offset, length);
         } catch (SocketException e) {
-            System.out.println("SocketTimeoutException:" + e.getMessage());
             return 0; // Keep the compiler happy.
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
