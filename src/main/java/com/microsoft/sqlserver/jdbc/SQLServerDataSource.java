@@ -1056,6 +1056,17 @@ public class SQLServerDataSource
                 sendTemporalDataTypesAsStringForBulkCopy);
     }
 
+    @Override
+    public String getMaxResultBuffer() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
+                SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue());
+    }
+
+    @Override
+    public void setMaxResultBuffer(String maxResultBuffer) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(), maxResultBuffer);
+    }
+
     /**
      * Sets a property string value.
      * 

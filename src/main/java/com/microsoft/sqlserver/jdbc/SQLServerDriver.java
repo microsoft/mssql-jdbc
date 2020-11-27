@@ -376,7 +376,8 @@ enum SQLServerDriverStringProperty {
     CLIENT_KEY("clientKey", ""),
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
-    AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", "");
+    AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
     private final String name;
     private final String defaultValue;
@@ -651,7 +652,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null)};
+                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
+                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

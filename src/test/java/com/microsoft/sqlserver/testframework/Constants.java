@@ -134,6 +134,7 @@ public final class Constants {
     public static final String CANCEL_QUERY_TIMEOUT = "CANCELQUERYTIMEOUT";
     public static final String ENCRYPT = "ENCRYPT";
     public static final String HOST_NAME_IN_CERTIFICATE = "HOSTNAMEINCERTIFICATE";
+    public static final String MAX_RESULT_BUFFER = "MAXRESULTBUFFER";
     // End: Connection Properties parsed in AbstractTest class for creating DataSource.
 
     // Other Connection Properties set in FipsTest
