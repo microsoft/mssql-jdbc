@@ -1051,4 +1051,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Active Directory Service Principal secret.
      */
     void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+
+    /**
+     * Returns value of 'maxResultBuffer' from Connection String.
+     *
+     * @return 'maxResultBuffer' property.
+     */
+    String getMaxResultBuffer();
+
+    /**
+     * Specifies value for 'maxResultBuffer' property
+     *
+     * @param maxResultBuffer
+     *        String value for 'maxResultBuffer'
+     */
+    void setMaxResultBuffer(String maxResultBuffer);
 }

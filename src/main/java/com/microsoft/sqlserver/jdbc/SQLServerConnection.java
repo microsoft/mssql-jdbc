@@ -2196,6 +2196,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
             }
 
+            sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            activeConnectionProperties.setProperty(sPropKey,
+                    String.valueOf(MaxResultBufferParser.validateMaxResultBuffer(sPropValue)));
+
             sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
@@ -3216,6 +3221,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     boolean executeCommand(TDSCommand newCommand) throws SQLServerException {
         synchronized (schedulerLock) {
+            ICounter previousCounter = null;
             /*
              * Detach (buffer) the response from any previously executing command so that we can execute the new
              * command. Note that detaching the response does not process it. Detaching just buffers the response off of
@@ -3223,6 +3229,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              */
             if (null != currentCommand) {
                 try {
+
+                    /**
+                     * If currentCommand needs to be detached, reset Counter to acknowledge number of Bytes in remaining
+                     * packets
+                     */
+                    currentCommand.getCounter().resetCounter();
                     currentCommand.detach();
                 } catch (SQLServerException e) {
                     /*
@@ -3234,10 +3246,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         connectionlogger.fine("Failed to detach current command : " + e.getMessage());
                     }
                 } finally {
+                    previousCounter = currentCommand.getCounter();
                     currentCommand = null;
                 }
             }
-
+            /**
+             * Add Counter reference to newCommand
+             */
+            newCommand.createCounter(previousCounter, activeConnectionProperties);
             /*
              * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
              * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
