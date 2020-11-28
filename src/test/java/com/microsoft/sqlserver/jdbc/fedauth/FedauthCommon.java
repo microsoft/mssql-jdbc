@@ -56,7 +56,7 @@ public class FedauthCommon extends AbstractTest {
     static String[] fedauthJksPathsLinux = null;
     static String[] fedauthJavaKeyAliases = null;
 
-    static final String INVALID_EXCEPION_MSG = TestResource.getResource("R_invalidExceptionMessage");
+    static final String INVALID_EXCEPTION_MSG = TestResource.getResource("R_invalidExceptionMessage");
     static final String EXPECTED_EXCEPTION_NOT_THROWN = TestResource.getResource("R_expectedExceptionNotThrown");
     static final String ERR_MSG_LOGIN_FAILED = TestResource.getResource("R_loginFailed");
     static final String ERR_MSG_BOTH_USERNAME_PASSWORD_ACTIVEPASSWORD = TestUtils.R_BUNDLE

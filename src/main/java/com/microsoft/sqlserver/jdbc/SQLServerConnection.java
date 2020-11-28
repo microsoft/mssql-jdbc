@@ -409,6 +409,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
                     this.authentication = SqlAuthentication.ActiveDirectoryServicePrincipal;
                     break;
+                case "ACTIVEDIRECTORYINTERACTIVE":
+                    this.authentication = SqlAuthentication.ActiveDirectoryInteractive;
+                    break;
                 default:
                     assert (false);
                     MessageFormat form = new MessageFormat(
@@ -947,6 +950,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             hasEntry[0] = false;
             return null;
         }
+    }
+
+    /**
+     * Clears User token cache. This will clear all account info so interactive login will be required on the next
+     * request to acquire an access token.
+     */
+    public static synchronized void clearUserTokenCache() {
+        PersistentTokenCacheAccessAspect.clearUserTokenCache();
     }
 
     Properties activeConnectionProperties; // the active set of connection properties
@@ -3925,6 +3936,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ActiveDirectoryMSI:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
                             break;
+                        case ActiveDirectoryInteractive:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
+                            break;
                         case ActiveDirectoryServicePrincipal:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;
                             break;
@@ -4032,7 +4046,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString()))
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
+                        || authenticationString
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString()))
                         && fedAuthRequiredPreLoginResponse)) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
@@ -4471,6 +4487,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
                 || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                        || authenticationString
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())
                                 && fedAuthRequiredPreLoginResponse);
 
         assert null != fedAuthInfo;
@@ -4523,7 +4541,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
-
                 // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
                         && AuthenticationJNI.isDllLoaded()) {
@@ -4604,6 +4621,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
                 }
+                // Break out of the retry loop in successful case.
+                break;
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
+                if (!msalContextExists()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+                }
+                // interactive flow
+                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
+                        authenticationString);
+
                 // Break out of the retry loop in successful case.
                 break;
             }

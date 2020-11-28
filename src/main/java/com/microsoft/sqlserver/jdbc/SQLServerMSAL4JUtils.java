@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,37 +18,43 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
-
 import javax.security.auth.kerberos.KerberosPrincipal;
-
+import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
+import com.microsoft.aad.msal4j.InteractiveRequestParameters;
+import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
+import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.aad.msal4j.SystemBrowserOptions;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
+
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 
 class SQLServerMSAL4JUtils {
+
+    static final String REDIRECTURI = "http://localhost";
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+
         try {
-            final PublicClientApplication clientApplication = PublicClientApplication
+            final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .authority(fedAuthInfo.stsurl).build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication
-                    .acquireToken(UserNamePasswordParameters
-                            .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user, password.toCharArray())
-                            .build());
+            final CompletableFuture<IAuthenticationResult> future = pca.acquireToken(UserNamePasswordParameters
+                    .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user, password.toCharArray())
+                    .build());
 
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -61,7 +69,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
             String defaultScopeSuffix = "/.default";
             String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
@@ -87,7 +95,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         try {
             /*
@@ -101,10 +109,10 @@ class SQLServerMSAL4JUtils {
                 logger.fine(logger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
             }
 
-            final PublicClientApplication clientApplication = PublicClientApplication
+            final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .authority(fedAuthInfo.stsurl).build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication
+            final CompletableFuture<IAuthenticationResult> future = pca
                     .acquireToken(IntegratedWindowsAuthenticationParameters
                             .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user).build());
 
@@ -117,6 +125,76 @@ class SQLServerMSAL4JUtils {
         } finally {
             executorService.shutdown();
         }
+    }
+
+    static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
+            String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        try {
+            PublicClientApplication pca = PublicClientApplication
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                    .authority(fedAuthInfo.stsurl).logPii((logger.isLoggable(Level.FINE)) ? true : false).build();
+
+            CompletableFuture<IAuthenticationResult> future = null;
+            IAuthenticationResult authenticationResult = null;
+
+            // try to acquire token silently if user account found in cache
+            try {
+                Set<IAccount> accountsInCache = pca.getAccounts().join();
+                if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
+                    IAccount account = getAccountByUsername(accountsInCache, user);
+                    if (null != account) {
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.fine(logger.toString() + "Silent authentication for user:" + user);
+                        }
+                        SilentParameters silentParameters = SilentParameters
+                                .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), account).build();
+
+                        future = pca.acquireTokenSilently(silentParameters);
+                    }
+                }
+            } catch (MsalInteractionRequiredException e) {
+                // not an error, need to get token interactively
+            }
+
+            if (null != future) {
+                authenticationResult = future.get();
+            } else {
+                // acquire token interactively with system browser
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(logger.toString() + "Interactive authentication");
+                }
+                InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
+                        .systemBrowserOptions(SystemBrowserOptions.builder()
+                                .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
+                        .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + "/.default")).build();
+
+                future = pca.acquireToken(parameters);
+                authenticationResult = future.get();
+            }
+
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+        } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (ExecutionException e) {
+            throw getCorrectedException(e, user, authenticationString);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    // Helper function to return account containing user name from set of accounts, or null if no match
+    private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
+        if (!accounts.isEmpty()) {
+            for (IAccount account : accounts) {
+                if (account.username().equals(username)) {
+                    return account;
+                }
+            }
+        }
+        return null;
     }
 
     private static SQLServerException getCorrectedException(ExecutionException e, String user,

@@ -95,7 +95,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                     e.getMessage().contains(ERR_MSG_RESULTSET_IS_CLOSED));
         }
     }
@@ -161,7 +161,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                     e.getMessage().contains(ERR_MSG_RESULTSET_IS_CLOSED));
         }
     }
