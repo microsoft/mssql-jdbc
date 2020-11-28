@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
@@ -109,6 +110,9 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
+                                                                           // closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -2052,6 +2056,8 @@ final class TDSChannel implements Serializable {
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
             return inputStream.read(data, offset, length);
+        } catch (SocketException e) {
+            return 0; // Keep the compiler happy.
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
@@ -3153,6 +3159,15 @@ final class TDSWriter {
         this.tdsChannel = tdsChannel;
         this.con = con;
         traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+    }
+
+    /**
+     * Checks If tdsMessageType is RPC or QUERY
+     * 
+     * @return boolean
+     */
+    boolean checkIfTdsMessageTypeIsBatchOrRPC() {
+        return tdsMessageType == TDS.PKT_QUERY || tdsMessageType == TDS.PKT_RPC;
     }
 
     // TDS message start/end operations
@@ -6545,6 +6560,11 @@ final class TDSReader implements Serializable {
         // This action must be synchronized against against another thread calling
         // readAllPackets() to read in ALL of the remaining packets of the current response.
         if (null == consumedPacket.next) {
+            // if the read comes from getNext() and responseBuffering is Adaptive (in this place is), then reset Counter
+            // State
+            if (command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+                command.getCounter().resetCounter();
+            }
             readPacket();
 
             if (null == consumedPacket.next)
@@ -6638,6 +6658,11 @@ final class TDSReader implements Serializable {
         if (tdsChannel.isLoggingPackets()) {
             logBuffer = new byte[packetLength];
             System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE);
+        }
+
+        // if messageType is RPC or QUERY, then increment Counter's state
+        if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+            command.getCounter().increaseCounter(packetLength);
         }
 
         // Now for the payload...
@@ -7343,6 +7368,23 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected ArrayList<byte[]> enclaveCEKs;
+
+    // Counter reference, so maxResultBuffer property can by acknowledged
+    private ICounter counter;
+
+    ICounter getCounter() {
+        return counter;
+    }
+
+    void createCounter(ICounter previousCounter, Properties activeConnectionProperties) {
+        if (null == previousCounter) {
+            String maxResultBuffer = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString());
+            counter = new MaxResultBufferCounter(Long.parseLong(maxResultBuffer));
+        } else {
+            counter = previousCounter;
+        }
+    }
 
     /**
      * Creates this command with an optional timeout.
