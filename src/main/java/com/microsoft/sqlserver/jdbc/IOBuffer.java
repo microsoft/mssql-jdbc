@@ -2056,8 +2056,6 @@ final class TDSChannel implements Serializable {
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
             return inputStream.read(data, offset, length);
-        } catch (SocketException e) {
-            return 0; // Keep the compiler happy.
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
