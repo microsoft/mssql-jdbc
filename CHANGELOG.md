@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.1.1] Preview Release
+### Added
+- Added maxResultBuffer connection property [1431](https://github.com/microsoft/mssql-jdbc/pull/1431)
+- Added support for Service Principal Authentication [1456](https://github.com/microsoft/mssql-jdbc/pull/1456)
+- Added support for Azure Active Directory Interactive Authentication [1464](https://github.com/microsoft/mssql-jdbc/pull/1464)
+
+### Changed
+- Enabled useBulkCopyForBatchInsert against non Azure SQL Data Warehouse servers [#1465](https://github.com/microsoft/mssql-jdbc/pull/1465)
+
 ## [9.1.0] Preview Release
 ### Added
 - Added support for already connected sockets when using custom socket factory [1420](https://github.com/microsoft/mssql-jdbc/pull/1420)
