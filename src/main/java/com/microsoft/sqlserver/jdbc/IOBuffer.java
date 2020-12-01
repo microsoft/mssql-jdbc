@@ -6560,7 +6560,7 @@ final class TDSReader implements Serializable {
         if (null == consumedPacket.next) {
             // if the read comes from getNext() and responseBuffering is Adaptive (in this place is), then reset Counter
             // State
-            if (command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+            if (null != command && command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
                 command.getCounter().resetCounter();
             }
             readPacket();
