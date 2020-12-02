@@ -322,15 +322,30 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 Object[] msgArgs1 = {"catalog"};
                 assertTrue(rsCatalog.next(), form1.format(msgArgs1));
 
-                String[] types = {"TABLE"};
-                try (ResultSet rs = databaseMetaData.getTables(rsCatalog.getString("TABLE_CAT"), null, "%", types)) {
+                String dbNameFromConnectionString = TestUtils.getProperty(connectionString, "databaseName");
 
-                    MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
-                    Object[] msgArgs2 = {"Table"};
-                    while (rs.next()) {
-                        assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")), form2.format(msgArgs2));
+                while (rsCatalog.next()) {
+                    String dbNameFromCatalog = rsCatalog.getString("TABLE_CAT");
+                    if (null != dbNameFromCatalog && !dbNameFromCatalog.isEmpty()
+                            && dbNameFromConnectionString.equals(rsCatalog.getString("TABLE_CAT"))) {
+
+                        String[] types = {"TABLE"};
+                        try (ResultSet rs = databaseMetaData.getTables(dbNameFromCatalog, null, "%", types)) {
+                            MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                            Object[] msgArgs2 = {"Table"};
+                            while (rs.next()) {
+                                assertTrue(!StringUtils.isEmpty(rs.getString("TABLE_NAME")), form2.format(msgArgs2));
+                            }
+                            return;
+                        }
                     }
+
                 }
+
+                MessageFormat form2 = new MessageFormat(TestResource.getResource("R_databaseNotFound"));
+                Object[] msgArgs2 = {dbNameFromConnectionString};
+                fail(form2.format(msgArgs2));
+
             }
         }
     }
