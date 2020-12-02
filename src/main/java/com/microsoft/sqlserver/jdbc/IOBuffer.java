@@ -2056,8 +2056,6 @@ final class TDSChannel implements Serializable {
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
             return inputStream.read(data, offset, length);
-        } catch (SocketException e) {
-            return 0; // Keep the compiler happy.
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
@@ -6562,7 +6560,7 @@ final class TDSReader implements Serializable {
         if (null == consumedPacket.next) {
             // if the read comes from getNext() and responseBuffering is Adaptive (in this place is), then reset Counter
             // State
-            if (command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+            if (null != command && command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
                 command.getCounter().resetCounter();
             }
             readPacket();
