@@ -326,7 +326,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 while (rsCatalog.next()) {
                     String dbNameFromCatalog = rsCatalog.getString("TABLE_CAT");
                     if (null != dbNameFromCatalog && !dbNameFromCatalog.isEmpty()
-                            && dbNameFromConnectionString.equals(rsCatalog.getString("TABLE_CAT"))) {
+                            && dbNameFromConnectionString.equals(dbNameFromCatalog)) {
                         String[] types = {"TABLE"};
                         try (ResultSet rs = databaseMetaData.getTables(dbNameFromCatalog, null, "%", types)) {
                             MessageFormat form2 = new MessageFormat(TestResource.getResource("R_nameEmpty"));
