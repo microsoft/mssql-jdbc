@@ -268,6 +268,10 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
             {"R_delayLoadingLobsPropertyDescription",
                     "Boolean flag which indicates whether the driver will load LOB datatypes into memory."},
+            {"R_AADSecurePrincipalIdPropertyDescription",
+                    "The Application Id of a registered application which has been granted permission to the database connected."},
+            {"R_AADSecurePrincipalSecretPropertyDescription",
+                    "A Secret defined for a registered application which has been granted permission to the database connected."},
             {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
             {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
             {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -405,6 +409,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_FedAuthInfoDoesNotContainStsurlAndSpn",
                     "FEDAUTHINFO token stream does not contain both STSURL and SPN."},
             {"R_MSALExecution", "Failed to authenticate the user {0} in Active Directory (Authentication={1})."},
+            {"R_MSALAuthComplete", "Authentication complete. You can close the browser and return to the application."},
             {"R_UnrequestedFeatureAckReceived", "Unrequested feature acknowledge is received. Feature ID: {0}."},
             {"R_FedAuthFeatureAckContainsExtraData",
                     "Federated authentication feature extension ack for ADAL and Security Token includes extra data."},
@@ -428,6 +433,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
             {"R_NoUserPasswordForActivePassword",
                     "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
+            {"R_NoUserPasswordForActiveServicePrincipal",
+                    "Both \"AADSecurePrincipalId\" and \"AADSecurePrincipalSecret\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
             {"R_NoUserPasswordForSqlPassword",
                     "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
             {"R_ForceEncryptionTrue_HonorAEFalse",
@@ -649,5 +656,10 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
             {"R_InvalidCSVQuotes",
                     "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
-            {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},};
-};
+            {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
+            {"R_maxResultBufferPropertyDescription",
+                    "Determines maximum amount of bytes that can be read during retrieval of result set"},
+            {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
+            {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
+            {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},};
+}

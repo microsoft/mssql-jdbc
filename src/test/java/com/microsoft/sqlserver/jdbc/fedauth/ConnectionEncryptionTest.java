@@ -64,8 +64,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
             MessageFormat form = new MessageFormat(TestUtils.R_BUNDLE.getString("R_sslFailed"));
             Object[] msgArgs = {e.getCause().getLocalizedMessage()};
-            assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
-                    e.getMessage().contains(form.format(msgArgs)));
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(form.format(msgArgs)));
         }
     }
 

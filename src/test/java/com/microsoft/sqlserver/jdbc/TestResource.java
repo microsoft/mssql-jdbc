@@ -193,5 +193,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_signinTooManyTimes", "You've tried to sign in too many times with an incorrect user ID or password."},
             {"R_toSigninAdd", "To sign into this application, the account must be added to"},
             {"R_socketClosed", "Socket closed"}, {"R_aeStreamReadError", "The multi-part identifier"},
-            {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."}};
+            {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."},
+            {"R_maxResultBufferExceeded", "MaxResultBuffer exceeded {0}."},
+            {"R_noAuthorizationCode", "No Authorization code was returned from the server"}};
 }
