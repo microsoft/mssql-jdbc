@@ -847,10 +847,14 @@ public final class TestUtils {
      *        connection string
      * @param property
      *        name of the property
-     * @return The the value of the connection property
+     * @return The the value of the connection property or null if not found
      */
     public static String getProperty(String connectionString, String property) {
-        int start = connectionString.indexOf("=", connectionString.indexOf(property)) + 1;
+        int start = connectionString.indexOf(property);
+        if (-1 == start) {
+            return null;
+        }
+        start = connectionString.indexOf("=", start) + 1;
         int end = connectionString.indexOf(";", start);
         return connectionString.substring(start, -1 != end ? end : connectionString.length());
     }
