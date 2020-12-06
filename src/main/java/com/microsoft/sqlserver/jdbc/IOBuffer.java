@@ -3152,7 +3152,7 @@ final class TDSWriter {
     private ByteBuffer logBuffer;
 
     // Intermediate arrays
-    // It is assumed, startMessage is called before use
+    // It is assumed, startMessage is called before use, to alloc arrays
     private char[] streamCharBuffer;
     private byte[] streamByteBuffer;
 
