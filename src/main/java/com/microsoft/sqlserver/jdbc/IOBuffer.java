@@ -3152,6 +3152,7 @@ final class TDSWriter {
     private ByteBuffer logBuffer;
 
     // Intermediate arrays
+    // It is assumed, startMessage is called before use
     private char[] streamCharBuffer;
     private byte[] streamByteBuffer;
 
