@@ -3151,6 +3151,10 @@ final class TDSWriter {
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
 
+    // Intermediate arrays
+    private char[] streamCharBuffer;
+    private byte[] streamByteBuffer;
+
     private CryptoMetadata cryptoMeta = null;
 
     TDSWriter(TDSChannel tdsChannel, SQLServerConnection con) {
@@ -3247,6 +3251,8 @@ final class TDSWriter {
             stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             currentPacketSize = negotiatedPacketSize;
+            streamCharBuffer = new char[2 * currentPacketSize];
+            streamByteBuffer = new byte[4 * currentPacketSize];
         }
 
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
@@ -4015,10 +4021,6 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        char[] streamCharBuffer = new char[currentPacketSize];
-        // The unicode version, writeReader() allocates a byte buffer that is 4 times the currentPacketSize, not sure
-        // why.
-        byte[] streamByteBuffer = new byte[currentPacketSize];
         int charsRead = 0;
         int charsToWrite;
         int bytesToWrite;
@@ -4026,10 +4028,10 @@ final class TDSWriter {
 
         do {
             // Read in next chunk
-            for (charsToWrite = 0; -1 != charsRead && charsToWrite < streamCharBuffer.length;
+            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize;
                     charsToWrite += charsRead) {
                 try {
-                    charsRead = reader.read(streamCharBuffer, charsToWrite, streamCharBuffer.length - charsToWrite);
+                    charsRead = reader.read(streamCharBuffer, charsToWrite, currentPacketSize - charsToWrite);
                 } catch (IOException e) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {e.toString()};
@@ -4040,7 +4042,7 @@ final class TDSWriter {
                     break;
 
                 // Check for invalid bytesRead returned from Reader.read
-                if (charsRead < 0 || charsRead > streamCharBuffer.length - charsToWrite) {
+                if (charsRead < 0 || charsRead > currentPacketSize - charsToWrite) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {SQLServerException.getErrString("R_streamReadReturnedInvalidValue")};
                     error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
@@ -4070,7 +4072,7 @@ final class TDSWriter {
                 if (0 != charsToWrite)
                     bytesToWrite = charsToWrite / 2;
 
-                streamString = new String(streamCharBuffer);
+                streamString = new String(streamCharBuffer, 0, currentPacketSize);
                 byte[] bytes = ParameterUtils.HexToBin(streamString.trim());
                 writeInt(bytesToWrite);
                 writeBytes(bytes, 0, bytesToWrite);
@@ -4096,8 +4098,6 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        char[] streamCharBuffer = new char[2 * currentPacketSize];
-        byte[] streamByteBuffer = new byte[4 * currentPacketSize];
         int charsRead = 0;
         int charsToWrite;
         do {
