@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.DateTimeException;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
@@ -2288,7 +2289,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            String colValueStr = colValue.toString();
+                            String colValueStr = ((colValue instanceof LocalDateTime) ? formatLocalDateTime(colValue) : colValue).toString();
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValue.toString().length();
                                 byte[] typevarlen = new byte[2];
@@ -3686,5 +3687,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType)
                 && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
+    }
+
+    /**
+     * if colValue is a instance of LocalDateTime, then limit the nanoseconds to a maximum 7 digits; because mssql database accept only a maximum of 7 digit nanoseconds.
+     *
+     * @param colValue - is object representing date-time in different format, eg: LocalDateTime, java.sql.Time, Date, etc
+     * @return an object representing date-time
+     */
+    private Object formatLocalDateTime(Object colValue) {
+        if ( !(colValue instanceof LocalDateTime) ) return colValue;
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS");
+        return ((LocalDateTime) colValue).format(formatter);
     }
 }
