@@ -2366,8 +2366,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     + " Timeout Unit Interval: " + timeoutUnitInterval);
         }
 
-        boolean isInteractive = activeConnectionProperties
-                .getProperty(SQLServerDriverStringProperty.AUTHENTICATION.toString())
+        boolean isInteractive = (null == authenticationString) ? false : authenticationString
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString());
 
         // Initialize loop variables
