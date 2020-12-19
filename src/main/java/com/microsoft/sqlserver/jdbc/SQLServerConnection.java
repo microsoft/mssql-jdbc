@@ -2366,6 +2366,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     + " Timeout Unit Interval: " + timeoutUnitInterval);
         }
 
+        boolean isInteractive = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.AUTHENTICATION.toString())
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString());
+
         // Initialize loop variables
         int attemptNumber = 0;
 
@@ -2478,32 +2482,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break; // leave the while loop -- we've successfully connected
             } catch (SQLServerException sqlex) {
                 if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
-                        || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // actual logon failed, i.e.
-                                                                                         // password isExpired
-                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // actual logon failed, i.e.
-                                                                                            // user account locked
+                        || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // user account locked
                         || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS
-                                                                                                       // received from
-                                                                                                       // server
-                        || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // failure
-                                                                                                      // negotiating SSL
-                        || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // failure
-                                                                                                                   // TLS1.2
+                        || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // SSL failure
+                        || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // TLS1.2
+                                                                                                                   // failure
                         || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == sqlex.getDriverErrorCode()) // unsupported
-                                                                                                              // configuration
+                                                                                                              // config
                                                                                                               // (e.g.
                                                                                                               // Sphinx,
                                                                                                               // invalid
-                                                                                                              // packet
-                                                                                                              // size,
+                                                                                                              // packetsize,
                                                                                                               // etc.)
                         || (SQLServerException.ERROR_SOCKET_TIMEOUT == sqlex.getDriverErrorCode()) // socket timeout
-                                                                                                   // ocurred
-                        || timerHasExpired(timerExpire)// no more time to try again
-                        || (state.equals(State.Connected) && !isDBMirroring)
-                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
-                ) {
-
+                        || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
+                        // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
+                        || (state.equals(State.Connected) && !isDBMirroring)) {
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -2521,7 +2515,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
                     long remainingMilliseconds = timerRemaining(timerExpire);
-                    if (remainingMilliseconds <= sleepInterval) {
+                    if (remainingMilliseconds <= sleepInterval && !isInteractive) {
                         throw sqlex;
                     }
                 }
@@ -2552,6 +2546,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             } else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+            } else if (isInteractive) {
+                // Interactive auth may involve MFA which will take longer and timeout. Reset timeout and retry silently
+                timerStart = System.currentTimeMillis();
+                timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+                timerTimeout = timeout * 1000L; // ConnectTimeout is in seconds, we need timer millis
+                timerExpire = timerStart + timerTimeout;
+                intervalExpire = timerStart + timeoutUnitInterval;
+                intervalExpireFullTimeout = timerStart + timerTimeout;
             } else if (useTnir) {
                 long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
 
