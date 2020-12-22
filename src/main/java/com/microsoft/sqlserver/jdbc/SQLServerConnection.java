@@ -2480,20 +2480,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else
                     break; // leave the while loop -- we've successfully connected
             } catch (SQLServerException sqlex) {
-                if ((SQLServerException.LOGON_FAILED == sqlex.getErrorCode()) // actual logon failed, i.e. bad password
-                        || (SQLServerException.PASSWORD_EXPIRED == sqlex.getErrorCode()) // user account locked
-                        || (SQLServerException.DRIVER_ERROR_INVALID_TDS == sqlex.getDriverErrorCode()) // invalid TDS
-                        || (SQLServerException.DRIVER_ERROR_SSL_FAILED == sqlex.getDriverErrorCode()) // SSL failure
-                        || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == sqlex.getDriverErrorCode()) // TLS1.2
-                                                                                                                   // failure
-                        || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == sqlex.getDriverErrorCode()) // unsupported
-                                                                                                              // config
-                                                                                                              // (e.g.
-                                                                                                              // Sphinx,
-                                                                                                              // invalid
-                                                                                                              // packetsize,
-                                                                                                              // etc.)
-                        || (SQLServerException.ERROR_SOCKET_TIMEOUT == sqlex.getDriverErrorCode()) // socket timeout
+                int errorCode = sqlex.getErrorCode();
+                int driverErrorCode = sqlex.getDriverErrorCode();
+                if (SQLServerException.LOGON_FAILED == errorCode // actual logon failed, i.e. bad password
+                        || SQLServerException.PASSWORD_EXPIRED == errorCode // user account locked
+                        || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
+                        || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
+                        || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
+                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
+                                                                                                 // (eg Sphinx, invalid
+                                                                                                 // packetsize, etc)
+                        || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                         || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
                         // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                         || (state.equals(State.Connected) && !isDBMirroring)) {
