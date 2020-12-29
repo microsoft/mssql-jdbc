@@ -2,7 +2,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import wipro.CommonSettings;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -114,5 +113,26 @@ public class SQLServerIntegrityConstraintViolationExceptionTest {
                 + "[ModifiedDate] [datetime] )";
 
         stmt.execute(sql);
+    }
+}
+
+
+class CommonSettings {
+    private static String serverName = "localhost";
+    private static String portNumber = "1433";
+    private static String databaseName = "DriverDb";
+    private static String username = "SA";
+    private static String password = "Pa$$w0rd2020";
+
+    public static SQLServerDataSource getSQLServerDataSource() {
+        // Establish the connection.
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setServerName(serverName);
+        ds.setPortNumber(Integer.parseInt(portNumber));
+        ds.setDatabaseName(databaseName);
+        ds.setUser(username);
+        ds.setPassword(password);
+
+        return ds;
     }
 }
