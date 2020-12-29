@@ -221,9 +221,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             // (Re)execute this Statement with the new command
             executeCommand(newStmtCmd);
         } catch (SQLServerException e) {
-            if (e.getSQLState()=="23000") // 23000-Integrity constraint violation
-                throw new SQLServerIntegrityConstraintViolationException(e, e.getDriverErrorCode(), e.getSQLServerError(), e.getSQLState());
-            else if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT)
+            if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT)
                 throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
             else
                 throw e;

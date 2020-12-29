@@ -1,39 +1,24 @@
 package com.microsoft.sqlserver.jdbc;
 
-public class SQLServerIntegrityConstraintViolationException extends RuntimeException { //java.sql.SQLException {
+public class SQLServerIntegrityConstraintViolationException extends SQLServerException { //java.sql.SQLException {
 
-    // Facility for driver-specific error codes
-    static final int DRIVER_ERROR_NONE = 0;
-    static final int DRIVER_ERROR_FROM_DATABASE = 2;
-    static final int DRIVER_ERROR_IO_FAILED = 3;
-    static final int DRIVER_ERROR_INVALID_TDS = 4;
-    static final int DRIVER_ERROR_SSL_FAILED = 5;
-    static final int DRIVER_ERROR_UNSUPPORTED_CONFIG = 6;
-    static final int DRIVER_ERROR_INTERMITTENT_TLS_FAILED = 7;
-    static final int ERROR_SOCKET_TIMEOUT = 8;
-    static final int ERROR_QUERY_TIMEOUT = 9;
-    static final int DATA_CLASSIFICATION_INVALID_VERSION = 10;
-    static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
-    static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
-    static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
-
-    private int driverErrorCode = DRIVER_ERROR_NONE;
-    private SQLServerError sqlServerError;
-    private String sqlState;
-
-    final int getDriverErrorCode() {
-        return driverErrorCode;
+    public SQLServerIntegrityConstraintViolationException(String errText, SQLState sqlState, DriverError driverError, Throwable cause) {
+        super(errText, sqlState, driverError, cause);
     }
 
-    final void setDriverErrorCode(int value) {
-        driverErrorCode = value;
+    public SQLServerIntegrityConstraintViolationException(String errText, String errState, int errNum, Throwable cause) {
+        super(errText, errState, errNum, cause);
     }
 
-    public SQLServerIntegrityConstraintViolationException(Throwable cause, int driverErrorCode, SQLServerError sqlServerError,
-                                                          String sqlState) {
-        super(cause);
-        this.driverErrorCode = driverErrorCode;
-        this.sqlServerError = sqlServerError;
-        this.sqlState = sqlState;
+    public SQLServerIntegrityConstraintViolationException(String errText, Throwable cause) {
+        super(errText, cause);
+    }
+
+    public SQLServerIntegrityConstraintViolationException(Object obj, String errText, String errState, int errNum, boolean bStack) {
+        super(obj, errText, errState, errNum, bStack);
+    }
+
+    public SQLServerIntegrityConstraintViolationException(Object obj, String errText, String errState, SQLServerError sqlServerError, boolean bStack) {
+        super(obj, errText, errState, sqlServerError, bStack);
     }
 }

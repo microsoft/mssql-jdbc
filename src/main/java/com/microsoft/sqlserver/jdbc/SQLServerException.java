@@ -51,7 +51,7 @@ enum DriverError {
  * handles both SQL 92 and XOPEN state codes. They are switchable via a user specified connection property.
  * SQLServerExceptions are written to any open log files the user has specified.
  */
-public final class SQLServerException extends java.sql.SQLException {
+public /*final*/ class SQLServerException extends java.sql.SQLException {
     /**
      * Always update serialVersionUID when prompted
      */
@@ -258,8 +258,10 @@ public final class SQLServerException extends java.sql.SQLException {
             SQLServerError sqlServerError, boolean bStack) throws SQLServerException {
         String state = generateStateCode(con, sqlServerError.getErrorNumber(), sqlServerError.getErrorState());
 
-        SQLServerException theException = new SQLServerException(obj,
-                SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
+        SQLServerException theException = state.equalsIgnoreCase(ErrorNumberEnum.ERR_23000.getErrorNumber()) ?
+                new SQLServerIntegrityConstraintViolationException(obj, SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack)
+                :
+                new SQLServerException(obj, SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
         theException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
 
         // Close the connection if we get a severity 20 or higher error class (nClass is severity of error).
