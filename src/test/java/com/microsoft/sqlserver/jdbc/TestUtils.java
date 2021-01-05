@@ -841,6 +841,25 @@ public final class TestUtils {
     }
 
     /**
+     * Get the given connection property in the connection string
+     * 
+     * @param connectionString
+     *        connection string
+     * @param property
+     *        name of the property
+     * @return The the value of the connection property or null if not found
+     */
+    public static String getProperty(String connectionString, String property) {
+        int start = connectionString.indexOf(property);
+        if (-1 == start) {
+            return null;
+        }
+        start = connectionString.indexOf("=", start) + 1;
+        int end = connectionString.indexOf(";", start);
+        return connectionString.substring(start, -1 != end ? end : connectionString.length());
+    }
+
+    /**
      * Creates a truststore and returns the path of it.
      * 
      * @param certificates
