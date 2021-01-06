@@ -2484,7 +2484,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 int driverErrorCode = sqlex.getDriverErrorCode();
                 if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
-                        || (SQLServerException.USER_ACCOUNT_LOCKED == sqlex.getErrorCode()) // user account locked
+                        || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
                         || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
