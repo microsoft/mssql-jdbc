@@ -4,8 +4,9 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -238,6 +239,62 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
+    /**
+     * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
+     */
+    @Test
+    public void testAADServicePrincipalAuth() {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
+                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(url, ds);
+        try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
+                Connection conn3 = DriverManager.getConnection(urlEncrypted)) {
+            assertNotNull(conn1);
+            assertNotNull(conn2);
+            assertNotNull(conn3);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test invalid connection property combinations when using AAD Service Principal Authentication.
+     */
+    @Test
+    public void testAADServicePrincipalAuthWrong() {
+        String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";";
+        // Wrong AADSecurePrincipalSecret provided.
+        String url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret=wrongSecret";
+        validateException(url, "R_MSALExecution");
+
+        // Wrong AADSecurePrincipalId provided.
+        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        validateException(url, "R_MSALExecution");
+
+        // AADSecurePrincipalSecret not provided.
+        url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // AADSecurePrincipalId not provided.
+        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // Both AADSecurePrincipalId and AADSecurePrincipalSecret not provided.
+        validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
+    }
+
+    private static void validateException(String url, String resourceKey) {
+        try (Connection conn = DriverManager.getConnection(url)) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(resourceKey)));
+        }
+    }
+
     private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -259,10 +316,10 @@ public class FedauthTest extends FedauthCommon {
             if (authentication.toLowerCase().contains("activedirectorypassword")) {
                 fail(e.getMessage());
             } else if (authentication.toLowerCase().contains("activedirectoryintegrated")) {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                         e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
                                 || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
@@ -293,10 +350,10 @@ public class FedauthTest extends FedauthCommon {
             }
         } catch (Exception e) {
             if (authentication.toLowerCase().contains("activedirectory")) {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(ERR_MSG_LOGIN_FAILED)
                         || e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE));
             } else {
-                assertTrue(INVALID_EXCEPION_MSG + ": " + e.getMessage(),
+                assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                         e.getMessage().contains(ERR_MSG_CANNOT_OPEN_SERVER)
                                 || e.getMessage().startsWith(ERR_TCPIP_CONNECTION));
             }
