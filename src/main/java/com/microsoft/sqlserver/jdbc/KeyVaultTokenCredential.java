@@ -23,12 +23,13 @@ import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import reactor.core.publisher.Mono;
 
-
 /**
  * An AAD credential that acquires a token with a client secret for an AAD application.
  */
 @Immutable
 class KeyVaultTokenCredential implements TokenCredential {
+    private static final String NULL_VALUE = "R_NullValue";
+
     private final String clientId;
     private final String clientSecret;
     private final SQLServerKeyVaultAuthenticationCallback authenticationCallback;
@@ -48,13 +49,13 @@ class KeyVaultTokenCredential implements TokenCredential {
      */
     KeyVaultTokenCredential(String clientId, String clientSecret) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client ID"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
 
         if (null == clientSecret || clientSecret.isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client Secret"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
@@ -116,19 +117,19 @@ class KeyVaultTokenCredential implements TokenCredential {
      */
     private ConfidentialClientApplication getConfidentialClientApplication() {
         if (null == clientId) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client ID"};
             throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
         if (null == authorization) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Authorization"};
             throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
 
         if (null == clientSecret) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client Secret"};
             throw new IllegalArgumentException(form.format(msgArgs1), null);
         }
