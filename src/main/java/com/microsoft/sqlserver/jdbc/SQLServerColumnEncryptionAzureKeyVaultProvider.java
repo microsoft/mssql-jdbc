@@ -59,7 +59,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
     private static final String KEY_URL_DELIMITER = "/";
     private static final String NULL_VALUE = "R_NullValue";
-    
+
     private HttpPipeline keyVaultPipeline;
     private KeyVaultTokenCredential keyVaultTokenCredential;
 
