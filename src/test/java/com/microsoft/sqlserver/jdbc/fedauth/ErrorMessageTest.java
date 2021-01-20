@@ -17,10 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionTest;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -837,11 +835,8 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage() + "," + e.getCause(),
-                    e.getMessage()
-                            .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
-                                    + " in Active Directory (Authentication=ActiveDirectoryInteractive).")
-                            && (isWindows ? e.getCause().getMessage()
-                                    .contains(TestResource.getResource("R_noAuthorizationCode")) : true));
+                    e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
+                            + " in Active Directory (Authentication=ActiveDirectoryInteractive)."));
         }
     }
 }
