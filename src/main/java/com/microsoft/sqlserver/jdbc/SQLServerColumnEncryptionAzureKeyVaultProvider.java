@@ -58,6 +58,8 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private static final int KEY_NAME_INDEX = 4;
     private static final int KEY_URL_SPLIT_LENGTH_WITH_VERSION = 6;
     private static final String KEY_URL_DELIMITER = "/";
+    private static final String NULL_VALUE = "R_NullValue";
+
     private HttpPipeline keyVaultPipeline;
     private KeyVaultTokenCredential keyVaultTokenCredential;
 
@@ -102,12 +104,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client ID"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
         if (null == clientKey || clientKey.isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client Key"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
@@ -141,7 +143,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     SQLServerColumnEncryptionAzureKeyVaultProvider(String clientId) throws SQLServerException {
         if (null == clientId || clientId.isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Client ID"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
@@ -160,7 +162,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     public SQLServerColumnEncryptionAzureKeyVaultProvider(TokenCredential tokenCredential) throws SQLServerException {
         if (null == tokenCredential) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Token Credential"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
@@ -183,7 +185,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public SQLServerColumnEncryptionAzureKeyVaultProvider(
             SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
         if (null == authenticationCallback) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
@@ -202,7 +204,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      */
     private void setCredential(TokenCredential credential) throws SQLServerException {
         if (null == credential) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
             Object[] msgArgs1 = {"Credential"};
             throw new SQLServerException(form.format(msgArgs1), null);
         }
