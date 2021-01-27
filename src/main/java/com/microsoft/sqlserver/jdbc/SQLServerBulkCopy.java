@@ -369,7 +369,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         } else if (null == destinationColumn || destinationColumn.isEmpty()) {
             throwInvalidArgument("destinationColumn");
         }
-        columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn.trim()));
+        columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
         loggerExternal.exiting(loggerClassName, "addColumnMapping");
     }
@@ -396,7 +396,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         } else if (null == sourceColumn || sourceColumn.isEmpty()) {
             throwInvalidArgument("sourceColumn");
         }
-        columnMappings.add(new ColumnMapping(sourceColumn.trim(), destinationColumn));
+        columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
         loggerExternal.exiting(loggerClassName, "addColumnMapping");
     }
@@ -422,7 +422,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         } else if (null == destinationColumn || destinationColumn.isEmpty()) {
             throwInvalidArgument("destinationColumn");
         }
-        columnMappings.add(new ColumnMapping(sourceColumn.trim(), destinationColumn.trim()));
+        columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
         loggerExternal.exiting(loggerClassName, "addColumnMapping");
     }
@@ -929,11 +929,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.NUMERIC:
             case java.sql.Types.DECIMAL:
                 /*
-                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                 * but Azure DW only accepts money types for money column.
-                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                 * numeric as money/smallmoney if the destination column is money/smallmoney
-                 * and the source is decimal/numeric.
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column, but
+                 * Azure DW only accepts money types for money column. To make the code compatible against both SQL
+                 * Server and Azure DW, always send decimal and numeric as money/smallmoney if the destination column is
+                 * money/smallmoney and the source is decimal/numeric.
                  */
                 if (destSSType == SSType.MONEY) {
                     tdsWriter.writeByte(TDSType.MONEYN.byteValue());
@@ -944,7 +943,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     tdsWriter.writeByte((byte) 4);
                     break;
                 }
-                byte byteType = (java.sql.Types.DECIMAL == srcJdbcType) ? TDSType.DECIMALN.byteValue() : TDSType.NUMERICN.byteValue();
+                byte byteType = (java.sql.Types.DECIMAL == srcJdbcType) ? TDSType.DECIMALN.byteValue()
+                                                                        : TDSType.NUMERICN.byteValue();
                 tdsWriter.writeByte(byteType);
                 tdsWriter.writeByte((byte) TDSWriter.BIGDECIMAL_MAX_LENGTH); // maximum length
                 tdsWriter.writeByte((byte) srcPrecision); // unsigned byte
@@ -1296,11 +1296,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return "smallmoney";
             case java.sql.Types.DECIMAL:
                 /*
-                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                 * but Azure DW only accepts money types for money column.
-                 * To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                 * numeric as money/smallmoney if the destination column is money/smallmoney
-                 * and the source is decimal/numeric.
+                 * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column, but
+                 * Azure DW only accepts money types for money column. To make the code compatible against both SQL
+                 * Server and Azure DW, always send decimal and numeric as money/smallmoney if the destination column is
+                 * money/smallmoney and the source is decimal/numeric.
                  */
                 if (destSSType == SSType.MONEY) {
                     return "money";
@@ -1842,8 +1841,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
                     Iterator<Integer> columnsIterator = columnOrdinals.iterator();
                     int j = 1;
-                    outerWhileLoop:
-                    while (columnsIterator.hasNext()) {
+                    outerWhileLoop : while (columnsIterator.hasNext()) {
                         int currentOrdinal = columnsIterator.next();
                         if (j != currentOrdinal) {
                             /*
@@ -2067,8 +2065,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         } else if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
             /*
              * Bulk copy from CSV and destination is not encrypted. In this case, we send the temporal types as varchar
-             * and
-             * SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
+             * and SQL Server does the conversion. If destination is encrypted, then temporal types can not be sent as
              * varchar.
              */
             switch (bulkJdbcType) {
@@ -2219,10 +2216,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         }
                         /*
                          * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column,
-                         * but Azure DW only accepts money types for money column.
-                         * To make the code compatible against both SQL Server and Azure DW, always send decimal and
-                         * numeric as money/smallmoney if the destination column is money/smallmoney
-                         * and the source is decimal/numeric.
+                         * but Azure DW only accepts money types for money column. To make the code compatible against
+                         * both SQL Server and Azure DW, always send decimal and numeric as money/smallmoney if the
+                         * destination column is money/smallmoney and the source is decimal/numeric.
                          */
                         if (destSSType == SSType.MONEY) {
                             tdsWriter.writeMoney((BigDecimal) colValue, microsoft.sql.Types.MONEY);
@@ -2490,14 +2486,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             tdsWriter.writeByte((byte) 0x05);
                         if (colValue instanceof String) {
                             /*
-                             * if colValue is an instance of String, this means the data is coming from a CSV file.
-                             * Time string is expected to come in with this pattern: hh:mm:ss[.nnnnnnn]
-                             * First, look for the '.' character to determine if the String has the optional nanoseconds
-                             * component.
-                             * Next, create a java.sql.Time instance with the hh:mm:ss part we extracted, then set that
-                             * time as the timestamp's time.
-                             * Then, add the nanoseconds (optional, 0 if not provided) to the timestamp value.
-                             * Finally, provide the timestamp value to writeTime method.
+                             * if colValue is an instance of String, this means the data is coming from a CSV file. Time
+                             * string is expected to come in with this pattern: hh:mm:ss[.nnnnnnn] First, look for the
+                             * '.' character to determine if the String has the optional nanoseconds component. Next,
+                             * create a java.sql.Time instance with the hh:mm:ss part we extracted, then set that time
+                             * as the timestamp's time. Then, add the nanoseconds (optional, 0 if not provided) to the
+                             * timestamp value. Finally, provide the timestamp value to writeTime method.
                              */
                             java.sql.Timestamp ts = new java.sql.Timestamp(0);
                             int nanos = 0;
