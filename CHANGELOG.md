@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.2.0] Stable Release
+### Added
+- Added logic to handle multi-factor authentication timeouts during ActiveDirectoryInteractive authentication [#1488](https://github.com/microsoft/mssql-jdbc/pull/1488)
+
+### Fixed issues
+- Fixed an issue with high memory allocation during bulk copy [#1475](https://github.com/microsoft/mssql-jdbc/pull/1475)
+
 ## [9.1.1] Preview Release
 ### Added
 - Added maxResultBuffer connection property [1431](https://github.com/microsoft/mssql-jdbc/pull/1431)
