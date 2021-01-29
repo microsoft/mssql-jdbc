@@ -7,11 +7,14 @@ package com.microsoft.sqlserver.jdbc;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -104,6 +107,7 @@ public class MaxResultBufferTest extends AbstractTest {
      * @param concurrencyMode
      *        type of ResultSet's concurrency provided by source method
      */
+    @Tag(Constants.xAzureSQLDW)
     @ParameterizedTest(
             name = "[{index}] maxResultBuffer = {0}, responseBuffering = {1}, resultSetType = {2}, concurrencyMode = {3}")
     @MethodSource("linearResultSetData")
