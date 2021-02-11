@@ -40,8 +40,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
+    private static final String SLASH_DEFAULT = "/.default";
 
-    static final private java.util.logging.Logger logger = java.util.logging.Logger
+    private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
     static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
@@ -53,7 +54,7 @@ class SQLServerMSAL4JUtils {
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .authority(fedAuthInfo.stsurl).build();
             final CompletableFuture<IAuthenticationResult> future = pca.acquireToken(UserNamePasswordParameters
-                    .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user, password.toCharArray())
+                    .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
                     .build());
 
             final IAuthenticationResult authenticationResult = future.get();
@@ -71,10 +72,10 @@ class SQLServerMSAL4JUtils {
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            String defaultScopeSuffix = "/.default";
+            String defaultScopeSuffix = SLASH_DEFAULT;
             String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
                                                                         : fedAuthInfo.spn + defaultScopeSuffix;
-            Set<String> scopes = new HashSet<String>();
+            Set<String> scopes = new HashSet<>();
             scopes.add(scope);
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
@@ -114,7 +115,7 @@ class SQLServerMSAL4JUtils {
                     .authority(fedAuthInfo.stsurl).build();
             final CompletableFuture<IAuthenticationResult> future = pca
                     .acquireToken(IntegratedWindowsAuthenticationParameters
-                            .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), user).build());
+                            .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
 
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -135,7 +136,7 @@ class SQLServerMSAL4JUtils {
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
-                    .authority(fedAuthInfo.stsurl).logPii((logger.isLoggable(Level.FINE)) ? true : false).build();
+                    .authority(fedAuthInfo.stsurl).logPii((logger.isLoggable(Level.FINE))).build();
 
             CompletableFuture<IAuthenticationResult> future = null;
             IAuthenticationResult authenticationResult = null;
@@ -150,7 +151,7 @@ class SQLServerMSAL4JUtils {
                             logger.fine(logger.toString() + "Silent authentication for user:" + user);
                         }
                         SilentParameters silentParameters = SilentParameters
-                                .builder(Collections.singleton(fedAuthInfo.spn + "/.default"), account).build();
+                                .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), account).build();
 
                         future = pca.acquireTokenSilently(silentParameters);
                     }
@@ -169,7 +170,7 @@ class SQLServerMSAL4JUtils {
                 InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
                                 .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
-                        .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + "/.default")).build();
+                        .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
 
                 future = pca.acquireToken(parameters);
                 authenticationResult = future.get();
