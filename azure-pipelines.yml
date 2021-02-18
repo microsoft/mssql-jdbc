@@ -38,7 +38,7 @@ jobs:
     name: authDLL
     displayName: 'Download mssql-jdbc_auth DLL'
     inputs:
-      secureFile: 'mssql-jdbc_auth-9.2.0.x64.dll'
+      secureFile: 'mssql-jdbc_auth-9.3.0.x64-preview.dll'
   - task: Maven@3
     displayName: 'Maven build jre15'
     inputs:
