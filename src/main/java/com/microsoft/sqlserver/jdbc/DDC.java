@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -1207,11 +1209,11 @@ final class DDC {
         // overhead from using a Calendar object.
         // Note that DateTimeOffset path is not handled in this method, since DateTimeOffset always has
         // its own Calendar object (UTC timezone) associated with it.
-        LocalDateTime ldt = null;
+        LocalDateTime ldt;
 
         switch (ssType) {
             case TIME: {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
+                ldt = LocalDateTime.of(TDS.BASE_LOCAL_DATE_1900, LocalTime.ofNanoOfDay(ticksSinceMidnight));
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
@@ -1220,26 +1222,30 @@ final class DDC {
             case DATE:
             case DATETIME2:
             case DATETIMEOFFSET: {
-                ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight);
+                LocalDate ld = TDS.BASE_LOCAL_DATE.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(ticksSinceMidnight));
+                    subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 }
-                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
             }
 
             case DATETIME: // and SMALLDATETIME
             {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
+                LocalDate ld = TDS.BASE_LOCAL_DATE_1900.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    long nanoOfDay = ticksSinceMidnight * Nanos.PER_MILLISECOND;
+                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                    subSecondNanos = (int) (nanoOfDay % Nanos.PER_SECOND);
                 }
-
-                subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
                 break;
             }
 
