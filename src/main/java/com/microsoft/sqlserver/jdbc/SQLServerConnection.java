@@ -2766,8 +2766,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
-        aadPrincipalSecret = "";
-        activeConnectionProperties.remove(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString());
         return inetSocketAddress;
     }
 
@@ -4458,6 +4456,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         onFedAuthInfo(sqlFedAuthInfo, tdsTokenHandler);
+
+        aadPrincipalSecret = "";
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString());
     }
 
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
