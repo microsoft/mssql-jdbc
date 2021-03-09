@@ -173,7 +173,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, loginTimeout);
     }
 
-    @TestTest
+    @Test
     public void testFailoverInstanceResolution() throws SQLException {
         long timerEnd = 0;
         long timerStart = System.currentTimeMillis();

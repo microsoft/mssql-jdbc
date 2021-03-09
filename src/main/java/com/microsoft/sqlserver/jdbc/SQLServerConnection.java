@@ -2551,8 +2551,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
                         || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
                         || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
-                                                                                                 // (eg Sphinx,
-                                                                                                 // invalid
+                                                                                                 // (eg Sphinx, invalid
                                                                                                  // packetsize, etc)
                         || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                         || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
