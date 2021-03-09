@@ -1463,7 +1463,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         registerColumnEncryptionKeyStoreProviders(keyStoreMap);
     }
 
-    // helper to check if timeout value is valid
+    // Helper to check if timeout value is valid
     int validateTimeout(SQLServerDriverIntProperty property) throws SQLServerException {
         int timeout = property.getDefaultValue();
         String sPropValue = activeConnectionProperties.getProperty(property.toString());
@@ -2372,7 +2372,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = null != mirror || null != foActual;
 
-        // ms to sleep (back off) between attempts
         int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
@@ -2551,12 +2550,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
                         || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
-                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported
-                                                                                                 // config
+                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
                                                                                                  // (eg Sphinx,
                                                                                                  // invalid
-                                                                                                 // packetsize,
-                                                                                                 // etc)
+                                                                                                 // packetsize, etc)
                         || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                         || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
                         // for non-dbmirroring cases, do not retry after tcp socket connection succeeds

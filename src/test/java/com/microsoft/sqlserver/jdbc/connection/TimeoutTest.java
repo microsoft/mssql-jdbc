@@ -55,7 +55,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
 
-    // @Test
+    @Test
     public void testURLLoginTimeout() {
         long timerEnd = 0;
         int timeout = 10;
@@ -72,7 +72,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, timeout);
     }
 
-    // @Test
+    @Test
     public void testDMLoginTimeoutApplied() {
         long timerEnd = 0;
         int timeout = 10;
@@ -90,7 +90,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, timeout);
     }
 
-    // @Test
+    @Test
     public void testDMLoginTimeoutNotApplied() {
         long timerEnd = 0;
         int timeout = 10;
@@ -173,7 +173,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, loginTimeout);
     }
 
-    // @Test
+    @TestTest
     public void testFailoverInstanceResolution() throws SQLException {
         long timerEnd = 0;
         long timerStart = System.currentTimeMillis();
@@ -190,7 +190,7 @@ public class TimeoutTest extends AbstractTest {
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
 
-    // @Test
+    @Test
     public void testFOInstanceResolution2() throws SQLException {
         long timerEnd = 0;
 
@@ -218,7 +218,7 @@ public class TimeoutTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
@@ -255,7 +255,7 @@ public class TimeoutTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
@@ -292,7 +292,7 @@ public class TimeoutTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeoutOnStatement() throws Exception {
         try (Connection conn = getConnection()) {
@@ -330,7 +330,7 @@ public class TimeoutTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeout() throws Exception {
         try (Connection conn = getConnection()) {
