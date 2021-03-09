@@ -139,7 +139,7 @@ public class TimeoutTest extends AbstractTest {
 
         // Try a non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
         int connectRetryCount = new Random().nextInt(255);
-        int connectRetryInterval = new Random().nextInt(defaultTimeout);
+        int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + "connectRetryCount=" + connectRetryCount + ";connectRetryInterval=" + connectRetryInterval)) {
