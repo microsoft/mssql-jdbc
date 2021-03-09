@@ -149,7 +149,8 @@ public class TimeoutTest extends AbstractTest {
         }
 
         // connect + all retries should always be <= loginTimeout
-        assertTrue((timerEnd - timerStart) <= TimeUnit.SECONDS.toMillis(defaultTimeout));
+        assertTrue((timerEnd - timerStart) <= TimeUnit.SECONDS.toMillis(defaultTimeout),
+                "timediff: " + (timerEnd - timerStart));
     }
 
     // Test connect retry for database error with loginTimeout
@@ -207,10 +208,10 @@ public class TimeoutTest extends AbstractTest {
 
     private void verifyTimeout(long timeDiff, int timeout) {
         // Verify that login timeout does not take less than <timeout> seconds.
-        assertTrue(timeDiff > (timeout - 1) * 1000);
+        assertTrue(timeDiff > (timeout - 1) * 1000, "timeout: " + timeout + " timediff: " + timeDiff);
 
         // Verify that login timeout does not take longer than <timeout * 2> seconds.
-        assertTrue(timeDiff < timeout * 2000);
+        assertTrue(timeDiff < timeout * 2000, "timeout: " + timeout + "timediff: " + timeDiff);
     }
 
     /**
