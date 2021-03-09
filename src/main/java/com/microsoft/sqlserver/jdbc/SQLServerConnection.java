@@ -49,6 +49,8 @@ import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
 
+import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
+
 import mssql.googlecode.cityhash.CityHash;
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
@@ -150,6 +152,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private Boolean isAzureMI = null;
 
     private SharedTimer sharedTimer;
+
+    private int connectRetryCount = 0;
+    private int connectRetryInterval = 0;
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -1283,65 +1288,109 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        int loginTimeoutSeconds = 0; // Will be set during the first retry attempt.
+        // int loginTimeoutSeconds = 0; // Will be set during the first retry attempt.
+        int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+
+        String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            int sPropValueInt = Integer.parseInt(sPropValue);
+            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                loginTimeoutSeconds = sPropValueInt;
+            }
+        }
+
+        long elapsedSeconds = 0;
         long start = System.currentTimeMillis();
 
-        for (int retryAttempt = 0;;) {
-            try {
-                return connectInternal(propsIn, pooledConnection);
-            } catch (SQLServerException e) {
-                // Catch only the TLS 1.2 specific intermittent error.
-                if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED != e.getDriverErrorCode()) {
-                    // Re-throw all other exceptions.
-                    throw e;
-                } else {
-                    // Special handling of the retry logic for TLS 1.2 intermittent issue.
-
-                    // If timeout is not set yet, set it once.
-                    if (0 == retryAttempt) {
-                        // We do not need to check for exceptions here, as the connection properties are already
-                        // verified during the first try. Also, we would like to do this calculation
-                        // only for the TLS 1.2 exception case.
-                        // if the user does not specify a default timeout, default is 15 per spec
-                        loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-
-                        String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-                        if (null != sPropValue && sPropValue.length() > 0) {
-                            int sPropValueInt = Integer.parseInt(sPropValue);
-                            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
-                                loginTimeoutSeconds = sPropValueInt;
+        for (int connectRetryAttempt = 0;;) {
+            for (int tlsRetryAttempt = 0;;) {
+                try {
+                    if (elapsedSeconds == 0 || elapsedSeconds < loginTimeoutSeconds) {
+                        if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of "
+                                        + INTERMITTENT_TLS_MAX_RETRY + " elapsed time " + elapsedSeconds + " secs");
+                            }
+                        } else if (0 < connectRetryAttempt) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
+                                        + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
                             }
                         }
+
+                        return connectInternal(propsIn, pooledConnection);
                     }
+                } catch (SQLServerException e) {
+                    elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
 
-                    retryAttempt++;
-                    long elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
-
-                    if (INTERMITTENT_TLS_MAX_RETRY < retryAttempt) {
-                        // Re-throw the exception if we have reached the maximum retry attempts.
-                        if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
-                                    + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
-                        }
-                        throw e;
-                    } else if (elapsedSeconds >= loginTimeoutSeconds) {
-                        // Re-throw the exception if we do not have any time left to retry.
-                        if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger
-                                    .fine("Connection failed during SSL handshake. Not retrying as timeout expired.");
-                        }
-                        throw e;
-                    } else {
-                        // Retry the connection.
+                    /*
+                     * special case for TLS intermittent failures: no wait retry up to INTERMITTENT_TLS_MAX_RETRY times
+                     * as long as < loginTimeout
+                     */
+                    if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
+                            && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
                             connectionlogger.fine(
                                     "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
-                                            + retryAttempt + ".");
+                                            + tlsRetryAttempt + ".");
+                        }
+                        tlsRetryAttempt++;
+                    } else {
+                        // TLS max retry exceeded
+                        if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
+                                        + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
+                            }
+                        }
+
+                        if (0 == connectRetryCount) {
+                            // connection retry disabled
+                            throw e;
+                        } else if (connectRetryAttempt++ > connectRetryCount) {
+                            // maximum connection retry count reached
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Connection failed. Maximum connection retry count "
+                                        + connectRetryCount + " reached.");
+                            }
+                            throw e;
+                        } else {
+                            // only retry if transient error
+                            SQLServerError sqlServerError = e.getSQLServerError();
+                            if (!TransientError.isTransientError(sqlServerError)) {
+                                throw e;
+                            }
+
+                            // check if there's time to retry, no point to wait if no time left
+                            if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
+                                if (connectionlogger.isLoggable(Level.FINEST)) {
+                                    connectionlogger
+                                            .fine("Connection failed. No time left to retry timeout will be exceeded:"
+                                                    + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
+                                                    + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
+                                                    + ")s");
+                                }
+                                throw e;
+                            }
+
+                            // wait for connectRetryInterval before retry
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine(toString() + "Connection failed on transient error "
+                                        + sqlServerError.getErrorNumber() + ". Wait for  connectRetryInterval("
+                                        + connectRetryInterval + ")s before retry.");
+                            }
+                            try {
+                                Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                            } catch (InterruptedException ex) {
+                                // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
                 }
             }
         }
+
     }
 
     private void registerKeyStoreProviderOnConnection(String keyStoreAuth, String keyStoreSecret,
@@ -1414,6 +1463,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         registerColumnEncryptionKeyStoreProviders(keyStoreMap);
     }
 
+    // helper to check if timeout value is valid
+    int validateTimeout(SQLServerDriverIntProperty property) throws SQLServerException {
+        int timeout = property.getDefaultValue();
+        String sPropValue = activeConnectionProperties.getProperty(property.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            try {
+                timeout = Integer.parseInt(sPropValue);
+                if (!property.isValidValue(timeout)) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+
+                }
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+
+            }
+        }
+        return timeout;
+    }
+
     /**
      * Establish a physical database connection based on the user specified connection properties. Logon to the
      * database.
@@ -1478,23 +1550,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             validateMaxSQLLoginName(sPropKey, sPropValue);
 
             // if the user does not specify a default timeout, default is 15 per spec
-            int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-            sPropValue = activeConnectionProperties.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-            if (null != sPropValue && sPropValue.length() > 0) {
-                try {
-                    loginTimeoutSeconds = Integer.parseInt(sPropValue);
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
-                    Object[] msgArgs = {sPropValue};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
+            int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
-                if (loginTimeoutSeconds < 0 || loginTimeoutSeconds > 65535) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
-                    Object[] msgArgs = {sPropValue};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
-            }
+            connectRetryCount = validateTimeout(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT);
+            connectRetryInterval = validateTimeout(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL);
 
             // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
             // operation of RFC 3490.
@@ -2312,7 +2371,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
         final boolean isDBMirroring = null != mirror || null != foActual;
+
+        // ms to sleep (back off) between attempts
         int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
+
         long timeoutUnitInterval;
 
         boolean useFailoverHost = false;
@@ -2489,9 +2551,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
                         || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
-                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
-                                                                                                 // (eg Sphinx, invalid
-                                                                                                 // packetsize, etc)
+                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported
+                                                                                                 // config
+                                                                                                 // (eg Sphinx,
+                                                                                                 // invalid
+                                                                                                 // packetsize,
+                                                                                                 // etc)
                         || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                         || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
                         // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
