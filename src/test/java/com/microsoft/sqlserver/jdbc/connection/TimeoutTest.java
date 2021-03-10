@@ -142,7 +142,8 @@ public class TimeoutTest extends AbstractTest {
         int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
-                        + "connectRetryCount=" + connectRetryCount + ";connectRetryInterval=" + connectRetryInterval)) {
+                        + ";logintimeout=" + defaultTimeout + "connectRetryCount=" + connectRetryCount
+                        + ";connectRetryInterval=" + connectRetryInterval)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
@@ -188,7 +189,7 @@ public class TimeoutTest extends AbstractTest {
             timerEnd = System.currentTimeMillis();
         }
 
-        verifyTimeout(timerEnd - timerStart, defaultTimeout*2);
+        verifyTimeout(timerEnd - timerStart, defaultTimeout * 2);
     }
 
     @Test
