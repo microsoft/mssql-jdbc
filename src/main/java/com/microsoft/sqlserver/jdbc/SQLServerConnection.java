@@ -1365,7 +1365,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
                                 if (connectionlogger.isLoggable(Level.FINEST)) {
                                     connectionlogger
-                                            .fine("Connection failed. No time left to retry timeout will be exceeded:"
+                                            .finest("Connection failed. No time left to retry timeout will be exceeded:"
                                                     + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
                                                     + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
                                                     + ")s");
