@@ -1288,7 +1288,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        // int loginTimeoutSeconds = 0; // Will be set during the first retry attempt.
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
 
         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
@@ -1305,7 +1304,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         for (int connectRetryAttempt = 0;;) {
             for (int tlsRetryAttempt = 0;;) {
                 try {
-                    if (elapsedSeconds == 0 || elapsedSeconds < loginTimeoutSeconds) {
+                    if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
                         if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
                             if (connectionlogger.isLoggable(Level.FINE)) {
                                 connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of "
@@ -1323,10 +1322,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } catch (SQLServerException e) {
                     elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
 
-                    /*
-                     * special case for TLS intermittent failures: no wait retry up to INTERMITTENT_TLS_MAX_RETRY times
-                     * as long as < loginTimeout
-                     */
+                    // special case for TLS intermittent failures: no wait retries
                     if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
                             && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1374,8 +1370,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             }
 
                             // wait for connectRetryInterval before retry
-                            if (connectionlogger.isLoggable(Level.FINE)) {
-                                connectionlogger.fine(toString() + "Connection failed on transient error "
+                            if (connectionlogger.isLoggable(Level.FINEST)) {
+                                connectionlogger.finest(toString() + "Connection failed on transient error "
                                         + sqlServerError.getErrorNumber() + ". Wait for  connectRetryInterval("
                                         + connectRetryInterval + ")s before retry.");
                             }
