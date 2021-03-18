@@ -1300,93 +1300,89 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long elapsedSeconds = 0;
         long start = System.currentTimeMillis();
-
-        for (int connectRetryAttempt = 0;;) {
-            for (int tlsRetryAttempt = 0;;) {
-                try {
-                    if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
-                        if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
-                            if (connectionlogger.isLoggable(Level.FINE)) {
-                                connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of "
-                                        + INTERMITTENT_TLS_MAX_RETRY + " elapsed time " + elapsedSeconds + " secs");
-                            }
-                        } else if (0 < connectRetryAttempt) {
-                            if (connectionlogger.isLoggable(Level.FINE)) {
-                                connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
-                                        + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
-                            }
-                        }
-
-                        return connectInternal(propsIn, pooledConnection);
-                    }
-                } catch (SQLServerException e) {
-                    elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
-
-                    // special case for TLS intermittent failures: no wait retries
-                    if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
-                            && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
+        for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
+            try {
+                if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
+                    if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine(
-                                    "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
-                                            + tlsRetryAttempt + ".");
+                            connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY
+                                    + " elapsed time " + elapsedSeconds + " secs");
                         }
-                        tlsRetryAttempt++;
+                    } else if (0 < connectRetryAttempt) {
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
+                                    + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
+                        }
+                    }
+
+                    return connectInternal(propsIn, pooledConnection);
+                }
+            } catch (SQLServerException e) {
+                elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
+
+                // special case for TLS intermittent failures: no wait retries
+                if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
+                        && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(
+                                "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
+                                        + tlsRetryAttempt + ".");
+                    }
+                    tlsRetryAttempt++;
+                } else {
+                    // TLS max retry exceeded
+                    if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
+                                    + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
+                        }
+                    }
+
+                    if (0 == connectRetryCount) {
+                        // connection retry disabled
+                        throw e;
+                    } else if (connectRetryAttempt++ > connectRetryCount) {
+                        // maximum connection retry count reached
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Connection failed. Maximum connection retry count "
+                                    + connectRetryCount + " reached.");
+                        }
+                        throw e;
                     } else {
-                        // TLS max retry exceeded
-                        if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
-                            if (connectionlogger.isLoggable(Level.FINE)) {
-                                connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
-                                        + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
-                            }
+                        // only retry if transient error
+                        SQLServerError sqlServerError = e.getSQLServerError();
+                        if (!TransientError.isTransientError(sqlServerError)) {
+                            throw e;
                         }
 
-                        if (0 == connectRetryCount) {
-                            // connection retry disabled
-                            throw e;
-                        } else if (connectRetryAttempt++ > connectRetryCount) {
-                            // maximum connection retry count reached
-                            if (connectionlogger.isLoggable(Level.FINE)) {
-                                connectionlogger.fine("Connection failed. Maximum connection retry count "
-                                        + connectRetryCount + " reached.");
-                            }
-                            throw e;
-                        } else {
-                            // only retry if transient error
-                            SQLServerError sqlServerError = e.getSQLServerError();
-                            if (!TransientError.isTransientError(sqlServerError)) {
-                                throw e;
-                            }
-
-                            // check if there's time to retry, no point to wait if no time left
-                            if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
-                                if (connectionlogger.isLoggable(Level.FINEST)) {
-                                    connectionlogger
-                                            .finest("Connection failed. No time left to retry timeout will be exceeded:"
-                                                    + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
-                                                    + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
-                                                    + ")s");
-                                }
-                                throw e;
-                            }
-
-                            // wait for connectRetryInterval before retry
+                        // check if there's time to retry, no point to wait if no time left
+                        if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
                             if (connectionlogger.isLoggable(Level.FINEST)) {
-                                connectionlogger.finest(toString() + "Connection failed on transient error "
-                                        + sqlServerError.getErrorNumber() + ". Wait for  connectRetryInterval("
-                                        + connectRetryInterval + ")s before retry.");
+                                connectionlogger
+                                        .finest("Connection failed. No time left to retry timeout will be exceeded:"
+                                                + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
+                                                + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
+                                                + ")s");
                             }
-                            try {
-                                Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
-                            } catch (InterruptedException ex) {
-                                // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                                Thread.currentThread().interrupt();
-                            }
+                            throw e;
+                        }
+
+                        // wait for connectRetryInterval before retry
+                        if (connectionlogger.isLoggable(Level.FINEST)) {
+                            connectionlogger.finest(toString() + "Connection failed on transient error "
+                                    + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
+                                    + connectRetryInterval + ")s before retry.");
+                        }
+                        try {
+                            Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        } catch (InterruptedException ex) {
+                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                            Thread.currentThread().interrupt();
                         }
                     }
                 }
             }
         }
-
     }
 
     private void registerKeyStoreProviderOnConnection(String keyStoreAuth, String keyStoreSecret,

@@ -211,7 +211,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_connectRetryCountPropertyDescription",
                     "The number of reconnection attempts if there is a connection failure."},
             {"R_connectRetryIntervalPropertyDescription",
-                    "The number of seconds between each connection retry attempt.."},
+                    "The number of seconds between each connection retry attempt."},
             {"R_loginTimeoutPropertyDescription",
                     "The number of seconds the driver should wait before timing out a failed connection."},
             {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},

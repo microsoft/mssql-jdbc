@@ -16,6 +16,8 @@ public final class SQLServerError extends StreamPacket implements Serializable {
     /**
      * List SQL Server transient errors drivers will retry on from
      * https://docs.microsoft.com/en-us/azure/azure-sql/database/troubleshoot-common-errors-issues#transient-faults-connection-loss-and-other-temporary-errors
+     * and SqlClient
+     * https://github.com/dotnet/SqlClient/blob/main/src/Microsoft.Data.SqlClient/netfx/src/Microsoft/Data/SqlClient/SqlInternalConnectionTds.cs#L589
      */
     enum TransientError {
         // Cannot open database "%.*ls" requested by the login. The login failed.
@@ -49,7 +51,7 @@ public final class SQLServerError extends StreamPacket implements Serializable {
         SQLSERVER_ERROR_49919(49919),
 
         // Cannot process request. Too many operations in progress for subscription "%ld".
-        SQLSERVER_ERROR_40020(40020),
+        SQLSERVER_ERROR_49920(49920),
 
         /*
          * Login to read-secondary failed due to long wait on 'HADR_DATABASE_WAIT_FOR_TRANSITION_TO_VERSIONING'. The
@@ -64,6 +66,7 @@ public final class SQLServerError extends StreamPacket implements Serializable {
 
         // Resource ID: %d. The %s limit for the database is %d and has been reached.
         SQLSERVER_ERROR_10928(10928),
+        SQLSERVER_ERROR_40020(40020),
 
         /*
          * Resource ID: %d. The %s minimum guarantee is %d, maximum limit is %d and the current usage for the database
