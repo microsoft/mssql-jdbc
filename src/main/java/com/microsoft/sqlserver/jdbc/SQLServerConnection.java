@@ -6553,7 +6553,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * SERVERPROPERTY('EngineEdition') is used to determine if the db server is SQL Azure. This is more reliable
      * than @@version or serverproperty('edition').
      * 
-     * Reference: https://docs.microsoft.com/en-us/sql/t-sql/functions/serverproperty-transact-sql?view=sql-server-ver15
+     * Reference: https://docs.microsoft.com/sql/t-sql/functions/serverproperty-transact-sql
      * 
      * <pre>
      * SERVERPROPERTY('EngineEdition') means
