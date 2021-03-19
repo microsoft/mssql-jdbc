@@ -12,6 +12,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
@@ -35,7 +37,7 @@ public class TimeoutTest extends AbstractTest {
     static String randomServer = RandomUtil.getIdentifier("Server");
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     static final int waitForDelaySeconds = 10;
-    static final int defaultTimeout = 15;
+    static final int defaultTimeout = 15; // loginTimeout default value
 
     @Test
     public void testDefaultLoginTimeout() {
@@ -43,10 +45,10 @@ public class TimeoutTest extends AbstractTest {
 
         long timerStart = System.currentTimeMillis();
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + "connectRetryCount=0")) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
 
@@ -60,11 +62,10 @@ public class TimeoutTest extends AbstractTest {
 
         long timerStart = System.currentTimeMillis();
 
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
 
@@ -82,7 +83,7 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
 
@@ -97,11 +98,12 @@ public class TimeoutTest extends AbstractTest {
             DriverManager.setLoginTimeout(timeout * 3); // 30 seconds
             long timerStart = System.currentTimeMillis();
 
-            try (Connection con = PrepUtil.getConnection(
-                    "jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
+            try (Connection con = PrepUtil
+                    .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
                 fail(TestResource.getResource("R_shouldNotConnect"));
             } catch (Exception e) {
-                assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+                assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")),
+                        e.getMessage());
                 timerEnd = System.currentTimeMillis();
             }
             verifyTimeout(timerEnd - timerStart, timeout);
@@ -110,21 +112,84 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
+    // Test connect retry for non-existent server with loginTimeout
+    @Test
+    public void testConnectRetryBadServer() {
+        long timerEnd = 0;
+        long timerStart = System.currentTimeMillis();
+        int loginTimeout = 1;
+
+        // non existent server with very short loginTimeout, no retry will happen as not a transient error
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + loginTimeout)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")), e.getMessage());
+            timerEnd = System.currentTimeMillis();
+        }
+
+        verifyTimeout(timerEnd - timerStart, loginTimeout);
+    }
+
+    // Test connect retry for database error
+    @Test
+    public void testConnectRetryServerError() {
+        long timerEnd = 0;
+        long timerStart = System.currentTimeMillis();
+
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
+        int connectRetryCount = new Random().nextInt(255);
+        int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
+        try (Connection con = PrepUtil.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
+                        + ";logintimeout=" + defaultTimeout + ";connectRetryCount=" + connectRetryCount
+                        + ";connectRetryInterval=" + connectRetryInterval)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            timerEnd = System.currentTimeMillis();
+        }
+
+        // connect + all retries should always be <= loginTimeout
+        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+    }
+
+    // Test connect retry for database error with loginTimeout
+    @Test
+    public void testConnectRetryTimeout() {
+        long timerEnd = 0;
+        long timerStart = System.currentTimeMillis();
+        int loginTimeout = 1;
+
+        // non existent server with very short loginTimeout so there is no time to do all retries
+        try (Connection con = PrepUtil.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
+                        + "connectRetryCount=" + (new Random().nextInt(255)) + ";connectRetryInterval="
+                        + (new Random().nextInt(defaultTimeout - 1) + 1) + ";loginTimeout=" + loginTimeout)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            timerEnd = System.currentTimeMillis();
+        }
+
+        verifyTimeout(timerEnd - timerStart, loginTimeout);
+    }
+
     @Test
     public void testFailoverInstanceResolution() throws SQLException {
         long timerEnd = 0;
-
         long timerStart = System.currentTimeMillis();
+
         // Try a non existing server and see if the default timeout is 15 seconds
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
                 + ";databaseName=FailoverDB_abc;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
 
-        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+        verifyTimeout(timerEnd - timerStart, defaultTimeout * 2);
     }
 
     @Test
@@ -143,11 +208,8 @@ public class TimeoutTest extends AbstractTest {
     }
 
     private void verifyTimeout(long timeDiff, int timeout) {
-        // Verify that login timeout does not take less than <timeout> seconds.
-        assertTrue(timeDiff > (timeout - 1) * 1000);
-
-        // Verify that login timeout does not take longer than <timeout * 2> seconds.
-        assertTrue(timeDiff < timeout * 2000);
+        assertTrue(timeDiff < TimeUnit.SECONDS.toMillis(timeout),
+                "timeout: " + TimeUnit.SECONDS.toMillis(timeout) + " timediff: " + timeDiff);
     }
 
     /**
