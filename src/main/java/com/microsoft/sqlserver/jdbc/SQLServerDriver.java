@@ -401,24 +401,39 @@ enum SQLServerDriverStringProperty {
 enum SQLServerDriverIntProperty {
     PACKET_SIZE("packetSize", TDS.DEFAULT_PACKET_SIZE),
     LOCK_TIMEOUT("lockTimeout", -1),
-    LOGIN_TIMEOUT("loginTimeout", 15),
+    LOGIN_TIMEOUT("loginTimeout", 15, 0, 65535),
     QUERY_TIMEOUT("queryTimeout", -1),
     PORT_NUMBER("portNumber", 1433),
     SOCKET_TIMEOUT("socketTimeout", 0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),;
+    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
+    CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
 
     private final String name;
     private final int defaultValue;
+    private int minValue = -1; // not assigned
+    private int maxValue = -1; // not assigned
 
     private SQLServerDriverIntProperty(String name, int defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
     }
 
+    private SQLServerDriverIntProperty(String name, int defaultValue, int minValue, int maxValue) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+    }
+
     int getDefaultValue() {
         return defaultValue;
+    }
+
+    boolean isValidValue(int value) {
+        return (minValue == -1 && maxValue == -1) || (value >= minValue && value <= maxValue);
     }
 
     @Override
@@ -654,7 +669,12 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
-                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),};
+                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false,
+                    null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
