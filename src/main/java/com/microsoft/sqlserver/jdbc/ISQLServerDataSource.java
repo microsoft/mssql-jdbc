@@ -152,7 +152,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled@Override .
+     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @return true if trustServerCertificate is enabled. Otherwise, false.
      */
