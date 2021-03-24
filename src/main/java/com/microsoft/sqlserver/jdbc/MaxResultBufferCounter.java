@@ -21,10 +21,10 @@ public class MaxResultBufferCounter implements ICounter {
     private final long maxResultBuffer;
 
     /**
-     * Sets the value of the max result buffer counter
+     * Creates a MaxResultBufferCounter with the given max results buffer
      * 
      * @param maxResultBuffer
-     *        max result buffer counter
+     *        max result buffer
      */
     public MaxResultBufferCounter(long maxResultBuffer) {
         this.maxResultBuffer = maxResultBuffer;
