@@ -139,7 +139,7 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
 
         // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
-        int connectRetryCount = new Random().nextInt(255);
+        int connectRetryCount = new Random().nextInt(256);
         int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
@@ -162,7 +162,7 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
 
         // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
-        int connectRetryCount = new Random().nextInt(255);
+        int connectRetryCount = new Random().nextInt(256);
         int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
 
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -192,7 +192,7 @@ public class TimeoutTest extends AbstractTest {
         // non existent server with very short loginTimeout so there is no time to do all retries
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
-                        + "connectRetryCount=" + (new Random().nextInt(255)) + ";connectRetryInterval="
+                        + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval="
                         + (new Random().nextInt(defaultTimeout - 1) + 1) + ";loginTimeout=" + loginTimeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
