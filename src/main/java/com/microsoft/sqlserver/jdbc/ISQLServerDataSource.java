@@ -1006,7 +1006,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     boolean getDelayLoadingLobs();
 
-    /*
+    /**
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
      * 
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
@@ -1060,7 +1060,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMaxResultBuffer();
 
     /**
-     * Specifies value for 'maxResultBuffer' property
+     * Sets the value for 'maxResultBuffer' property
      *
      * @param maxResultBuffer
      *        String value for 'maxResultBuffer'
@@ -1068,22 +1068,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setMaxResultBuffer(String maxResultBuffer);
 
     /**
-     * Sets the number of reconnection attempts if there is a connection failure
+     * Sets the 'connectRetryCount' property that specifies the number of reconnection attempts if there is a connection
+     * failure
+     * 
+     * @param count
+     *        the number of reconnection attempts if there is a connection failure
      */
     void setConnectRetryCount(int count);
 
     /**
-     * Returns the number of reconnection attempts if there is a connection failure
+     * Returns the value of 'connectRetryCount' property
+     * 
+     * @return 'connectRetryCount' property.
      */
     int getConnectRetryCount();
 
     /**
-     * Sets the number of seconds between each connection retry attempt
+     * Sets the 'connectRetryInterval' property that specifies the number of seconds between each connection retry
+     * attempt
+     * 
+     * @param interval
+     *        the number of seconds between each connection retry attempt
      */
     void setConnectRetryInterval(int interval);
 
     /**
-     * Returns the number of seconds between each connection retry attempt
+     * Returns the value of 'connectRetryInterval' property
+     * 
+     * @return 'connectRetryInterval' property.
      */
     int getConnectRetryInterval();
 }

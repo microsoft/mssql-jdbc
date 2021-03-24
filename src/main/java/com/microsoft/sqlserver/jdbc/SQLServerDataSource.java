@@ -40,20 +40,19 @@ public class SQLServerDataSource
      */
     private static final long serialVersionUID = 654861379544314296L;
 
-    private Properties connectionProps; // Properties passed to
-                                        // SQLServerConnection class.
-    private String dataSourceURL; // URL for datasource.
-    private String dataSourceDescription; // Description for datasource.
-    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0); // Unique
-                                                                                // id
-                                                                                // generator
-                                                                                // for
-                                                                                // each
-                                                                                // DataSource
-                                                                                // instance
-                                                                                // (used
-                                                                                // for
-                                                                                // logging).
+    // Properties passed to SQLServerConnection class
+    private Properties connectionProps;
+
+    // URL for datasource
+    private String dataSourceURL;
+
+    // Description for datasource.
+    private String dataSourceDescription;
+
+    /*
+     * Unique id generator for each DataSource instance (used for logging).
+     */
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);
     final private String traceID;
 
     /**
@@ -1074,11 +1073,8 @@ public class SQLServerDataSource
 
     @Override
     public int getConnectRetryCount() {
-        int defaultCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
-        final int count = getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
-                defaultCount);
-        // even if the user explicitly sets the timeout to zero, convert to 15
-        return (count == 0) ? defaultCount : count;
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue());
     }
 
     @Override
@@ -1088,10 +1084,8 @@ public class SQLServerDataSource
 
     @Override
     public int getConnectRetryInterval() {
-        int defaultInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
-        final int interval = getIntProperty(connectionProps,
-                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), defaultInterval);
-        return (interval == 0) ? defaultInterval : interval;
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
     }
 
     /**
