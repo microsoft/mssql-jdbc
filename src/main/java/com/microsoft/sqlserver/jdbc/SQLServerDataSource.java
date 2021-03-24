@@ -1067,6 +1067,33 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(), maxResultBuffer);
     }
 
+    @Override
+    public void setConnectRetryCount(int count) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(), count);
+    }
+
+    @Override
+    public int getConnectRetryCount() {
+        int defaultCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
+        final int count = getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                defaultCount);
+        // even if the user explicitly sets the timeout to zero, convert to 15
+        return (count == 0) ? defaultCount : count;
+    }
+
+    @Override
+    public void setConnectRetryInterval(int interval) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), interval);
+    }
+
+    @Override
+    public int getConnectRetryInterval() {
+        int defaultInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+        final int interval = getIntProperty(connectionProps,
+                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), defaultInterval);
+        return (interval == 0) ? defaultInterval : interval;
+    }
+
     /**
      * Sets a property string value.
      * 

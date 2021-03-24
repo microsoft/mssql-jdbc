@@ -152,7 +152,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled@Override .
      * 
      * @return true if trustServerCertificate is enabled. Otherwise, false.
      */
@@ -1008,7 +1008,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /*
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
-     * 
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
@@ -1066,4 +1065,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        String value for 'maxResultBuffer'
      */
     void setMaxResultBuffer(String maxResultBuffer);
+
+    /**
+     * Sets the number of reconnection attempts if there is a connection failure
+     */
+    void setConnectRetryCount(int count);
+
+    /**
+     * Returns the number of reconnection attempts if there is a connection failure
+     */
+    int getConnectRetryCount();
+
+    /**
+     * Sets the number of seconds between each connection retry attempt
+     */
+    void setConnectRetryInterval(int interval);
+
+    /**
+     * Returns the number of seconds between each connection retry attempt
+     */
+    int getConnectRetryInterval();
 }

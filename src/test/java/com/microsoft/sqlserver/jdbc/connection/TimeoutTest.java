@@ -22,6 +22,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -144,6 +145,33 @@ public class TimeoutTest extends AbstractTest {
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + ";logintimeout=" + defaultTimeout + ";connectRetryCount=" + connectRetryCount
                         + ";connectRetryInterval=" + connectRetryInterval)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            timerEnd = System.currentTimeMillis();
+        }
+
+        // connect + all retries should always be <= loginTimeout
+        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+    }
+
+    // Test connect retry for database error using Datasource
+    @Test
+    public void testConnectRetryServerErrorDS() {
+        long timerEnd = 0;
+        long timerStart = System.currentTimeMillis();
+
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
+        int connectRetryCount = new Random().nextInt(255);
+        int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+        String connectStr = TestUtils.addOrOverrideProperty(connectionString, "database",
+                RandomUtil.getIdentifier("database")) + ";logintimeout=" + defaultTimeout + ";connectRetryCount="
+                + connectRetryCount + ";connectRetryInterval=" + connectRetryInterval;
+        updateDataSource(connectStr, ds);
+
+        try (Connection con = PrepUtil.getConnection(connectStr)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
