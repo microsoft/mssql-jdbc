@@ -1067,6 +1067,17 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(), maxResultBuffer);
     }
 
+    @Override
+    public boolean getCreateDatabaseIfNotExist() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString(),
+                SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue());
+    }
+
+    @Override
+    public void setCreateDatabaseIfNotExist(boolean createDatabaseIfNotExist) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString(), createDatabaseIfNotExist);
+    }
+
     /**
      * Sets a property string value.
      * 

@@ -1066,4 +1066,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        String value for 'maxResultBuffer'
      */
     void setMaxResultBuffer(String maxResultBuffer);
+
+    /**
+     * Returns value of 'createDatabaseIfNotExists' from Connection String.
+     *
+     * @return 'createDatabaseIfNotExists' property.
+     */
+    boolean getCreateDatabaseIfNotExist();
+
+    /**
+     * Specifies value for 'createDatabaseIfNotExist' property
+     *
+     * @param createDatabaseIfNotExist
+     *        Boolean value for 'createDatabaseIfNotExist' property
+     */
+    void setCreateDatabaseIfNotExist(boolean createDatabaseIfNotExist);
 }

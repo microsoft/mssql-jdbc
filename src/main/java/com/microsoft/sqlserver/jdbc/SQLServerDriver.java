@@ -460,7 +460,8 @@ enum SQLServerDriverBooleanProperty {
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
-    DELAY_LOADING_LOBS("delayLoadingLobs", true);
+    DELAY_LOADING_LOBS("delayLoadingLobs", true),
+    CREATE_DATABASE_IF_NOT_EXISTS("createDatabaseIfNotExist", false);
 
     private final String name;
     private final boolean defaultValue;
@@ -658,6 +659,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue()), false,
+                    TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue()), false,
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(
                     SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),

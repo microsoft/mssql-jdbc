@@ -727,6 +727,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    private boolean createDatabaseIfNotExist = SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue();
+
+    public boolean getCreateDatabaseIfNotExist() {
+        return createDatabaseIfNotExist;
+    }
+
+    public void setCreateDatabaseIfNotExist(boolean createDatabaseIfNotExist) {
+        this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    }
+
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
@@ -1569,6 +1579,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = "localhost";
             }
 
+
+
             String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
             String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
 
@@ -1611,6 +1623,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             if (null != sPropValuePort) {
                 trustedServerNameAE += ":" + sPropValuePort;
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
 
             sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
@@ -4119,6 +4138,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             federatedAuthenticationRequested = true;
         }
         try {
+            if (Boolean.parseBoolean(activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString()))) {
+                String databaseName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString());
+
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), "master");
+
+                sendLogon(command, authentication, fedAuthFeatureExtensionData);
+                connectionCommand("IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '" + databaseName + "')\n" + "BEGIN\n" + "CREATE DATABASE " + databaseName + " \n" + "END", "createDatabaseIfNotExists");
+
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), databaseName);
+            }
+
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
             /*
              * If we got routed in the current attempt, the server closes the connection. So, we should not be sending
