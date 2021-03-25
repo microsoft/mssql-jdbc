@@ -719,6 +719,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    private boolean createDatabaseIfNotExist = SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue();
+
+    public boolean getCreateDatabaseIfNotExist() {
+        return createDatabaseIfNotExist;
+    }
+
+    public void setCreateDatabaseIfNotExist(boolean createDatabaseIfNotExist) {
+        this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    }
+
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
@@ -1570,6 +1580,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null == sPropValue) {
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+
+            sPropKey = SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
 

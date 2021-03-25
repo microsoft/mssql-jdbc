@@ -445,7 +445,8 @@ enum SQLServerDriverBooleanProperty {
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
-    DELAY_LOADING_LOBS("delayLoadingLobs", true);
+    DELAY_LOADING_LOBS("delayLoadingLobs", true),
+    CREATE_DATABASE_IF_NOT_EXISTS("createDatabaseIfNotExist", false);
 
     private final String name;
     private final boolean defaultValue;
@@ -654,7 +655,10 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
-                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),};
+                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.getDefaultValue()), false, TRUE_FALSE),
+    };
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
