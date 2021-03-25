@@ -4082,6 +4082,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             federatedAuthenticationRequested = true;
         }
         try {
+            if (Boolean.parseBoolean(activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.CREATE_DATABASE_IF_NOT_EXISTS.toString()))) {
+                String databaseName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString());
+
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), "tempdb");
+
+                sendLogon(command, authentication, fedAuthFeatureExtensionData);
+                connectionCommand("IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '" + databaseName + "')\n" + "BEGIN\n" + "CREATE DATABASE " + databaseName + " \n" + "END", "createDatabaseIfNotExists");
+
+                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), databaseName);
+            }
+
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
             /*
              * If we got routed in the current attempt, the server closes the connection. So, we should not be sending
