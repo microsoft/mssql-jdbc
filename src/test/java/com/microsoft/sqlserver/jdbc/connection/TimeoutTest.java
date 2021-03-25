@@ -236,7 +236,8 @@ public class TimeoutTest extends AbstractTest {
     }
 
     private void verifyTimeout(long timeDiff, int timeout) {
-        assertTrue(timeDiff < TimeUnit.SECONDS.toMillis(timeout),
+        // Verify that login timeout does not take longer than <timeout * 2> seconds.
+        assertTrue(timeDiff < TimeUnit.SECONDS.toMillis(timeout * 2),
                 "timeout: " + TimeUnit.SECONDS.toMillis(timeout) + " timediff: " + timeDiff);
     }
 
