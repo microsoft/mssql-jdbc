@@ -17,6 +17,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  */
 public class SensitivityClassification {
 
+    /**
+     * Sensitivity Rank
+     * 
+     * https://docs.microsoft.com/sql/relational-databases/system-catalog-views/sys-sensitivity-classifications-transact-sql
+     *
+     */
     public enum SensitivityRank {
         NOT_DEFINED(-1),
         NONE(0),
