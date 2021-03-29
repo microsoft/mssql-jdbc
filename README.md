@@ -92,7 +92,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.1.1.jre15-preview</version>
+	<version>9.3.0.jre15-preview</version>
 </dependency>
 ```
 
