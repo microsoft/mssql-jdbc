@@ -1292,13 +1292,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-
         String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-        if (null != sPropValue && sPropValue.length() > 0) {
-            int sPropValueInt = Integer.parseInt(sPropValue);
-            if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
-                loginTimeoutSeconds = sPropValueInt;
+        try {
+            if (null != sPropValue && sPropValue.length() > 0) {
+                int sPropValueInt = Integer.parseInt(sPropValue);
+                if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                    loginTimeoutSeconds = sPropValueInt;
+                }
             }
+        } catch (NumberFormatException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+            Object[] msgArgs = {sPropValue};
+            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
         }
 
         long elapsedSeconds = 0;
