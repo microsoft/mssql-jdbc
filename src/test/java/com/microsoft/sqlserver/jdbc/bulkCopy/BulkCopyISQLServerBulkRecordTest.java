@@ -6,6 +6,9 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.sql.JDBCType;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +46,28 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             dstTable = new DBTable(true);
             stmt.createTable(dstTable);
             BulkData Bdata = new BulkData(dstTable);
+
+            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
+            bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
+            bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
+            bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
+            BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
+        } finally {
+            if (null != dstTable) {
+                try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+                    stmt.dropTable(dstTable);
+                }
+            }
+        }
+    }
+    
+    @Test
+    public void testBulkCopyDateTimePrecision() throws SQLException {
+    	DBTable dstTable = null;
+    	try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
+            dstTable = new DBTable(false, false, false, true);
+            stmt.createTable(dstTable);
+            BulkData Bdata = new BulkData(dstTable, true);
 
             BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
             bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
@@ -113,6 +138,39 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                         } else {
                             CurrentRow[j] = sqlType.createdata();
                         }
+                    }
+                }
+                data.add(CurrentRow);
+            }
+        }
+        
+        BulkData(DBTable dstTable, boolean dtTest) {
+            columnMetadata = new HashMap<>();
+            totalColumn = dstTable.totalColumns();
+
+            // add metadata
+            for (int i = 0; i < totalColumn; i++) {
+                SqlType sqlType = dstTable.getSqlType(i);
+                int precision = sqlType.getPrecision();
+                if (JDBCType.TIMESTAMP == sqlType.getJdbctype()) {
+                    // TODO: update the test to use correct precision once bulkCopy is fixed
+                    precision = 50;
+                }
+                columnMetadata.put(i + 1, new ColumnMetadata(sqlType.getName(),
+                        sqlType.getJdbctype().getVendorTypeNumber(), precision, sqlType.getScale()));
+            }
+            
+            // add data
+            rowCount = dstTable.getTotalRows();
+            data = new ArrayList<>(rowCount);
+            for (int i = 0; i < rowCount; i++) {
+                Object[] CurrentRow = new Object[totalColumn];
+                for (int j = 0; j < totalColumn; j++) {
+                    if (j == 0) {
+                        CurrentRow[j] = i + 1;
+                    } else {
+                        CurrentRow[j] = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                        		Constants.RANDOM.nextInt(60), 123456700));
                     }
                 }
                 data.add(CurrentRow);

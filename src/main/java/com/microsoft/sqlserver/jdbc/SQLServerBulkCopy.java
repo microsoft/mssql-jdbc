@@ -25,6 +25,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.DateTimeException;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
@@ -2285,6 +2287,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             String colValueStr = colValue.toString();
+                            
+                            // Remove extra trailing zeros added from toString
+                            if (colValue instanceof LocalDateTime || colValue instanceof LocalTime) {
+                            	colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$","").replaceAll("\\.$","") : colValueStr;
+                            }
+                            
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValue.toString().length();
                                 byte[] typevarlen = new byte[2];

@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.sqlType.SqlInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 import com.microsoft.sqlserver.testframework.sqlType.VariableLengthType;
 
@@ -85,6 +86,28 @@ public class DBTable extends AbstractSQLGenerator {
         }
         this.totalColumns = columns.size();
     }
+    
+    /**
+     * Initializes {@link DBTable} with tableName, schema, and {@link DBColumns}
+     * 
+     * @param autoGenerateSchema
+     *        <code>true</code>: generates schema with all available dataTypes in SqlType class
+     * @param unicode
+     *        <code>true</code>: sets unicode column names if autoGenerateSchema is also set to <code>true</code>
+     * @param alternateShcema
+     *        <code>true</code>: creates table with alternate schema
+     * @param dtSchema
+     *        <code>true</code>: creates table with datetime2 schema
+     */
+    public DBTable(boolean autoGenerateSchema, boolean unicode, boolean alternateSchema, boolean dtSchema) {
+
+        this.tableName = RandomUtil.getIdentifier("table");
+        this.escapedTableName = escapeIdentifier(tableName);
+        this.escapedQuotesTableName = TestUtils.escapeSingleQuotes(escapedTableName);
+        this.schema = new DBSchema(autoGenerateSchema, alternateSchema, dtSchema);
+        addColumns();
+        this.totalColumns = columns.size();
+    }
 
     /**
      * Similar to {@link DBTable#DBTable(boolean)}, but uses existing list of columns Used internally to clone schema
@@ -108,7 +131,7 @@ public class DBTable extends AbstractSQLGenerator {
         columns = new ArrayList<>(totalColumns);
 
         // Add RowID column
-        SqlType sqlType = schema.getSqlType(1); // Type SqlInt
+        SqlType sqlType = new SqlInt(); // Type SqlInt
         DBColumn column = new DBColumn(RandomUtil.getIdentifier("RowID"), sqlType);
         columns.add(column);
 
