@@ -16,8 +16,11 @@ import java.util.UUID;
  */
 public interface ISQLServerConnection extends java.sql.Connection {
 
-    // Transaction types.
-    // TRANSACTION_SNAPSHOT corresponds to -> SET TRANSACTION ISOLATION LEVEL SNAPSHOT
+    /**
+     * Transaction types
+     * 
+     * "TRANSACTION_SNAPSHOT corresponds to" "SET TRANSACTION ISOLATION LEVEL SNAPSHOT"
+     */
     int TRANSACTION_SNAPSHOT = 0x1000;
 
     /**
@@ -358,7 +361,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'useFmtOnly'.
      */
     void setUseFmtOnly(boolean useFmtOnly);
-    
+
     /**
      * Returns the current flag value for delayLoadingLobs.
      *

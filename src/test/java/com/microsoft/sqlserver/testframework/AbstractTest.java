@@ -365,6 +365,12 @@ public abstract class AbstractTest {
                         case Constants.MAX_RESULT_BUFFER:
                             ds.setMaxResultBuffer(value);
                             break;
+                        case Constants.CONNECT_RETRY_COUNT:
+                            ds.setConnectRetryCount(Integer.parseInt(value));
+                            break;
+                        case Constants.CONNECT_RETRY_INTERVAL:
+                            ds.setConnectRetryInterval(Integer.parseInt(value));
+                            break;
                         default:
                             break;
                     }

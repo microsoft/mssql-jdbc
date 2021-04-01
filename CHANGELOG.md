@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.3.0] Preview Release
+### Added
+- Added Open Connection Retry feature [#1535](https://github.com/microsoft/mssql-jdbc/pull/1535)
+- Added server recognition for Azure Synapse serverless SQL pool, and Azure SQL Edge [#1543](https://github.com/microsoft/mssql-jdbc/pull/1543)
+
+### Fixed issues
+- Fixed potential integer overflow in TDSWriter.writeString() [#1531](https://github.com/microsoft/mssql-jdbc/pull/1531)
+
 ## [9.2.1] HotFix & Stable Release
 ### Fixed issues
 - Fixed an issue with client secret being empty during ActiveDirectoryServicePrincipal authentication in Azure environment. [#1519](https://github.com/microsoft/mssql-jdbc/pull/1519)

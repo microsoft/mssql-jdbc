@@ -3940,7 +3940,7 @@ final class TDSWriter {
         int charsCopied = 0;
         int length = value.length();
         while (charsCopied < length) {
-            int bytesToCopy = 2 * (length - charsCopied);
+            long bytesToCopy = 2 * (length - charsCopied);
 
             if (bytesToCopy > valueBytes.length)
                 bytesToCopy = valueBytes.length;
