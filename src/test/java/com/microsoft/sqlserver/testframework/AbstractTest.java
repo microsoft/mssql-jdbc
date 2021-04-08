@@ -58,6 +58,7 @@ public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
+    protected static String tenantID;
     protected static String[] keyIDs = null;
 
     protected static String[] enclaveServer = null;
@@ -70,13 +71,12 @@ public abstract class AbstractTest {
 
     protected static String trustStorePath = "";
 
+    protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
-
-    protected static String windowsKeyPath = null;
 
     // properties needed for MSI
     protected static String msiClientId = null;
@@ -105,6 +105,10 @@ public abstract class AbstractTest {
     private static PrintStream logPrintStream = null;
     private static Properties configProperties = null;
 
+    protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    public static Properties properties = null;
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -129,7 +133,10 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+        tenantID = getConfiguredProperty("tenantID");
+
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
@@ -346,8 +353,24 @@ public abstract class AbstractTest {
                         case Constants.CLIENT_KEY_PASSWORD:
                             ds.setClientKeyPassword(value);
                             break;
+                        case Constants.AAD_SECURE_PRINCIPAL_ID:
+                            ds.setAADSecurePrincipalId(value);
+                            break;
+                        case Constants.AAD_SECURE_PRINCIPAL_SECRET:
+                            ds.setAADSecurePrincipalSecret(value);
+                            break;
                         case Constants.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY:
                             ds.setSendTemporalDataTypesAsStringForBulkCopy(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.MAX_RESULT_BUFFER:
+                            ds.setMaxResultBuffer(value);
+                            break;
+                        case Constants.CONNECT_RETRY_COUNT:
+                            ds.setConnectRetryCount(Integer.parseInt(value));
+                            break;
+                        case Constants.CONNECT_RETRY_INTERVAL:
+                            ds.setConnectRetryInterval(Integer.parseInt(value));
+                            break;
                         default:
                             break;
                     }
@@ -565,7 +588,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value or default value
      */
-    private static String getConfiguredProperty(String key, String defaultValue) {
+    protected static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (null == value) {

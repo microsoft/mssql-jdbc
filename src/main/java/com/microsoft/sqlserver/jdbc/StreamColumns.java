@@ -12,6 +12,7 @@ import com.microsoft.sqlserver.jdbc.dataclassification.ColumnSensitivity;
 import com.microsoft.sqlserver.jdbc.dataclassification.InformationType;
 import com.microsoft.sqlserver.jdbc.dataclassification.Label;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification.SensitivityRank;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityProperty;
 
 
@@ -28,6 +29,8 @@ final class StreamColumns extends StreamPacket {
     private CekTable cekTable = null;
 
     private boolean shouldHonorAEForRead = false;
+
+    private boolean sensitivityRankSupported = false;
 
     /* Returns the CekTable */
     CekTable getCekTable() {
@@ -274,8 +277,12 @@ final class StreamColumns extends StreamPacket {
             informationTypes.add(readSensitivityInformationType(tdsReader));
         }
 
+        sensitivityRankSupported = tdsReader
+                .getServerSupportedDataClassificationVersion() >= TDS.DATA_CLASSIFICATION_VERSION_ADDED_RANK_SUPPORT;
+
+        // get sensitivity rank if supported
         int sensitivityRank = SensitivityRank.NOT_DEFINED.getValue();
-        if (TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION <= tdsReader.getServerSupportedDataClassificationVersion()) {
+        if (sensitivityRankSupported) {
             sensitivityRank = tdsReader.readInt();
             if (!SensitivityRank.isValid(sensitivityRank)) {
                 tdsReader.throwInvalidTDS();
@@ -311,21 +318,28 @@ final class StreamColumns extends StreamPacket {
                     informationType = informationTypes.get(informationTypeIndex);
                 }
 
-                if (TDS.MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION <= tdsReader
-                        .getServerSupportedDataClassificationVersion()) {
-                    sensitivityRank = tdsReader.readInt();
-                    if (!SensitivityRank.isValid(sensitivityRank)) {
+                int sensitivityRankProperty = SensitivityRank.NOT_DEFINED.getValue();
+                if (sensitivityRankSupported) {
+                    sensitivityRankProperty = tdsReader.readInt();
+                    if (!SensitivityRank.isValid(sensitivityRankProperty)) {
                         tdsReader.throwInvalidTDS();
                     }
+                    // add sensitivity properties for the source
+                    sensitivityProperties.add(new SensitivityProperty(label, informationType, sensitivityRankProperty));
+                } else {
+                    sensitivityProperties.add(new SensitivityProperty(label, informationType));
                 }
-
-                // add sensitivity properties for the source
-                sensitivityProperties.add(new SensitivityProperty(label, informationType, sensitivityRank));
             }
             columnSensitivities.add(new ColumnSensitivity(sensitivityProperties));
         }
-        sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
-                columnSensitivities);
+        if (sensitivityRankSupported) {
+            sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
+                    columnSensitivities, sensitivityRank);
+        } else {
+            sensitivityClassification = new SensitivityClassification(sensitivityLabels, informationTypes,
+                    columnSensitivities);
+        }
+
         return sensitivityClassification;
     }
 

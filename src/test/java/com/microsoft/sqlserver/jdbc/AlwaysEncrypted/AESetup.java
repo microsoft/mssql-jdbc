@@ -70,9 +70,6 @@ public class AESetup extends AbstractTest {
     static Properties AEInfo;
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
 
-    // test that only run on Windows will be skipped
-    static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-
     public static final String tableName = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils

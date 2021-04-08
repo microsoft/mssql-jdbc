@@ -10,10 +10,10 @@ jobs:
     matrix:
       SQL-2019:
         Target_SQL: 'HGS-2k19-01'
-        Ex_Groups: 'xSQLv15,MSI,clientCertAuth'
+        Ex_Groups: 'xSQLv15,MSI,clientCertAuth,fedAuth'
       SQL-2012:
         Target_SQL: 'SQL-2K12-SP3-1'
-        Ex_Groups: 'xSQLv12,MSI'
+        Ex_Groups: 'xSQLv12,MSI,fedAuth'
     maxParallel: 2
   steps:
   - powershell: |
@@ -34,33 +34,38 @@ jobs:
     displayName: 'Download PKCS12 truststore file'
     inputs:
       secureFile: 'pkcs12_truststore'
+  - task: DownloadSecureFile@1
+    name: authDLL
+    displayName: 'Download mssql-jdbc_auth DLL'
+    inputs:
+      secureFile: 'mssql-jdbc_auth-9.3.0.x64-preview.dll'
   - task: Maven@3
-    displayName: 'Maven build jre14'
+    displayName: 'Maven build jre15'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre14 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath) 
--DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
+      goals: 'clean dependency:purge-local-repository -DdllPath=$(Agent.TempDirectory) -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre15 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)
+-DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DtenantID=$(tenantID) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Maven build jre14'
+      testRunTitle: 'Maven build jre15'
       javaHomeOption: Path
-      jdkDirectory: $(JDK14)
+      jdkDirectory: $(JDK15)
   - task: Maven@3
     displayName: 'Maven build jre11'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre11 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)
--DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
+      goals: 'clean dependency:purge-local-repository -DdllPath=$(Agent.TempDirectory) -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre11 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)
+-DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DtenantID=$(tenantID) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK14)
+      jdkDirectory: $(JDK15)
   - task: Maven@3
     displayName: 'Maven build jre8'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre8 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath) 
--DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
+      goals: 'clean dependency:purge-local-repository -DdllPath=$(Agent.TempDirectory) -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre8 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath) 
+-DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DtenantID=$(tenantID) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre8'
       javaHomeOption: Path
-      jdkDirectory: $(JDK14)
+      jdkDirectory: $(JDK15)

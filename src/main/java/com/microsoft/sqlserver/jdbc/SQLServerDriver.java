@@ -65,7 +65,9 @@ enum SqlAuthentication {
     SqlPassword,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI;
+    ActiveDirectoryMSI,
+    ActiveDirectoryServicePrincipal,
+    ActiveDirectoryInteractive;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -82,6 +84,12 @@ enum SqlAuthentication {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
             method = SqlAuthentication.ActiveDirectoryMSI;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+            method = SqlAuthentication.ActiveDirectoryServicePrincipal;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
+            method = SqlAuthentication.ActiveDirectoryInteractive;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -366,7 +374,10 @@ enum SQLServerDriverStringProperty {
     KEY_STORE_PRINCIPAL_ID("keyStorePrincipalId", ""),
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
-    CLIENT_KEY_PASSWORD("clientKeyPassword", "");
+    CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
+    AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
+    AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
     private final String name;
     private final String defaultValue;
@@ -390,24 +401,39 @@ enum SQLServerDriverStringProperty {
 enum SQLServerDriverIntProperty {
     PACKET_SIZE("packetSize", TDS.DEFAULT_PACKET_SIZE),
     LOCK_TIMEOUT("lockTimeout", -1),
-    LOGIN_TIMEOUT("loginTimeout", 15),
+    LOGIN_TIMEOUT("loginTimeout", 15, 0, 65535),
     QUERY_TIMEOUT("queryTimeout", -1),
     PORT_NUMBER("portNumber", 1433),
     SOCKET_TIMEOUT("socketTimeout", 0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),;
+    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
+    CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
 
     private final String name;
     private final int defaultValue;
+    private int minValue = -1; // not assigned
+    private int maxValue = -1; // not assigned
 
     private SQLServerDriverIntProperty(String name, int defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
     }
 
+    private SQLServerDriverIntProperty(String name, int defaultValue, int minValue, int maxValue) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+    }
+
     int getDefaultValue() {
         return defaultValue;
+    }
+
+    boolean isValidValue(int value) {
+        return (minValue == -1 && maxValue == -1) || (value >= minValue && value <= maxValue);
     }
 
     @Override
@@ -451,36 +477,6 @@ enum SQLServerDriverBooleanProperty {
     @Override
     public String toString() {
         return name;
-    }
-}
-
-
-enum SensitivityRank {
-    NOT_DEFINED(-1),
-    NONE(0),
-    LOW(10),
-    MEDIUM(20),
-    HIGH(30),
-    CRITICAL(40);
-
-    private static final SensitivityRank[] VALUES = values();
-    private int rank;
-
-    private SensitivityRank(int rank) {
-        this.rank = rank;
-    }
-
-    public int getValue() {
-        return rank;
-    }
-
-    static boolean isValid(int rank) throws SQLServerException {
-        for (SensitivityRank r : VALUES) {
-            if (r.getValue() == rank) {
-                return true;
-            }
-        }
-        return false;
     }
 }
 
@@ -612,7 +608,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
-                            SqlAuthentication.ActiveDirectoryMSI.toString()}),
+                            SqlAuthentication.ActiveDirectoryMSI.toString(),
+                            SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
+                            SqlAuthentication.ActiveDirectoryInteractive.toString()}),
+
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
@@ -664,7 +663,18 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY
                             .getDefaultValue()),
-                    false, TRUE_FALSE),};
+                    false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
+                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
+                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false,
+                    null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

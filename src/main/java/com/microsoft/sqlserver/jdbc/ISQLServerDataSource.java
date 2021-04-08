@@ -1006,7 +1006,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     boolean getDelayLoadingLobs();
 
-    /*
+    /**
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
      * 
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
@@ -1021,4 +1021,81 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
+    /**
+     * Returns the value for the connection property 'AADSecurePrincipalId'.
+     *
+     * @return 'AADSecurePrincipalId' property value.
+     */
+    String getAADSecurePrincipalId();
+
+    /**
+     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
+     *
+     * @param AADSecurePrincipalId
+     *        Active Directory Service Principal Id.
+     */
+    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'AADSecurePrincipalSecret'.
+     *
+     * @return 'AADSecurePrincipalSecret' property value.
+     */
+    String getAADSecurePrincipalSecret();
+
+    /**
+     * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
+     * authentication.
+     *
+     * @param AADSecurePrincipalSecret
+     *        Active Directory Service Principal secret.
+     */
+    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+
+    /**
+     * Returns value of 'maxResultBuffer' from Connection String.
+     *
+     * @return 'maxResultBuffer' property.
+     */
+    String getMaxResultBuffer();
+
+    /**
+     * Sets the value for 'maxResultBuffer' property
+     *
+     * @param maxResultBuffer
+     *        String value for 'maxResultBuffer'
+     */
+    void setMaxResultBuffer(String maxResultBuffer);
+
+    /**
+     * Sets the 'connectRetryCount' property that specifies the number of reconnection attempts if there is a connection
+     * failure
+     * 
+     * @param count
+     *        the number of reconnection attempts if there is a connection failure
+     */
+    void setConnectRetryCount(int count);
+
+    /**
+     * Returns the value of 'connectRetryCount' property
+     * 
+     * @return 'connectRetryCount' property.
+     */
+    int getConnectRetryCount();
+
+    /**
+     * Sets the 'connectRetryInterval' property that specifies the number of seconds between each connection retry
+     * attempt
+     * 
+     * @param interval
+     *        the number of seconds between each connection retry attempt
+     */
+    void setConnectRetryInterval(int interval);
+
+    /**
+     * Returns the value of 'connectRetryInterval' property
+     * 
+     * @return 'connectRetryInterval' property.
+     */
+    int getConnectRetryInterval();
 }

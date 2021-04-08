@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
@@ -109,6 +110,9 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
+                                                                           // closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -126,6 +130,7 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_DATACLASSIFICATION = 0x09;
     static final byte DATA_CLASSIFICATION_NOT_ENABLED = 0x00;
     static final byte MAX_SUPPORTED_DATA_CLASSIFICATION_VERSION = 0x02;
+    static final byte DATA_CLASSIFICATION_VERSION_ADDED_RANK_SUPPORT = 0x02;
 
     static final int AES_256_CBC = 1;
     static final int AEAD_AES_256_CBC_HMAC_SHA256 = 2;
@@ -1485,12 +1490,20 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Forwarding ClientTrusted.");
             defaultTrustManager.checkClientTrusted(chain, authType);
+            // Explicitly validate the expiry dates
+            for (X509Certificate cert : chain) {
+                cert.checkValidity();
+            }
         }
 
         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Forwarding Trusting server certificate");
             defaultTrustManager.checkServerTrusted(chain, authType);
+            // Explicitly validate the expiry dates
+            for (X509Certificate cert : chain) {
+                cert.checkValidity();
+            }
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " default serverTrusted succeeded proceeding with server name validation");
 
@@ -2672,7 +2685,9 @@ final class SocketFinder {
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
         selectedSocket = getSocketFactory().createSocket();
-        selectedSocket.connect(addr, timeoutInMilliSeconds);
+        if (!selectedSocket.isConnected()) {
+            selectedSocket.connect(addr, timeoutInMilliSeconds);
+        }
         return selectedSocket;
     }
 
@@ -3136,12 +3151,26 @@ final class TDSWriter {
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
 
+    // Intermediate arrays
+    // It is assumed, startMessage is called before use, to alloc arrays
+    private char[] streamCharBuffer;
+    private byte[] streamByteBuffer;
+
     private CryptoMetadata cryptoMeta = null;
 
     TDSWriter(TDSChannel tdsChannel, SQLServerConnection con) {
         this.tdsChannel = tdsChannel;
         this.con = con;
         traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+    }
+
+    /**
+     * Checks If tdsMessageType is RPC or QUERY
+     * 
+     * @return boolean
+     */
+    boolean checkIfTdsMessageTypeIsBatchOrRPC() {
+        return tdsMessageType == TDS.PKT_QUERY || tdsMessageType == TDS.PKT_RPC;
     }
 
     // TDS message start/end operations
@@ -3223,6 +3252,8 @@ final class TDSWriter {
             stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             currentPacketSize = negotiatedPacketSize;
+            streamCharBuffer = new char[2 * currentPacketSize];
+            streamByteBuffer = new byte[4 * currentPacketSize];
         }
 
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
@@ -3613,11 +3644,10 @@ final class TDSWriter {
         int minutesOffset;
 
         /*
-         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't
-         * allow direct casting from java.sql.timestamp (which was created from a String).
-         * DateTimeOffset was never required to be constructed from a String, but with the
-         * introduction of extended bulk copy support for Azure DW, we now need to support this scenario.
-         * Parse the DTO as string if it's coming from a CSV.
+         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't allow direct
+         * casting from java.sql.timestamp (which was created from a String). DateTimeOffset was never required to be
+         * constructed from a String, but with the introduction of extended bulk copy support for Azure DW, we now need
+         * to support this scenario. Parse the DTO as string if it's coming from a CSV.
          */
         if (value instanceof String) {
             // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
@@ -3628,8 +3658,8 @@ final class TDSWriter {
                 String offsetString = stringValue.substring(lastColon - 3);
 
                 /*
-                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset
-                 * value has not been provided. Parse accordingly.
+                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset value
+                 * has not been provided. Parse accordingly.
                  */
                 String timestampString;
 
@@ -3646,11 +3676,10 @@ final class TDSWriter {
                 }
 
                 /*
-                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-                 * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-                 * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-                 * use a local time zone determined by the minutes offset of the value, since
-                 * the writers for those types expect local calendars.
+                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value,
+                 * since writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET
+                 * to other temporal data types, use a local time zone determined by the minutes offset of the value,
+                 * since the writers for those types expect local calendars.
                  */
                 timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                                  : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
@@ -3689,11 +3718,10 @@ final class TDSWriter {
             minutesOffset = dtoValue.getMinutesOffset();
 
             /*
-             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that
-             * will hold the value, since writeRPCDateTimeOffset expects a UTC calendar.
-             * Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
-             * use a local time zone determined by the minutes offset of the value, since
-             * the writers for those types expect local calendars.
+             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value, since
+             * writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET to other
+             * temporal data types, use a local time zone determined by the minutes offset of the value, since the
+             * writers for those types expect local calendars.
              */
             timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
@@ -3912,7 +3940,7 @@ final class TDSWriter {
         int charsCopied = 0;
         int length = value.length();
         while (charsCopied < length) {
-            int bytesToCopy = 2 * (length - charsCopied);
+            long bytesToCopy = 2 * (length - charsCopied);
 
             if (bytesToCopy > valueBytes.length)
                 bytesToCopy = valueBytes.length;
@@ -3994,10 +4022,6 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        char[] streamCharBuffer = new char[currentPacketSize];
-        // The unicode version, writeReader() allocates a byte buffer that is 4 times the currentPacketSize, not sure
-        // why.
-        byte[] streamByteBuffer = new byte[currentPacketSize];
         int charsRead = 0;
         int charsToWrite;
         int bytesToWrite;
@@ -4005,10 +4029,10 @@ final class TDSWriter {
 
         do {
             // Read in next chunk
-            for (charsToWrite = 0; -1 != charsRead && charsToWrite < streamCharBuffer.length;
+            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize;
                     charsToWrite += charsRead) {
                 try {
-                    charsRead = reader.read(streamCharBuffer, charsToWrite, streamCharBuffer.length - charsToWrite);
+                    charsRead = reader.read(streamCharBuffer, charsToWrite, currentPacketSize - charsToWrite);
                 } catch (IOException e) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {e.toString()};
@@ -4019,7 +4043,7 @@ final class TDSWriter {
                     break;
 
                 // Check for invalid bytesRead returned from Reader.read
-                if (charsRead < 0 || charsRead > streamCharBuffer.length - charsToWrite) {
+                if (charsRead < 0 || charsRead > currentPacketSize - charsToWrite) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {SQLServerException.getErrString("R_streamReadReturnedInvalidValue")};
                     error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
@@ -4049,7 +4073,7 @@ final class TDSWriter {
                 if (0 != charsToWrite)
                     bytesToWrite = charsToWrite / 2;
 
-                streamString = new String(streamCharBuffer);
+                streamString = new String(streamCharBuffer, 0, currentPacketSize);
                 byte[] bytes = ParameterUtils.HexToBin(streamString.trim());
                 writeInt(bytesToWrite);
                 writeBytes(bytes, 0, bytesToWrite);
@@ -4075,8 +4099,6 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        char[] streamCharBuffer = new char[2 * currentPacketSize];
-        byte[] streamByteBuffer = new byte[4 * currentPacketSize];
         int charsRead = 0;
         int charsToWrite;
         do {
@@ -6537,6 +6559,11 @@ final class TDSReader implements Serializable {
         // This action must be synchronized against against another thread calling
         // readAllPackets() to read in ALL of the remaining packets of the current response.
         if (null == consumedPacket.next) {
+            // if the read comes from getNext() and responseBuffering is Adaptive (in this place is), then reset Counter
+            // State
+            if (null != command && command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+                command.getCounter().resetCounter();
+            }
             readPacket();
 
             if (null == consumedPacket.next)
@@ -6630,6 +6657,11 @@ final class TDSReader implements Serializable {
         if (tdsChannel.isLoggingPackets()) {
             logBuffer = new byte[packetLength];
             System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE);
+        }
+
+        // if messageType is RPC or QUERY, then increment Counter's state
+        if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+            command.getCounter().increaseCounter(packetLength);
         }
 
         // Now for the payload...
@@ -7335,6 +7367,23 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected ArrayList<byte[]> enclaveCEKs;
+
+    // Counter reference, so maxResultBuffer property can by acknowledged
+    private ICounter counter;
+
+    ICounter getCounter() {
+        return counter;
+    }
+
+    void createCounter(ICounter previousCounter, Properties activeConnectionProperties) {
+        if (null == previousCounter) {
+            String maxResultBuffer = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString());
+            counter = new MaxResultBufferCounter(Long.parseLong(maxResultBuffer));
+        } else {
+            counter = previousCounter;
+        }
+    }
 
     /**
      * Creates this command with an optional timeout.

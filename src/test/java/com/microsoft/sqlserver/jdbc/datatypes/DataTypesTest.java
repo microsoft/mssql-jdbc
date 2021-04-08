@@ -1110,8 +1110,9 @@ public class DataTypesTest extends AbstractTest {
     @Test
     public void testParameterMetaData() throws Exception {
         try (Connection conn = getConnection()) {
-            for (TestValue value : TestValue.values())
+            for (TestValue value : TestValue.values()) {
                 value.sqlValue.verifyParameterMetaData(conn);
+            }
         } ;
     }
 

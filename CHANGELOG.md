@@ -3,6 +3,84 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.3.0] Preview Release
+### Added
+- Added Open Connection Retry feature [#1535](https://github.com/microsoft/mssql-jdbc/pull/1535)
+- Added server recognition for Azure Synapse serverless SQL pool, and Azure SQL Edge [#1543](https://github.com/microsoft/mssql-jdbc/pull/1543)
+
+### Fixed issues
+- Fixed potential integer overflow in TDSWriter.writeString() [#1531](https://github.com/microsoft/mssql-jdbc/pull/1531)
+
+## [9.2.1] HotFix & Stable Release
+### Fixed issues
+- Fixed an issue with client secret being empty during ActiveDirectoryServicePrincipal authentication in Azure environment. [#1519](https://github.com/microsoft/mssql-jdbc/pull/1519)
+
+## [9.2.0] Stable Release
+### Added
+- Added logic to handle multi-factor authentication timeouts during ActiveDirectoryInteractive authentication [#1488](https://github.com/microsoft/mssql-jdbc/pull/1488)
+
+### Fixed issues
+- Fixed an issue with high memory allocation during bulk copy [#1475](https://github.com/microsoft/mssql-jdbc/pull/1475)
+
+## [9.1.1] Preview Release
+### Added
+- Added maxResultBuffer connection property [1431](https://github.com/microsoft/mssql-jdbc/pull/1431)
+- Added support for Service Principal Authentication [1456](https://github.com/microsoft/mssql-jdbc/pull/1456)
+- Added support for Azure Active Directory Interactive Authentication [1464](https://github.com/microsoft/mssql-jdbc/pull/1464)
+
+### Changed
+- Enabled useBulkCopyForBatchInsert against non Azure SQL Data Warehouse servers [#1465](https://github.com/microsoft/mssql-jdbc/pull/1465)
+
+## [9.1.0] Preview Release
+### Added
+- Added support for already connected sockets when using custom socket factory [1420](https://github.com/microsoft/mssql-jdbc/pull/1420)
+- Added JAVA 15 support [#1434](https://github.com/microsoft/mssql-jdbc/pull/1434)
+- Added LocalDateTime and OffsetDateTime support in CallableStatement [1393](https://github.com/microsoft/mssql-jdbc/pull/1393)
+- Added new endpoints to the list of trusted Azure Key Vault endpoints [#1445](https://github.com/microsoft/mssql-jdbc/pull/1445)
+
+### Fixed issues
+- Fixed an issue with column ordinal mapping not being sorted when using bulk copy [#1406](https://github.com/microsoft/mssql-jdbc/pull/1406)
+- Fixed PooledConnectionTest to catch exceptions from threads [#1409](https://github.com/microsoft/mssql-jdbc/pull/1409)
+- Fixed an issue with bulk copy when inserting non-unicode multibyte strings [#1421](https://github.com/microsoft/mssql-jdbc/pull/1421)
+- Fixed intermittent deadlock issue in DBMetadatatest [#1423](https://github.com/microsoft/mssql-jdbc/pull/1423)
+- Fixed Gradle exclude tags [#1424](https://github.com/microsoft/mssql-jdbc/pull/1424)
+- Fixed an issue with SQLServerBulkCSVFileRecord ignoring empty trailing columns when using setEscapeColumnDelimitersCSV() API [#1438](https://github.com/microsoft/mssql-jdbc/pull/1438)
+
+### Changed
+- Changed visibility of SQLServerBulkBatchInsertRecord to package-private [#1408](https://github.com/microsoft/mssql-jdbc/pull/1408)
+- Upgraded to the latest Azure Key Vault libraries [#1413](https://github.com/microsoft/mssql-jdbc/pull/1413)
+- Updated API version when using MSI authentication [#1418](https://github.com/microsoft/mssql-jdbc/pull/1418)
+- Enabled Azure Active Directory integrated authentication tests on non-Windows clients [#1425](https://github.com/microsoft/mssql-jdbc/pull/1425)
+- Updated the driver to remove clientKeyPassword from memory [#1428](https://github.com/microsoft/mssql-jdbc/pull/1428)
+- Updated SQLServerPreparedStatement.getMetaData() to retain exception details [#1430](https://github.com/microsoft/mssql-jdbc/pull/1430)
+- Made ADALGetAccessTokenForWindowsIntegrated thread-safe [#1441](https://github.com/microsoft/mssql-jdbc/pull/1441)
+
+## [8.4.1] HotFix & Stable Release
+### Fixed issues
+- Fixed issue with SQLServerConnectionPoolProxy not being compatible with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
+- Fixed a potential `NullPointerException` issue with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
+- Fixed issue with decrypting column encryption keys using Windows Certificate Store.
+
+## [8.4.0] Stable Release
+### Added
+- Added support for sensitivity ranking when using SQL Data Discovery and Classification [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
+- Added SQLServerDatabaseMetaData.getDatabaseCompatibilityLevel() API to return the database compatibility level [#1345](https://github.com/microsoft/mssql-jdbc/pull/1345)
+- Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357)
+
+### Fixed issues
+- Fixed an issue with DatabaseMetaData.getColumns() intermittently returning table column descriptions in incorrect order [#1348](https://github.com/microsoft/mssql-jdbc/pull/1348)
+- Fixed an issue with spatial datatypes casting error when Always Encrypted is enabled [#1353](https://github.com/microsoft/mssql-jdbc/pull/1353)
+- Fixed an issue with DatabaseMetaData.getColumns() not returning correct type for IS_AUTOINCREMENT and IS_GENERATEDCOLUMN against Azure Data Warehouse [#1356](https://github.com/microsoft/mssql-jdbc/pull/1356)
+- Fixed an issue with Geography.STAsBinary() and Geometry.STAsBinary() returning WKB format instead of CLR format [#1364](https://github.com/microsoft/mssql-jdbc/pull/1364)
+- Fixed an issue with allowing non-MSSQL ResultSets to bulk copy DateTimeOffset [#1365](https://github.com/microsoft/mssql-jdbc/pull/1365)
+- Fixed issues identified by SonarQube [#1369](https://github.com/microsoft/mssql-jdbc/pull/1369)
+- Fixed an issue with batch insertion failing when Always Encrypted is enabled [#1378](https://github.com/microsoft/mssql-jdbc/pull/1378)
+
+### Changed
+- Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
+- Added database name to Always Encrypted enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
+- Added functionality to validate both certificate beginning and expiration dates when creating encrypted connection [#1394](https://github.com/microsoft/mssql-jdbc/pull/1394)
+
 ## [8.3.1] Preview Release
 ### Added
 - Added delayed durability option to SQLServerConnection.commit() [#1310](https://github.com/microsoft/mssql-jdbc/pull/1310)

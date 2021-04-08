@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -20,7 +18,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,6 +36,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -146,21 +149,21 @@ public class BulkCopyCSVTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + inputFileDelimiterEscape;
         /*
-         * The list below is the copy of inputFileDelimiterEscape with quotes removed.
+         * The list below is the copy of inputFileDelimiterEsc ape with quotes removed.
          */
         String[][] expectedEscaped = new String[11][4];
-        expectedEscaped[0] = new String[] {"test", " test\"", "no@split", " testNoQuote"};
-        expectedEscaped[1] = new String[] {null, null, null, null};
-        expectedEscaped[2] = new String[] {"\"", "test\"test", "test@\"  test", null};
+        expectedEscaped[0] = new String[] {"test", " test\"", "no@split", " testNoQuote", ""};
+        expectedEscaped[1] = new String[] {null, null, null, null, ""};
+        expectedEscaped[2] = new String[] {"\"", "test\"test", "test@\"  test", null, ""};
         expectedEscaped[3] = new String[] {"testNoQuote  ", " testSpaceAround ", " testSpaceInside ",
-                "  testSpaceQuote\" "};
-        expectedEscaped[4] = new String[] {null, null, null, " testSpaceInside "};
-        expectedEscaped[5] = new String[] {"1997", "Ford", "E350", "E63"};
-        expectedEscaped[6] = new String[] {"1997", "Ford", "E350", "E63"};
-        expectedEscaped[7] = new String[] {"1997", "Ford", "E350", "Super@ luxurious truck"};
-        expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck"};
-        expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63"};
-        expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck "};
+                "  testSpaceQuote\" ", ""};
+        expectedEscaped[4] = new String[] {null, null, null, " testSpaceInside ", ""};
+        expectedEscaped[5] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[6] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[7] = new String[] {"1997", "Ford", "E350", "Super@ luxurious truck", ""};
+        expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck", ""};
+        expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck ", ""};
 
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
@@ -173,8 +176,9 @@ public class BulkCopyCSVTest extends AbstractTest {
             fileRecord.addColumnMetadata(3, null, java.sql.Types.VARCHAR, 50, 0);
             fileRecord.addColumnMetadata(4, null, java.sql.Types.VARCHAR, 50, 0);
             fileRecord.addColumnMetadata(5, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(6, null, java.sql.Types.VARCHAR, 50, 0);
             stmt.executeUpdate("CREATE TABLE " + tableName
-                    + " (id INT IDENTITY(1,1), c1 VARCHAR(50), c2 VARCHAR(50), c3 VARCHAR(50), c4 VARCHAR(50))");
+                    + " (id INT IDENTITY(1,1), c1 VARCHAR(50), c2 VARCHAR(50), c3 VARCHAR(50), c4 VARCHAR(50), c5 VARCHAR(50))");
             bulkCopy.writeToServer(fileRecord);
 
             int i = 0;
@@ -188,6 +192,43 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
             }
+        }
+    }
+
+    /**
+     * test simple csv file for bulkcopy, for GitHub issue 1391 Tests to ensure that the set returned by
+     * getColumnOrdinals doesn't have to be ordered
+     */
+    @Test
+    @DisplayName("Test SQLServerBulkCSVFileRecord GitHb 1391")
+    public void testCSV1391() {
+        String fileName = filePath + inputFile;
+        try (SQLServerBulkCSVFileRecord f1 = new BulkData1391(fileName, encoding, delimiter, true);
+                SQLServerBulkCSVFileRecord f2 = new BulkData1391(fileName, encoding, delimiter, true);) {
+            testBulkCopyCSV(f1, true);
+
+            f2.setEscapeColumnDelimitersCSV(true);
+            testBulkCopyCSV(f2, true);
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    // Used for testing issue reported in https://github.com/microsoft/mssql-jdbc/issues/1391
+    private class BulkData1391 extends SQLServerBulkCSVFileRecord {
+
+        public BulkData1391(String fileToParse, String encoding, String delimiter,
+                boolean firstLineIsColumnNames) throws SQLServerException {
+            super(fileToParse, encoding, delimiter, firstLineIsColumnNames);
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            List<Integer> list = new ArrayList<>(columnMetadata.keySet());
+            Integer temp = list.get(0);
+            list.set(0, list.get(1));
+            list.set(1, temp);
+            return new LinkedHashSet<>(list);
         }
     }
 

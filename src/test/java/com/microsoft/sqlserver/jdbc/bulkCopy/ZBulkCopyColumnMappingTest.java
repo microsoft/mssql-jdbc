@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -375,6 +376,44 @@ public class ZBulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
         validateMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
         validateMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+    }
+
+    @Tag(Constants.xAzureSQLDW)
+    @Test
+    @DisplayName("BulkCopy:test column name with trailing space")
+    public void testTrailingSpace() throws SQLException, ClassNotFoundException {
+        String sourceTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sourceTable")));
+        String destTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement sourceStmt = conn.createStatement(); Statement destStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " ([colTrailingSpace ] char(5) null);");
+                sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + "data" + "');");
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " ([colTrailingSpace ] char(5)  null);");
+                ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
+
+                ResultSet destRs = destStmt.executeQuery("SELECT * FROM " + destTable);
+                destRs.next();
+
+                ResultSetMetaData rsmd = sourceRs.getMetaData();
+                String name = rsmd.getColumnName(1);
+                bulkCopy.addColumnMapping(name, name);
+
+                bulkCopy.setDestinationTableName(destTable);
+                bulkCopy.writeToServer(sourceRs);
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(destTable, stmt);
+                    TestUtils.dropTableIfExists(sourceTable, stmt);
+                }
+            }
+        }
     }
 
     /**
