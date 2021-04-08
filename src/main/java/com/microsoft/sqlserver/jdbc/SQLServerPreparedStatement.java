@@ -2142,6 +2142,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
                             int jdbctype;
                             TypeInfo ti = c.getTypeInfo();
+                            if (ti.getUpdatability() == 0) { // Skip read only columns
+                                continue;
+                            }
                             checkValidColumns(ti);
                             if (null != cryptoMetadata) {
                                 jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
