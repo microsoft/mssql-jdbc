@@ -40,20 +40,19 @@ public class SQLServerDataSource
      */
     private static final long serialVersionUID = 654861379544314296L;
 
-    private Properties connectionProps; // Properties passed to
-                                        // SQLServerConnection class.
-    private String dataSourceURL; // URL for datasource.
-    private String dataSourceDescription; // Description for datasource.
-    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0); // Unique
-                                                                                // id
-                                                                                // generator
-                                                                                // for
-                                                                                // each
-                                                                                // DataSource
-                                                                                // instance
-                                                                                // (used
-                                                                                // for
-                                                                                // logging).
+    // Properties passed to SQLServerConnection class
+    private Properties connectionProps;
+
+    // URL for datasource
+    private String dataSourceURL;
+
+    // Description for datasource.
+    private String dataSourceDescription;
+
+    /*
+     * Unique id generator for each DataSource instance (used for logging).
+     */
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);
     final private String traceID;
 
     /**
@@ -1065,6 +1064,28 @@ public class SQLServerDataSource
     @Override
     public void setMaxResultBuffer(String maxResultBuffer) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(), maxResultBuffer);
+    }
+
+    @Override
+    public void setConnectRetryCount(int count) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(), count);
+    }
+
+    @Override
+    public int getConnectRetryCount() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue());
+    }
+
+    @Override
+    public void setConnectRetryInterval(int interval) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), interval);
+    }
+
+    @Override
+    public int getConnectRetryInterval() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
     }
 
     /**
