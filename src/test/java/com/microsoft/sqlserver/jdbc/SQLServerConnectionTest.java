@@ -759,8 +759,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    static Boolean isInterrupted = false;
-
     /**
      * Test thread's interrupt status is not cleared.
      * 
@@ -773,13 +771,10 @@ public class SQLServerConnectionTest extends AbstractTest {
             public void run() {
                 SQLServerDataSource ds = new SQLServerDataSource();
 
-                ds.setURL(connectionString);
+                ds.setURL(connectionString + "serverName=invalidServerName" + UUID.randomUUID());
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
-
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {
-                    isInterrupted = Thread.currentThread().isInterrupted();
-                }
+                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
 
@@ -789,13 +784,11 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(1000);
 
         // interrupt the thread in the Runnable
-        future.cancel(true);
-
+        boolean status = future.cancel(true);
         Thread.sleep(8000);
-
         executor.shutdownNow();
 
-        assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
     /**
