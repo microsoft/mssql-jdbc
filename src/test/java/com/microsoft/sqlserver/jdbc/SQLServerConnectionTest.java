@@ -771,7 +771,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             public void run() {
                 SQLServerDataSource ds = new SQLServerDataSource();
 
-                ds.setURL(connectionString + "serverName=invalidServerName" + UUID.randomUUID());
+                ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
