@@ -170,6 +170,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setApplicationIntent(stringPropValue);
         assertEquals(stringPropValue, ds.getApplicationIntent(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setReplication(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getReplication(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setSendTimeAsDatetime(booleanPropValue);
         assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
 
