@@ -192,6 +192,8 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
             }
+            
+            stmt.execute("DROP TABLE " + tableName);
         }
     }
 
