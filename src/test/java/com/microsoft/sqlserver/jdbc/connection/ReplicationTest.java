@@ -20,10 +20,9 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.DBTable;
-
 
 /*
  * This test is for testing the replication connection property
@@ -36,14 +35,12 @@ public class ReplicationTest extends AbstractTest {
     public void testReplication() throws SQLException {
         String tableName = RandomUtil.getIdentifier("repl");
         String triggerName = RandomUtil.getIdentifier("trig");
-        String escapedTableName = DBTable.escapeIdentifier(tableName);
-        String escapedTriggerName = DBTable.escapeIdentifier(triggerName);
+        String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
+        String escapedTriggerName = AbstractSQLGenerator.escapeIdentifier(triggerName);
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setReplication(false);
 
-        String sqlDropTable = "IF OBJECT_ID('" + TestUtils.escapeSingleQuotes(escapedTableName) + "', 'U') IS NOT NULL "
-                + " DROP TABLE " + escapedTableName + ";";
         String sqlCreateTable = "CREATE TABLE " + escapedTableName + " ([TestReplication] [varchar](50) NULL)";
         String sqlCreateTrigger = "CREATE TRIGGER " + escapedTriggerName + " ON " + escapedTableName + " "
                 + "INSTEAD OF INSERT NOT FOR REPLICATION AS "
@@ -53,12 +50,11 @@ public class ReplicationTest extends AbstractTest {
                 + "   FROM INSERTED "
                 + "END";
         String sqlInsert = "INSERT INTO " + escapedTableName + " (TestReplication) values ('Replication test')";
-        String sqlDelete = "DELETE FROM " + escapedTableName;
         String sqlSelect = "SELECT TestReplication FROM " + escapedTableName;
 
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
             // drop
-            stmt.execute(sqlDropTable);
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
             // create
             stmt.execute(sqlCreateTable);
             stmt.execute(sqlCreateTrigger);
@@ -70,7 +66,7 @@ public class ReplicationTest extends AbstractTest {
                     assertTrue(false, "Expected row of data was not found.");
                 }
             }
-            stmt.execute(sqlDelete);
+            TestUtils.clearTable(con, escapedTableName);
         }
 
         ds.setReplication(true);
@@ -83,7 +79,7 @@ public class ReplicationTest extends AbstractTest {
                     assertTrue(false, "Expected row of data was not found.");
                 }
             }
-            stmt.execute(sqlDropTable);
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
         }
 	}
 }
