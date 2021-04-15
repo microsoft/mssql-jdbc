@@ -4,13 +4,19 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +28,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
@@ -61,23 +71,27 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
     
+    
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
-    	DBTable dstTable = null;
-    	try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
-            dstTable = new DBTable(false, false, false, true);
-            stmt.createTable(dstTable);
-            BulkData Bdata = new BulkData(dstTable, true);
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
 
-            BulkCopyTestWrapper bulkWrapper = new BulkCopyTestWrapper(connectionString);
-            bulkWrapper.setUsingConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, ds);
-            bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
-            bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
-            BulkCopyTestUtil.performBulkCopy(bulkWrapper, Bdata, dstTable);
-        } finally {
-            if (null != dstTable) {
-                try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement()) {
-                    stmt.dropTable(dstTable);
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+            	dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol datetime2);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                LocalDateTime data = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 123456700));
+                bulkCopy.writeToServer(new BulkRecordDT(data));
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
                 }
             }
         }
@@ -143,39 +157,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 data.add(CurrentRow);
             }
         }
-        
-        BulkData(DBTable dstTable, boolean dtTest) {
-            columnMetadata = new HashMap<>();
-            totalColumn = dstTable.totalColumns();
-
-            // add metadata
-            for (int i = 0; i < totalColumn; i++) {
-                SqlType sqlType = dstTable.getSqlType(i);
-                int precision = sqlType.getPrecision();
-                if (JDBCType.TIMESTAMP == sqlType.getJdbctype()) {
-                    // TODO: update the test to use correct precision once bulkCopy is fixed
-                    precision = 50;
-                }
-                columnMetadata.put(i + 1, new ColumnMetadata(sqlType.getName(),
-                        sqlType.getJdbctype().getVendorTypeNumber(), precision, sqlType.getScale()));
-            }
-            
-            // add data
-            rowCount = dstTable.getTotalRows();
-            data = new ArrayList<>(rowCount);
-            for (int i = 0; i < rowCount; i++) {
-                Object[] CurrentRow = new Object[totalColumn];
-                for (int j = 0; j < totalColumn; j++) {
-                    if (j == 0) {
-                        CurrentRow[j] = i + 1;
-                    } else {
-                        CurrentRow[j] = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                        		Constants.RANDOM.nextInt(60), 123456700));
-                    }
-                }
-                data.add(CurrentRow);
-            }
-        }
 
         @Override
         public Set<Integer> getColumnOrdinals() {
@@ -219,6 +200,55 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
          */
         public void reset() {
             counter = 0;
+        }
+    }
+    
+    private static class BulkRecordDT implements ISQLServerBulkData {
+        boolean anyMoreData = true;
+        Object data;
+
+        BulkRecordDT(Object data) {
+            this.data = data;
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            Set<Integer> ords = new HashSet<>();
+            ords.add(1);
+            return ords;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return "testCol";
+        }
+
+        @Override
+        public int getColumnType(int column) {
+            return java.sql.Types.TIMESTAMP;
+        }
+
+        @Override
+        public int getPrecision(int column) {
+            return 0;
+        }
+
+        @Override
+        public int getScale(int column) {
+            return 7;
+        }
+
+        @Override
+        public Object[] getRowData() {
+            return new Object[]{ data };
+        }
+
+        @Override
+        public boolean next() {
+            if (!anyMoreData)
+                return false;
+            anyMoreData = false;
+            return true;
         }
     }
 }

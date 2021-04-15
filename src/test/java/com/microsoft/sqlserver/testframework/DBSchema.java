@@ -95,19 +95,6 @@ public class DBSchema {
             Collections.shuffle(this.sqlTypes);
         }
     }
-    
-    /**
-     * 
-     * @param autoGenerateSchema
-     * @param alternateSchema
-     * @param dtSchema
-     */
-    DBSchema(boolean autoGenerateSchema, boolean alternateSchema, boolean dtSchema) {
-    	sqlTypes = new ArrayList<>();
-    	if (dtSchema) {
-    		sqlTypes.add(new SqlDateTime2());
-    	}
-    }
 
     /**
      * 
