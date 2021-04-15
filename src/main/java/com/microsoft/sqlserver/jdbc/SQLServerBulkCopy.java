@@ -2290,7 +2290,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             
                             // Remove extra trailing zeros added from toString
                             if (colValue instanceof LocalDateTime || colValue instanceof LocalTime) {
-                            	colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$","").replaceAll("\\.$","") : colValueStr;
+                            	colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$","") : colValueStr;
                             }
                             
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
