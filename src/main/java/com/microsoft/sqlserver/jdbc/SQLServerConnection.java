@@ -4520,6 +4520,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         aadPrincipalSecret = "";
         activeConnectionProperties.remove(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString());
+
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
     }
 
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
