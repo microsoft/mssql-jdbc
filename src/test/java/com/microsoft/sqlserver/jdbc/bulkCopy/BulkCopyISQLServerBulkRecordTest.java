@@ -86,7 +86,28 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.setDestinationTableName(dstTable);
                 LocalDateTime data = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
                 		Constants.RANDOM.nextInt(60), 123456700));
+                LocalDateTime data1 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 0));
+                LocalDateTime data2 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 100000000));
+                LocalDateTime data3 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 120000000));
+                LocalDateTime data4 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 123000000));
+                LocalDateTime data5 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 123400000));
+                LocalDateTime data6 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 123450000));
+                LocalDateTime data7 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
+                		Constants.RANDOM.nextInt(60), 123456000));
                 bulkCopy.writeToServer(new BulkRecordDT(data));
+                bulkCopy.writeToServer(new BulkRecordDT(data1));
+                bulkCopy.writeToServer(new BulkRecordDT(data2));
+                bulkCopy.writeToServer(new BulkRecordDT(data3));
+                bulkCopy.writeToServer(new BulkRecordDT(data4));
+                bulkCopy.writeToServer(new BulkRecordDT(data5));
+                bulkCopy.writeToServer(new BulkRecordDT(data6));
+                bulkCopy.writeToServer(new BulkRecordDT(data7));
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
