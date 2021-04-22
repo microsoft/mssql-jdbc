@@ -2826,7 +2826,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
-        
+
         // We have successfully connected, now do the login. logon takes seconds timeout
         executeCommand(new LogonCommand());
         return inetSocketAddress;
