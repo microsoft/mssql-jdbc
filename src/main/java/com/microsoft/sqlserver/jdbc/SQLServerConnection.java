@@ -607,6 +607,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean userSetTNIR = true;
 
+    private boolean replication = SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue();
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
     private boolean useFmtOnly = SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue();
 
@@ -1802,6 +1803,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             applicationIntent = ApplicationIntent.valueOfString(sPropValue);
             activeConnectionProperties.setProperty(sPropKey, applicationIntent.toString());
+
+            sPropKey = SQLServerDriverBooleanProperty.REPLICATION.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue());
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+
+            replication = isBooleanPropertyOn(sPropKey, sPropValue);
 
             sPropKey = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -5218,6 +5228,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                         // fails
                 TDS.LOGIN_OPTION2_ODBC_ON | // Use ODBC defaults (ANSI_DEFAULTS ON, IMPLICIT_TRANSACTIONS OFF, TEXTSIZE
                                             // inf, ROWCOUNT inf)
+                (replication ? TDS.LOGIN_OPTION2_USER_SQLREPL_ON : TDS.LOGIN_OPTION2_USER_SQLREPL_OFF) |
                 (integratedSecurity ? // integrated security if integratedSecurity requested
                                     TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_ON
                                     : TDS.LOGIN_OPTION2_INTEGRATED_SECURITY_OFF)));
