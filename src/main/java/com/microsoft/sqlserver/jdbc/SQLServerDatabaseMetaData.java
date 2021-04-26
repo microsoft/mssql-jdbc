@@ -38,6 +38,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      */
     private static final long serialVersionUID = -116977606028371577L;
 
+    /** connection */
     private SQLServerConnection connection;
 
     static final String urlprefix = "jdbc:sqlserver://";
@@ -48,16 +49,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0); // Unique
-                                                                      // id
-                                                                      // generator
-                                                                      // for
-                                                                      // each
-                                                                      // instance
-                                                                      // (used
-                                                                      // for
-                                                                      // logging).
+    /**
+     * Unique id generator for each instance (used for logging).
+     */
+    static private final AtomicInteger baseID = new AtomicInteger(0);
 
+    /** trace ID */
     final private String traceID;
 
     // varbinary(max) https://msdn.microsoft.com/en-us/library/ms143432.aspx
@@ -125,6 +122,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
+    /** handle map */
     EnumMap<CallableHandles, HandleAssociation> handleMap = new EnumMap<>(CallableHandles.class);
 
     // Returns unique id for each instance.

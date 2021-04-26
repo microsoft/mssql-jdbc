@@ -559,6 +559,10 @@ final class UTC {
 }
 
 
+/**
+ * TDS Channel
+ *
+ */
 final class TDSChannel implements Serializable {
     /**
      * Always update serialVersionUID when prompted.
@@ -4030,8 +4034,7 @@ final class TDSWriter {
 
         do {
             // Read in next chunk
-            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize;
-                    charsToWrite += charsRead) {
+            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize; charsToWrite += charsRead) {
                 try {
                     charsRead = reader.read(streamCharBuffer, charsToWrite, currentPacketSize - charsToWrite);
                 } catch (IOException e) {

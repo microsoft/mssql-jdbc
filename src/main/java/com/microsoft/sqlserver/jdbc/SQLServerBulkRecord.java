@@ -11,7 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-
+/**
+ * Abstract class that implements ISQLServerBulkRecord
+ *
+ */
 abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
 
     /**
@@ -38,23 +41,23 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
         }
     }
 
-    /*
+    /**
      * Contains all the column names if firstLineIsColumnNames is true
      */
     protected String[] columnNames = null;
 
-    /*
+    /**
      * Metadata to represent the columns in the batch/file. Each column should be mapped to its corresponding position
      * within the parameter (from position 1 and onwards)
      */
     protected Map<Integer, ColumnMetadata> columnMetadata;
 
-    /*
+    /**
      * Contains the format that java.sql.Types.TIMESTAMP_WITH_TIMEZONE data should be read in as.
      */
     protected DateTimeFormatter dateTimeFormatter = null;
 
-    /*
+    /**
      * Contains the format that java.sql.Types.TIME_WITH_TIMEZONE data should be read in as.
      */
     protected DateTimeFormatter timeFormatter = null;
@@ -62,8 +65,8 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
     /*
      * Logger
      */
-    protected String loggerPackageName = "com.microsoft.jdbc.SQLServerBulkRecord";
-    protected static java.util.logging.Logger loggerExternal = java.util.logging.Logger
+    String loggerPackageName = "com.microsoft.jdbc.SQLServerBulkRecord";
+    static java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.jdbc.SQLServerBulkRecord");
 
     @Override
@@ -132,19 +135,16 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
         loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
     }
 
-    /*
+    /**
      * Helper method to throw a SQLServerExeption with the invalidArgument message and given argument.
      */
-    protected void throwInvalidArgument(String argument) throws SQLServerException {
+    void throwInvalidArgument(String argument) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
         Object[] msgArgs = {argument};
         SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
     }
 
-    /*
-     * Method to throw a SQLServerExeption for duplicate column names
-     */
-    protected void checkDuplicateColumnName(int positionInTable, String colName) throws SQLServerException {
+    void checkDuplicateColumnName(int positionInTable, String colName) throws SQLServerException {
 
         if (null != colName && colName.trim().length() != 0) {
             for (Entry<Integer, ColumnMetadata> entry : columnMetadata.entrySet()) {

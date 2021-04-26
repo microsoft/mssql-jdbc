@@ -736,8 +736,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Registers the driver with DriverManager. No-op if driver is already registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void register() throws SQLException {
         if (!isRegistered()) {
@@ -746,8 +749,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * De-registers the driver with the DriverManager. No-op if the driver is not registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void deregister() throws SQLException {
         if (isRegistered()) {
@@ -756,13 +762,18 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Checks whether the driver has been registered with the driver manager.
+     * 
+     * @return if the driver has been registered with the driver manager
      */
     public static boolean isRegistered() {
         return mssqlDriver != null;
     }
 
+    /**
+     * Creates a SQLServerDriver object
+     */
     public SQLServerDriver() {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;

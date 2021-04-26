@@ -38,7 +38,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private List<Map<String, Object>> procMetadata;
 
-    protected boolean procedureIsFound = false;
+    boolean procedureIsFound = false;
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerParameterMetaData");
@@ -288,9 +288,12 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 String sProc = parseProcIdentifier(st.procedureName);
                 try (SQLServerStatement s = (SQLServerStatement) con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_READ_ONLY);
-                        SQLServerResultSet rsProcedureMeta = s.executeQueryInternal(
-                                con.isKatmaiOrLater() ? "exec sp_sproc_columns_100 " + sProc + ", @ODBCVer=3, @fUsePattern=0"
-                                                      : "exec sp_sproc_columns " + sProc + ", @ODBCVer=3, @fUsePattern=0")) {
+                        SQLServerResultSet rsProcedureMeta = s
+                                .executeQueryInternal(con.isKatmaiOrLater()
+                                                                            ? "exec sp_sproc_columns_100 " + sProc
+                                                                                    + ", @ODBCVer=3, @fUsePattern=0"
+                                                                            : "exec sp_sproc_columns " + sProc
+                                                                                    + ", @ODBCVer=3, @fUsePattern=0")) {
 
                     // if rsProcedureMeta has next row, it means the stored procedure is found
                     if (rsProcedureMeta.next()) {

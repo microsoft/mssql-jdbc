@@ -15,7 +15,6 @@ import java.util.logging.Level;
  * to keep a lock in the class through a connection open a placeholder class is used to get the failover info in one
  * shot. This class should never directly expose its members.
  */
-
 final class FailoverInfo {
     private String failoverPartner;
     private int portNumber;
@@ -110,10 +109,11 @@ final class FailoverInfo {
 }
 
 
-// A simple readonly placeholder class to store the current server info.
-// We need this class so during a connection open we can keep a copy of the current failover info stable
-// This is also used to keep the standalone primary server connection information.
-//
+/**
+ * A simple readonly placeholder class to store the current server info. We need this class so during a connection open
+ * we can keep a copy of the current failover info stable This is also used to keep the standalone primary server
+ * connection information.
+ */
 final class ServerPortPlaceHolder implements Serializable {
     /**
      * Always update serialVersionUID when prompted.

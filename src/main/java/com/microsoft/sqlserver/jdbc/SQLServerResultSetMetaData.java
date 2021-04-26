@@ -22,13 +22,20 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
      */
     private static final long serialVersionUID = -5747558730471411712L;
 
+    /** connection */
     private SQLServerConnection con;
+
+    /** resultset */
     private final SQLServerResultSet rs;
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerResultSetMetaData");
 
-    static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
-                                                                      // logging).
+    /**
+     * Unique id generator for each instance (used for logging).
+     */
+    static private final AtomicInteger baseID = new AtomicInteger(0);
+
+    /** trace ID */
     final private String traceID;
 
     // Returns unique id for each instance.
