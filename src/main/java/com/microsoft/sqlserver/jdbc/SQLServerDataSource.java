@@ -471,6 +471,18 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setReplication(boolean replication) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(),
+                replication);
+    }
+
+    @Override
+    public boolean getReplication() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(),
+                SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue());
+    }
+
+    @Override
     public void setSendTimeAsDatetime(boolean sendTimeAsDatetime) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 sendTimeAsDatetime);

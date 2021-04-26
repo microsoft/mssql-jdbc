@@ -340,7 +340,8 @@ final class TDS {
     static final byte LOGIN_OPTION2_USER_NORMAL = 0x00;
     static final byte LOGIN_OPTION2_USER_SERVER = 0x10;
     static final byte LOGIN_OPTION2_USER_REMUSER = 0x20;
-    static final byte LOGIN_OPTION2_USER_SQLREPL = 0x30;
+    static final byte LOGIN_OPTION2_USER_SQLREPL_OFF = 0x00;
+    static final byte LOGIN_OPTION2_USER_SQLREPL_ON = 0x30;
     static final byte LOGIN_OPTION2_INTEGRATED_SECURITY_OFF = 0x00;
     static final byte LOGIN_OPTION2_INTEGRATED_SECURITY_ON = (byte) 0x80;
 

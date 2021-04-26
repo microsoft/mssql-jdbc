@@ -285,6 +285,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getResponseBuffering();
 
     /**
+     * Sets the value to enable/disable the replication connection property.
+     * 
+     * @param replication
+     *        A Boolean value. When true, tells the server that the connection is used for replication.
+     */
+    void setReplication(boolean replication);
+
+    /**
+     * Returns the value of the replication connection property.
+     * 
+     * @return true if the connection is to be used for replication. Otherwise false.
+     */
+    boolean getReplication();
+
+    /**
      * Sets the value to enable/disable the sendTimeAsDatetime connection property.
      * 
      * @param sendTimeAsDatetime
