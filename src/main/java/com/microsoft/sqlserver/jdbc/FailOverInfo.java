@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.logging.Level;
 
@@ -106,51 +105,5 @@ final class FailoverInfo {
             // new FO partner need to setup again.
             setUpInfocalled = false;
         }
-    }
-}
-
-
-// A simple readonly placeholder class to store the current server info.
-// We need this class so during a connection open we can keep a copy of the current failover info stable
-// This is also used to keep the standalone primary server connection information.
-//
-final class ServerPortPlaceHolder implements Serializable {
-    /**
-     * Always update serialVersionUID when prompted.
-     */
-    private static final long serialVersionUID = 7393779415545731523L;
-
-    private final String serverName;
-    private final int port;
-    private final String instanceName;
-    private final boolean checkLink;
-    private final SQLServerConnectionSecurityManager securityManager;
-
-    ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
-        serverName = name;
-        port = conPort;
-        instanceName = instance;
-        checkLink = fLink;
-        securityManager = new SQLServerConnectionSecurityManager(serverName, port);
-        doSecurityCheck();
-    }
-
-    // accessors
-    int getPortNumber() {
-        return port;
-    }
-
-    String getServerName() {
-        return serverName;
-    }
-
-    String getInstanceName() {
-        return instanceName;
-    }
-
-    void doSecurityCheck() {
-        securityManager.checkConnect();
-        if (checkLink)
-            securityManager.checkLink();
     }
 }
