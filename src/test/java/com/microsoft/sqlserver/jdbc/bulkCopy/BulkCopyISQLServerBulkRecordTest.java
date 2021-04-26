@@ -4,11 +4,14 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
@@ -78,28 +81,27 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
-            try (Statement dstStmt = conn.createStatement();
-                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
-            	dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol datetime2);");
+                dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol datetime2);");
 
                 bulkCopy.setDestinationTableName(dstTable);
-                LocalDateTime data = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 123456700));
-                LocalDateTime data1 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 0));
-                LocalDateTime data2 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 100000000));
-                LocalDateTime data3 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 120000000));
-                LocalDateTime data4 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 123000000));
-                LocalDateTime data5 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 123400000));
-                LocalDateTime data6 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 123450000));
-                LocalDateTime data7 = LocalDateTime.of(LocalDate.now(),LocalTime.of(Constants.RANDOM.nextInt(24), Constants.RANDOM.nextInt(60),
-                		Constants.RANDOM.nextInt(60), 123456000));
+                LocalDateTime data = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123456700));
+                LocalDateTime data1 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 0));
+                LocalDateTime data2 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 100000000));
+                LocalDateTime data3 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 120000000));
+                LocalDateTime data4 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123000000));
+                LocalDateTime data5 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123400000));
+                LocalDateTime data6 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123450000));
+                LocalDateTime data7 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
+                        Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123456000));
                 bulkCopy.writeToServer(new BulkRecordDT(data));
                 bulkCopy.writeToServer(new BulkRecordDT(data1));
                 bulkCopy.writeToServer(new BulkRecordDT(data2));
@@ -108,6 +110,27 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordDT(data5));
                 bulkCopy.writeToServer(new BulkRecordDT(data6));
                 bulkCopy.writeToServer(new BulkRecordDT(data7));
+
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                assertTrue(data.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data1.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data2.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data3.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data4.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data5.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data6.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data7.equals(rs.getObject(1, LocalDateTime.class)));
+
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {

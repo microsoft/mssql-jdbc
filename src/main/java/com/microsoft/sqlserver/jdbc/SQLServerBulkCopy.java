@@ -2287,12 +2287,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             String colValueStr = colValue.toString();
-                            
+
                             // Remove extra trailing zeros added from toString
                             if (colValue instanceof LocalDateTime || colValue instanceof LocalTime) {
-                            	colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$","") : colValueStr;
+                                colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$", "")
+                                                                        : colValueStr;
                             }
-                            
+
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValue.toString().length();
                                 byte[] typevarlen = new byte[2];
