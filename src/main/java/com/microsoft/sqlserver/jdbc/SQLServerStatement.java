@@ -770,7 +770,6 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /**
      * Statement exec command
-     *
      */
     private final class StmtExecCmd extends TDSCommand {
         /**
@@ -918,7 +917,6 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /**
      * Statement batch exec command
-     *
      */
     private final class StmtBatchExecCmd extends TDSCommand {
         /**

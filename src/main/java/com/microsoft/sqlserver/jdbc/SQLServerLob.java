@@ -7,9 +7,9 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.Serializable;
 import java.sql.SQLException;
 
+
 /**
- * SQL Server Log abstract class
- *
+ * SQL Server Lob abstract class
  */
 abstract class SQLServerLob implements Serializable {
 
@@ -26,6 +26,7 @@ abstract class SQLServerLob implements Serializable {
     abstract void fillFromStream() throws SQLException;
 
     boolean delayLoadingLob = true;
+
     /**
      * Provides functionality for the result set to set whether to load the LOB objects fully. Setting this property to
      * TRUE will cause LOBs to be loaded into memory. The default behavior is FALSE.

@@ -488,8 +488,7 @@ public class SQLServerDataSource
 
     @Override
     public void setReplication(boolean replication) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(),
-                replication);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(), replication);
     }
 
     @Override
@@ -1445,7 +1444,6 @@ public class SQLServerDataSource
 
     /**
      * This code is duplicated in pooled and XA datasource classes.
-     *
      */
     private static class SerializationProxy implements java.io.Serializable {
         private final Reference ref;

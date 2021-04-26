@@ -16,13 +16,17 @@ import java.util.TimeZone;
  * The DateTimeOffset class represents a java.sql.Timestamp, including fractional seconds, plus an integer representing
  * the number of minutes offset from GMT.
  * 
- * @serial exclude
  */
 public final class DateTimeOffset implements java.io.Serializable, java.lang.Comparable<DateTimeOffset> {
     private static final long serialVersionUID = 541973748553014280L;
 
+    /** UTC ms */
     private final long utcMillis;
+
+    /** nano sec */
     private final int nanos;
+
+    /** minutes offset */
     private final int minutesOffset;
 
     private static final int NANOS_MIN = 0;
@@ -101,6 +105,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
                 (calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET)) / (60 * 1000));
     }
 
+    /** formatted value */
     private String formattedValue = null;
 
     /**
@@ -260,8 +265,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     }
 
     /**
-     * @serial exclude
-     *
+     * Serialization proxy class
      */
     private static class SerializationProxy implements java.io.Serializable {
         private final long utcMillis;
@@ -283,10 +287,23 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
         }
     }
 
+    /**
+     * writeReplace
+     * 
+     * @return serialization proxy
+     */
     private Object writeReplace() {
         return new SerializationProxy(this);
     }
 
+    /**
+     * readObject
+     * 
+     * @param stream
+     *        inputstream object
+     * @throws java.io.InvalidObjectException
+     *         if error
+     */
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
         // For added security/robustness, the only way to rehydrate a serialized DateTimeOffset
         // is to use a SerializationProxy. Direct use of readObject() is not supported.

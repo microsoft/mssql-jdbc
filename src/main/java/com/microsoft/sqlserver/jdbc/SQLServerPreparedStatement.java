@@ -56,7 +56,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
-    
+
     /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
@@ -518,7 +518,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /**
      * Prepare statement exec command
-     *
      */
     private final class PrepStmtExecCmd extends TDSCommand {
         /**
@@ -2675,7 +2674,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /**
      * Prepare statement batch execute command
-     *
      */
     private final class PrepStmtBatchExecCmd extends TDSCommand {
         /**

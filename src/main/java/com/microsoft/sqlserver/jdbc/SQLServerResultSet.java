@@ -47,7 +47,6 @@ enum RowType {
 
 /**
  * Defines the Top-level JDBC ResultSet implementation.
- * 
  */
 public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializable {
 
@@ -5480,7 +5479,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     /**
      * Cursor Fetch Command
-     *
      */
     private final class CursorFetchCommand extends TDSCommand {
         /**

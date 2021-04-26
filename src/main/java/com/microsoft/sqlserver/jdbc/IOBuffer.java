@@ -561,7 +561,6 @@ final class UTC {
 
 /**
  * TDS Channel
- *
  */
 final class TDSChannel implements Serializable {
     /**
