@@ -4365,15 +4365,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
 
-                int px = routingServerName.indexOf('\\');
-                String routingInstanceName = null;
-                if (px >= 0) {
-                    routingInstanceName = routingServerName.substring(px + 1, routingServerName.length());
-                }
-
                 isRoutedInCurrentAttempt = true;
-                routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, routingInstanceName,
-                        integratedSecurity);
+                routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
