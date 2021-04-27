@@ -2507,6 +2507,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!state.equals(State.Closed))
                     this.close();
             }
+            
+            activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
 
         return this;
@@ -2957,9 +2959,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getServerName(), serverInfo.getPortNumber(),
-                (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel, useTnir, isTnirFirstAttempt,
-                timeOutsliceInMillisForFullTimeout);
+        InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
+                serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
 
@@ -2970,8 +2972,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // If prelogin negotiated SSL encryption then, enable it on the TDS channel.
         if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
-            tdsChannel.enableSSL(serverInfo.getServerName(), serverInfo.getPortNumber(), clientCertificate, clientKey,
-                    clientKeyPassword);
+            tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
+                    clientKey, clientKeyPassword);
             clientKeyPassword = "";
         }
 
@@ -4516,7 +4518,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 isRoutedInCurrentAttempt = true;
                 routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
-
                 break;
 
             // Error on unrecognized, unused ENVCHANGES

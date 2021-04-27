@@ -1738,10 +1738,6 @@ final class TDSChannel implements Serializable {
                     try {
                         ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
                     } finally {
-                        // We are done with the trustStorePassword (if set). Clear it for better security.
-                        con.activeConnectionProperties
-                                .remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
-
                         // We are also done with the trust store input stream.
                         if (null != is) {
                             try {
