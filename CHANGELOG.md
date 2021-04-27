@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added replication connection option [#1566](https://github.com/microsoft/mssql-jdbc/pull/1566)
 
 ### Fixed issues
-- Fixed an issue where insertion of LocalTime/LocalDateTime data fail with 100ns precision [#1559](https://github.com/microsoft/mssql-jdbc/pull/1559)
 - Fixed an issue where `trustStorePassword` is null when using applicationIntent=ReadOnly [#1565](https://github.com/microsoft/mssql-jdbc/pull/1565)
 - Fixed an issue where redirected token contains named instance in servername [#1568](https://github.com/microsoft/mssql-jdbc/pull/1568)
 
