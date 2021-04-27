@@ -728,7 +728,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return socketFactoryConstructorArg;
     }
 
-    /** trust manage class */
+    /** trust manager class */
     private String trustManagerClass = null;
 
     final String getTrustManagerClass() {

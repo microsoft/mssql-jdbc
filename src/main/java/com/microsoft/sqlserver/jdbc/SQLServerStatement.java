@@ -180,7 +180,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Encapsulates a subset of statement property values as they were set at execution time.F
+     * Encapsulates a subset of statement property values as they were set at execution time.
      */
     final class ExecuteProperties {
         final private boolean wasResponseBufferingSet;

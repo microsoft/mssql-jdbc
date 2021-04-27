@@ -13,10 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
- * Provides timeout handling for basic and bulk TDS commands to use a new shaed timer class. SharedTimer provides a
- * static method for fetching an existing static object or creating one on demand. Usage is tracked through reference
- * counting and callers are required to call removeRef() when they will no longer be using the SharedTimer. If the
- * SharedTimer does not have any more references then its internal ScheduledThreadPoolExecutor will be shutdown.
+ * Provides timeout handling for basic and bulk TDS commands to use a shared timer class. SharedTimer provides a static
+ * method for fetching an existing static object or creating one on demand. Usage is tracked through reference counting
+ * and callers are required to call removeRef() when they will no longer be using the SharedTimer. If the SharedTimer
+ * does not have any more references then its internal ScheduledThreadPoolExecutor will be shutdown.
  * 
  * The SharedTimer is cached at the Connection level so that repeated invocations do not create new timers. Connections
  * only create timers on first use so if no actions involve a timeout then no timer is fetched or created. If a
