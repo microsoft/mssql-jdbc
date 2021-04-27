@@ -4371,7 +4371,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             // Error on unrecognized, unused ENVCHANGES
             default:
-
                 if (connectionlogger.isLoggable(Level.WARNING)) {
                     connectionlogger.warning(toString() + " Unknown environment change: " + envchange);
                 }
