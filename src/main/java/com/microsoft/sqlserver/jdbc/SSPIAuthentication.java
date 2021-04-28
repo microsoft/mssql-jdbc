@@ -124,7 +124,7 @@ abstract class SSPIAuthentication {
      *        flag to indicate of hostname canonicalization is allowed
      * @return SPN enriched with realm
      */
-    String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
+    String enrichSpnWithRealm(SQLServerConnection con, String spn, boolean allowHostnameCanonicalization) {
         if (spn == null) {
             return spn;
         }
@@ -138,17 +138,21 @@ abstract class SSPIAuthentication {
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator();
-        String realm = findRealmFromHostname(realmValidator, dnsName);
-        if (realm == null && allowHostnameCanonicalization) {
-            // We failed, try with canonical host name to find a better match
-            try {
-                String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
-                realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
-                dnsName = canonicalHostName;
-            } catch (UnknownHostException e) {
-                // ignored, cannot canonicalize
+        String realm = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.REALM.toString());
+        // If realm is not specified in the connection, try to derive it.
+        if (null == realm || realm.trim().isEmpty()) {
+            RealmValidator realmValidator = getRealmValidator();
+            realm = findRealmFromHostname(realmValidator, dnsName);
+            if (realm == null && allowHostnameCanonicalization) {
+                // We failed, try with canonical host name to find a better match
+                try {
+                    String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
+                    realm = findRealmFromHostname(realmValidator, canonicalHostName);
+                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
+                    dnsName = canonicalHostName;
+                } catch (UnknownHostException e) {
+                    // ignored, cannot canonicalize
+                }
             }
         }
         if (realm == null) {
@@ -188,6 +192,6 @@ abstract class SSPIAuthentication {
             spn = makeSpn(con, con.currentConnectPlaceHolder.getServerName(),
                     con.currentConnectPlaceHolder.getPortNumber());
         }
-        return enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
+        return enrichSpnWithRealm(con, spn, null == userSuppliedServerSpn);
     }
 }

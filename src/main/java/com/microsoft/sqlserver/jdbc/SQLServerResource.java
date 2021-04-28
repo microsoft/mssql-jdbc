@@ -187,6 +187,7 @@ public final class SQLServerResource extends ListResourceBundle {
             {"R_domainPropertyDescription", "The Windows domain to authenticate in using NTLM."},
             {"R_serverNamePropertyDescription", "The computer running SQL Server."},
             {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
+            {"R_realmPropertyDescription", "The realm for Kerberos authentication."},
             {"R_serverSpnPropertyDescription", "SQL Server SPN."},
             {"R_columnEncryptionSettingPropertyDescription", "The column encryption setting."},
             {"R_enclaveAttestationUrlPropertyDescription", "The enclave attestation URL."},

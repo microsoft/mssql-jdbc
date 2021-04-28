@@ -349,6 +349,7 @@ enum SQLServerDriverStringProperty {
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
     SERVER_SPN("serverSpn", ""),
+    REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
     SOCKET_FACTORY_CONSTRUCTOR_ARG("socketFactoryConstructorArg", ""),
     TRUST_STORE_TYPE("trustStoreType", "JKS"),
