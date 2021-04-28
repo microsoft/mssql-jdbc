@@ -83,7 +83,10 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
 
+    /** driver error code */
     private int driverErrorCode = DRIVER_ERROR_NONE;
+
+    /** SQL server error */
     private SQLServerError sqlServerError;
 
     final int getDriverErrorCode() {

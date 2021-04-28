@@ -32,7 +32,13 @@ public class SQLServerDataSource
             .getLogger("com.microsoft.sqlserver.jdbc.DataSource");
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc");
+
+    /** logging class name */
     final private String loggingClassName;
+
+    /**
+     * trustStorePasswordStripped flag
+     */
     private boolean trustStorePasswordStripped = false;
 
     /**
@@ -40,19 +46,29 @@ public class SQLServerDataSource
      */
     private static final long serialVersionUID = 654861379544314296L;
 
-    // Properties passed to SQLServerConnection class
+    /**
+     * Properties passed to SQLServerConnection class
+     */
     private Properties connectionProps;
 
-    // URL for datasource
+    /**
+     * URL for datasource
+     */
     private String dataSourceURL;
 
-    // Description for datasource.
+    /**
+     * Description for datasource.
+     */
     private String dataSourceDescription;
 
-    /*
+    /**
      * Unique id generator for each DataSource instance (used for logging).
      */
     static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);
+
+    /**
+     * trace ID
+     */
     final private String traceID;
 
     /**
@@ -472,8 +488,7 @@ public class SQLServerDataSource
 
     @Override
     public void setReplication(boolean replication) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(),
-                replication);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(), replication);
     }
 
     @Override
@@ -1403,19 +1418,33 @@ public class SQLServerDataSource
         return baseDataSourceID.incrementAndGet();
     }
 
+    /**
+     * writeReplace
+     * 
+     * @return serialization proxy
+     * @throws java.io.ObjectStreamException
+     *         if error
+     */
     private Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializationProxy(this);
     }
 
+    /**
+     * For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource is to use a
+     * SerializationProxy. Direct use of readObject() is not supported.
+     * 
+     * @param stream
+     *        input stream object
+     * @throws java.io.InvalidObjectException
+     *         if error
+     */
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        // For added security/robustness, the only way to rehydrate a serialized
-        // SQLServerDataSource
-        // is to use a SerializationProxy. Direct use of readObject() is not
-        // supported.
         throw new java.io.InvalidObjectException("");
     }
 
-    // This code is duplicated in pooled and XA datasource classes.
+    /**
+     * This code is duplicated in pooled and XA datasource classes.
+     */
     private static class SerializationProxy implements java.io.Serializable {
         private final Reference ref;
         private static final long serialVersionUID = 654661379542314226L;

@@ -10,12 +10,15 @@ import java.nio.ByteOrder;
 
 
 /**
- * Geometry datatype represents data in a Euclidean (flat) coordinate system.
- * This class will stay in this current package for backwards compatibility.
+ * Geometry datatype represents data in a Euclidean (flat) coordinate system. This class will stay in this current
+ * package for backwards compatibility.
  */
 
 public class Geometry extends SQLServerSpatialDatatype {
 
+    /**
+     * Creates a Geometry object
+     */
     protected Geometry() {}
 
     /**
@@ -91,10 +94,10 @@ public class Geometry extends SQLServerSpatialDatatype {
      * Constructor for a Geometry instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB)
      * representation.
      * 
-     * Note: This method currently uses internal SQL Server format (CLR) to create a Geometry instance,
-     * but in the future this will be changed to accept WKB data instead, as the SQL Server counterpart of this
-     * method (STGeomFromWKB) uses WKB.
-     * For existing users who are already using this method, consider switching to deserialize(byte) instead.
+     * Note: This method currently uses internal SQL Server format (CLR) to create a Geometry instance, but in the
+     * future this will be changed to accept WKB data instead, as the SQL Server counterpart of this method
+     * (STGeomFromWKB) uses WKB. For existing users who are already using this method, consider switching to
+     * deserialize(byte) instead.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.

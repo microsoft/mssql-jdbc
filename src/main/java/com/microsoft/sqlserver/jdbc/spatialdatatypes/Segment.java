@@ -12,6 +12,12 @@ package com.microsoft.sqlserver.jdbc.spatialdatatypes;
 public class Segment {
     private byte segmentType;
 
+    /**
+     * Creates a Segment object
+     * 
+     * @param segmentType
+     *        segment type
+     */
     public Segment(byte segmentType) {
         this.segmentType = segmentType;
     }

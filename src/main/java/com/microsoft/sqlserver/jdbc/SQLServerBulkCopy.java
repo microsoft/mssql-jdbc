@@ -168,6 +168,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    /**
+     * Destination table metadata
+     */
     private ResultSet destinationTableMetadata;
 
     /**
@@ -251,6 +254,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private int srcColumnCount;
 
+    /**
+     * Shared timer
+     */
     private ScheduledFuture<?> timeout;
 
     /**
@@ -3660,12 +3666,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    protected void setStmtColumnEncriptionSetting(
-            SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
+    void setStmtColumnEncriptionSetting(SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting) {
         this.stmtColumnEncriptionSetting = stmtColumnEncriptionSetting;
     }
 
-    protected void setDestinationTableMetadata(SQLServerResultSet rs) {
+    void setDestinationTableMetadata(SQLServerResultSet rs) {
         destinationTableMetadata = rs;
     }
 

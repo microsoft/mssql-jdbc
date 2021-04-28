@@ -559,6 +559,9 @@ final class UTC {
 }
 
 
+/**
+ * TDS Channel
+ */
 final class TDSChannel implements Serializable {
     /**
      * Always update serialVersionUID when prompted.

@@ -14,6 +14,16 @@ public class Shape {
     private int figureOffset;
     private byte openGISType;
 
+    /**
+     * Creates a Shape object
+     * 
+     * @param parentOffset
+     *        parent offset
+     * @param figureOffset
+     *        figure offset
+     * @param openGISType
+     *        open GIS type
+     */
     public Shape(int parentOffset, int figureOffset, byte openGISType) {
         this.parentOffset = parentOffset;
         this.figureOffset = figureOffset;

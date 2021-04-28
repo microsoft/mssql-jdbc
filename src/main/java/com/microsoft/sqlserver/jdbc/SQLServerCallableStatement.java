@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public class SQLServerCallableStatement extends SQLServerPreparedStatement implements ISQLServerCallableStatement {
 
     /**
@@ -52,6 +51,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** the call param names */
     private HashMap<String, Integer> parameterNames;
+
+    /** insensitive param names */
     private TreeMap<String, Integer> insensitiveParameterNames;
 
     /** Number of registered OUT parameters */
@@ -59,10 +60,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** number of out params assigned already */
     int nOutParamsAssigned = 0;
+
     /** The index of the out params indexed - internal index */
     private int outParamIndex = -1;
 
-    // The last out param accessed.
+    /** The last out param accessed. */
     private Parameter lastParamAccessed;
 
     /** Currently active Stream Note only one stream can be active at a time */
@@ -73,7 +75,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return "SQLServerCallableStatement";
     }
 
+    /** map */
     Map<String, Integer> map = new ConcurrentHashMap<>();
+    
+    /** atomic integer */
     AtomicInteger ai = new AtomicInteger(0);
 
     /**

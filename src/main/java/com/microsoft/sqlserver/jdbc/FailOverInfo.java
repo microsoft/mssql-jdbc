@@ -14,7 +14,6 @@ import java.util.logging.Level;
  * to keep a lock in the class through a connection open a placeholder class is used to get the failover info in one
  * shot. This class should never directly expose its members.
  */
-
 final class FailoverInfo {
     private String failoverPartner;
     private int portNumber;

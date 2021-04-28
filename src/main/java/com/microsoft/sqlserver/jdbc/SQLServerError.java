@@ -104,12 +104,26 @@ public final class SQLServerError extends StreamPacket implements Serializable {
      * Always update serialVersionUID when prompted
      */
     private static final long serialVersionUID = -7304033613218700719L;
+    
+    /** error message string */
     private String errorMessage = "";
+    
+    /** error number */
     private int errorNumber;
+    
+    /** error state */
     private int errorState;
+    
+    /** error severity */
     private int errorSeverity;
+    
+    /** server name */
     private String serverName;
+    
+    /** procedure name */
     private String procName;
+    
+    /** line number */
     private long lineNumber;
 
     /**

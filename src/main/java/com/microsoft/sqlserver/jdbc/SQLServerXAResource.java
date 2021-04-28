@@ -164,7 +164,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     private int tightlyCoupled = 0;
     private int isTransacrionTimeoutSet = 0; // set to 1 if setTransactionTimeout() is called
 
-    public static final int SSTRANSTIGHTLYCPLD = 0x8000;
+    private static final int SSTRANSTIGHTLYCPLD = 0x8000;
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
     /**
