@@ -83,7 +83,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
-                dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol datetime2);");
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (Dataid int IDENTITY(1,1) PRIMARY KEY, testCol datetime2);");
 
                 bulkCopy.setDestinationTableName(dstTable);
                 LocalDateTime data = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
@@ -111,25 +112,25 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordDT(data6));
                 bulkCopy.writeToServer(new BulkRecordDT(data7));
 
-                String select = "SELECT * FROM " + dstTable;
+                String select = "SELECT * FROM " + dstTable + " order by Dataid";
                 ResultSet rs = dstStmt.executeQuery(select);
 
                 assertTrue(rs.next());
-                assertTrue(data.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data1.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data1.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data2.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data2.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data3.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data3.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data4.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data4.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data5.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data5.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data6.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data6.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
-                assertTrue(data7.equals(rs.getObject(1, LocalDateTime.class)));
+                assertTrue(data7.equals(rs.getObject(2, LocalDateTime.class)));
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -249,42 +250,60 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     
     private static class BulkRecordDT implements ISQLServerBulkData {
         boolean anyMoreData = true;
-        Object data;
+        Object[] data;
 
         BulkRecordDT(Object data) {
-            this.data = data;
+            this.data = new Object[2];
+            this.data[1] = data;
         }
 
         @Override
         public Set<Integer> getColumnOrdinals() {
             Set<Integer> ords = new HashSet<>();
             ords.add(1);
+            ords.add(2);
             return ords;
         }
 
         @Override
         public String getColumnName(int column) {
-            return "testCol";
+            if (column == 1) {
+                return "Dataid";
+            } else {
+                return "testCol";
+            }
         }
 
         @Override
         public int getColumnType(int column) {
-            return java.sql.Types.TIMESTAMP;
+            if (column == 1) {
+                return java.sql.Types.INTEGER;
+            } else {
+                return java.sql.Types.TIMESTAMP;
+            }
         }
 
         @Override
         public int getPrecision(int column) {
-            return 0;
+            if (column == 1) {
+                return 1;
+            } else {
+                return 0;
+            }
         }
 
         @Override
         public int getScale(int column) {
-            return 7;
+            if (column == 1) {
+                return 0;
+            } else {
+                return 7;
+            }
         }
 
         @Override
         public Object[] getRowData() {
-            return new Object[]{ data };
+            return data;
         }
 
         @Override
