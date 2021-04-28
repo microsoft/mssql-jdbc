@@ -91,7 +91,7 @@ To get the latest preview version of the driver, add the following to your POM f
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.0.jre15-preview</version>
+	<version>9.3.1.jre15-preview</version>
 </dependency>
 ```
 
@@ -126,7 +126,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.0.jre15-preview</version>
+	<version>9.3.1.jre15-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -144,7 +144,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.0.jre15-preview</version>
+	<version>9.3.1.jre15-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -171,7 +171,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.0.jre15-preview</version>
+	<version>9.3.1.jre15-preview</version>
 </dependency>
 
 <dependency>
