@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.3.1] Preview Release
+### Added
+- Added replication connection option [#1566](https://github.com/microsoft/mssql-jdbc/pull/1566)
+
+### Fixed issues
+- Fixed an issue where `trustStorePassword` is null when using applicationIntent=ReadOnly [#1565](https://github.com/microsoft/mssql-jdbc/pull/1565)
+- Fixed an issue where redirected token contains named instance in servername [#1568](https://github.com/microsoft/mssql-jdbc/pull/1568)
+
 ## [9.3.0] Preview Release
 ### Added
 - Added Open Connection Retry feature [#1535](https://github.com/microsoft/mssql-jdbc/pull/1535)
