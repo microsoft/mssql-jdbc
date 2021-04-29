@@ -164,7 +164,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     private int tightlyCoupled = 0;
     private int isTransacrionTimeoutSet = 0; // set to 1 if setTransactionTimeout() is called
 
-    private static final int SSTRANSTIGHTLYCPLD = 0x8000;
+    /**
+     * Used to allow the tightly coupled XA transactions, which have different XA branch transaction IDs (XIDs) but have
+     * the same global transaction ID (GTRID)
+     */
+    public static final int SSTRANSTIGHTLYCPLD = 0x8000;
+
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
     /**
