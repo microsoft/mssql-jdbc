@@ -29,12 +29,25 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
      */
     private static final long serialVersionUID = 3492921646187451164L;
 
+    /** listeners */
     private final Vector<ConnectionEventListener> listeners;
+
+    /** factory datasource */
     private SQLServerDataSource factoryDataSource;
+
+    /** physical connection */
     private SQLServerConnection physicalConnection;
+
+    /** last proxy connection */
     private SQLServerConnectionPoolProxy lastProxyConnection;
+
+    /** factory password */
     private String factoryUser, factoryPassword;
+
+    /** logger */
     private java.util.logging.Logger pcLogger;
+
+    /** trace ID */
     private final String traceID;
 
     // Unique id generator for each PooledConnection instance (used for logging).

@@ -9,12 +9,15 @@ import java.io.Serializable;
 import java.util.Date;
 
 
+/**
+ * Provides an implementation of a FedAuth token
+ */
 class SqlFedAuthToken implements Serializable {
     /**
      * Always update serialVersionUID when prompted
      */
     private static final long serialVersionUID = -1343105491285383937L;
-    
+
     final Date expiresOn;
     final String accessToken;
 

@@ -10,13 +10,12 @@ import java.nio.ByteOrder;
 
 
 /**
- * Geography datatype represents data in a round-earth coordinate system.
- * This class will stay in this current package for backwards compatibility.
+ * Geography datatype represents data in a round-earth coordinate system. This class will stay in this current package
+ * for backwards compatibility.
  */
-
 public class Geography extends SQLServerSpatialDatatype {
 
-    protected Geography() {}
+    Geography() {}
 
     /**
      * Private constructor used for creating a Geography object from WKT and Spatial Reference Identifier.
@@ -28,7 +27,7 @@ public class Geography extends SQLServerSpatialDatatype {
      * @throws SQLServerException
      *         if an exception occurs
      */
-    protected Geography(String wkt, int srid) throws SQLServerException {
+    Geography(String wkt, int srid) throws SQLServerException {
         if (null == wkt || wkt.length() <= 0) {
             throwIllegalWKT();
         }
@@ -91,10 +90,10 @@ public class Geography extends SQLServerSpatialDatatype {
      * Constructor for a Geography instance from an Open Geospatial Consortium (OGC) Well-Known Binary (WKB)
      * representation.
      * 
-     * Note: This method currently uses internal SQL Server format (CLR) to create a Geography instance,
-     * but in the future this will be changed to accept WKB data instead, as the SQL Server counterpart of this
-     * method (STGeomFromWKB) uses WKB.
-     * For existing users who are already using this method, consider switching to deserialize(byte) instead.
+     * Note: This method currently uses internal SQL Server format (CLR) to create a Geography instance, but in the
+     * future this will be changed to accept WKB data instead, as the SQL Server counterpart of this method
+     * (STGeomFromWKB) uses WKB. For existing users who are already using this method, consider switching to
+     * deserialize(byte) instead.
      * 
      * @param wkb
      *        Well-Known Binary (WKB) provided by the user.

@@ -449,6 +449,7 @@ enum SQLServerDriverBooleanProperty {
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),
+    REPLICATION("replication", false),
     SERVER_NAME_AS_ACE("serverNameAsACE", false),
     SEND_STRING_PARAMETERS_AS_UNICODE("sendStringParametersAsUnicode", true),
     SEND_TIME_AS_DATETIME("sendTimeAsDatetime", true),
@@ -589,6 +590,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false,
+                    TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
@@ -732,8 +736,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Registers the driver with DriverManager. No-op if driver is already registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void register() throws SQLException {
         if (!isRegistered()) {
@@ -742,8 +749,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * De-registers the driver with the DriverManager. No-op if the driver is not registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void deregister() throws SQLException {
         if (isRegistered()) {
@@ -752,13 +762,18 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Checks whether the driver has been registered with the driver manager.
+     * 
+     * @return if the driver has been registered with the driver manager
      */
     public static boolean isRegistered() {
         return mssqlDriver != null;
     }
 
+    /**
+     * Creates a SQLServerDriver object
+     */
     public SQLServerDriver() {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;

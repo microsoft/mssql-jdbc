@@ -24,12 +24,17 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      */
     private static final long serialVersionUID = -8154621218821899459L;
 
-    // NB These instances are not used by applications, only by the app server who is
-    // providing the connection pool and transactional processing to the application.
-    // That app server is the one who should restrict commit/rollback on the connections
-    // it issues to applications, not the driver. These instances can and must commit/rollback
+    /**
+     * NB These instances are not used by applications, only by the app server who is providing the connection pool and
+     * transactional processing to the application. That app server is the one who should restrict commit/rollback on
+     * the connections it issues to applications, not the driver. These instances can and must commit/rollback
+     */
     private SQLServerXAResource XAResource;
+    
+    /** physical connection */
     private SQLServerConnection physicalControlConnection;
+    
+    /** logger */
     private Logger xaLogger;
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {

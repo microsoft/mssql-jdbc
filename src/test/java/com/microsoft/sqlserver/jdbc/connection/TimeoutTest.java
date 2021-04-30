@@ -118,7 +118,7 @@ public class TimeoutTest extends AbstractTest {
     public void testConnectRetryBadServer() {
         long timerEnd = 0;
         long timerStart = System.currentTimeMillis();
-        int loginTimeout = 1;
+        int loginTimeout = 15;
 
         // non existent server with very short loginTimeout, no retry will happen as not a transient error
         try (Connection con = PrepUtil

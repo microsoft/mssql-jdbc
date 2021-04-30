@@ -13,6 +13,14 @@ public class WKBLinearRing {
     private final int numPoints;
     private final WKBPoint[] wkbPoints;
 
+    /**
+     * Creates a WKB Linear Ring object
+     * 
+     * @param numPoints
+     *        num points
+     * @param wkbPoints
+     *        wkb points
+     */
     public WKBLinearRing(int numPoints, WKBPoint[] wkbPoints) {
         this.numPoints = numPoints;
         this.wkbPoints = wkbPoints;

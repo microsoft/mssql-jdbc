@@ -245,6 +245,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "The optional argument to pass to the constructor specified by trustManagerClass."},
             {"R_hostNameInCertificatePropertyDescription",
                     "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
+            {"R_replicationPropertyDescription",
+                    "This setting tells the server if the connection is used for replication."},
             {"R_sendTimeAsDatetimePropertyDescription",
                     "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
             {"R_TransparentNetworkIPResolutionPropertyDescription",

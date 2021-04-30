@@ -48,10 +48,28 @@ import javax.crypto.KeyAgreement;
  * Provides an interface to create an Enclave Session
  *
  */
-public interface ISQLServerEnclaveProvider {
+interface ISQLServerEnclaveProvider {
+    /**
+     * sp_describe_parameter_encryption stored procedure with 2 params
+     */
     static final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+
+    /**
+     * sp_describe_parameter_encryption stored procedure with 3 params
+     */
     static final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
 
+    /**
+     * Get the Enclave package
+     * 
+     * @param userSQL
+     *        user sql
+     * @param enclaveCEKs
+     *        enclave CEKs
+     * @return the enclave package
+     * @throws SQLServerException
+     *         if error
+     */
     default byte[] getEnclavePackage(String userSQL, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         EnclaveSession enclaveSession = getEnclaveSession();
         if (null != enclaveSession) {
@@ -82,6 +100,23 @@ public interface ISQLServerEnclaveProvider {
         return null;
     }
 
+    /**
+     * Execute sp_describe_parameter_encryption for AEv2
+     * 
+     * @param stmt
+     *        statement
+     * @param userSql
+     *        user sql
+     * @param preparedTypeDefinitions
+     *        prepared type definitions
+     * @param req
+     *        request
+     * @return result set
+     * @throws SQLException
+     *         if error
+     * @throws IOException
+     *         if IO exception
+     */
     default ResultSet executeSDPEv2(PreparedStatement stmt, String userSql, String preparedTypeDefinitions,
             BaseAttestationRequest req) throws SQLException, IOException {
         ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
@@ -95,6 +130,19 @@ public interface ISQLServerEnclaveProvider {
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
+    /**
+     * Execute sp_describe_parameter_encryption
+     * 
+     * @param stmt
+     *        stmt
+     * @param userSql
+     *        user sql
+     * @param preparedTypeDefinitions
+     *        prepared type definitions
+     * @return result set
+     * @throws SQLException
+     *         if error
+     */
     default ResultSet executeSDPEv1(PreparedStatement stmt, String userSql,
             String preparedTypeDefinitions) throws SQLException {
         ((SQLServerPreparedStatement) stmt).isInternalEncryptionQuery = true;
@@ -107,6 +155,28 @@ public interface ISQLServerEnclaveProvider {
         return ((SQLServerPreparedStatement) stmt).executeQueryInternal();
     }
 
+    /**
+     * Process result from sp_describe_parameter_encryption
+     * 
+     * @param userSql
+     *        user sql
+     * @param preparedTypeDefinitions
+     *        prepared type definitions
+     * @param params
+     *        params
+     * @param parameterNames
+     *        param names
+     * @param connection
+     *        connection
+     * @param stmt
+     *        statement
+     * @param rs
+     *        result set
+     * @param enclaveRequestedCEKs
+     *        enclave requested CEKs
+     * @throws SQLException
+     *         if error
+     */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
             ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {

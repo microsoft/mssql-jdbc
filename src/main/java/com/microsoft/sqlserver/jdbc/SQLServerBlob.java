@@ -36,23 +36,31 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
     // Unique id generator for each instance (use for logging).
     private static final AtomicInteger BASE_ID = new AtomicInteger(0);
 
-    // The value of the BLOB that this Blob object represents.
-    // This value is never null unless/until the free() method is called.
+    /**
+     * The value of the BLOB that this Blob object represents. This value is never null unless/until the free() method
+     * is called.
+     */
     private byte[] value;
 
     private transient SQLServerConnection con;
+
+    /** check if LOB has been freed */
     private boolean isClosed = false;
 
-    // Active streams which must be closed when the Blob is closed
-    //
-    // Initial size of the array is based on an assumption that a Blob object is
-    // typically used either for input or output, and then only once. The array
-    // size
-    // grows automatically if multiple streams are used.
+    /**
+     * Active streams which must be closed when the Blob is closed
+     * 
+     * Initial size of the array is based on an assumption that a Blob object is typically used either for input or
+     * output, and then only once. The array size grows automatically if multiple streams are used.
+     */
     ArrayList<Closeable> activeStreams = new ArrayList<>(1);
 
+    /** trace id */
     private final String traceID;
 
+    /**
+     * Returns string representation of object
+     */
     public final String toString() {
         return traceID;
     }

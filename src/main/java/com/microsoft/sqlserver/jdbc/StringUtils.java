@@ -12,8 +12,14 @@ package com.microsoft.sqlserver.jdbc;
  */
 public class StringUtils {
 
+    /**
+     * string containing a space
+     */
     public static final String SPACE = " ";
 
+    /**
+     * empty string
+     */
     public static final String EMPTY = "";
 
     /**

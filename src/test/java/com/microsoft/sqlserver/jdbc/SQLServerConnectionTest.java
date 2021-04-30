@@ -170,6 +170,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setApplicationIntent(stringPropValue);
         assertEquals(stringPropValue, ds.getApplicationIntent(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setReplication(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getReplication(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setSendTimeAsDatetime(booleanPropValue);
         assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -759,8 +762,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    static Boolean isInterrupted = false;
-
     /**
      * Test thread's interrupt status is not cleared.
      * 
@@ -776,10 +777,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
-
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {
-                    isInterrupted = Thread.currentThread().isInterrupted();
-                }
+                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
 
@@ -789,13 +787,11 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(1000);
 
         // interrupt the thread in the Runnable
-        future.cancel(true);
-
+        boolean status = future.cancel(true);
         Thread.sleep(8000);
-
         executor.shutdownNow();
 
-        assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
     /**

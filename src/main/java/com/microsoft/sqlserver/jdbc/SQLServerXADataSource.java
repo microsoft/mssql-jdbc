@@ -104,13 +104,27 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
         return ref;
     }
 
+    /**
+     * writeReplace
+     * 
+     * @return serialization proxy
+     * @throws java.io.ObjectStreamException
+     *         if error
+     */
     private Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializationProxy(this);
     }
 
+    /**
+     * For added security/robustness, the only way to rehydrate a serialized SQLServerXADataSource is to use a
+     * SerializationProxy. Direct use of readObject() is not supported.
+     * 
+     * @param stream
+     *        input stream object
+     * @throws java.io.InvalidObjectException
+     *         if error
+     */
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        // For added security/robustness, the only way to rehydrate a serialized SQLServerXADataSource
-        // is to use a SerializationProxy. Direct use of readObject() is not supported.
         throw new java.io.InvalidObjectException("");
     }
 

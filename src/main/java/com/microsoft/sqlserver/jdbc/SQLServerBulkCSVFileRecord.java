@@ -32,26 +32,38 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = 1546487135640225989L;
-    /*
+
+    /**
      * Resources associated with reading in the file
      */
+    /** file reader */
     private BufferedReader fileReader;
+
+    /** input stream reader */
     private InputStreamReader sr;
+
+    /** file input stream */
     private FileInputStream fis;
 
-    /*
+    /**
      * Current line of data to parse.
      */
     private String currentLine = null;
 
-    /*
+    /**
      * Delimiter to parse lines with.
      */
     private final String delimiter;
 
+    /**
+     * Escape delimiters
+     */
     private boolean escapeDelimiters;
 
-    // Regex to ignore delimiter when the field is enclosed in quotes.
+    /**
+     * Regex to ignore delimiter when the field is enclosed in quotes.
+     * 
+     */
     private static final String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*

@@ -15,6 +15,18 @@ public class Point {
     private final double z;
     private final double m;
 
+    /**
+     * Creates a Point object
+     * 
+     * @param x
+     *        x value
+     * @param y
+     *        y value
+     * @param z
+     *        z value
+     * @param m
+     *        m value
+     */
     public Point(double x, double y, double z, double m) {
         this.x = x;
         this.y = y;
