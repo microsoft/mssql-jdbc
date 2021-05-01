@@ -192,6 +192,8 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
             }
+
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 

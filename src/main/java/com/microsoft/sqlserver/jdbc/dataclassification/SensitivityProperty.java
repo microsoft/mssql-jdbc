@@ -60,6 +60,11 @@ public class SensitivityProperty {
         return informationType;
     }
 
+    /**
+     * Returns the sensitivity rank for this <code>SensitivityProperty</code> Object
+     * 
+     * @return sensitivityRank
+     */
     public int getSensitivityRank() {
         return sensitivityRank;
     }

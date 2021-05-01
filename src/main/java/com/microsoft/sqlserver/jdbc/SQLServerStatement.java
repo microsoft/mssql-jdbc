@@ -57,12 +57,14 @@ public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
+    /** response buffer adaptive flag */
     private boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
     }
 
+    /** flag if response buffering is set */
     private boolean wasResponseBufferingSet = false;
 
     final boolean wasResponseBufferingSet() {
@@ -81,6 +83,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         return serverCursorId;
     }
 
+    /** server cursor row count */
     private int serverCursorRowCount;
 
     final int getServerCursorRowCount() {
@@ -135,6 +138,8 @@ public class SQLServerStatement implements ISQLServerStatement {
      * currentCommand to the cancelling thread.
      */
     private volatile TDSCommand currentCommand = null;
+
+    /** last statment exec command */
     private TDSCommand lastStmtExecCmd = null;
 
     final void discardLastExecutionResults() {
@@ -147,20 +152,29 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     static final java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Statement");
+
+    /** logging class name */
     final private String loggingClassName;
+
+    /** trace ID */
     final private String traceID;
 
     String getClassNameLogging() {
         return loggingClassName;
     }
 
-    /*
+    /**
      * Column Encryption Override. Defaults to the connection setting, in which case it will be Enabled if
      * columnEncryptionSetting = true in the connection setting, Disabled if false. This may also be used to set other
      * behavior which overrides connection level setting.
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    /**
+     * Returns the statement column encryption encryption setting
+     * 
+     * @return stmtColumnEncriptionSetting
+     */
     protected SQLServerStatementColumnEncryptionSetting getStmtColumnEncriptionSetting() {
         return stmtColumnEncriptionSetting;
     }
@@ -194,6 +208,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /** execute properties */
     private ExecuteProperties execProps;
 
     final ExecuteProperties getExecProps() {
@@ -293,6 +308,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     static final int EXECUTE = 3;
     static final int EXECUTE_BATCH = 4;
     static final int EXECUTE_QUERY_INTERNAL = 5;
+
+    /** execute method */
     int executeMethod = EXECUTE_NOT_SET;
 
     /**
@@ -435,6 +452,10 @@ public class SQLServerStatement implements ISQLServerStatement {
      * The user's specified fetch size. Only used for server side result sets. Client side cursors read all rows.
      */
     int nFetchSize;
+
+    /**
+     * default fetch size
+     */
     int defaultFetchSize;
 
     /**
@@ -510,6 +531,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         int statementID = nextStatementID();
         String classN = getClassNameInternal();
         traceID = classN + ":" + statementID;
+
+        /** logging classname */
         loggingClassName = "com.microsoft.sqlserver.jdbc." + classN + ":" + statementID;
 
         stmtPoolable = false;
@@ -745,6 +768,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != resultSet;
     }
 
+    /**
+     * Statement exec command
+     */
     private final class StmtExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -889,6 +915,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /**
+     * Statement batch exec command
+     */
     private final class StmtBatchExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -1208,7 +1237,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         loggerExternal.exiting(getClassNameLogging(), "cancel");
     }
 
-    Vector<SQLWarning> sqlWarnings; // the SQL warnings chain
+    /** the SQL warnings chain */
+    Vector<SQLWarning> sqlWarnings;
 
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery;

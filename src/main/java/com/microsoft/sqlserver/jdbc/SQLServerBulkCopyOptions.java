@@ -84,6 +84,9 @@ public class SQLServerBulkCopyOptions implements Serializable {
      */
     private boolean useInternalTransaction;
 
+    /**
+     * Flag to determine whether encrypted value modifications are allwoed
+     */
     private boolean allowEncryptedValueModifications;
 
     /**

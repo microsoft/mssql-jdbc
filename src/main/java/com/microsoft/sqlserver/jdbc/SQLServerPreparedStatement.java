@@ -56,6 +56,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
+
+    /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
     /** The prepared type definitions */
@@ -89,6 +91,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
+    /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
     /**
@@ -183,8 +186,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean encryptionMetadataIsRetrieved = false;
 
+    /**
+     * local user SQL
+     */
     private String localUserSQL;
 
+    /**
+     * crypto meta batch
+     */
     private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
     // Internal function used in tracing
@@ -507,6 +516,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null != resultSet;
     }
 
+    /**
+     * Prepare statement exec command
+     */
     private final class PrepStmtExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -1016,6 +1028,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
+    /**
+     * enclave CEKs
+     */
     private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
@@ -2657,6 +2672,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return true;
     }
 
+    /**
+     * Prepare statement batch execute command
+     */
     private final class PrepStmtBatchExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -2725,14 +2743,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 encryptionMetadataIsRetrieved = true;
 
                 /*
-                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                 *  on one Connection
+                 * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
+                 * one Connection
                  */
                 buildPreparedStrings(batchParam, true);
 
                 /*
-                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                 *  batches.
+                 * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 * batches.
                  */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
@@ -2746,14 +2764,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getParameterEncryptionMetadata(batchParam);
 
                 /*
-                 *  fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                 *  on one Connection
+                 * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
+                 * one Connection
                  */
                 buildPreparedStrings(batchParam, true);
 
                 /*
-                 *  Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                 *  batches.
+                 * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 * batches.
                  */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);

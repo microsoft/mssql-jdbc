@@ -401,24 +401,39 @@ enum SQLServerDriverStringProperty {
 enum SQLServerDriverIntProperty {
     PACKET_SIZE("packetSize", TDS.DEFAULT_PACKET_SIZE),
     LOCK_TIMEOUT("lockTimeout", -1),
-    LOGIN_TIMEOUT("loginTimeout", 15),
+    LOGIN_TIMEOUT("loginTimeout", 15, 0, 65535),
     QUERY_TIMEOUT("queryTimeout", -1),
     PORT_NUMBER("portNumber", 1433),
     SOCKET_TIMEOUT("socketTimeout", 0),
     SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD("serverPreparedStatementDiscardThreshold", SQLServerConnection.DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD),
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
-    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),;
+    CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
+    CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
 
     private final String name;
     private final int defaultValue;
+    private int minValue = -1; // not assigned
+    private int maxValue = -1; // not assigned
 
     private SQLServerDriverIntProperty(String name, int defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
     }
 
+    private SQLServerDriverIntProperty(String name, int defaultValue, int minValue, int maxValue) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+    }
+
     int getDefaultValue() {
         return defaultValue;
+    }
+
+    boolean isValidValue(int value) {
+        return (minValue == -1 && maxValue == -1) || (value >= minValue && value <= maxValue);
     }
 
     @Override
@@ -434,6 +449,7 @@ enum SQLServerDriverBooleanProperty {
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),
+    REPLICATION("replication", false),
     SERVER_NAME_AS_ACE("serverNameAsACE", false),
     SEND_STRING_PARAMETERS_AS_UNICODE("sendStringParametersAsUnicode", true),
     SEND_TIME_AS_DATETIME("sendTimeAsDatetime", true),
@@ -574,6 +590,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false,
+                    TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
@@ -654,7 +673,12 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
-                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),};
+                    SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false,
+                    null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
@@ -712,8 +736,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Registers the driver with DriverManager. No-op if driver is already registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void register() throws SQLException {
         if (!isRegistered()) {
@@ -722,8 +749,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * De-registers the driver with the DriverManager. No-op if the driver is not registered.
+     * 
+     * @throws SQLException
+     *         if error
      */
     public static void deregister() throws SQLException {
         if (isRegistered()) {
@@ -732,13 +762,18 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
     }
 
-    /*
+    /**
      * Checks whether the driver has been registered with the driver manager.
+     * 
+     * @return if the driver has been registered with the driver manager
      */
     public static boolean isRegistered() {
         return mssqlDriver != null;
     }
 
+    /**
+     * Creates a SQLServerDriver object
+     */
     public SQLServerDriver() {
         instanceID = nextInstanceID();
         traceID = "SQLServerDriver:" + instanceID;

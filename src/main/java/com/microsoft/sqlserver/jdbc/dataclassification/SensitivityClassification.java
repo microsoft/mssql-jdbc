@@ -17,12 +17,41 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
  */
 public class SensitivityClassification {
 
+    /**
+     * Sensitivity Rank
+     * 
+     * https://docs.microsoft.com/sql/relational-databases/system-catalog-views/sys-sensitivity-classifications-transact-sql
+     *
+     */
     public enum SensitivityRank {
+        /**
+         * rank not defined
+         */
         NOT_DEFINED(-1),
+        
+        /**
+         * rank NONE
+         */
         NONE(0),
+        
+        /**
+         * rank LOW
+         */
         LOW(10),
+        
+        /**
+         * rank MEDIUM
+         */
         MEDIUM(20),
+        
+        /**
+         * rank HIGH
+         */
         HIGH(30),
+        
+        /**
+         * rank CRITICAL
+         */
         CRITICAL(40);
 
         private static final SensitivityRank[] VALUES = values();
@@ -32,10 +61,25 @@ public class SensitivityClassification {
             this.rank = rank;
         }
 
+        /**
+         * Get rank value
+         * 
+         * @return rank
+         */
         public int getValue() {
             return rank;
         }
 
+        /**
+         * Check if sensitivity rank value is valid
+         * 
+         * @param rank
+         *        rank
+         * 
+         * @return if sensitivity rank value is valid
+         * @throws SQLServerException
+         *         if error
+         */
         public static boolean isValid(int rank) throws SQLServerException {
             for (SensitivityRank r : VALUES) {
                 if (r.getValue() == rank) {
@@ -120,6 +164,11 @@ public class SensitivityClassification {
         return columnSensitivities;
     }
 
+    /**
+     * Returns the sensitivity rank
+     * 
+     * @return sensitivity rank
+     */
     public int getSensitivityRank() {
         return sensitivityRank;
     }

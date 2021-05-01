@@ -340,7 +340,8 @@ final class TDS {
     static final byte LOGIN_OPTION2_USER_NORMAL = 0x00;
     static final byte LOGIN_OPTION2_USER_SERVER = 0x10;
     static final byte LOGIN_OPTION2_USER_REMUSER = 0x20;
-    static final byte LOGIN_OPTION2_USER_SQLREPL = 0x30;
+    static final byte LOGIN_OPTION2_USER_SQLREPL_OFF = 0x00;
+    static final byte LOGIN_OPTION2_USER_SQLREPL_ON = 0x30;
     static final byte LOGIN_OPTION2_INTEGRATED_SECURITY_OFF = 0x00;
     static final byte LOGIN_OPTION2_INTEGRATED_SECURITY_ON = (byte) 0x80;
 
@@ -558,6 +559,9 @@ final class UTC {
 }
 
 
+/**
+ * TDS Channel
+ */
 final class TDSChannel implements Serializable {
     /**
      * Always update serialVersionUID when prompted.
@@ -1734,10 +1738,6 @@ final class TDSChannel implements Serializable {
                     try {
                         ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
                     } finally {
-                        // We are done with the trustStorePassword (if set). Clear it for better security.
-                        con.activeConnectionProperties
-                                .remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
-
                         // We are also done with the trust store input stream.
                         if (null != is) {
                             try {
@@ -3940,7 +3940,7 @@ final class TDSWriter {
         int charsCopied = 0;
         int length = value.length();
         while (charsCopied < length) {
-            int bytesToCopy = 2 * (length - charsCopied);
+            long bytesToCopy = 2 * (length - charsCopied);
 
             if (bytesToCopy > valueBytes.length)
                 bytesToCopy = valueBytes.length;
@@ -4029,8 +4029,7 @@ final class TDSWriter {
 
         do {
             // Read in next chunk
-            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize;
-                    charsToWrite += charsRead) {
+            for (charsToWrite = 0; -1 != charsRead && charsToWrite < currentPacketSize; charsToWrite += charsRead) {
                 try {
                     charsRead = reader.read(streamCharBuffer, charsToWrite, currentPacketSize - charsToWrite);
                 } catch (IOException e) {

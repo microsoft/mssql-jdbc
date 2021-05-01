@@ -47,8 +47,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             ArrayList<String> valueList, String encoding) throws SQLServerException {
         initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, loggerClassName,
-                    new Object[] {batchParam, encoding});
+            loggerExternal.entering(loggerPackageName, loggerClassName, new Object[] {batchParam, encoding});
         }
 
         if (null == batchParam) {

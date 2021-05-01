@@ -13,6 +13,14 @@ public class WKBPoint {
     private final double x;
     private final double y;
 
+    /**
+     * Creates a WKB Point object
+     * 
+     * @param x
+     *        x value
+     * @param y
+     *        y value
+     */
     public WKBPoint(double x, double y) {
         this.x = x;
         this.y = y;

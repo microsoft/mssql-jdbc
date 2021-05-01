@@ -208,6 +208,10 @@ public final class SQLServerResource extends ListResourceBundle {
                     "The authentication scheme to be used for integrated authentication."},
             {"R_lockTimeoutPropertyDescription",
                     "The number of milliseconds to wait before the database reports a lock time-out."},
+            {"R_connectRetryCountPropertyDescription",
+                    "The number of reconnection attempts if there is a connection failure."},
+            {"R_connectRetryIntervalPropertyDescription",
+                    "The number of seconds between each connection retry attempt."},
             {"R_loginTimeoutPropertyDescription",
                     "The number of seconds the driver should wait before timing out a failed connection."},
             {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},
@@ -241,6 +245,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "The optional argument to pass to the constructor specified by trustManagerClass."},
             {"R_hostNameInCertificatePropertyDescription",
                     "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
+            {"R_replicationPropertyDescription",
+                    "This setting tells the server if the connection is used for replication."},
             {"R_sendTimeAsDatetimePropertyDescription",
                     "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
             {"R_TransparentNetworkIPResolutionPropertyDescription",
@@ -661,5 +667,6 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Determines maximum amount of bytes that can be read during retrieval of result set"},
             {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
             {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
-            {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},};
+            {"R_maxResultBufferPropertyExceeded",
+                    "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},};
 }

@@ -147,7 +147,6 @@ public final class Constants {
     public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
 
-    // for MSI
     public static final String MSICLIENTID = "MSICLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
@@ -159,6 +158,10 @@ public final class Constants {
     public static final String CLIENT_KEY = "CLIENTKEY";
     public static final String AAD_SECURE_PRINCIPAL_ID = "AADSECUREPRINCIPALID";
     public static final String AAD_SECURE_PRINCIPAL_SECRET = "AADSECUREPRINCIPALSECRET";
+
+    public static final String CONNECT_RETRY_COUNT = "CONNECTRETRYCOUNT";
+    public static final String CONNECT_RETRY_INTERVAL = "CONNECTRETRYINTERVAL";
+
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
     public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
