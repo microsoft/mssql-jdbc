@@ -200,11 +200,8 @@ class SQLServerMSAL4JUtils {
 
     private static SQLServerException getCorrectedException(ExecutionException e, String user,
             String authenticationString) {
-        if (logger.isLoggable(Level.SEVERE)) {
-            logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
-        }
-
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_MSALExecution") + " " + e.getMessage());
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
