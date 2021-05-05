@@ -806,7 +806,7 @@ public final class TestUtils {
      * @return regex expression.
      */
     public static String formatErrorMsg(String s) {
-        return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+        return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E" + ".*").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 
     /**
