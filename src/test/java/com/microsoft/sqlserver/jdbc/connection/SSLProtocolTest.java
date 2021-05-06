@@ -55,7 +55,7 @@ public class SSLProtocolTest extends AbstractTest {
                                                                                  .contains(TestResource.getResource(
                                                                                          "R_connectionClosed")) : false
                                                          : false,
-                    e.getMessage());
+                    e.getMessage() + ": " + e.getErrorCode());
         }
     }
 
