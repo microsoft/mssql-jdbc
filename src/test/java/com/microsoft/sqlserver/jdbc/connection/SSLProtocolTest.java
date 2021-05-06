@@ -45,9 +45,12 @@ public class SSLProtocolTest extends AbstractTest {
             // Some older versions of SQLServer might not have all the TLS protocol versions enabled.
             // Example, if the highest TLS version enabled in the server is TLSv1.1,
             // the connection will fail if we enable only TLSv1.2
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_noProtocolVersion"))
-                    || e.getCause().getMessage().contains(TestResource.getResource("R_connectionClosed"))
-                    || e.getCause().getCause().getMessage().contains(TestResource.getResource("R_connectionClosed")));
+            assertTrue(
+                    e.getMessage().contains(TestResource.getResource("R_noProtocolVersion")) || null != e.getCause() ? e
+                            .getCause().getMessage().contains(TestResource.getResource("R_connectionClosed"))
+                            || e.getCause().getCause().getMessage()
+                                    .contains(TestResource.getResource("R_connectionClosed")) : true,
+                    e.getMessage());
         }
     }
 
