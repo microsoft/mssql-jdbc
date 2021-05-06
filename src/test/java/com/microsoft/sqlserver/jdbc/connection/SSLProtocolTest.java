@@ -45,17 +45,20 @@ public class SSLProtocolTest extends AbstractTest {
             // Some older versions of SQLServer might not have all the TLS protocol versions enabled.
             // Example, if the highest TLS version enabled in the server is TLSv1.1,
             // the connection will fail if we enable only TLSv1.2
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_noProtocolVersion")) || null != e.getCause()
-                    && null != e.getCause().getMessage()
-                                                         ? e.getCause().getMessage().contains(
-                                                                 TestResource.getResource("R_connectionClosed"))
-                                                                 || null != e.getCause().getCause() && null != e
-                                                                         .getCause().getCause().getMessage() ? e
-                                                                                 .getCause().getCause().getMessage()
-                                                                                 .contains(TestResource.getResource(
-                                                                                         "R_connectionClosed")) : false
-                                                         : false,
-                    e.getMessage() + ": " + e.getErrorCode());
+            String errorMsg = e.getMessage();
+            Throwable cause = e.getCause();
+            assertTrue(errorMsg.contains(TestResource.getResource("R_protocolNotSupported"))
+                    || errorMsg.contains(TestResource.getResource("R_protocolInappropriate")) || null != cause
+                            && null != cause.getMessage()
+                                                          ? cause.getMessage().contains(
+                                                                  TestResource.getResource("R_connectionClosed"))
+                                                                  || null != cause.getCause() && null != cause
+                                                                          .getCause().getMessage() ? cause.getCause()
+                                                                                  .getMessage()
+                                                                                  .contains(TestResource.getResource(
+                                                                                          "R_connectionClosed")) : false
+                                                          : false,
+                    e.getMessage());
         }
     }
 
