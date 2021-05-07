@@ -47,17 +47,13 @@ public class SSLProtocolTest extends AbstractTest {
             // the connection will fail if we enable only TLSv1.2
             String errorMsg = e.getMessage();
             Throwable cause = e.getCause();
-            assertTrue(errorMsg.contains(TestResource.getResource("R_protocolNotSupported"))
-                    || errorMsg.contains(TestResource.getResource("R_protocolInappropriate")) || null != cause
-                            && null != cause.getMessage()
-                                                          ? cause.getMessage().contains(
-                                                                  TestResource.getResource("R_connectionClosed"))
-                                                                  || null != cause.getCause() && null != cause
-                                                                          .getCause().getMessage() ? cause.getCause()
-                                                                                  .getMessage()
-                                                                                  .contains(TestResource.getResource(
-                                                                                          "R_connectionClosed")) : false
-                                                          : false,
+            assertTrue(
+                    errorMsg.contains(TestResource.getResource("R_protocolNotSupported"))
+                            || errorMsg.contains(TestResource.getResource("R_protocolInappropriate"))
+                            || null != cause && null != cause.getMessage()
+                                    && cause.getMessage().contains(TestResource.getResource("R_connectionClosed"))
+                            || null != cause.getCause() && null != cause.getCause().getMessage() && cause.getCause()
+                                    .getMessage().contains(TestResource.getResource("R_connectionClosed")),
                     e.getMessage());
         }
     }
