@@ -291,7 +291,7 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg(resourceKey)));
+            assertTrue(e.getMessage().replaceAll("\r\n", "").matches(TestUtils.formatErrorMsg(resourceKey)));
         }
     }
 
