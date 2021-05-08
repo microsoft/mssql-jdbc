@@ -200,20 +200,24 @@ class SQLServerMSAL4JUtils {
 
     private static SQLServerException getCorrectedException(ExecutionException e, String user,
             String authenticationString) {
-        MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_MSALExecution") + " " + e.getMessage());
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+
             // The case when Future's outcome has no AuthenticationResult but Exception.
             return new SQLServerException(form.format(msgArgs), null);
         } else {
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
-             * correct format
+             * correct format. Also replace {} which confuses MessageFormat
              */
-            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
+            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n")
+                    .replaceAll("\\{", "\"").replaceAll("\\}", "\"");
+
             RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_MSALExecution") + " " + correctedErrorMessage);
 
             /*
              * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match
