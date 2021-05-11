@@ -48,7 +48,7 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre16'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
   - task: Maven@3
     displayName: 'Maven build jre11'
     inputs:
@@ -58,7 +58,7 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
   - task: Maven@3
     displayName: 'Maven build jre8'
     inputs:
@@ -68,4 +68,4 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre8'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
