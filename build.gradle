@@ -3,8 +3,8 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre15 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre15
+ * jre16 - - PS> gradle build
+			 PS> gradle build -PbuildProfile=jre16
  * jre11 - - PS> gradle build -PbuildProfile=jre11
  * jre8  - - PS> gradle build -PbuildProfile=jre8
  *
@@ -14,7 +14,7 @@
 
 apply plugin: 'java'
 
-version = '9.3.0'
+version = '9.3.1'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -35,17 +35,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre15")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre16")){
 	
-	jreVersion = "jre15"
+	jreVersion = "jre16"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 15
-	targetCompatibility = 15
+	sourceCompatibility = 16
+	targetCompatibility = 16
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){

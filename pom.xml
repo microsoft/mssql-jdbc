@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.0</version>
+	<version>9.3.1</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -322,12 +322,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre15</id>
+			<id>jre16</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre15${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre16${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -337,8 +337,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>15</source>
-							<target>15</target>
+							<source>16</source>
+							<target>16</target>
 						</configuration>
 					</plugin>
 					<plugin>

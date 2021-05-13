@@ -38,17 +38,17 @@ jobs:
     name: authDLL
     displayName: 'Download mssql-jdbc_auth DLL'
     inputs:
-      secureFile: 'mssql-jdbc_auth-9.3.0.x64-preview.dll'
+      secureFile: 'mssql-jdbc_auth-9.3.1.x64-preview.dll'
   - task: Maven@3
-    displayName: 'Maven build jre15'
+    displayName: 'Maven build jre16'
     inputs:
       mavenPomFile: 'pom.xml'
-      goals: 'clean dependency:purge-local-repository -DdllPath=$(Agent.TempDirectory) -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre15 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)
+      goals: 'clean dependency:purge-local-repository -DdllPath=$(Agent.TempDirectory) -Dmssql_jdbc_test_connection_properties=jdbc:sqlserver://$(Target_SQL)$(server_domain);$(database);$(user);$(password); install -Pjre16 -DuserNTLM=$(userNTLM) -DpasswordNTLM=$(passwordNTLM) -DdomainNTLM=$(domainNTLM) -DexcludedGroups=$(Ex_Groups) -Dpkcs12_truststore_password=$(pkcs12_truststore_password) -Dpkcs12_truststore=$(pkcs12_truststore.secureFilePath)
 -DapplicationClientID=$(applicationClientID) -DapplicationKey=$(applicationKey) -DtenantID=$(tenantID) -DkeyID=$(keyID) -DwindowsKeyPath=$(windowsKeyPath) -DenclaveAttestationUrl=$(enclaveAttestationUrl) -DenclaveAttestationProtocol=$(enclaveAttestationProtocol) -DenclaveServer=$(enclaveServer)'
       testResultsFiles: '**/TEST-*.xml'
-      testRunTitle: 'Maven build jre15'
+      testRunTitle: 'Maven build jre16'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
   - task: Maven@3
     displayName: 'Maven build jre11'
     inputs:
@@ -58,7 +58,7 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre11'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
   - task: Maven@3
     displayName: 'Maven build jre8'
     inputs:
@@ -68,4 +68,4 @@ jobs:
       testResultsFiles: '**/TEST-*.xml'
       testRunTitle: 'Maven build jre8'
       javaHomeOption: Path
-      jdkDirectory: $(JDK15)
+      jdkDirectory: $(JDK16)
