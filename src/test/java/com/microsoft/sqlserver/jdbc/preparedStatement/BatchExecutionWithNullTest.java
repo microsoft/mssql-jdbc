@@ -134,7 +134,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         testClearBatch(getConnection());
     }
     
-    public void testClearBatch(Connection conn) throws SQLException {
+    private void testClearBatch(Connection conn) throws SQLException {
         String batchTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchTable")));
         String CREATE_TABLE_SQL = "create table " + batchTable + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
@@ -169,7 +169,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
 
         int[] rowCounts = pstmt.executeBatch();
         for (int idx = 0; idx < rowCounts.length; idx++) {
-            System.out.printf("Row %2d %s successfully inserted.\n", idx + 1, rowCounts[idx] == 1 ? "was" : "was not");
+            assertTrue(rowCounts[idx] == 1, "Row " + idx + " was not successfully inserted.");
         }
     }
 
