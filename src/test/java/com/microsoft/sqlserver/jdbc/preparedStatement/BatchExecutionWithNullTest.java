@@ -135,6 +135,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
     
     private void testClearBatch(Connection conn) throws SQLException {
+        // Use specific table for this testing
         String batchTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchTable")));
         String CREATE_TABLE_SQL = "create table " + batchTable + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
