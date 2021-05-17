@@ -132,13 +132,13 @@ abstract class SSPIAuthentication {
         if (!m.matches()) {
             return spn;
         }
-        if (m.group(3) != null) {
+        String realm = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.REALM.toString());
+        if (m.group(3) != null && (null == realm || realm.trim().isEmpty())) {
             // Realm is already present, no need to enrich, the job has already been done
             return spn;
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        String realm = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.REALM.toString());
         // If realm is not specified in the connection, try to derive it.
         if (null == realm || realm.trim().isEmpty()) {
             RealmValidator realmValidator = getRealmValidator();

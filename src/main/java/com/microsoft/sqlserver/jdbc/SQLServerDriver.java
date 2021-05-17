@@ -570,6 +570,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
+                    SQLServerDriverStringProperty.REALM.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
                     SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
