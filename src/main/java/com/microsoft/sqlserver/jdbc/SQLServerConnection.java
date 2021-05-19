@@ -3046,9 +3046,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // PL_OPTION_DATA
         byte[] preloginOptionData = {
-                // - Server version -
-                // (out param, filled in by the server in the prelogin response).
-                0, 0, 0, 0, 0, 0,
+                // Driver major and minor version, 1 byte each
+                (byte) SQLJdbcVersion.major,
+                (byte) SQLJdbcVersion.minor,
+                // Revision (Big Endian), 2 bytes
+                (byte) ((SQLJdbcVersion.patch & 0xff00) >> 8),
+                (byte) (SQLJdbcVersion.patch & 0xff),
+                // Build (Little Endian), 2 bytes
+                (byte) (SQLJdbcVersion.build & 0xff),
+                (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
 
                 // - Encryption -
                 (null == clientCertificate) ? requestedEncryptionLevel
