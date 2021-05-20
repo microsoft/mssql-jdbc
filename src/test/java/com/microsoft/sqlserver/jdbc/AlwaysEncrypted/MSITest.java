@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.microsoft.aad.msal4j.MsalServiceException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -222,7 +221,7 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreSecretNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreSecretNotSet")), e.getMessage());
         }
     }
 
@@ -241,7 +240,8 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")),
+                    e.getMessage());
         }
     }
 
@@ -260,7 +260,8 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")),
+                    e.getMessage());
         }
     }
 
@@ -279,7 +280,8 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")),
+                    e.getMessage());
         }
     }
 
@@ -301,7 +303,7 @@ public class MSITest extends AESetup {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             // https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-aadsts-error-codes
-            assertTrue(e.getMessage().contains("AADSTS700016"));
+            assertTrue(e.getMessage().contains("AADSTS700016"), e.getMessage());
         }
     }
 
