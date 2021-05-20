@@ -4,8 +4,8 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -189,7 +189,7 @@ public class EnclaveTest extends AESetup {
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Throwable e) {
             // testChars called fail()
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_AlterAEv2Error")), e.getMessage());
         }
     }
 
@@ -242,7 +242,7 @@ public class EnclaveTest extends AESetup {
                     + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
-                assertTrue(48 == pmd.getParameterCount());
+                assertTrue(48 == pmd.getParameterCount(), "parameter count: " + pmd.getParameterCount());
             }
         }
     }
@@ -287,9 +287,9 @@ public class EnclaveTest extends AESetup {
             pstmt.setInt(1, 3);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    assertTrue(1 == rs.getInt(1));
-                    assertTrue(2 == rs.getInt(2));
-                    assertTrue(3 == rs.getInt(3));
+                    assertTrue(1 == rs.getInt(1), "rs.getInt(1)=" + rs.getInt(1));
+                    assertTrue(2 == rs.getInt(2), "rs.getInt(2)=" + rs.getInt(2));
+                    assertTrue(3 == rs.getInt(3), "rs.getInt(3)=" + rs.getInt(3));
                 }
             }
         }
@@ -314,14 +314,14 @@ public class EnclaveTest extends AESetup {
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    assertTrue(rs.getString(1).equalsIgnoreCase("a"));
-                    assertTrue(rs.getString(2).equalsIgnoreCase("b"));
-                    assertTrue(rs.getString(3).equalsIgnoreCase("test"));
+                    assertTrue(rs.getString(1).equalsIgnoreCase("a"), "rs.getString(1)=" + rs.getString(1));
+                    assertTrue(rs.getString(2).equalsIgnoreCase("b"), "rs.getString(2)=" + rs.getString(2));
+                    assertTrue(rs.getString(3).equalsIgnoreCase("test"), "rs.getString(3)=" + rs.getString(3));
                 }
             }
         }
     }
-    
+
     /**
      * Test alter column with a non AEv2 connection
      */
@@ -346,10 +346,10 @@ public class EnclaveTest extends AESetup {
                     + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
             pstmt.execute();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")), e.getMessage());
         }
     }
-    
+
     @AfterAll
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
