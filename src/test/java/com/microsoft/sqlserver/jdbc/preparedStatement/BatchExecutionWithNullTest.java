@@ -110,6 +110,69 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     public void testAddbatch2() throws SQLException {
         testAddBatch2(getConnection());
     }
+    
+    /**
+     * TestClearBatch with AE enabled on the connection
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xSQLv12)
+    public void testClearBatchAEOnConnection() throws SQLException {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
+            testClearBatch(connection);
+        }
+    }
+    
+    /**
+     * Test the same as testClearBatchAEOnConnection, with AE disabled
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testClearBatch() throws SQLException {
+        testClearBatch(getConnection());
+    }
+    
+    private void testClearBatch(Connection conn) throws SQLException {
+        // Use specific table for this testing
+        String batchTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchTable")));
+        String CREATE_TABLE_SQL = "create table " + batchTable + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
+        String INSERT_ROW_SQL = "INSERT INTO " + batchTable + "(KEY1, KEY2) VALUES(?, ?)";
+        
+        try (Statement s = conn.createStatement()) {
+            try ( PreparedStatement pstmt = conn.prepareStatement(INSERT_ROW_SQL)) {
+                s.execute(CREATE_TABLE_SQL);
+                // Set auto-commit to false
+                conn.setAutoCommit(false);
+                executeBatch(pstmt, 10, "foo".hashCode() + 1);
+                pstmt.clearParameters();
+                executeBatch(pstmt, 10, "bar".hashCode() + 2);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                TestUtils.dropTableIfExists(batchTable, s);
+            }
+        }
+    }
+
+    private void executeBatch(PreparedStatement pstmt, int count, int run) throws SQLException {
+        long base = System.currentTimeMillis();
+
+        for (int idx = 1; idx <= count; idx++) {
+            pstmt.setLong(1, base + idx);
+            pstmt.setLong(2, run);
+            pstmt.addBatch();
+        }
+
+        int[] rowCounts = pstmt.executeBatch();
+        for (int idx = 0; idx < rowCounts.length; idx++) {
+            assertTrue(rowCounts[idx] == 1, "Row " + idx + " was not successfully inserted.");
+        }
+    }
 
     @BeforeEach
     @Tag(Constants.xSQLv12)
