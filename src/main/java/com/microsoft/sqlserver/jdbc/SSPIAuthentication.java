@@ -9,6 +9,8 @@ import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +33,8 @@ abstract class SSPIAuthentication {
      */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
+    
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SSPIAuthentication");
 
     /**
      * Make SPN name
@@ -143,7 +147,7 @@ abstract class SSPIAuthentication {
         if (null == realm || realm.trim().isEmpty()) {
             RealmValidator realmValidator = getRealmValidator();
             realm = findRealmFromHostname(realmValidator, dnsName);
-            if (realm == null && allowHostnameCanonicalization) {
+            if (null == realm && allowHostnameCanonicalization) {
                 // We failed, try with canonical host name to find a better match
                 try {
                     String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
@@ -152,10 +156,13 @@ abstract class SSPIAuthentication {
                     dnsName = canonicalHostName;
                 } catch (UnknownHostException e) {
                     // ignored, cannot canonicalize
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.finer("Could not canonicalize host name. " + e.toString());
+                    }
                 }
             }
         }
-        if (realm == null) {
+        if (null == realm) {
             return spn;
         } else {
             StringBuilder sb = new StringBuilder("MSSQLSvc/");

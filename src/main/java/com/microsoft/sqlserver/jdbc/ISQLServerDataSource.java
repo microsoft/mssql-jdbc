@@ -506,7 +506,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getAuthentication();
 
     /**
-     * Sets the realm  for Kerberos authentication.
+     * Sets the realm for Kerberos authentication.
      * 
      * @param realm
      *        A String that contains the realm
@@ -514,7 +514,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setRealm(String realm);
 
     /**
-     * Returns the realm  for Kerberos authentication.
+     * Returns the realm for Kerberos authentication.
      * 
      * @return A String that contains the realm
      */
