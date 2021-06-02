@@ -116,7 +116,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    @Test
+   // @Test
     @Tag(Constants.xSQLv12)
     public void testClearBatchAEOnConnection() throws SQLException {
         System.out.println("in testClearBatchAEOnConnection");
