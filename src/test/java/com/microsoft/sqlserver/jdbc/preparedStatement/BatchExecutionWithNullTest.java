@@ -121,12 +121,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Test
     @Tag(Constants.xSQLv12)
     public void testClearBatchAEOnConnection() throws SQLException {
-        System.out.println("in testClearBatchAEOnConnection");
-
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
             testClearBatch(connection);
         }
-        System.out.println("testClearBatchAEOnConnection done");
 
     }
 
@@ -137,13 +134,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testClearBatch() throws SQLException {
-        System.out.println("in testClearBatch");
-
         try (Connection connection = getConnection()) {
             testClearBatch(connection);
         }
-        System.out.println("testClearBatch done");
-
     }
 
     private void testClearBatch(Connection conn) throws SQLException {
@@ -164,7 +157,6 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 executeBatch(pstmt, 10, "bar".hashCode() + 2);
                 conn.commit();
             } catch (Exception e) {
-                System.out.println("exception caught: " + e.getMessage());
                 conn.rollback();
                 throw e;
             } finally {
