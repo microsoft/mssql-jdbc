@@ -870,6 +870,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Properties activeConnectionProperties; // the active set of connection properties
+    private boolean usePlatformGssCredentials = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS
+        .getDefaultValue();
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
     private boolean ntlmAuthentication = false;
     private byte[] ntlmPasswordHash = null;
@@ -1675,6 +1677,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (activeConnectionProperties.containsKey(sPropKey)) {
                     impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                     isUserCreatedCredential = true;
+                }
+                // There might be cases where we wish to use the platform GSS credentials
+                sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (sPropValue != null) {
+                    usePlatformGssCredentials = booleanPropertyOn(sPropKey, sPropValue);
                 }
             } else if (intAuthScheme == AuthenticationScheme.ntlm) {
                 String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
@@ -3767,6 +3775,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
+                } else if (usePlatformGssCredentials) {
+                    authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
+                            currentConnectPlaceHolder.getPortNumber(), true);
                 } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
