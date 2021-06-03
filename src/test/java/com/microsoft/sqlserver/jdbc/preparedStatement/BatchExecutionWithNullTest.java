@@ -108,7 +108,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testAddbatch2() throws SQLException {
-        testAddBatch2(getConnection());
+        try (Connection connection = getConnection()) {
+            testAddBatch2(connection);
+        }
     }
 
     /**
@@ -127,30 +129,33 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         System.out.println("testClearBatchAEOnConnection done");
 
     }
-    
+
     /**
      * Test the same as testClearBatchAEOnConnection, with AE disabled
      * 
      * @throws SQLException
      */
-   // @Test
+    @Test
     public void testClearBatch() throws SQLException {
         System.out.println("in testClearBatch");
 
-        testClearBatch(getConnection());
+        try (Connection connection = getConnection()) {
+            testClearBatch(connection);
+        }
         System.out.println("testClearBatch done");
 
     }
-    
+
     private void testClearBatch(Connection conn) throws SQLException {
         // Use specific table for this testing
         String batchTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchTable")));
-        String CREATE_TABLE_SQL = "create table " + batchTable + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
+        String CREATE_TABLE_SQL = "create table " + batchTable
+                + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
         String INSERT_ROW_SQL = "INSERT INTO " + batchTable + "(KEY1, KEY2) VALUES(?, ?)";
-        
+
         try (Statement s = conn.createStatement()) {
-            try ( PreparedStatement pstmt = conn.prepareStatement(INSERT_ROW_SQL)) {
+            try (PreparedStatement pstmt = conn.prepareStatement(INSERT_ROW_SQL)) {
                 s.execute(CREATE_TABLE_SQL);
                 // Set auto-commit to false
                 conn.setAutoCommit(false);
@@ -159,7 +164,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 executeBatch(pstmt, 10, "bar".hashCode() + 2);
                 conn.commit();
             } catch (Exception e) {
-                System.out.println("exception caught: "+e.getMessage());
+                System.out.println("exception caught: " + e.getMessage());
                 conn.rollback();
                 throw e;
             } finally {
@@ -182,7 +187,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
             assertTrue(rowCounts[idx] == 1, "Row " + idx + " was not successfully inserted.");
         }
     }
-    
+
     @BeforeEach
     @Tag(Constants.xSQLv12)
     public void testSetup() throws TestAbortedException, Exception {
