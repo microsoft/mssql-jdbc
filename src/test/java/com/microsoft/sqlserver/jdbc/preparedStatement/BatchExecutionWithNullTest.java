@@ -154,11 +154,11 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 executeBatch(pstmt, 10, "foo".hashCode() + 1);
                 pstmt.clearParameters();
                 executeBatch(pstmt, 10, "bar".hashCode() + 2);
-                conn.commit();
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
             } finally {
+                conn.commit();
                 TestUtils.dropTableIfExists(batchTable, s);
             }
         }
