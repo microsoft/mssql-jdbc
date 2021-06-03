@@ -550,6 +550,8 @@ public final class SQLServerResource extends ListResourceBundle {
                     "Both \"keyStoreSecret\" and \"keyStoreLocation\" must be set, if \"keyStoreAuthentication=JavaKeyStorePassword\" has been specified in the connection string."},
             {"R_keyStoreSecretNotSet",
                     "\"keyStoreSecret\" must be set, if \"keyStoreAuthentication=KeyVaultClientSecret\" has been specified in the connection string."},
+            {"R_keyVaultProviderNotSupportedWithKeyStoreAuthentication",
+                    "\"keyStoreAuthentication\" cannot be used with \"keyVaultProviderClientId\" or \"keyVaultProviderClientKey\" in the connection string."},
             {"R_certificateStoreInvalidKeyword",
                     "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
             {"R_certificateStoreLocationNotSet",
