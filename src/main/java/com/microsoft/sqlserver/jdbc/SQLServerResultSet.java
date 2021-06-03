@@ -1473,6 +1473,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             logger.finer(toString() + logCursorState());
 
         checkClosed();
+
         // From JDBC spec:
         // Throws SQLException if the type of this ResultSet object is TYPE_FORWARD_ONLY.
         verifyResultSetIsScrollable();
