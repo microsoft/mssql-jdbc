@@ -124,7 +124,6 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
             testClearBatch(connection);
         }
-
     }
 
     /**
