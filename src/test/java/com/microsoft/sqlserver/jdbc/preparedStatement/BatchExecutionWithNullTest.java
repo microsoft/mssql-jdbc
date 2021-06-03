@@ -154,6 +154,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 conn.rollback();
                 throw e;
             } finally {
+                conn.setAutoCommit(true);
                 TestUtils.dropTableIfExists(batchTable, s);
             }
         }
