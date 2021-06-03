@@ -373,7 +373,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.entering(getClassNameLogging(), "clearParameters");
         checkClosed();
         encryptionMetadataIsRetrieved = false;
-	cryptoMetaBatch.clear();
+        cryptoMetaBatch.clear();
         int i;
         if (inOutParam == null)
             return;
