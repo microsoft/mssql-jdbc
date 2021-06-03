@@ -1216,6 +1216,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
     private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
 
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static {
+        long pidLong = 0;
+        try {
+            pidLong = ProcessHandle.current().pid();
+        } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
+            if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                loggerExternal.finer(loggingClassName + " NoClassDefFoundError for ProcessHandle. ProcessId will be 0.");
+            }
+        }
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int)pidLong;
+    }
+
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
      * returned the following variable only stores the serverReturned failver information.
@@ -5370,7 +5385,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt(tdsVersion);
         tdsWriter.writeInt(requestedPacketSize);
         tdsWriter.writeBytes(interfaceLibVersionBytes); // writeBytes() is little endian
-        tdsWriter.writeInt(0); // Client process ID (0 = ??)
+        tdsWriter.writeInt(pid); // Client process ID
         tdsWriter.writeInt(0); // Primary server connection ID
 
         tdsWriter.writeByte((byte) (// OptionFlags1:
