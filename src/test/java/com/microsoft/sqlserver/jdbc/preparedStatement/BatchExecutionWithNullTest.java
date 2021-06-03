@@ -158,8 +158,8 @@ public class BatchExecutionWithNullTest extends AbstractTest {
                 conn.rollback();
                 throw e;
             } finally {
-                conn.commit();
                 TestUtils.dropTableIfExists(batchTable, s);
+                conn.commit();
             }
         }
     }
