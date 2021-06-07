@@ -1682,7 +1682,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (sPropValue != null) {
-                    usePlatformGssCredentials = booleanPropertyOn(sPropKey, sPropValue);
+                    usePlatformGssCredentials = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
             } else if (intAuthScheme == AuthenticationScheme.ntlm) {
                 String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
