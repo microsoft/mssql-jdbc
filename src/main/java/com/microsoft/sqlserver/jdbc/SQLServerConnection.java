@@ -1845,7 +1845,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderNotSupportedWithKeyStoreAuthentication"), null);
+                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
                 }
                 String keyVaultColumnEncryptionProviderClientKey = sPropValue;
                 SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
