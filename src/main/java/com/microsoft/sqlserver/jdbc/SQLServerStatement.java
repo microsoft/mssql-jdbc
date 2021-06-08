@@ -222,6 +222,9 @@ public class SQLServerStatement implements ISQLServerStatement {
      * PrepStmtBatchExecCmd).
      */
     final void executeStatement(TDSCommand newStmtCmd) throws SQLServerException, SQLTimeoutException {
+        // Check for a network disconnect and reconnect, if possible
+        connection.checkNetworkDisconnectAndReconnect();
+
         // Ensure that any response left over from a previous execution has been
         // completely processed. There may be ENVCHANGEs in that response that
         // we must acknowledge before proceeding.

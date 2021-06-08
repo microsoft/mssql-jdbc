@@ -1371,6 +1371,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
+     * Tries to detect if the network has been disconnected and reconnects
+     * 
+     * @throws SQLServerException
+     */
+    void checkNetworkDisconnectAndReconnect() throws SQLServerException {
+        if (isSessionUnAvailable()) {
+            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
+        }
+        if (!tdsChannel.networkSocketStillConnected()) {
+            // TODO idle reconnect
+        }
+    }
+
+    /**
      * Returns if Federated Authentication is in use or is about to expire soon
      * 
      * @return true/false
