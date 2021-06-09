@@ -970,16 +970,8 @@ final class Util {
     static final boolean use43Wrapper;
 
     static {
-        boolean supportJDBC43 = true;
-        try {
-            DriverJDBCVersion.checkSupportsJDBC43();
-        } catch (UnsupportedOperationException e) {
-            supportJDBC43 = false;
-        }
-
         double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
-
-        use43Wrapper = supportJDBC43 && (9 <= jvmVersion);
+        use43Wrapper = DriverJDBCVersion.checkSupportsJDBC43() && (9 <= jvmVersion);
     }
 
     // if driver is for JDBC 43 and jvm version is 9 or higher, then always return as SQLServerConnection43,
