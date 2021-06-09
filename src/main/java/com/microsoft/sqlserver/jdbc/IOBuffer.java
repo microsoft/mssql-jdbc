@@ -640,14 +640,11 @@ final class TDSChannel implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
-    private static Boolean keepAliveOptionsSupported = false;
+    private static boolean supportJDBC43 = true;
 
     static {
-        try {
-            Socket s = new Socket();
-            s.supportedOptions();
-            keepAliveOptionsSupported = true;
-        } catch (NoSuchMethodError e) { // supportedOptions() is Java 9+
+        supportJDBC43 = DriverJDBCVersion.checkSupportsJDBC43();
+        if (!supportJDBC43) { // Socket.supportedOptions() is Java 9+
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer("Socket.supportedOptions() not found. Extended KeepAlive options will not be set.");
             }
@@ -764,8 +761,8 @@ final class TDSChannel implements Serializable {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
-            // check supported options
-            if (keepAliveOptionsSupported) {
+            // check if JDBC 4.3+
+            if (supportJDBC43) {
                 Set<SocketOption<?>> options = tcpSocket.supportedOptions();
                 if (options.contains(ExtendedSocketOptions.TCP_KEEPIDLE)
                         && options.contains(ExtendedSocketOptions.TCP_KEEPINTERVAL)) {

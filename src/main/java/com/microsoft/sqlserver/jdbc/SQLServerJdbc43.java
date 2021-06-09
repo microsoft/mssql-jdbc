@@ -20,8 +20,8 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 3;
 
-    static final void checkSupportsJDBC43() {
-        return;
+    static final boolean checkSupportsJDBC43() {
+        return true;
     }
 
     static final void throwBatchUpdateException(SQLServerException lastError,
