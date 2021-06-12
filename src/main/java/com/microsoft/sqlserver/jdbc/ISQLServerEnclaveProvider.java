@@ -223,7 +223,8 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.order(ByteOrder.LITTLE_ENDIAN).putInt(dbID);
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
-                aev2CekEntry.put(connection.getColumnEncryptionKeyStoreProvider(keyStoreName)
+                // kz to do
+                aev2CekEntry.put(connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName)
                         .decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }

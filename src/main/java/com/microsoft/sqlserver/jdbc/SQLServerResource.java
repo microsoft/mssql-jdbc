@@ -351,6 +351,16 @@ public final class SQLServerResource extends ListResourceBundle {
                             + "or a registered custom key store provider. Valid system key provider names are: {1}. Valid (currently registered) custom key store provider names are: "
                             + "{2}. Please verify key store provider information in column master key definitions in the database, and verify all custom key store providers "
                             + "used in your application are registered properly."},
+            {"R_UnrecognizedConnectionKeyStoreProviderName",
+                    "Failed to decrypt a column encryption key. Invalid key store provider name: {0}. A key store provider name must denote a "
+                            + "registered key store provider. Registered key store provider names on this connection are: {1}. "
+                            + "Please verify key store provider information in column master key definitions in the database, and verify all key store providers "
+                            + "used in your application are registered properly."},
+            {"R_UnrecognizedStatementKeyStoreProviderName",
+                    "Failed to decrypt a column encryption key. Invalid key store provider name: {0}. A key store provider name must denote a "
+                            + "registered key store provider. Registered key store provider names on this statement are: {1}. "
+                            + "Please verify key store provider information in column master key definitions in the database, and verify all key store providers "
+                            + "used in your application are registered properly."},
             {"R_UnsupportedDataTypeAE", "Encryption and decryption of data type {0} is not supported."},
             {"R_NormalizationErrorAE", "Decryption of the data type {0} failed. Normalization error."},
             {"R_UnsupportedNormalizationVersionAE",
