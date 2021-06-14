@@ -88,6 +88,7 @@ final class TDS {
     static final int TDS_ROW = 0xD1;
     static final int TDS_NBCROW = 0xD2;
     static final int TDS_ENV_CHG = 0xE3;
+    static final int TDS_SESSION_STATE = 0xE4;
     static final int TDS_SSPI = 0xED;
     static final int TDS_DONE = 0xFD;
     static final int TDS_DONEPROC = 0xFE;
@@ -124,6 +125,7 @@ final class TDS {
     static final int AE_METADATA = 0x08;
 
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
+    static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -173,6 +175,8 @@ final class TDS {
                 return "TDS_NBCROW (0xD2)";
             case TDS_ENV_CHG:
                 return "TDS_ENV_CHG (0xE3)";
+            case TDS_SESSION_STATE:
+                return "TDS_SESSION_STATE (0xE4)";
             case TDS_SSPI:
                 return "TDS_SSPI (0xED)";
             case TDS_DONE:
@@ -187,6 +191,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_DATACLASSIFICATION (0x09)";
             case TDS_FEATURE_EXT_UTF8SUPPORT:
                 return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
+            case TDS_FEATURE_EXT_SESSIONRECOVERY:
+                return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -730,6 +736,32 @@ final class TDSChannel {
 
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " SSL disabled");
+    }
+
+    boolean checkConnected() throws SQLServerException {
+        int originalTimeout = 0;
+        try {
+            originalTimeout = tcpSocket.getSoTimeout();
+            tcpSocket.setSoTimeout(1);
+        } catch (SocketException e) {
+            return false;
+        }
+        try {
+            tcpSocket.getInputStream().read(new byte[1], 0, 1);
+            SQLServerException.makeFromDriverError(con, this, "", null, true);
+            // Keeping the compiler happy for now.
+            return true;
+        } catch (SocketTimeoutException ste) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            try {
+                tcpSocket.setSoTimeout(originalTimeout);
+            } catch (SocketException e) {
+
+            }
+        }
     }
 
     /**
@@ -6604,6 +6636,30 @@ final class TDSReader {
         }
     }
 
+    /**
+     * This function reads valueLength no. of bytes from input buffer without storing them in any array
+     *
+     * @param valueLength
+     * @throws SQLServerException
+     */
+    final void readSkipBytes(long valueLength) throws SQLServerException {
+        for (long bytesSkipped = 0; bytesSkipped < valueLength;) {
+            // Ensure that we have a packet to read from.
+            if (!ensurePayload())
+                throwInvalidTDS();
+
+            long bytesToSkip = valueLength - bytesSkipped;
+            if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
+                bytesToSkip = currentPacket.payloadLength - payloadOffset;
+
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
+
+            bytesSkipped += bytesToSkip;
+            payloadOffset += bytesToSkip;
+        }
+    }
+
     final byte[] readWrappedBytes(int valueLength) throws SQLServerException {
         assert valueLength <= valueBytes.length;
         readBytes(valueBytes, 0, valueLength);
@@ -7122,6 +7178,13 @@ abstract class TDSCommand {
     private int cancelQueryTimeoutSeconds;
     private TdsTimeoutCommand timeoutCommand;
 
+    /*
+     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
+     * if it was actually executed.
+     */
+    private boolean registeredInPoller = false;
+    private boolean executed = false;
+
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
     }
@@ -7132,6 +7195,22 @@ abstract class TDSCommand {
 
     final boolean readingResponse() {
         return readingResponse;
+    }
+
+    synchronized void addToPoller() {
+        if (!registeredInPoller) {
+            // If command execution is subject to timeout then start timing until
+            // the server returns the first response packet.
+            if (queryTimeoutSeconds > 0) {
+                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                registeredInPoller = true;
+            }
+        }
+    }
+
+    boolean wasExecuted() {
+        return executed;
     }
 
     /**
@@ -7159,6 +7238,7 @@ abstract class TDSCommand {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
+        executed = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
@@ -7316,12 +7396,16 @@ abstract class TDSCommand {
                 interruptReason = reason;
                 if (requestComplete)
                     attentionPending = tdsWriter.sendAttention();
-
+                if (correspondingThread != null) {
+                    this.correspondingThread.interrupt();
+                    this.correspondingThread = null;
+                }
             }
         }
     }
 
     private boolean interruptChecked = false;
+    private Thread correspondingThread = null;
 
     /**
      * Checks once whether an interrupt has occurred, and, if it has, throws an exception indicating that fact.
@@ -7539,6 +7623,7 @@ abstract class TDSCommand {
             this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
             TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
         }
+        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
@@ -7564,8 +7649,18 @@ abstract class TDSCommand {
                 TimeoutPoller.getTimeoutPoller().remove(this.timeoutCommand);
             }
         }
-
+        // A new response is received hence increment unprocessed response count.
+        tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
         return tdsReader;
+    }
+
+    /*
+     * Currently only used in Connection Resiliency scenarios. This thread reference
+     * allows the current command to interrupt the thread if it's sleeping. This is useful
+     * in timeout cases.
+     */
+    void attachThread(Thread reconnectThread) {
+        this.correspondingThread  = reconnectThread;
     }
 }
 
