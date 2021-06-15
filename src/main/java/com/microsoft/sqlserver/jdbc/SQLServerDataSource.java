@@ -582,6 +582,22 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets the realm for Kerberos authentication.
+     * 
+     * @param realm
+     *        realm
+     */
+    @Override
+    public void setRealm(String realm) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), realm);
+    }
+
+    @Override
+    public String getRealm() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), null);
+    }
+
+    /**
      * Sets the Service Principal Name (SPN) of the target SQL Server.
      * https://msdn.microsoft.com/en-us/library/cc280459.aspx
      * 

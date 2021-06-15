@@ -9,6 +9,8 @@ import java.net.IDN;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +33,8 @@ abstract class SSPIAuthentication {
      */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
+    
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SSPIAuthentication");
 
     /**
      * Make SPN name
@@ -124,7 +128,7 @@ abstract class SSPIAuthentication {
      *        flag to indicate of hostname canonicalization is allowed
      * @return SPN enriched with realm
      */
-    String enrichSpnWithRealm(String spn, boolean allowHostnameCanonicalization) {
+    String enrichSpnWithRealm(SQLServerConnection con, String spn, boolean allowHostnameCanonicalization) {
         if (spn == null) {
             return spn;
         }
@@ -132,26 +136,33 @@ abstract class SSPIAuthentication {
         if (!m.matches()) {
             return spn;
         }
-        if (m.group(3) != null) {
+        String realm = con.activeConnectionProperties.getProperty(SQLServerDriverStringProperty.REALM.toString());
+        if (m.group(3) != null && (null == realm || realm.trim().isEmpty())) {
             // Realm is already present, no need to enrich, the job has already been done
             return spn;
         }
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        RealmValidator realmValidator = getRealmValidator();
-        String realm = findRealmFromHostname(realmValidator, dnsName);
-        if (realm == null && allowHostnameCanonicalization) {
-            // We failed, try with canonical host name to find a better match
-            try {
-                String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
-                realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
-                dnsName = canonicalHostName;
-            } catch (UnknownHostException e) {
-                // ignored, cannot canonicalize
+        // If realm is not specified in the connection, try to derive it.
+        if (null == realm || realm.trim().isEmpty()) {
+            RealmValidator realmValidator = getRealmValidator();
+            realm = findRealmFromHostname(realmValidator, dnsName);
+            if (null == realm && allowHostnameCanonicalization) {
+                // We failed, try with canonical host name to find a better match
+                try {
+                    String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
+                    realm = findRealmFromHostname(realmValidator, canonicalHostName);
+                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
+                    dnsName = canonicalHostName;
+                } catch (UnknownHostException e) {
+                    // ignored, cannot canonicalize
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.finer("Could not canonicalize host name. " + e.toString());
+                    }
+                }
             }
         }
-        if (realm == null) {
+        if (null == realm) {
             return spn;
         } else {
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
@@ -188,6 +199,6 @@ abstract class SSPIAuthentication {
             spn = makeSpn(con, con.currentConnectPlaceHolder.getServerName(),
                     con.currentConnectPlaceHolder.getPortNumber());
         }
-        return enrichSpnWithRealm(spn, null == userSuppliedServerSpn);
+        return enrichSpnWithRealm(con, spn, null == userSuppliedServerSpn);
     }
 }

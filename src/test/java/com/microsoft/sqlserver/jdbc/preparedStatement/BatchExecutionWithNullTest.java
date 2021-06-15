@@ -108,9 +108,11 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testAddbatch2() throws SQLException {
-        testAddBatch2(getConnection());
+        try (Connection connection = getConnection()) {
+            testAddBatch2(connection);
+        }
     }
-    
+
     /**
      * TestClearBatch with AE enabled on the connection
      * 
@@ -123,7 +125,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
             testClearBatch(connection);
         }
     }
-    
+
     /**
      * Test the same as testClearBatchAEOnConnection, with AE disabled
      * 
@@ -131,30 +133,33 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      */
     @Test
     public void testClearBatch() throws SQLException {
-        testClearBatch(getConnection());
+        try (Connection connection = getConnection()) {
+            testClearBatch(connection);
+        }
     }
-    
+
     private void testClearBatch(Connection conn) throws SQLException {
         // Use specific table for this testing
         String batchTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchTable")));
-        String CREATE_TABLE_SQL = "create table " + batchTable + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
+        String CREATE_TABLE_SQL = "create table " + batchTable
+                + " (KEY1 numeric(19,0) not null, KEY2 numeric(19,0) not null, primary key (KEY1, KEY2))";
         String INSERT_ROW_SQL = "INSERT INTO " + batchTable + "(KEY1, KEY2) VALUES(?, ?)";
-        
+
         try (Statement s = conn.createStatement()) {
-            try ( PreparedStatement pstmt = conn.prepareStatement(INSERT_ROW_SQL)) {
+            try (PreparedStatement pstmt = conn.prepareStatement(INSERT_ROW_SQL)) {
                 s.execute(CREATE_TABLE_SQL);
                 // Set auto-commit to false
                 conn.setAutoCommit(false);
                 executeBatch(pstmt, 10, "foo".hashCode() + 1);
                 pstmt.clearParameters();
                 executeBatch(pstmt, 10, "bar".hashCode() + 2);
-                conn.commit();
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
             } finally {
                 TestUtils.dropTableIfExists(batchTable, s);
+                conn.commit();
             }
         }
     }

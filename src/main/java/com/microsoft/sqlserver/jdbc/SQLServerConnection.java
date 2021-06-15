@@ -1306,6 +1306,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
     private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
 
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static {
+        long pidLong = 0;
+        try {
+            pidLong = ProcessHandle.current().pid();
+        } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
+            if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                loggerExternal.finer(loggingClassName + " NoClassDefFoundError for ProcessHandle. ProcessId will be 0.");
+            }
+        }
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int)pidLong;
+    }
+
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
      * returned the following variable only stores the serverReturned failver information.
@@ -1666,8 +1681,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // need a secret to use the secret method
                     if (null == keyStoreSecret) {
                         throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                    } else {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyStorePrincipalId, keyStoreSecret);
+                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     }
-                    registerKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
                     SQLServerColumnEncryptionAzureKeyVaultProvider provider;
@@ -1676,24 +1694,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } else {
                         provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
                     }
-                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
-                    keyStoreMap.put(provider.getName(), provider);
-                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
             }
         }
-    }
-
-    private void registerKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
-        // need a secret to use the secret method
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                clientId, clientKey);
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
-        keyStoreMap.put(provider.getName(), provider);
-        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
     }
 
     // Helper to check if timeout value is valid
@@ -1933,20 +1940,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
-            if (null == globalCustomColumnEncryptionKeyStoreProviders) {
-                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
-                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
-                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                    if (null != sPropValue) {
-                        String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-
-                        registerKeyVaultProvider(keyVaultColumnEncryptionProviderClientId,
-                                keyVaultColumnEncryptionProviderClientKey);
-                    }
+            sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                if (null != keyStoreAuthentication) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderNotSupportedWithKeyStoreAuthentication"), null);
                 }
+                String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
+                }
+                String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                        keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
             }
 
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
@@ -5460,7 +5469,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt(tdsVersion);
         tdsWriter.writeInt(requestedPacketSize);
         tdsWriter.writeBytes(interfaceLibVersionBytes); // writeBytes() is little endian
-        tdsWriter.writeInt(0); // Client process ID (0 = ??)
+        tdsWriter.writeInt(pid); // Client process ID
         tdsWriter.writeInt(0); // Primary server connection ID
 
         tdsWriter.writeByte((byte) (// OptionFlags1:
