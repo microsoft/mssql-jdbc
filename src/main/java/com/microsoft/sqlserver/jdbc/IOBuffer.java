@@ -1084,32 +1084,41 @@ final class TDSChannel implements Serializable {
          *         If an I/O exception occurs.
          */
         public boolean poll() throws IOException {
-            int b = this.filteredStream.read();
+            if (filteredStream.markSupported())
+            {
+                filteredStream.mark(1);
+                filteredStream.read();
+                filteredStream.reset();
+                return true;
+            }
+
+            // Else read and cache any bytes read
+            int b = filteredStream.read();
 
             // if we got here, a byte was read and we need to save it
 
             // Increase the size of the cache, if needed (should be very rare).
-            if (this.cachedBytes.length <= cachedLength) {
-                int temp[] = new int[this.cachedBytes.length + 10];
-                for (int i = 0; i < this.cachedBytes.length; i++) {
-                    temp[i] = this.cachedBytes[i];
+            if (cachedBytes.length <= cachedLength) {
+                int temp[] = new int[cachedBytes.length + 10];
+                for (int i = 0; i < cachedBytes.length; i++) {
+                    temp[i] = cachedBytes[i];
                 }
 
-                this.cachedBytes = temp;
+                cachedBytes = temp;
             }
 
-            this.cachedLength++;
-            this.cachedBytes[this.cachedLength] = b;
+            cachedBytes[cachedLength] = b;
+            cachedLength++;
 
             return true;
         }
 
         public int getOneFromCache() {
-            int result = this.cachedBytes[0];
-            this.cachedLength--;
-            for (int i = 0; i < this.cachedLength; i++) {
-                this.cachedBytes[i] = this.cachedBytes[i + 1];
+            int result = cachedBytes[0];
+            for (int i = 0; i < cachedLength; i++) {
+                cachedBytes[i] = cachedBytes[i + 1];
             }
+            cachedLength--;
 
             return result;
         }
@@ -1159,34 +1168,51 @@ final class TDSChannel implements Serializable {
             return readInternal(b, 0, b.length);
         }
 
-        public int read(byte b[], int offset, int maxBytes) throws IOException {
+        public int read(byte[] b, int offset, int maxBytes) throws IOException {
             return readInternal(b, offset, maxBytes);
         }
 
-        private int readInternal(byte b[], int offset, int maxBytes) throws IOException {
+        private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
             int bytesRead;
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Reading " + maxBytes + " bytes");
 
-            int offsetBytesToSkipInCache = Math.min(offset, cachedLength);
-            for (int i = 0; i < offsetBytesToSkipInCache; i++) {
-                getOneFromCache();
-            }
+            // Optimize for nothing cached
+            if (cachedLength == 0) {
+                try {
+                    bytesRead = filteredStream.read(b, offset, maxBytes);
+                } catch (IOException e) {
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " " + e.getMessage());
 
-            byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
-            for (int i = 0; i < bytesFromCache.length; i++) {
-                bytesFromCache[i] = (byte) getOneFromCache();
-            }
+                    logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                    throw e;
+                }
+            } else {
+                int offsetBytesToSkipInCache = Math.min(offset, cachedLength);
+                for (int i = 0; i < offsetBytesToSkipInCache; i++) {
+                    getOneFromCache();
+                }
 
-            try {
-                bytesRead = filteredStream.read(b, offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
-            } catch (IOException e) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " " + e.getMessage());
+                byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
+                for (int i = 0; i < bytesFromCache.length; i++) {
+                    bytesFromCache[i] = (byte) getOneFromCache();
+                }
 
-                logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
-                throw e;
+                try {
+                    byte[] bytesFromStream = new byte[maxBytes - bytesFromCache.length];
+                    int bytesReadFromStream = filteredStream.read(bytesFromStream, offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
+                    bytesRead = bytesFromCache.length + bytesReadFromStream;
+                    System.arraycopy(bytesFromCache, 0, b, 0, bytesFromCache.length);
+                    System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
+                } catch (IOException e) {
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " " + e.getMessage());
+
+                    logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                    throw e;
+                }
             }
 
             if (logger.isLoggable(Level.FINEST))
@@ -2259,6 +2285,7 @@ final class TDSChannel implements Serializable {
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
+            con.idleNetworkTracker.markNetworkActivity();
             return inputStream.read(data, offset, length);
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
@@ -2276,6 +2303,7 @@ final class TDSChannel implements Serializable {
 
     final void write(byte[] data, int offset, int length) throws SQLServerException {
         try {
+            con.idleNetworkTracker.markNetworkActivity();
             outputStream.write(data, offset, length);
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
@@ -2287,6 +2315,7 @@ final class TDSChannel implements Serializable {
 
     final void flush() throws SQLServerException {
         try {
+            con.idleNetworkTracker.markNetworkActivity();
             outputStream.flush();
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
