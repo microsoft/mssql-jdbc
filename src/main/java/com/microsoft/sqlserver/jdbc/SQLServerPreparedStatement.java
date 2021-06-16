@@ -943,8 +943,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
                                     null, encType.value, (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                            
+                            SQLServerStatement statement = (SQLServerStatement) stmt;
                             // Decrypt the symmetric key.(This will also validate and throw if needed).
-                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
                         } else {
                             if (params[paramIndex].getForceEncryption()) {
                                 MessageFormat form = new MessageFormat(SQLServerException

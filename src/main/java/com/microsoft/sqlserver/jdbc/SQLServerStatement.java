@@ -74,6 +74,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     final static String identityQuery = " select SCOPE_IDENTITY() AS GENERATED_KEYS";
+    
+    static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
 
     /** the stored procedure name to call (if there is one) */
     String procedureName;

@@ -92,7 +92,10 @@ final class SQLServerSymmetricKeyCache {
 
                 byte[] plaintextKey;
                 
-                // to prevent conflicts between CEK caches, global providers should not use their own CEK caches
+                /* 
+                 * When provider decrypt Column Encryption Key, it can cache the decrypted key if cacheTTL > 0.
+                 * To prevent conflicts between CEK caches, system providers and global providers should not use their own CEK caches.
+                 */
                 provider.setColumnEncryptionCacheTtl(Duration.ZERO);
                 plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
 

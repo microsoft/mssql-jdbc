@@ -98,7 +98,7 @@ class SQLServerSecurityUtility {
 
     }
 
-    static SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(String providerName, SQLServerConnection connection, SQLServerStatement statement) {
+    static SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(String providerName, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
         assert providerName != null && providerName.length() != 0 : "Provider name should not be null or empty";
 
         // check statement level KeyStoreProvider if statement is not null.
@@ -161,8 +161,7 @@ class SQLServerSecurityUtility {
             if (null != lastException) {
                 throw lastException;
             } else {
-                throw new SQLServerException(null, SQLServerException.getErrString("R_CEKDecryptionFailed"), null, 0,
-                        false);
+                throw new SQLServerException(null, SQLServerException.getErrString("R_CEKDecryptionFailed"), null, 0, false);
             }
         }
         
@@ -235,7 +234,7 @@ class SQLServerSecurityUtility {
             EncryptionKeyInfo keyInfo = it.next();
             try {
                 // kz refer dotnet version
-                symKey = ShouldUseInstanceLevelProviderFlow(keyInfo.keyStoreName, connection, statement) ?
+                symKey = shouldUseInstanceLevelProviderFlow(keyInfo.keyStoreName, connection, statement) ?
                 getKeyFromLocalProviders(keyInfo, connection, statement) :
                 globalCEKCache.getKey(keyInfo, connection);
 
@@ -299,7 +298,7 @@ class SQLServerSecurityUtility {
      * Verify the signature for the CMK
      */
     // kz to do
-    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, String keyStoreName, String keyPath,
+    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, SQLServerStatement statement, String keyStoreName, String keyPath,
             String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
 
         // check trusted key paths
@@ -314,8 +313,14 @@ class SQLServerSecurityUtility {
             }
         }
 
-        if (!connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName).verifyColumnMasterKeyMetadata(keyPath,
-                isEnclaveEnabled, CMKSignature)) {
+        SQLServerColumnEncryptionKeyStoreProvider provider = null;
+        if (shouldUseInstanceLevelProviderFlow(keyStoreName, connection, statement)) {
+            provider = getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+        } else {
+            provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName);
+        }
+
+        if (provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }

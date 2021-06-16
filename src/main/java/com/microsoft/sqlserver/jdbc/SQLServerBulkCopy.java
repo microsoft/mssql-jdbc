@@ -3092,7 +3092,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // normalize the values before encrypting them
                 colValue = SQLServerSecurityUtility.encryptWithKey(normalizedValue(destJdbcType, colValue,
                         baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale()), destCryptoMeta,
-                        connection);
+                        connection, null);
             }
         }
         writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,

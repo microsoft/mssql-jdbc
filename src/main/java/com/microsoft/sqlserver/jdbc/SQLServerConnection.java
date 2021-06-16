@@ -28,6 +28,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -879,12 +880,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 Object[] msgArgs = {providerName, RESERVED_PROVIDER_NAME_PREFIX};
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
             }
-            if (null == entry.getValue()) {
+
+            SQLServerColumnEncryptionKeyStoreProvider provider = entry.getValue();
+            if (null == provider) {
                 throw new SQLServerException(null,
                         String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
             }
-            globalCustomColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
+
+            // Global providers should not use their own CEK caches.
+            provider.setColumnEncryptionCacheTtl(Duration.ZERO);
+            globalCustomColumnEncryptionKeyStoreProviders.put(providerName, provider);
         }
 
         loggerExternal.exiting(loggingClassName, "registerColumnEncryptionKeyStoreProviders",
