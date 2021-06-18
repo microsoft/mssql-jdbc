@@ -85,7 +85,6 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
      * 
      * @return the time-to-live for items in the cache.
      */
-    // kz should we use long to keep consistency with SqlServerConnection??????
     public Duration getColumnEncryptionKeyCacheTtl() {
         return Duration.ZERO;
     }
@@ -96,7 +95,6 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
      * @param duration
      *        value to be set for the time-to-live for items in the cache in the key store provider.
      */
-    // kz should we use long to keep consistency with SqlServerConnection??????
     public void setColumnEncryptionCacheTtl(Duration duration) {
     }
 }

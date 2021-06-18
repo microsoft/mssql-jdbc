@@ -5569,7 +5569,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCTime(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-            boolean bOut) throws SQLServerException {
+            boolean bOut, SQLServerStatement statement) throws SQLServerException {
         if (con.getSendTimeAsDatetime()) {
             throw new SQLServerException(SQLServerException.getErrString("R_sendTimeAsDateTimeForAE"), null);
         }
@@ -5579,14 +5579,14 @@ final class TDSWriter {
             writeEncryptedRPCByteArray(null);
         else
             writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME, (short) 0));
+                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME, (short) 0, statement));
 
         writeByte(TDSType.TIMEN.byteValue());
         writeByte((byte) scale);
         writeCryptoMetaData();
     }
 
-    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut) throws SQLServerException {
+    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut, SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
@@ -5595,14 +5595,14 @@ final class TDSWriter {
             writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, 0, // subsecond nanos (none for a
                                                                                       // date value)
                     0, // scale (dates are not scaled)
-                    SSType.DATE, (short) 0));
+                    SSType.DATE, (short) 0, statement));
 
         writeByte(TDSType.DATEN.byteValue());
         writeCryptoMetaData();
     }
 
     void writeEncryptedRPCDateTime(String sName, GregorianCalendar cal, int subSecondNanos, boolean bOut,
-            JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType, SQLServerStatement statement) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: "
                 + subSecondNanos;
         assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: "
@@ -5613,7 +5613,7 @@ final class TDSWriter {
         if (null == cal)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(getEncryptedDateTimeAsBytes(cal, subSecondNanos, jdbcType));
+            writeEncryptedRPCByteArray(getEncryptedDateTimeAsBytes(cal, subSecondNanos, jdbcType, statement));
 
         if (JDBCType.SMALLDATETIME == jdbcType) {
             writeByte(TDSType.DATETIMEN.byteValue());
@@ -5627,7 +5627,7 @@ final class TDSWriter {
 
     // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or DATETIME
     byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos,
-            JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType, SQLServerStatement statement) throws SQLServerException {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
@@ -5681,7 +5681,7 @@ final class TDSWriter {
             byte[] value = new byte[4];
             System.arraycopy(days.array(), 0, value, 0, 2);
             System.arraycopy(seconds.array(), 0, value, 2, 2);
-            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con);
+            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
         } else if (JDBCType.DATETIME == jdbcType) {
             // Last-ditch verification that the value is in the valid range for the
             // DATETIMEN TDS data type (1/1/1753 to 12/31/9999). If it's not, then
@@ -5707,7 +5707,7 @@ final class TDSWriter {
             byte[] value = new byte[8];
             System.arraycopy(days.array(), 0, value, 0, 4);
             System.arraycopy(seconds.array(), 0, value, 4, 4);
-            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con);
+            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
         }
 
         assert false : "Unexpected JDBCType type " + jdbcType;
@@ -5715,14 +5715,14 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTime2(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-            boolean bOut) throws SQLServerException {
+            boolean bOut, SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
             writeEncryptedRPCByteArray(null);
         else
             writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.DATETIME2, (short) 0));
+                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.DATETIME2, (short) 0, statement));
 
         writeByte(TDSType.DATETIME2N.byteValue());
         writeByte((byte) (scale));
@@ -5730,7 +5730,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTimeOffset(String sName, GregorianCalendar utcCalendar, int minutesOffset,
-            int subSecondNanos, int scale, boolean bOut) throws SQLServerException {
+            int subSecondNanos, int scale, boolean bOut, SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == utcCalendar)
@@ -5738,7 +5738,7 @@ final class TDSWriter {
         else {
             assert 0 == utcCalendar.get(Calendar.ZONE_OFFSET);
             writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(utcCalendar, subSecondNanos, scale,
-                    SSType.DATETIMEOFFSET, (short) minutesOffset));
+                    SSType.DATETIMEOFFSET, (short) minutesOffset, statement));
         }
 
         writeByte(TDSType.DATETIMEOFFSETN.byteValue());
@@ -5939,11 +5939,13 @@ final class TDSWriter {
      *        the SQL Server data type (DATE, TIME, DATETIME2, or DATETIMEOFFSET)
      * @param minutesOffset
      *        the offset value for DATETIMEOFFSET
+     * @param statement
+     *        the SQLServerStatement used for encryption
      * @throws SQLServerException
      *         if an I/O error occurs or if the value is not in the valid range
      */
     byte[] writeEncryptedScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale, SSType ssType,
-            short minutesOffset) throws SQLServerException {
+            short minutesOffset, SQLServerStatement statement) throws SQLServerException {
         assert con.isKatmaiOrLater();
 
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
@@ -6025,7 +6027,7 @@ final class TDSWriter {
             byte[] encodedBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
             if (SSType.TIME == ssType) {
-                byte[] cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con);
+                byte[] cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
                 return cipherText;
             } else if (SSType.DATETIME2 == ssType) {
                 // for DATETIME2 sends both date and time part together for encryption
@@ -6082,7 +6084,7 @@ final class TDSWriter {
 
             byte[] cipherText;
             if (SSType.DATE == ssType) {
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
             } else if (SSType.DATETIME2 == ssType) {
                 // for Max value, does not round up, do casting instead.
                 if (3652058 == daysIntoCE) { // 9999-12-31
@@ -6102,7 +6104,7 @@ final class TDSWriter {
                 // Copy the 3 byte date value
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 3), 3);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con, statement);
             } else {
                 // for Max value, does not round up, do casting instead.
                 if (3652058 == daysIntoCE) { // 9999-12-31
@@ -6128,7 +6130,7 @@ final class TDSWriter {
                                 .putShort(minutesOffset).array(),
                         0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 2), 2);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con, statement);
             }
             return cipherText;
         }

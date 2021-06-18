@@ -109,20 +109,6 @@ class SQLServerSecurityUtility {
         return connection.getColumnEncryptionKeyStoreProviderOnConnection(providerName);
     }
 
-    // kz needed?
-    static String getAllProviderNamesSearchedOnInstanceLevel(SQLServerConnection connection, SQLServerStatement statement) {
-        String providerNames = "";
-
-        // check statement level KeyStoreProvider if statement is not null.
-        if (statement != null && statement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
-            providerNames = statement.getAllStatementColumnEncryptionKeyStoreProviders();
-        } else {
-            providerNames = connection.getAllConnectionColumnEncryptionKeyStoreProviders();
-        }
-
-        return providerNames;
-    }
-
     static boolean shouldUseInstanceLevelProviderFlow(String keyStoreName, SQLServerConnection connection, SQLServerStatement statement) {
         return !keyStoreName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME) 
             && (connection.hasConnectionColumnEncryptionKeyStoreProvidersRegistered() || (null != statement && statement.hasColumnEncryptionKeyStoreProvidersRegistered()));
@@ -219,7 +205,6 @@ class SQLServerSecurityUtility {
      * @param statement
      *        The statemenet
      */
-    // kz to change
     static void decryptSymmetricKey(CryptoMetadata md, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
         assert null != md : "md should not be null in DecryptSymmetricKey.";
         assert null != md.cekTableEntry : "md.EncryptionInfo should not be null in DecryptSymmetricKey.";
@@ -233,7 +218,6 @@ class SQLServerSecurityUtility {
         while (it.hasNext()) {
             EncryptionKeyInfo keyInfo = it.next();
             try {
-                // kz refer dotnet version
                 symKey = shouldUseInstanceLevelProviderFlow(keyInfo.keyStoreName, connection, statement) ?
                 getKeyFromLocalProviders(keyInfo, connection, statement) :
                 globalCEKCache.getKey(keyInfo, connection);
@@ -297,7 +281,6 @@ class SQLServerSecurityUtility {
     /*
      * Verify the signature for the CMK
      */
-    // kz to do
     static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, SQLServerStatement statement, String keyStoreName, String keyPath,
             String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
 

@@ -656,6 +656,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
+
+            PrepStmtExecOutParamHandler(SQLServerStatement statement) {            
+                super(statement);
+            }
+
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // If no prepared statement handle is expected at this time
                 // then don't consume this OUT parameter as it does not contain
@@ -670,7 +675,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
 
-                setPreparedStatementHandle(param.getInt(tdsReader));
+                setPreparedStatementHandle(param.getInt(tdsReader, statement));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
@@ -688,7 +693,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (expectPrepStmtHandle || expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler(this));
             return true;
         }
 
@@ -707,7 +712,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
-            params[index].sendByRPC(tdsWriter, connection);
+            params[index].sendByRPC(tdsWriter, this);
         }
     }
 

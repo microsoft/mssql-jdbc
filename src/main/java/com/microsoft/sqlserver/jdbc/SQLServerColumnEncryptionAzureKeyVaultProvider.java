@@ -169,7 +169,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * 
      * @return the time-to-live for items in the columnEncryptionKeyCache.
      */
-    // kz should we use long to keep consistency with SqlServerConnection??????
     @Override
     public Duration getColumnEncryptionKeyCacheTtl() {
         return columnEncryptionKeyCache.getCacheTtl();
@@ -181,7 +180,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @param duration
      *        value to be set for the time-to-live for items in the columnEncryptionKeyCache.
      */
-    // kz should we use long to keep consistency with SqlServerConnection??????
     @Override
     public void setColumnEncryptionCacheTtl(Duration duration) {
         columnEncryptionKeyCache.setCacheTtl(duration);
@@ -320,7 +318,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *        - Encrypted Column Encryption Key
      * @return Plain text column encryption key
      */
-    // kz to change
     @Override
     public byte[] decryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
@@ -359,7 +356,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
-        // kz check cache if TimeToLive is not 0
+        // check cache if TimeToLive is not 0
         boolean allowCache = false;
         String encryptedColumnEncryptionKeyHexString = Util.byteToHexDisplayString(encryptedColumnEncryptionKey);
         if (columnEncryptionKeyCache.getCacheTtl().getSeconds() > 0) {
@@ -863,7 +860,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         return "https://" + hostName;
     }
 
-    // kz to change
     @Override
     public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {

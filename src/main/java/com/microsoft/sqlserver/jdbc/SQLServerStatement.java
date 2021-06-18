@@ -408,8 +408,10 @@ public class SQLServerStatement implements ISQLServerStatement {
     boolean expectCursorOutParams;
 
     class StmtExecOutParamHandler extends TDSTokenHandler {
-        StmtExecOutParamHandler() {
+        SQLServerStatement statement;
+        StmtExecOutParamHandler(SQLServerStatement statement) {            
             super("StmtExecOutParamHandler");
+            this.statement = statement;
         }
 
         boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
@@ -424,13 +426,13 @@ public class SQLServerStatement implements ISQLServerStatement {
 
                 // Read the cursor ID
                 param.skipRetValStatus(tdsReader);
-                serverCursorId = param.getInt(tdsReader);
+                serverCursorId = param.getInt(tdsReader, statement);
                 param.skipValue(tdsReader, true);
 
                 param = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 // Read the row count (-1 means unknown)
                 param.skipRetValStatus(tdsReader);
-                if (-1 == (serverCursorRowCount = param.getInt(tdsReader)))
+                if (-1 == (serverCursorRowCount = param.getInt(tdsReader, statement)))
                     serverCursorRowCount = SQLServerResultSet.UNKNOWN_ROW_COUNT;
                 param.skipValue(tdsReader, true);
 
@@ -1716,7 +1718,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         if (expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new StmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new StmtExecOutParamHandler(this));
             return true;
         }
 

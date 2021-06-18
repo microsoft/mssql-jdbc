@@ -947,7 +947,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
     }
 
-    // kz getSystemOrGlobalColumnEncryptionKeyStoreProvider
     synchronized SQLServerColumnEncryptionKeyStoreProvider getSystemOrGlobalColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
         
