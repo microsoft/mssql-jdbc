@@ -310,8 +310,9 @@ public class AESetup extends AbstractTest {
      *        2d array containing table column definitions
      * @throws SQLException
      */
-    protected static void createTable(String tableName, String cekName, String table[][]) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+    protected static void createTable(String connStr, String tableName, String cekName,
+            String table[][]) throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
             for (int i = 0; i < table.length; i++) {
@@ -1286,12 +1287,12 @@ public class AESetup extends AbstractTest {
      * @param values
      * @throws SQLException
      */
-    protected static void populateNumeric(String[] values) throws SQLException {
+    protected static void populateNumeric(String connStr, String[] values) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1395,12 +1396,12 @@ public class AESetup extends AbstractTest {
      * @param values
      * @throws SQLException
      */
-    protected static void populateNumericSetObject(String[] values) throws SQLException {
+    protected static void populateNumericSetObject(String connStr, String[] values) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1504,12 +1505,12 @@ public class AESetup extends AbstractTest {
      * @param values
      * @throws SQLException
      */
-    protected static void populateNumericSetObjectWithJDBCTypes(String[] values) throws SQLException {
+    protected static void populateNumericSetObjectWithJDBCTypes(String connStr, String[] values) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1612,12 +1613,12 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected static void populateNumericSetObjectNull() throws SQLException {
+    protected static void populateNumericSetObjectNull(String connStr) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1711,14 +1712,14 @@ public class AESetup extends AbstractTest {
      * @param values
      * @throws SQLException
      */
-    protected static void populateNumericNullCase(String[] values) throws SQLException {
+    protected static void populateNumericNullCase(String connStr, String[] values) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1811,14 +1812,14 @@ public class AESetup extends AbstractTest {
      * @param numericValues
      * @throws SQLException
      */
-    protected static void populateNumericNormalCase(String[] numericValues) throws SQLException {
+    protected static void populateNumericNormalCase(String connStr, String[] numericValues) throws SQLException {
         String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?"
 
                 + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
