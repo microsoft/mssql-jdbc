@@ -183,7 +183,7 @@ public class EnclaveTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String[] values = createCharValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, charTable);
             populateCharNormalCase(values);
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -203,7 +203,7 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, charTable);
             populateCharNormalCase(createCharValues(false));
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
         }
@@ -219,7 +219,7 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-            createTable(CHAR_TABLE_AE, cekAkv, charTable);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(createCharValues(false));
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
         }
@@ -236,7 +236,7 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+            createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekJks, numericTable);
             String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?" + ")";
@@ -256,7 +256,7 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, varcharTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
             pstmt.setString(1, "a");
             pstmt.setString(2, "b");
@@ -277,7 +277,7 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
+            createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekJks, numericTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (?,?,?)");
             pstmt.setInt(1, 1);
             pstmt.setInt(2, 2);
@@ -304,7 +304,7 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, varcharTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
             pstmt.setString(1, "a");
             pstmt.setString(2, "b");
@@ -331,7 +331,7 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+            createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, varcharTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
             pstmt.setString(1, "a");
             pstmt.setString(2, "b");

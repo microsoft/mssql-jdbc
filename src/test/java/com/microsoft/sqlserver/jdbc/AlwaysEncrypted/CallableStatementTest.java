@@ -138,17 +138,17 @@ public class CallableStatementTest extends AESetup {
         populateTable3();
         populateTable4();
 
-        createTable(CHAR_TABLE_AE, cekJks, charTable);
-        createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-        createTable(BINARY_TABLE_AE, cekJks, binaryTable);
+        createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, charTable);
+        createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekJks, numericTable);
+        createTable(AETestConnectionString, BINARY_TABLE_AE, cekJks, binaryTable);
 
         createDateTableCallableStatement(cekJks);
         populateCharNormalCase(charValues);
-        populateNumericSetObject(numericValues);
+        populateNumericSetObject(AETestConnectionString, numericValues);
         populateBinaryNormalCase(byteValues);
         populateDateNormalCase();
 
-        createTable(SCALE_DATE_TABLE_AE, cekJks, dateScaleTable);
+        createTable(AETestConnectionString, SCALE_DATE_TABLE_AE, cekJks, dateScaleTable);
         populateDateScaleNormalCase(dateValues);
     }
 
@@ -347,10 +347,10 @@ public class CallableStatementTest extends AESetup {
     }
 
     private static void createSPTables(String cekName) throws SQLException {
-        createTable(table1, cekJks, SP_table1);
-        createTable(table2, cekJks, SP_table2);
-        createTable(table3, cekJks, SP_table3);
-        createTable(table4, cekJks, SP_table4);
+        createTable(AETestConnectionString, table1, cekJks, SP_table1);
+        createTable(AETestConnectionString, table2, cekJks, SP_table2);
+        createTable(AETestConnectionString, table3, cekJks, SP_table3);
+        createTable(AETestConnectionString, table4, cekJks, SP_table4);
 
         String sql = "create table " + table5 + " ("
                 + "c1 int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "

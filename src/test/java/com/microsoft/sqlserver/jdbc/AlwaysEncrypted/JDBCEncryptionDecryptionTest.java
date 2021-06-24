@@ -1562,7 +1562,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";useFmtOnly=true", AEInfo);
                 Statement s = c.createStatement()) {
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+            createTable(AETestConnectionString + ";useFmtOnly=true", NUMERIC_TABLE_AE, cekJks, numericTable);
             String sql = "insert into " + NUMERIC_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                     + "?,?,?," + "?,?,?," + "?,?,?" + ")";
@@ -2112,7 +2112,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testChars(SQLServerStatement stmt, String cekName, String[][] table, String[] values, TestCase testCase,
             boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-        createTable(CHAR_TABLE_AE, cekName, table);
+        createTable(AETestConnectionString, CHAR_TABLE_AE, cekName, table);
 
         switch (testCase) {
             case NORMAL:
@@ -2151,7 +2151,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testBinaries(SQLServerStatement stmt, String cekName, String[][] table, LinkedList<byte[]> values,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
-        createTable(BINARY_TABLE_AE, cekName, table);
+        createTable(AETestConnectionString, BINARY_TABLE_AE, cekName, table);
 
         switch (testCase) {
             case NORMAL:
@@ -2189,7 +2189,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testDates(SQLServerStatement stmt, String cekName, String[][] table, LinkedList<Object> values,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
-        createTable(DATE_TABLE_AE, cekName, table);
+        createTable(AETestConnectionString, DATE_TABLE_AE, cekName, table);
 
         switch (testCase) {
             case NORMAL:
@@ -2231,21 +2231,21 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testNumerics(SQLServerStatement stmt, String cekName, String[][] table, String[] values1, String[] values2,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
-        createTable(NUMERIC_TABLE_AE, cekName, table);
+        createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekName, table);
 
         boolean isNull = false;
         switch (testCase) {
             case NORMAL:
-                populateNumeric(values1);
+                populateNumeric(AETestConnectionString, values1);
                 break;
             case SETOBJECT:
-                populateNumericSetObject(values1);
+                populateNumericSetObject(AETestConnectionString, values1);
                 break;
             case SETOBJECT_WITH_JDBCTYPES:
-                populateNumericSetObjectWithJDBCTypes(values1);
+                populateNumericSetObjectWithJDBCTypes(AETestConnectionString, values1);
                 break;
             case NULL:
-                populateNumericNullCase(values1);
+                populateNumericNullCase(AETestConnectionString, values1);
                 isNull = true;
                 break;
             default:

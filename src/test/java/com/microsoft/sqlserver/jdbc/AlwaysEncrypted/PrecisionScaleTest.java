@@ -263,7 +263,7 @@ public class PrecisionScaleTest extends AESetup {
                         String.format(insert_sql1, NUMERIC_TABLE_AE), stmtColEncSetting)) {
             dropTables(stmt);
 
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
+            createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekJks, numericTableSimple);
             pstmt.setInt(1, 1);
             pstmt.setInt(2, 2);
             pstmt.setInt(3, 3);
