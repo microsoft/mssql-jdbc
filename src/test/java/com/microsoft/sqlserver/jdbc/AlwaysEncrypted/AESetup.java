@@ -218,17 +218,20 @@ public class AESetup extends AbstractTest {
 
             setAEConnectionString(serverName, url, protocol);
 
-            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
-            createCEK(cmkJks, cekJks, jksProvider);
+            createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
+                    Constants.CMK_SIGNATURE);
+            createCEK(AETestConnectionString, cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
-                createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-                createCEK(cmkAkv, cekAkv, akvProvider);
+                createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0],
+                        Constants.CMK_SIGNATURE_AKV);
+                createCEK(AETestConnectionString, cmkAkv, cekAkv, akvProvider);
             }
 
             if (null != windowsKeyPath) {
-                createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-                createCEK(cmkWin, cekWin, null);
+                createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath,
+                        Constants.CMK_SIGNATURE);
+                createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
         }
     }
@@ -331,9 +334,9 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected static void createPrecisionTable(String tableName, String table[][], String cekName, int floatPrecision,
-            int precision, int scale) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+    protected static void createPrecisionTable(String connStr, String tableName, String table[][], String cekName,
+            int floatPrecision, int precision, int scale) throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
             for (int i = 0; i < table.length; i++) {
@@ -365,9 +368,9 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected static void createScaleTable(String tableName, String table[][], String cekName,
+    protected static void createScaleTable(String connStr, String tableName, String table[][], String cekName,
             int scale) throws SQLException {
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = "";
             for (int i = 0; i < table.length; i++) {
@@ -506,10 +509,10 @@ public class AESetup extends AbstractTest {
      * @param keyPath
      * @throws SQLException
      */
-    private static void createCMK(String cmkName, String keyStoreName, String keyPath,
+    private static void createCMK(String connStr, String cmkName, String keyStoreName, String keyPath,
             String signature) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(connStr + ";sendTimeAsDateTime=false");
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
@@ -526,10 +529,10 @@ public class AESetup extends AbstractTest {
      * @param certStore
      * @throws SQLException
      */
-    private static void createCEK(String cmkName, String cekName,
+    private static void createCEK(String connStr, String cmkName, String cekName,
             SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(connStr + ";sendTimeAsDateTime=false");
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byte[] valuesDefault = Constants.CEK_STRING.getBytes();
             String encryptedValue;
@@ -572,12 +575,12 @@ public class AESetup extends AbstractTest {
      * @param byteValues
      * @throws SQLException
      */
-    protected static void populateBinaryNormalCase(LinkedList<byte[]> byteValues) throws SQLException {
+    protected static void populateBinaryNormalCase(String connStr, LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(connStr + ";sendTimeAsDateTime=false");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -636,10 +639,10 @@ public class AESetup extends AbstractTest {
      * @param byteValues
      * @throws SQLException
      */
-    protected static void populateBinarySetObject(LinkedList<byte[]> byteValues) throws SQLException {
+    protected static void populateBinarySetObject(String connStr, LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -698,11 +701,12 @@ public class AESetup extends AbstractTest {
      * @param byteValues
      * @throws SQLException
      */
-    protected static void populateBinarySetObjectWithJDBCType(LinkedList<byte[]> byteValues) throws SQLException {
+    protected static void populateBinarySetObjectWithJDBCType(String connStr,
+            LinkedList<byte[]> byteValues) throws SQLException {
         String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -760,11 +764,11 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected static void populateBinaryNullCase() throws SQLException {
+    protected static void populateBinaryNullCase(String connStr) throws SQLException {
         String sql = "insert into " + BINARY_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -798,11 +802,11 @@ public class AESetup extends AbstractTest {
      * @param charValues
      * @throws SQLException
      */
-    protected static void populateCharNormalCase(String[] charValues) throws SQLException {
+    protected static void populateCharNormalCase(String connStr, String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -865,11 +869,11 @@ public class AESetup extends AbstractTest {
      * @param charValues
      * @throws SQLException
      */
-    protected static void populateCharSetObject(String[] charValues) throws SQLException {
+    protected static void populateCharSetObject(String connStr, String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -928,11 +932,11 @@ public class AESetup extends AbstractTest {
      * @param charValues
      * @throws SQLException
      */
-    protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
+    protected static void populateCharSetObjectWithJDBCTypes(String connStr, String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -990,11 +994,11 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected static void populateCharNullCase() throws SQLException {
+    protected static void populateCharNullCase(String connStr) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1044,11 +1048,11 @@ public class AESetup extends AbstractTest {
      * @param dateValues
      * @throws SQLException
      */
-    protected static void populateDateNormalCase(LinkedList<Object> dateValues) throws SQLException {
+    protected static void populateDateNormalCase(String connStr, LinkedList<Object> dateValues) throws SQLException {
         String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
             // date
@@ -1091,10 +1095,11 @@ public class AESetup extends AbstractTest {
      * @param dateValues
      * @throws SQLException
      */
-    protected static void populateDateScaleNormalCase(LinkedList<Object> dateValues) throws SQLException {
+    protected static void populateDateScaleNormalCase(String connStr,
+            LinkedList<Object> dateValues) throws SQLException {
         String sql = "insert into " + SCALE_DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1124,12 +1129,13 @@ public class AESetup extends AbstractTest {
      * @param setter
      * @throws SQLException
      */
-    protected static void populateDateSetObject(LinkedList<Object> dateValues, String setter) throws SQLException {
+    protected static void populateDateSetObject(String connStr, LinkedList<Object> dateValues,
+            String setter) throws SQLException {
 
         String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1192,11 +1198,11 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected void populateDateSetObjectNull() throws SQLException {
+    protected void populateDateSetObjectNull(String connStr) throws SQLException {
         String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1239,11 +1245,11 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    protected static void populateDateNullCase() throws SQLException {
+    protected static void populateDateNullCase(String connStr) throws SQLException {
         String sql = "insert into " + DATE_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1950,9 +1956,9 @@ public class AESetup extends AbstractTest {
      * @param cekName
      * @throws SQLException
      */
-    protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
-            String cekName) throws SQLException {
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+    protected void testAlterColumnEncryption(String connStr, SQLServerStatement stmt, String tableName,
+            String table[][], String cekName) throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {
             for (int i = 0; i < table.length; i++) {
                 // alter deterministic to randomized
                 String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()

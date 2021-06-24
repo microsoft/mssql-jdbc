@@ -143,13 +143,13 @@ public class CallableStatementTest extends AESetup {
         createTable(AETestConnectionString, BINARY_TABLE_AE, cekJks, binaryTable);
 
         createDateTableCallableStatement(cekJks);
-        populateCharNormalCase(charValues);
+        populateCharNormalCase(AETestConnectionString, charValues);
         populateNumericSetObject(AETestConnectionString, numericValues);
-        populateBinaryNormalCase(byteValues);
+        populateBinaryNormalCase(AETestConnectionString, byteValues);
         populateDateNormalCase();
 
         createTable(AETestConnectionString, SCALE_DATE_TABLE_AE, cekJks, dateScaleTable);
-        populateDateScaleNormalCase(dateValues);
+        populateDateScaleNormalCase(AETestConnectionString, dateValues);
     }
 
     @AfterAll

@@ -88,7 +88,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] numeric = {"1.12345", "12345.12", "567.70"};
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
+            createPrecisionTable(AETestConnectionString, NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
             populateNumeric(pstmt, numeric, 8, 2);
             testNumeric(numeric);
         }
@@ -111,7 +111,7 @@ public class PrecisionScaleTest extends AESetup {
             String[] dateSetObject = {GMTDate + ".18", GMTDate + ".177", dateTimeOffsetExpectedValue + ".18 +00:01",
                     dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
+            createScaleTable(AETestConnectionString, DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
             populateDate(pstmt, 2);
             testDate(dateNormalCase, dateSetObject);
         }
@@ -129,7 +129,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] numeric2 = {"1.12345", "12345", "567"};
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 0);
+            createPrecisionTable(AETestConnectionString, NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 0);
             populateNumeric(pstmt, numeric2, 8, 0);
             testNumeric(numeric2);
         }
@@ -152,7 +152,7 @@ public class PrecisionScaleTest extends AESetup {
             String[] dateSetObject2 = {GMTDate + ".0", GMTDate + ".177", dateTimeOffsetExpectedValue + " +00:01",
                     dateTimeOffsetExpectedValue + ".177 +00:01", GMTDateWithoutDate, GMTDateWithoutDate,};
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 0);
+            createScaleTable(AETestConnectionString, DATE_TABLE_AE, datePrecisionTable, cekJks, 0);
             populateDate(pstmt, 0);
             testDate(dateNormalCase2, dateSetObject2);
         }
@@ -169,7 +169,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] numericNull = {"null", "null", "null"};
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
+            createPrecisionTable(AETestConnectionString, NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
             populateNumericSetObjectNull(pstmt, 8, 2);
             testNumeric(numericNull);
         }
@@ -186,7 +186,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
+            createScaleTable(AETestConnectionString, DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
             populateDateSetObjectNull(pstmt, 2);
             testDate(dateSetObjectNull, dateSetObjectNull);
         }
@@ -203,7 +203,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] dateSetObjectNull = {"null", "null", "null", "null", "null", "null"};
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 5);
+            createScaleTable(AETestConnectionString, DATE_TABLE_AE, datePrecisionTable, cekJks, 5);
             populateDateNormalCaseNull(pstmt, 5);
             testDate(dateSetObjectNull, dateSetObjectNull);
         }
@@ -224,7 +224,7 @@ public class PrecisionScaleTest extends AESetup {
             dropTables(stmt);
 
             String[] numeric = {"1.12345", "12345.12", "567.70"};
-            createPrecisionTable(NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
+            createPrecisionTable(AETestConnectionString, NUMERIC_TABLE_AE, numericPrecisionTable, cekJks, 30, 8, 2);
             populateNumeric(pstmt, numeric, 8, 2);
             populateNumeric(pstmt, numeric, 8, 2);
         }
@@ -244,7 +244,7 @@ public class PrecisionScaleTest extends AESetup {
                         String.format(insert_sql3, DATE_TABLE_AE), stmtColEncSetting)) {
             dropTables(stmt);
 
-            createScaleTable(DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
+            createScaleTable(AETestConnectionString, DATE_TABLE_AE, datePrecisionTable, cekJks, 2);
             populateDate(pstmt, 2);
             populateDate(pstmt, 2);
         }

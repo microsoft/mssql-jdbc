@@ -184,8 +184,8 @@ public class EnclaveTest extends AESetup {
             String[] values = createCharValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, charTable);
-            populateCharNormalCase(values);
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+            populateCharNormalCase(AETestConnectionString, values);
+            testAlterColumnEncryption(AETestConnectionString, stmt, CHAR_TABLE_AE, charTable, cekJks);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (Throwable e) {
             // testChars called fail()
@@ -204,8 +204,8 @@ public class EnclaveTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(AETestConnectionString, CHAR_TABLE_AE, cekJks, charTable);
-            populateCharNormalCase(createCharValues(false));
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+            populateCharNormalCase(AETestConnectionString, createCharValues(false));
+            testAlterColumnEncryption(AETestConnectionString, stmt, CHAR_TABLE_AE, charTable, cekJks);
         }
     }
 
@@ -220,8 +220,8 @@ public class EnclaveTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(AETestConnectionString, CHAR_TABLE_AE, cekAkv, charTable);
-            populateCharNormalCase(createCharValues(false));
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            populateCharNormalCase(AETestConnectionString, createCharValues(false));
+            testAlterColumnEncryption(AETestConnectionString, stmt, CHAR_TABLE_AE, charTable, cekAkv);
         }
     }
 
