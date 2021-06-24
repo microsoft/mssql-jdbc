@@ -2124,7 +2124,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testChars(String connStr, SQLServerStatement stmt, String cekName, String[][] table, String[] values,
             TestCase testCase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-        createTable(AETestConnectionString, CHAR_TABLE_AE, cekName, table);
+        createTable(connStr, CHAR_TABLE_AE, cekName, table);
 
         switch (testCase) {
             case NORMAL:
@@ -2243,7 +2243,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     void testNumerics(String connStr, SQLServerStatement stmt, String cekName, String[][] table, String[] values1,
             String[] values2, TestCase testCase, boolean isTestEnclave) throws SQLException {
         TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
-        createTable(AETestConnectionString, NUMERIC_TABLE_AE, cekName, table);
+        createTable(connStr, NUMERIC_TABLE_AE, cekName, table);
 
         boolean isNull = false;
         switch (testCase) {
