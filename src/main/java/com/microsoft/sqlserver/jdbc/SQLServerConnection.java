@@ -870,7 +870,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
             String providerName = entry.getKey();
-            if (null == providerName || 0 == providerName.length()) {
+            if (null == providerName || 0 == providerName.trim().length()) {
                 throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"),
                         null, 0, false);
             }
@@ -1034,7 +1034,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
             String providerName = entry.getKey();
-            if (null == providerName || 0 == providerName.length()) {
+            if (null == providerName || 0 == providerName.trim().length()) {
                 throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"),
                         null, 0, false);
             }
