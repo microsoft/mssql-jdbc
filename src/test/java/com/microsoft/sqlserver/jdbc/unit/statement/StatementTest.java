@@ -774,7 +774,7 @@ public class StatementTest extends AbstractTest {
             final Hammer[] hammers = new Hammer[] {
                     // Execution and cancel intervals in milliseconds
                     //
-                    // Aguments are:
+                    // Arguments are:
                     // (hammer ID, execute interval, cancel interval)
                     new Hammer(4, 120, 180), new Hammer(3, 60, 184), new Hammer(2, 30, 150), new Hammer(1, 10, 50)};
 
@@ -819,9 +819,9 @@ public class StatementTest extends AbstractTest {
             assertEquals(true, 0 != numExecuteSuccesses, "No execution successes");
             assertEquals(true, 0 != numCancelSuccesses, "No cancels succeeded");
             assertEquals(true, 0 != numCancellations, "No executions cancelled");
-            assertEquals(numExecuteExceptions, 0, "Test had execution exceptions");
-            assertEquals(numCancelExceptions, 0, "Test had cancel exceptions");
-            assertEquals(numCloseExceptions, 0, "Test had close exceptions");
+            assertEquals(0, numExecuteExceptions, "Test had execution exceptions");
+            assertEquals(0, numCancelExceptions, "Test had cancel exceptions");
+            assertEquals(0, numCloseExceptions, "Test had close exceptions");
         }
 
         @Test

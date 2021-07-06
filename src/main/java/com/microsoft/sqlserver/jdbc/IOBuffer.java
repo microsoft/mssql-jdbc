@@ -1106,7 +1106,7 @@ final class TDSChannel implements Serializable {
             }
         }
 
-        public int getOneFromCache() {
+        private int getOneFromCache() {
             int result = cachedBytes[0];
             for (int i = 0; i < cachedLength; i++) {
                 cachedBytes[i] = cachedBytes[i + 1];
@@ -2243,43 +2243,45 @@ final class TDSChannel implements Serializable {
 
     final Boolean networkSocketStillConnected() throws SQLServerException {
         int origSoTimeout = 50;
-        try {
-            origSoTimeout = channelSocket.getSoTimeout();
-        } catch (SocketException e) {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine(
-                        toString() + " proxySocket.getSoTimeout() failed. Unable to poll connection:" + e.getMessage());
-            }
-            return false;
-        }
-
-        try {
-            channelSocket.setSoTimeout(1);
-            inputStream.poll();
-            channelSocket.setSoTimeout(origSoTimeout);
-        } catch (SocketTimeoutException e) {
-            // Not a disconnected socket, so we're good to go
+        synchronized (inputStream) {
             try {
-                channelSocket.setSoTimeout(origSoTimeout);
-            } catch (SocketException se) {
+                origSoTimeout = channelSocket.getSoTimeout();
+            } catch (SocketException e) {
                 if (logger.isLoggable(Level.FINE)) {
-                    logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
+                    logger.fine(toString() + " proxySocket.getSoTimeout() failed. Unable to poll connection:"
+                            + e.getMessage());
                 }
                 return false;
             }
-            return true;
-        } catch (IOException e) {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine(toString() + " read failed:" + e.getMessage());
-            }
+
             try {
+                channelSocket.setSoTimeout(1);
+                inputStream.poll();
                 channelSocket.setSoTimeout(origSoTimeout);
-            } catch (SocketException se) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
+            } catch (SocketTimeoutException e) {
+                // Not a disconnected socket, so we're good to go
+                try {
+                    channelSocket.setSoTimeout(origSoTimeout);
+                } catch (SocketException se) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
+                    }
+                    return false;
                 }
+                return true;
+            } catch (IOException e) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(toString() + " read failed:" + e.getMessage());
+                }
+                try {
+                    channelSocket.setSoTimeout(origSoTimeout);
+                } catch (SocketException se) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
+                    }
+                }
+                return false;
             }
-            return false;
         }
         // Server responded in 1ms, so not disconnected
         return true;
@@ -2287,8 +2289,10 @@ final class TDSChannel implements Serializable {
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            con.idleNetworkTracker.markNetworkActivity();
-            return inputStream.read(data, offset, length);
+            synchronized (inputStream) {
+                con.idleNetworkTracker.markNetworkActivity();
+                return inputStream.read(data, offset, length);
+            }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
