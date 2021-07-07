@@ -390,6 +390,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                         // Consume the DONE packet if there is error
                         StreamDone doneToken = new StreamDone();
                         doneToken.setFromTDS(tdsReader);
+                        if (doneToken.isFinal()) {
+                            // Response is completely processed, hence decrement unprocessed response count.
+                            stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                        }
                         return true;
                     }
                 }
@@ -5378,8 +5382,23 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
+                int token = tdsReader.peekTokenType();
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
+                int packetType = tdsReader.peekTokenType();
+                if (-1 != packetType && TDS.TDS_DONEINPROC == token) {
+                    switch (packetType) {
+                        case TDS.TDS_ENV_CHG:
+                        case TDS.TDS_ERR:
+                            return true;
+                        default:
+                            break;
+                    }
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and

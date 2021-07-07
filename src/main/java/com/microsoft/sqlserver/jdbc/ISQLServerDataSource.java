@@ -864,6 +864,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @param useBulkCopyForBatchInsert
      *        indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
+
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
@@ -1098,34 +1099,32 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setMaxResultBuffer(String maxResultBuffer);
 
     /**
-     * Sets the 'connectRetryCount' property that specifies the number of reconnection attempts if there is a connection
-     * failure
-     * 
-     * @param count
-     *        the number of reconnection attempts if there is a connection failure
+     * Sets the maximum number of attempts to reestablish a broken connection.
+     *
+     * @param connectRetryCount
+     *        maximum number of attempts
      */
-    void setConnectRetryCount(int count);
+    public void setConnectRetryCount(int connectRetryCount);
 
     /**
-     * Returns the value of 'connectRetryCount' property
-     * 
-     * @return 'connectRetryCount' property.
+     * Returns the maximum number of attempts set to reestablish a broken connection.
+     *
+     * @return maximum number of attempts
      */
-    int getConnectRetryCount();
+    public int getConnectRetryCount();
 
     /**
-     * Sets the 'connectRetryInterval' property that specifies the number of seconds between each connection retry
-     * attempt
-     * 
-     * @param interval
-     *        the number of seconds between each connection retry attempt
+     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @param connectRetryInterval
+     *        interval in seconds
      */
-    void setConnectRetryInterval(int interval);
+    public void setConnectRetryInterval(int connectRetryInterval);
 
     /**
-     * Returns the value of 'connectRetryInterval' property
-     * 
-     * @return 'connectRetryInterval' property.
+     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @return interval in seconds
      */
-    int getConnectRetryInterval();
+    public int getConnectRetryInterval();
 }
