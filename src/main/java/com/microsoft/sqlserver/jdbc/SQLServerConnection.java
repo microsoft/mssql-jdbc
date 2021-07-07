@@ -1397,21 +1397,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Tries to detect if the network has been disconnected and reconnects
+     * Tries to detect if the network has been disconnected and reconnects.
      * 
      * @throws SQLServerException
      */
     void checkNetworkDisconnectAndReconnect() throws SQLServerException {
+        // networkSocketStillConnected would affect perf if called every time. Only run
+        // when the connection has not seen recent activity.
         if (!idleNetworkTracker.isIdle()) {
             return;
         }
+        // Only one thread should ever try to perform an idle reconnect on a
+        // disconnected connection at a time.
+        synchronized (this) {
+            // check again if connection is reset already.
+            if (!idleNetworkTracker.isIdle()) {
+                return;
+            }
 
-        if (isSessionUnAvailable()) {
-            SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
-        }
-        if (!tdsChannel.networkSocketStillConnected()) {
-            // TODO idle reconnect
+            if (isSessionUnAvailable()) {
+                SQLServerException.makeFromDriverError(null, null,
+                        SQLServerException.getErrString("R_connectionIsClosed"),
+                        SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
+            }
+            if (!tdsChannel.networkSocketStillConnected()) {
+                // TODO idle reconnect
+                idleNetworkTracker.markNetworkActivity();
+            }
         }
     }
 

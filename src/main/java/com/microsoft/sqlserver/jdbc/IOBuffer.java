@@ -4876,7 +4876,7 @@ final class TDSWriter {
                 writeInt(0);
             }
         } else { // non-PLP type
-                 // Write maximum length of data
+            // Write maximum length of data
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
             writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
