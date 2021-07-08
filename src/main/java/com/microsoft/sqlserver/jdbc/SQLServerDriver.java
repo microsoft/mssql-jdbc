@@ -908,6 +908,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
+        if (loggerExternal.isLoggable(Level.FINE)) {
+            loggerExternal.log(Level.FINE, "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor +
+                    "." + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt + " for SQL Server");
+        }
+
         // Merge connectProperties (from URL) and supplied properties from user.
         Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
         if (connectProperties != null) {
