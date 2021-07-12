@@ -1114,8 +1114,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** transaction descriptor */
     private byte[] transactionDescriptor = new byte[8];
 
-    // Flag (Yukon and later) set to true whenever a transaction is rolled back.
-    // The flag's value is reset to false when a new transaction starts or when the autoCommit mode changes.
+    /**
+     * Flag (Yukon and later) set to true whenever a transaction is rolled back..The flag's value is reset to false when
+     * a new transaction starts or when the autoCommit mode changes.
+     */
     private boolean rolledBackTransaction;
 
     final boolean rolledBackTransaction() {
@@ -1330,7 +1332,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return pooledConnectionParent;
     }
 
-    @SuppressWarnings("unused")
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
@@ -1805,6 +1806,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
+            
+            sPropKey = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue();
+                activeConnectionProperties.setProperty(sPropKey, sPropValue);
+            }
+            columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
 
             sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1857,22 +1866,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null != sPropValue) {
                 keyStoreLocation = sPropValue;
             }
-            
-            registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
-
-            sPropKey = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
 
             sPropKey = SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
             if (null != sPropValue) {
                 keyStorePrincipalId = sPropValue;
             }
+            
+            registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
             sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1934,6 +1935,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+            trustManagerClass = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
+            trustManagerConstructorArg = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
 
             sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1999,36 +2004,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
             }
             useFmtOnly = isBooleanPropertyOn(sPropKey, sPropValue);
-
-
-            trustManagerClass = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
-            trustManagerConstructorArg = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null)
-                sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
-            if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
-            } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-            }
-
-            sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (sPropValue == null)
-                sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
-            if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
-            } else {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_invalidresponseBuffering"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            
+            // Must be set before DISABLE_STATEMENT_POOLING
+            sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
+            if (activeConnectionProperties.getProperty(sPropKey) != null
+                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                try {
+                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                    this.setStatementPoolingCacheSize(n);
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_statementPoolingCacheSize"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
             }
 
             sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString();
@@ -2047,21 +2036,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             aadPrincipalSecret = sPropValue;
             
-            // Must be set before DISABLE_STATEMENT_POOLING
-            sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    this.setStatementPoolingCacheSize(n);
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_statementPoolingCacheSize"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                }
-            }
-            
             // Must be set after STATEMENT_POOLING_CACHE_SIZE
             sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2079,7 +2053,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (integratedSecurity) {
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (sPropValue != null) {
+                if (null != sPropValue) {
                     intAuthScheme = AuthenticationScheme.valueOfString(sPropValue);
                 }
             }
@@ -2117,7 +2091,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (null == sPropValue) {
                 sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
             }
-            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString();
+            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
             if (integratedSecurity
                     && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
@@ -2321,12 +2295,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                               .getProperty(sPropKey)
                                                                                       : null;
 
-                sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-                selectMethod = null;
-                if (activeConnectionProperties.getProperty(sPropKey) != null
-                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                    selectMethod = activeConnectionProperties.getProperty(sPropKey);
-                }
 
                 sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
                 int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
@@ -4786,10 +4754,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_CHANGE_MIRROR:
                 setFailoverPartnerServerProvided(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
-            case ENVCHANGE_LANGUAGE:
-                setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
-                break;
             // Skip unsupported, ENVCHANGES
+            case ENVCHANGE_LANGUAGE:
             case ENVCHANGE_CHARSET:
             case ENVCHANGE_SORTLOCALEID:
             case ENVCHANGE_SORTFLAGS:
@@ -6010,6 +5976,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
+        writeDNSCacheFeatureRequest(true, tdsWriter);
         
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
