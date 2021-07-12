@@ -12,17 +12,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
+
 
 /*
  * This test is for validating that client process ID gets registered with the server when available to the driver.
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xAzureSQLDW)
 public class ClientProcessIdTest extends AbstractTest {
 
     private static int pid = 0;
@@ -33,10 +37,11 @@ public class ClientProcessIdTest extends AbstractTest {
             pidLong = ProcessHandle.current().pid();
         } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
         }
-        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int)pidLong;
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int) pidLong;
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testClientProcessId() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
