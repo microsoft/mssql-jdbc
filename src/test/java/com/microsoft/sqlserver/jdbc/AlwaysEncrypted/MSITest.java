@@ -232,7 +232,8 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")),
+                    e.getMessage());
         }
     }
 
@@ -248,7 +249,8 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_keyStoreAuthenticationNotSet")),
+                    e.getMessage());
         }
     }
 
