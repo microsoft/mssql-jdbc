@@ -903,6 +903,11 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
+    private final static String[] systemPropertiesToLog = new String[] { "java.specification.vendor",
+            "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
+            "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
+            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch" };
+
     @Override
     public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
@@ -911,6 +916,15 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (loggerExternal.isLoggable(Level.FINE)) {
             loggerExternal.log(Level.FINE, "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor +
                     "." + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt + " for SQL Server");
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                for (String propertyKeyName : systemPropertiesToLog) {
+                    String propertyValue = System.getProperty(propertyKeyName);
+                    if (propertyValue != null && !propertyValue.isEmpty()) {
+                        loggerExternal.log(Level.FINER, "System Property: " + propertyKeyName + " Value: "
+                                + System.getProperty(propertyKeyName.toString()));
+                    }
+                }
+            }
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
