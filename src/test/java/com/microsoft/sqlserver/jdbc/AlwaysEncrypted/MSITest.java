@@ -369,7 +369,7 @@ public class MSITest extends AESetup {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
                 try (OutputStream os = new FileOutputStream(file);) {
                     Properties props = new Properties();
-                    // Append to the list of hardcoded endpoints.
+                    // Append to the list of hardcoded endpoints
                     props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }
