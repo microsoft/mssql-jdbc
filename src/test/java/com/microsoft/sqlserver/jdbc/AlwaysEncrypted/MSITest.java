@@ -260,6 +260,9 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testNumericAkvWithBadCred() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
         // add credentials to connection string
         String connStr = AETestConnectionString;
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
@@ -269,8 +272,7 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            // https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-aadsts-error-codes
-            assertTrue(e.getMessage().contains("AADSTS700016"), e.getMessage());
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_failedToDecrypt")), e.getMessage());
         }
     }
 
