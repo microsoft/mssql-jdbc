@@ -363,7 +363,7 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
