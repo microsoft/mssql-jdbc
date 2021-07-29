@@ -42,6 +42,7 @@ public class ClientProcessIdTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xJDBC42)
     public void testClientProcessId() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -50,7 +51,7 @@ public class ClientProcessIdTest extends AbstractTest {
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
             try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
                 if (rs.next()) {
-                    assertEquals(rs.getInt(1), pid);
+                    assertEquals(pid, rs.getInt(1));
                 } else {
                     assertTrue(false, "Expected row of data was not found.");
                 }
