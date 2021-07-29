@@ -1313,11 +1313,7 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
-        if (Util.use43Wrapper()) {
-            result = new SQLServerConnection43(toString());
-        } else {
-            result = new SQLServerConnection(toString());
-        }
+        result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());

@@ -31,4 +31,15 @@ final class DriverJDBCVersion {
         throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(), lastError.getErrorCode(), updateCounts,
                 new Throwable(lastError.getMessage()));
     }
+
+    static SQLServerConnection getSQLServerConnection(String parentInfo) throws SQLServerException {
+        return new SQLServerConnection(parentInfo);
+    }
+
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static int getProcessId() {
+        return pid;
+    }
 }
