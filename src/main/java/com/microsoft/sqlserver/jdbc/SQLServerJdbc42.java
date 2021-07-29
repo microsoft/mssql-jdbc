@@ -8,7 +8,10 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.net.Socket;
 import java.sql.BatchUpdateException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Shims for JDBC 4.2 JAR.
@@ -22,6 +25,8 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 2;
 
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
+
     static final boolean checkSupportsJDBC43() {
         return false;
     }
@@ -31,4 +36,11 @@ final class DriverJDBCVersion {
         throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(), lastError.getErrorCode(), updateCounts,
                 new Throwable(lastError.getMessage()));
     }
+
+    static void setSocketOptions(Socket tcpSocket, TDSChannel channel) {
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer("Socket.supportedOptions() not available on this JVM. Extended KeepAlive options will not be set.");
+        }
+    }
+
 }

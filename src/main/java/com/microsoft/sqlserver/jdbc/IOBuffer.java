@@ -640,17 +640,6 @@ final class TDSChannel implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
-    private static boolean supportJDBC43 = true;
-
-    static {
-        supportJDBC43 = DriverJDBCVersion.checkSupportsJDBC43();
-        if (!supportJDBC43) { // Socket.supportedOptions() is Java 9+
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("Socket.supportedOptions() not found. Extended KeepAlive options will not be set.");
-            }
-        }
-    }
-
     final Logger getLogger() {
         return logger;
     }
@@ -761,20 +750,7 @@ final class TDSChannel implements Serializable {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
-            // check if JDBC 4.3+
-            if (supportJDBC43) {
-                Set<SocketOption<?>> options = tcpSocket.supportedOptions();
-                if (options.contains(ExtendedSocketOptions.TCP_KEEPIDLE)
-                        && options.contains(ExtendedSocketOptions.TCP_KEEPINTERVAL)) {
-                    if (logger.isLoggable(Level.FINER))
-                        logger.finer(this.toString() + ": Setting KeepAlive extended socket options.");
-                    tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, 30); // 30 seconds
-                    tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, 1); // 1 second
-                } else if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(
-                            this.toString() + ": KeepAlive extended socket options not supported on this platform.");
-                }
-            }
+            DriverJDBCVersion.setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
             int socketTimeout = con.getSocketTimeoutMilliseconds();
