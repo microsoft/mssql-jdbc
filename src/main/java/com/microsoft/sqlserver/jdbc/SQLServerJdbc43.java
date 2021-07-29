@@ -30,20 +30,22 @@ final class DriverJDBCVersion {
                 updateCounts, new Throwable(lastError.getMessage()));
     }
 
+    private static double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
+
     static SQLServerConnection getSQLServerConnection(String parentInfo) throws SQLServerException {
         return jvmVersion >= 9 ? new SQLServerConnection43(parentInfo) : new SQLServerConnection(parentInfo);
     }
-
-    private static double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
 
     /** Client process ID sent during login */
     private static int pid = 0;
 
     static {
-        if (jvmVersion >= 9) {
-            long pidLong = ProcessHandle.current().pid();
-            pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int) pidLong;
+        long pidLong = 0;
+        try {
+            pidLong = ProcessHandle.current().pid();
+        } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
         }
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int) pidLong;
     }
 
     static int getProcessId() {
