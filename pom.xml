@@ -251,11 +251,13 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerConnection43.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
 							<testExcludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/connection/ConnectionWrapper43Test.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/connection/RequestBoundaryMethodsTest.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/JDBC43Test.java</exclude>
 							</testExcludes>
 							<source>1.8</source>
