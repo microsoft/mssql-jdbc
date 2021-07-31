@@ -29,4 +29,26 @@ final class DriverJDBCVersion {
         throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(), lastError.getErrorCode(),
                 updateCounts, new Throwable(lastError.getMessage()));
     }
+
+    private static double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
+
+    static SQLServerConnection getSQLServerConnection(String parentInfo) throws SQLServerException {
+        return jvmVersion >= 9 ? new SQLServerConnection43(parentInfo) : new SQLServerConnection(parentInfo);
+    }
+
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static {
+        long pidLong = 0;
+        try {
+            pidLong = ProcessHandle.current().pid();
+        } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
+        }
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int) pidLong;
+    }
+
+    static int getProcessId() {
+        return pid;
+    }
 }
