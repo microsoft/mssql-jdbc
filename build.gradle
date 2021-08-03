@@ -96,7 +96,7 @@ sourceSets {
     }
 	test {
 		resources {
-            srcDirs "AE_Certificates"
+                      srcDirs "AE_Certificates"
 			output.resourcesDir = testOutputDir
 		}
 	}
