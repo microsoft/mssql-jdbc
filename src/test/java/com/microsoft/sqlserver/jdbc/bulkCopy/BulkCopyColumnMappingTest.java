@@ -371,6 +371,9 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @Test
     @DisplayName("BulkCopy:test unicode char/varchar to nchar/nvarchar")
     public void testUnicodeCharToNchar() throws SQLException, ClassNotFoundException {
+        // Windows only as this test has problems getting dependent H2 package from Maven in Unix
+        org.junit.Assume.assumeTrue(isWindows);
+
         validateMapping("CHAR(5)", "NCHAR(5)", "фщыab");
         validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
         validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
