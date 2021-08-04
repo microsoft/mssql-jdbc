@@ -1214,7 +1214,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
-    private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
+    private String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
 
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
