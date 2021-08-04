@@ -872,7 +872,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void registerColumnEncryptionKeyStoreProviders(
             Map<String, SQLServerColumnEncryptionKeyStoreProvider> clientKeyStoreProviders) throws SQLServerException {
-        loggerExternal.entering(loggingClassName, "registerColumnEncryptionKeyStoreProviders",
+        loggerExternal.entering(loggingClassNameBase, "registerColumnEncryptionKeyStoreProviders",
                 "Registering Column Encryption Key Store Providers");
 
         if (null == clientKeyStoreProviders) {
@@ -909,7 +909,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             globalCustomColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
         }
 
-        loggerExternal.exiting(loggingClassName, "registerColumnEncryptionKeyStoreProviders",
+        loggerExternal.exiting(loggingClassNameBase, "registerColumnEncryptionKeyStoreProviders",
                 "Number of Key store providers that are registered:"
                         + globalCustomColumnEncryptionKeyStoreProviders.size());
     }
@@ -919,7 +919,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * the map and setting it to null.
      */
     public static synchronized void unregisterColumnEncryptionKeyStoreProviders() {
-        loggerExternal.entering(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
+        loggerExternal.entering(loggingClassNameBase, "unregisterColumnEncryptionKeyStoreProviders",
                 "Removing Column Encryption Key Store Provider");
 
         if (null != globalCustomColumnEncryptionKeyStoreProviders) {
@@ -927,7 +927,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             globalCustomColumnEncryptionKeyStoreProviders = null;
         }
 
-        loggerExternal.exiting(loggingClassName, "unregisterColumnEncryptionKeyStoreProviders",
+        loggerExternal.exiting(loggingClassNameBase, "unregisterColumnEncryptionKeyStoreProviders",
                 "Number of Key store providers that are registered: 0");
     }
 
@@ -1004,7 +1004,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void setColumnEncryptionTrustedMasterKeyPaths(
             Map<String, List<String>> trustedKeyPaths) {
-        loggerExternal.entering(loggingClassName, "setColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassNameBase, "setColumnEncryptionTrustedMasterKeyPaths",
                 "Setting Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
@@ -1013,7 +1013,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             columnEncryptionTrustedMasterKeyPaths.put(entry.getKey().toUpperCase(), entry.getValue());
         }
 
-        loggerExternal.exiting(loggingClassName, "setColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassNameBase, "setColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -1027,13 +1027,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static synchronized void updateColumnEncryptionTrustedMasterKeyPaths(String server,
             List<String> trustedKeyPaths) {
-        loggerExternal.entering(loggingClassName, "updateColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassNameBase, "updateColumnEncryptionTrustedMasterKeyPaths",
                 "Updating Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
         columnEncryptionTrustedMasterKeyPaths.put(server.toUpperCase(), trustedKeyPaths);
 
-        loggerExternal.exiting(loggingClassName, "updateColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassNameBase, "updateColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -1044,13 +1044,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        String server name
      */
     public static synchronized void removeColumnEncryptionTrustedMasterKeyPaths(String server) {
-        loggerExternal.entering(loggingClassName, "removeColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassNameBase, "removeColumnEncryptionTrustedMasterKeyPaths",
                 "Removing Trusted Master Key Paths");
 
         // Use upper case for server and instance names.
         columnEncryptionTrustedMasterKeyPaths.remove(server.toUpperCase());
 
-        loggerExternal.exiting(loggingClassName, "removeColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassNameBase, "removeColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + columnEncryptionTrustedMasterKeyPaths.size());
     }
 
@@ -1060,7 +1060,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @return columnEncryptionTrustedMasterKeyPaths.
      */
     public static synchronized Map<String, List<String>> getColumnEncryptionTrustedMasterKeyPaths() {
-        loggerExternal.entering(loggingClassName, "getColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.entering(loggingClassNameBase, "getColumnEncryptionTrustedMasterKeyPaths",
                 "Getting Trusted Master Key Paths");
 
         Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
@@ -1069,7 +1069,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             masterKeyPathCopy.put(entry.getKey(), entry.getValue());
         }
 
-        loggerExternal.exiting(loggingClassName, "getColumnEncryptionTrustedMasterKeyPaths",
+        loggerExternal.exiting(loggingClassNameBase, "getColumnEncryptionTrustedMasterKeyPaths",
                 "Number of Trusted Master Key Paths: " + masterKeyPathCopy.size());
 
         return masterKeyPathCopy;
@@ -1240,7 +1240,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
-    private static String loggingClassName = "com.microsoft.sqlserver.jdbc.SQLServerConnection:";
+    private static String loggingClassNameBase = "com.microsoft.sqlserver.jdbc.SQLServerConnection";
+    private String loggingClassName = loggingClassNameBase;
 
     /**
      * There are three ways to get a failover partner connection string, from the failover map, the connecting server
@@ -1323,7 +1324,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
-        loggingClassName += connectionID;
+        loggingClassName += ":" + connectionID;
         if (connectionlogger.isLoggable(Level.FINE))
             connectionlogger.fine(toString() + " created by (" + parentInfo + ")");
         initResettableValues();
@@ -1633,8 +1634,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // need a secret to use the secret method
                     if (null == keyStoreSecret) {
                         throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+                    } else {
+                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                                keyStorePrincipalId, keyStoreSecret);
+                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     }
-                    registerKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
                     SQLServerColumnEncryptionAzureKeyVaultProvider provider;
@@ -1643,24 +1647,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } else {
                         provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
                     }
-                    Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
-                    keyStoreMap.put(provider.getName(), provider);
-                    registerColumnEncryptionKeyStoreProviders(keyStoreMap);
+                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
                     break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
             }
         }
-    }
-
-    private void registerKeyVaultProvider(String clientId, String clientKey) throws SQLServerException {
-        // need a secret to use the secret method
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                clientId, clientKey);
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> keyStoreMap = new HashMap<>();
-        keyStoreMap.put(provider.getName(), provider);
-        registerColumnEncryptionKeyStoreProviders(keyStoreMap);
     }
 
     // Helper to check if timeout value is valid
@@ -1900,20 +1893,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
 
-            if (null == globalCustomColumnEncryptionKeyStoreProviders) {
-                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
-                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
-                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                    if (null != sPropValue) {
-                        String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-
-                        registerKeyVaultProvider(keyVaultColumnEncryptionProviderClientId,
-                                keyVaultColumnEncryptionProviderClientKey);
-                    }
+            sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null != sPropValue) {
+                if (null != keyStoreAuthentication) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderNotSupportedWithKeyStoreAuthentication"), null);
                 }
+                String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
+                }
+                String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                        keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
             }
 
             sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
@@ -5427,7 +5422,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeInt(tdsVersion);
         tdsWriter.writeInt(requestedPacketSize);
         tdsWriter.writeBytes(interfaceLibVersionBytes); // writeBytes() is little endian
-        tdsWriter.writeInt(0); // Client process ID (0 = ??)
+        tdsWriter.writeInt(DriverJDBCVersion.getProcessId()); // Client process ID
         tdsWriter.writeInt(0); // Primary server connection ID
 
         tdsWriter.writeByte((byte) (// OptionFlags1:

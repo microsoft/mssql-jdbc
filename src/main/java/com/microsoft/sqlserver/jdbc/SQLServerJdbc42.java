@@ -37,10 +37,20 @@ final class DriverJDBCVersion {
                 new Throwable(lastError.getMessage()));
     }
 
+    static SQLServerConnection getSQLServerConnection(String parentInfo) throws SQLServerException {
+        return new SQLServerConnection(parentInfo);
+    }
+
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static int getProcessId() {
+        return pid;
+    }
+
     static void setSocketOptions(Socket tcpSocket, TDSChannel channel) {
         if (logger.isLoggable(Level.FINER)) {
             logger.finer("Socket.supportedOptions() not available on this JVM. Extended KeepAlive options will not be set.");
         }
     }
-
 }

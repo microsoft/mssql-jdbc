@@ -966,20 +966,6 @@ final class Util {
         }
         return false;
     }
-
-    static final boolean use43Wrapper;
-
-    static {
-        double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
-        use43Wrapper = DriverJDBCVersion.checkSupportsJDBC43() && (9 <= jvmVersion);
-    }
-
-    // if driver is for JDBC 43 and jvm version is 9 or higher, then always return as SQLServerConnection43,
-    // otherwise return SQLServerConnection
-    static boolean use43Wrapper() {
-        return use43Wrapper;
-    }
-
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
