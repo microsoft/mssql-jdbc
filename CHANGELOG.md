@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Send client process ID to server on Java 9+ [#1595](https://github.com/microsoft/mssql-jdbc/pull/1595)
 - Removed dependency to org.hamcrest [#1596](https://github.com/microsoft/mssql-jdbc/pull/1596)
 - Updated dependency versions for azure-identity, azure-security-keyvault-keys, adal4j, gson, antlr, and bouncycastle [#1613](https://github.com/Microsoft/mssql-jdbc/pull/1613)
+- Removed Java 9-specific class references from the Java 8 jar [#1626](https://github.com/microsoft/mssql-jdbc/pull/1626)
+- Updated dependencies versions and upgraded to Gradle version 7 [#1627](https://github.com/microsoft/mssql-jdbc/pull/1627)
+- Fixed memory leak issue [#1633](https://github.com/microsoft/mssql-jdbc/pull/1633)
 
 ### Fixed issues
 - Fixed an issue where batch fails when always encrypted is enabled in connection string and clearParameters was called [#1578](https://github.com/microsoft/mssql-jdbc/pull/1578)
