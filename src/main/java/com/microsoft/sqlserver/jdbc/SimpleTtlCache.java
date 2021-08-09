@@ -57,6 +57,10 @@ final class SimpleTtlCache<K,V> {
         }
     });
 
+    int getCacheSize() {
+        return cache.size();
+    }
+
     void setCacheTtl(Duration duration) {
         cacheTtl = duration;
     }
