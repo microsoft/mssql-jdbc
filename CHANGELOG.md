@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.4.0] Stable Release
+### Added
+- Added JAVA 16 support [#1579](https://github.com/microsoft/mssql-jdbc/pull/1579)
+- Added optional realm connection string property for Kerberos authenticatoin [#1581](https://github.com/microsoft/mssql-jdbc/pull/1581)
+- Added support for multiple, successive connections using AKV provider [#1594](https://github.com/microsoft/mssql-jdbc/pull/1594)
+- Updated error messages for Enclave exceptions with forward link to troubleshooting guide [#1585](https://github.com/microsoft/mssql-jdbc/pull/1585)
+- Added driver version to the database during prelogin [#1583](https://github.com/microsoft/mssql-jdbc/pull/1583)
+- Append MSAL exception error msg to error string [#1576](https://github.com/microsoft/mssql-jdbc/pull/1576)
+- Send client process ID to server on Java 9+ [#1595](https://github.com/microsoft/mssql-jdbc/pull/1595)
+- Removed dependency to org.hamcrest [#1596](https://github.com/microsoft/mssql-jdbc/pull/1596)
+- Updated dependency versions for azure-identity, azure-security-keyvault-keys, adal4j, gson, antlr, and bouncycastle [#1613](https://github.com/Microsoft/mssql-jdbc/pull/1613)
+- Removed Java 9-specific class references from the Java 8 jar [#1626](https://github.com/microsoft/mssql-jdbc/pull/1626)
+- Updated dependencies versions and upgraded to Gradle version 7 [#1627](https://github.com/microsoft/mssql-jdbc/pull/1627)
+- Fixed memory leak issue [#1633](https://github.com/microsoft/mssql-jdbc/pull/1633)
+
+### Fixed issues
+- Fixed an issue where batch fails when always encrypted is enabled in connection string and clearParameters was called [#1578](https://github.com/microsoft/mssql-jdbc/pull/1578)
+
 ## [9.3.1] Preview Release
 ### Added
 - Added replication connection option [#1566](https://github.com/microsoft/mssql-jdbc/pull/1566)
