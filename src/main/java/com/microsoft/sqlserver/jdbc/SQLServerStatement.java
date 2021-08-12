@@ -139,7 +139,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     private volatile TDSCommand currentCommand = null;
 
-    /** last statment exec command */
+    /** last statement exec command */
     private TDSCommand lastStmtExecCmd = null;
 
     final void discardLastExecutionResults() {
@@ -1314,6 +1314,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final void processExecuteResults() throws SQLServerException {
         if (wasExecuted()) {
             processBatch();
+            checkClosed(); // processBatch could have resulted in a closed connection if isCloseOnCompletion is set
             TDSParser.parse(resultsReader(), "batch completion");
             ensureExecuteResultsReader(null);
         }

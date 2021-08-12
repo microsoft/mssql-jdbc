@@ -1215,6 +1215,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
     private static String loggingClassNameBase = "com.microsoft.sqlserver.jdbc.SQLServerConnection";
+
+    /**
+     * Instance loggingClassName that is appended with the connection ID for log context
+     */
     private String loggingClassName = loggingClassNameBase;
 
     /**
