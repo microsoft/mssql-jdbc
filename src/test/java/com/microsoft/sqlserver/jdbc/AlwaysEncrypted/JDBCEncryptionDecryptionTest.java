@@ -7,14 +7,6 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
-import com.microsoft.aad.msal4j.ClientCredentialFactory;
-import com.microsoft.aad.msal4j.ClientCredentialParameters;
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
-import com.microsoft.aad.msal4j.IClientCredential;
-import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ParameterMetaData;
@@ -26,11 +18,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.LinkedList;
-
-import com.azure.core.credential.TokenCredential;
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
-
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,11 +29,22 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -2111,6 +2109,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
     void testChars(SQLServerStatement stmt, String cekName, String[][] table, String[] values, TestCase testCase,
             boolean isTestEnclave) throws SQLException {
+        System.out.println("testChars called with: cekName: " + cekName);
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         createTable(CHAR_TABLE_AE, cekName, table);
 
