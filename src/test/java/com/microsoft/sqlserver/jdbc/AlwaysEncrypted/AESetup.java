@@ -58,12 +58,10 @@ public class AESetup extends AbstractTest {
     static String cmkJks = Constants.CMK_NAME + "_JKS";
     static String cmkWin = Constants.CMK_NAME + "_WIN";
     static String cmkAkv = Constants.CMK_NAME + "_AKV";
-    static String cmkDummy = Constants.CMK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
     static String cekJks = Constants.CEK_NAME + "_JKS";
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
-    static String cekDummy = Constants.CEK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
-
+    
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
 
     static String AETestConnectionString;
@@ -226,10 +224,6 @@ public class AESetup extends AbstractTest {
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
                 createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
                 createCEK(AETestConnectionString, cmkAkv, cekAkv, akvProvider);
-
-                // Create cmk and cek for DummyKeyStoreProvider
-                createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-                createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
             }
 
             if (null != windowsKeyPath) {
@@ -260,11 +254,6 @@ public class AESetup extends AbstractTest {
             if (null != cekAkv) {
                 dropCEK(cekAkv, stmt);
                 dropCMK(cmkAkv, stmt);
-            }
-
-            if (null != cekDummy) {
-                dropCEK(cekDummy, stmt);
-                dropCMK(cmkDummy, stmt);
             }
         }
     }

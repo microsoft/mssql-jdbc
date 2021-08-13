@@ -52,6 +52,8 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Test multi-user Azure Key Store provider.
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xAzureSQLDW)
 public class MultiUserAKVTest extends AESetup {
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> requiredKeyStoreProvider = new HashMap<>();
@@ -69,6 +71,9 @@ public class MultiUserAKVTest extends AESetup {
     private static final String dummyProviderTableName = TestUtils
     .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCDummyProvider")));
     
+    private static String cmkDummy = Constants.CMK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
+	private static String cekDummy = Constants.CEK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
+
     private static boolean isMasterKeyPathSetup = false;
     private static final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
@@ -188,6 +193,7 @@ public class MultiUserAKVTest extends AESetup {
             fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
         }
 
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, provider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
@@ -226,6 +232,7 @@ public class MultiUserAKVTest extends AESetup {
             fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
         }
         
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
@@ -284,12 +291,17 @@ public class MultiUserAKVTest extends AESetup {
             }            
         } finally {
             dropObject(AETestConnectionString, "TABLE", customProviderTableName);
+            SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         }
     }
 
     @Test
     public void testConnectionCustomKeyStoreProviderDuringAeQuery() throws Exception {
         DummyKeyStoreProvider dummyProvider = new DummyKeyStoreProvider();
+
+        if (akvProvider == null) {
+            fail(TestResource.getResource("R_AKVProviderNull"));
+        }
 
         if (!isMasterKeyPathSetup) {
             fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
@@ -299,6 +311,10 @@ public class MultiUserAKVTest extends AESetup {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         providerMap.put(Constants.DUMMY_KEYSTORE_NAME, dummyProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
+
+        // Create cmk and cek for DummyKeyStoreProvider
+        createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+        createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
 
         // Create an empty table for testing
         createTableForCustomProvider(AETestConnectionString, dummyProviderTableName, cekDummy);
@@ -360,7 +376,9 @@ public class MultiUserAKVTest extends AESetup {
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_UnrecognizedConnectionKeyStoreProviderName")));
             }            
         } finally {
-            dropObject(AETestConnectionString, "TABLE", customProviderTableName);
+            dropObject(AETestConnectionString, "TABLE", dummyProviderTableName);
+            dropObject(AETestConnectionString, "CEK", cekDummy);
+            dropObject(AETestConnectionString, "CMK", cmkDummy);
             SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();            
         }
     }
