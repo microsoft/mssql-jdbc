@@ -58,9 +58,11 @@ public class AESetup extends AbstractTest {
     static String cmkJks = Constants.CMK_NAME + "_JKS";
     static String cmkWin = Constants.CMK_NAME + "_WIN";
     static String cmkAkv = Constants.CMK_NAME + "_AKV";
+    static String cmkDummy = Constants.CMK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
     static String cekJks = Constants.CEK_NAME + "_JKS";
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
+    static String cekDummy = Constants.CEK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
 
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
 
@@ -218,17 +220,21 @@ public class AESetup extends AbstractTest {
 
             setAEConnectionString(serverName, url, protocol);
 
-            createCMK(cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
-            createCEK(cmkJks, cekJks, jksProvider);
+            createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
+            createCEK(AETestConnectionString, cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
-                createCMK(cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-                createCEK(cmkAkv, cekAkv, akvProvider);
+                createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+                createCEK(AETestConnectionString, cmkAkv, cekAkv, akvProvider);
+
+                // Create cmk and cek for DummyKeyStoreProvider
+                createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+                createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
             }
 
             if (null != windowsKeyPath) {
-                createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
-                createCEK(cmkWin, cekWin, null);
+                createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+                createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
         }
     }
@@ -254,6 +260,11 @@ public class AESetup extends AbstractTest {
             if (null != cekAkv) {
                 dropCEK(cekAkv, stmt);
                 dropCMK(cmkAkv, stmt);
+            }
+
+            if (null != cekDummy) {
+                dropCEK(cekDummy, stmt);
+                dropCMK(cmkDummy, stmt);
             }
         }
     }
@@ -505,16 +516,19 @@ public class AESetup extends AbstractTest {
      * @param keyPath
      * @throws SQLException
      */
-    private static void createCMK(String cmkName, String keyStoreName, String keyPath,
+    protected static void createCMK(String connectionString, String cmkName, String keyStoreName, String keyPath,
             String signature) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
                     + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
                     + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
             stmt.execute(sql);
+        } catch (Exception ex) {
+            // kz debug
+            ex.printStackTrace();
         }
     }
 
@@ -525,10 +539,10 @@ public class AESetup extends AbstractTest {
      * @param certStore
      * @throws SQLException
      */
-    private static void createCEK(String cmkName, String cekName,
+    protected static void createCEK(String connectionString, String cmkName, String cekName,
             SQLServerColumnEncryptionKeyStoreProvider storeProvider) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
-                .getConnection(AETestConnectionString + ";sendTimeAsDateTime=false", AEInfo);
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             byte[] valuesDefault = Constants.CEK_STRING.getBytes();
             String encryptedValue;
@@ -1923,7 +1937,7 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCEK(String cekName, Statement stmt) throws SQLException {
+    protected static void dropCEK(String cekName, Statement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
                 + " begin" + " drop column encryption key " + cekName + " end";
         stmt.execute(cekSql);
@@ -1934,7 +1948,7 @@ public class AESetup extends AbstractTest {
      * 
      * @throws SQLException
      */
-    private static void dropCMK(String cmkName, Statement stmt) throws SQLException {
+    protected static void dropCMK(String cmkName, Statement stmt) throws SQLException {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
                 + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);

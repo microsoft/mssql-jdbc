@@ -882,6 +882,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().fine(
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
+
+            // pass registered custom provider to stmt
+            if (this.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+                ((SQLServerCallableStatement) stmt).registerColumnEncryptionKeyStoreProvidersOnStatement(this.statementColumnEncryptionKeyStoreProviders);
+            }
+
             ((SQLServerCallableStatement) stmt).isInternalEncryptionQuery = true;
             ((SQLServerCallableStatement) stmt).setNString(1, preparedSQL);
             ((SQLServerCallableStatement) stmt).setNString(2, preparedTypeDefinitions);

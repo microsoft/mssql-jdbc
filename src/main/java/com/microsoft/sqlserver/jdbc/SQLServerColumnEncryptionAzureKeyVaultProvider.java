@@ -959,4 +959,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
         return (null != props && !props.isEmpty()) ? props : null;
     }
+
+    int getColumnEncryptionKeyCacheSize() {
+        return columnEncryptionKeyCache.getCacheSize();
+    }
+
+    int getCmkMetadataSignatureVerificationCacheSize() {
+        return cmkMetadataSignatureVerificationCache.getCacheSize();
+    }
+
+    // kz debug
+    public boolean testContains(String key) {
+        return columnEncryptionKeyCache.contains(key);
+    }
 }

@@ -45,7 +45,10 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
         multipleKeyStoreProviders.put(dummyProviderName3, new DummyKeyStoreProvider());
         multipleKeyStoreProviders.put(dummyProviderName4, new DummyKeyStoreProvider());
 
-        globalKeyStoreProviders = new HashMap<>(SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders);
+        if (null != SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders) {
+            globalKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>(SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders);
+        }
+        
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
     }
 
@@ -134,7 +137,10 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     @AfterAll
     public static void testClearUp() throws Exception {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
-        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(globalKeyStoreProviders);
+        
+        if (null != globalKeyStoreProviders) {
+            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(globalKeyStoreProviders);
+        }        
     }
 
     private void assertProviderCacheContainsExpectedProviders(Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerCache,
