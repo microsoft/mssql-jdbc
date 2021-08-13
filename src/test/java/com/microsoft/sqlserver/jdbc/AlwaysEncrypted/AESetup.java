@@ -227,8 +227,11 @@ public class AESetup extends AbstractTest {
             }
 
             if (null != windowsKeyPath) {
+                System.out.println("windowsKeyPath is not null: " + windowsKeyPath);
                 createCMK(cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
                 createCEK(cmkWin, cekWin, null);
+            } else {
+                System.out.println("windowsKeyPath is null.");
             }
         }
     }
@@ -323,6 +326,7 @@ public class AESetup extends AbstractTest {
             }
             TestUtils.dropTableIfExists(tableName, stmt);
             sql = String.format(createSql, tableName, sql);
+            System.out.println("Executing: " + sql);
             stmt.execute(sql);
             stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
@@ -514,6 +518,7 @@ public class AESetup extends AbstractTest {
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
                     + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
                     + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
+            System.out.println("Creating CMK: " + sql);
             stmt.execute(sql);
         }
     }
@@ -549,6 +554,7 @@ public class AESetup extends AbstractTest {
                     + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
                     + cmkName + ", ALGORITHM = '" + Constants.CEK_ALGORITHM + "', ENCRYPTED_VALUE = " + encryptedValue
                     + ") end;";
+            System.out.println("Creating CEK: " + sql);
             stmt.execute(sql);
         }
     }
@@ -854,6 +860,7 @@ public class AESetup extends AbstractTest {
                 pstmt.setNString(i, charValues[8]);
             }
 
+            System.out.println("Executing: " + sql);
             pstmt.execute();
         }
     }
