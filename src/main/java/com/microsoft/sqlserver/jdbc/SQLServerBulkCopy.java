@@ -2294,10 +2294,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         } else {
                             String colValueStr = colValue.toString();
 
-                            // Remove extra trailing zeros added from toString
-                            if (colValue instanceof LocalDateTime || colValue instanceof LocalTime) {
-                                colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$", "")
-                                                                        : colValueStr;
+                            if (colValue instanceof LocalDateTime) {
+                                colValueStr = ((LocalDateTime)colValue).format(DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS"));
+                            }
+                            else if (colValue instanceof LocalTime) {
+                                colValueStr = ((LocalTime)colValue).format(DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS"));
                             }
 
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
