@@ -310,7 +310,7 @@ class SQLServerSecurityUtility {
             provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName);
         }
 
-        if (provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
+        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }

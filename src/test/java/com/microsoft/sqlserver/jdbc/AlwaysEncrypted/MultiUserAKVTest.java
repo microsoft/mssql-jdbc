@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -86,6 +87,24 @@ public class MultiUserAKVTest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         isMasterKeyPathSetup = !(null == keyIDs[0] || keyIDs[0].trim().isEmpty());
+    }
+
+    @AfterAll
+    public static void testCleanUp() throws Exception {
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> tempMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+
+        if (null != jksProvider) {
+            tempMap.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
+        }
+
+        if (null != akvProvider && null != applicationClientID && null != applicationKey) {
+            tempMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        }
+
+        if (tempMap.size() > 0) {
+            SQLServerConnection.registerColumnEncryptionKeyStoreProviders(tempMap);
+        }
     }
 
     @Test
