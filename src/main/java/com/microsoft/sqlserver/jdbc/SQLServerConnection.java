@@ -7005,12 +7005,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Enclave provider */
     private ISQLServerEnclaveProvider enclaveProvider;
 
-    ArrayList<byte[]> initEnclaveParameters(String userSql, String preparedTypeDefinitions, Parameter[] params,
+    ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
             enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
-        return enclaveProvider.createEnclaveSession(this, userSql, preparedTypeDefinitions, params, parameterNames);
+        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params, parameterNames);
     }
 
     boolean enclaveEstablished() {

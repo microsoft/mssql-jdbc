@@ -178,12 +178,16 @@ interface ISQLServerEnclaveProvider {
      *         if error
      */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
-            ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
+            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement, PreparedStatement stmt, ResultSet rs,
             ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
         SQLServerStatement statement = (SQLServerStatement) ((SQLServerPreparedStatement) stmt);
+
+        if (null != sqlServerStatement && sqlServerStatement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
+        }
         
         while (rs.next()) {
             int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
@@ -287,6 +291,8 @@ interface ISQLServerEnclaveProvider {
      * 
      * @param connection
      *        connection
+     * @param statement
+     *        statement
      * @param userSql
      *        user sql
      * @param preparedTypeDefinitions
@@ -299,7 +305,7 @@ interface ISQLServerEnclaveProvider {
      * @throws SQLServerException
      *         when an error occurs.
      */
-    ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
+    ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException;
 

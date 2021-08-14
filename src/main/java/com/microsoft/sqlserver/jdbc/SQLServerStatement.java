@@ -853,7 +853,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
         if (!isInternalEncryptionQuery && connection.isAEv2()) {
-            execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(this, sql, null, null, null);
         }
 
         // If this request might be a query (as opposed to an update) then make
@@ -955,7 +955,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         String batchStatementString = String.join(";", batchStatementBuffer);
         if (connection.isAEv2()) {
-            execCmd.enclaveCEKs = connection.initEnclaveParameters(batchStatementString, null, null, null);
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(this, batchStatementString, null, null, null);
         }
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {

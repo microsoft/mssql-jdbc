@@ -570,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (connection.isAEv2() && !isInternalEncryptionQuery) {
-            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+            this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, inOutParam,
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
@@ -2752,7 +2752,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
                     && !encryptionMetadataIsRetrieved) {
-                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
+                this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
 

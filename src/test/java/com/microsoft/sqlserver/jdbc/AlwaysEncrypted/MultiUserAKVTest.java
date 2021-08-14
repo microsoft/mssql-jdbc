@@ -54,6 +54,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 public class MultiUserAKVTest extends AESetup {
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> requiredKeyStoreProvider = new HashMap<>();
@@ -383,8 +384,6 @@ public class MultiUserAKVTest extends AESetup {
         }
     }
 
-    // This will fail on Enclave Servers during createEnclaveSession()
-    @Tag(Constants.xSQLv15)
     @Test
     public void testStatementCustomKeyStoreProviderDuringAeQuery() throws Exception {
         DummyKeyStoreProvider dummyProvider = new DummyKeyStoreProvider();
@@ -399,16 +398,16 @@ public class MultiUserAKVTest extends AESetup {
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 
         // Create an empty table for testing
-        String connString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
-        createCMK(connString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
-        createCEK(connString, cmkDummy, cekDummy, akvProvider);
+        //String connString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
+        createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+        createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
 
-        createTableForCustomProvider(connString, customProviderTableName, cekDummy);
+        createTableForCustomProvider(AETestConnectionString, customProviderTableName, cekDummy);
         
         int customerId = 10;
         String sql = "SELECT CustomerId, CustomerName FROM " + customProviderTableName + " WHERE CustomerId = ?";        
 
-        try (SQLServerConnection con = PrepUtil.getConnection(connString, AEInfo);           
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);           
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                     SQLServerStatementColumnEncryptionSetting.Enabled)) {
             pstmt.setInt(1, customerId);
@@ -467,9 +466,9 @@ public class MultiUserAKVTest extends AESetup {
                 }
             }
         } finally {
-            dropObject(connString, "TABLE", customProviderTableName);
-            dropObject(connString, "CEK", cekDummy);
-            dropObject(connString, "CMK", cmkDummy);
+            dropObject(AETestConnectionString, "TABLE", customProviderTableName);
+            dropObject(AETestConnectionString, "CEK", cekDummy);
+            dropObject(AETestConnectionString, "CMK", cmkDummy);
 
             SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         }
