@@ -61,6 +61,8 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
             return AuthenticationJNI.DecryptColumnEncryptionKey(masterKeyPath, encryptionAlgorithm,
                     encryptedColumnEncryptionKey);
         } catch (DLLException e) {
+            System.out.println("Exception in decryptColumnEncryptionKeyWindows. masterKeyPath: " + masterKeyPath);
+            e.printStackTrace();
             DLLException.buildException(e.GetErrCode(), e.GetParam1(), e.GetParam2(), e.GetParam3());
             return null;
         }
@@ -88,6 +90,8 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         try {
             return AuthenticationJNI.VerifyColumnMasterKeyMetadata(masterKeyPath, allowEnclaveComputations, signature);
         } catch (DLLException e) {
+            System.out.println("Exception in verifyColumnMasterKeyMetadata. masterKeyPath: " + masterKeyPath);
+            e.printStackTrace();
             DLLException.buildException(e.GetErrCode(), e.GetParam1(), e.GetParam2(), e.GetParam3());
             return false;
         }
