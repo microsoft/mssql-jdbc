@@ -111,14 +111,7 @@ class SQLServerSecurityUtility {
 
     static boolean shouldUseInstanceLevelProviderFlow(String keyStoreName, SQLServerConnection connection, SQLServerStatement statement) {
         return !keyStoreName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME) 
-            && (connection.hasConnectionColumnEncryptionKeyStoreProvidersRegistered() || (null != statement && statement.hasColumnEncryptionKeyStoreProvidersRegistered()));
-        
-        // kz for debug
-        // boolean result1 = !keyStoreName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME);
-        // boolean result2 = connection.hasConnectionColumnEncryptionKeyStoreProvidersRegistered();
-        // boolean result3 = (null != statement && statement.hasColumnEncryptionKeyStoreProvidersRegistered());
-
-        // return result1 && (result2 || result3);    
+            && (connection.hasConnectionColumnEncryptionKeyStoreProvidersRegistered() || (null != statement && statement.hasColumnEncryptionKeyStoreProvidersRegistered()));   
     }
 
     static SQLServerSymmetricKey getKeyFromLocalProviders(EncryptionKeyInfo keyInfo, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {

@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +62,7 @@ public class MultiUserAKVTest extends AESetup {
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> requiredKeyStoreProvider = new HashMap<>();
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> notRequiredKeyStoreProvider = new HashMap<>();
     
-    private static final String notRequiredProviderName = "DummyProvider2";
+    private static final String notRequiredProviderName = "UNWANTED_DUMMY_PROVIDER";
     private static final String requiredProviderName = "DUMMY_PROVIDER";
     private static final String cekCacheSizeGetterName = "getColumnEncryptionKeyCacheSize";
     private static final String cmkMetadataCacheSizeGetterName = "getCmkMetadataSignatureVerificationCacheSize";
@@ -116,7 +117,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         byte[] plaintextKey1 = { 1, 2, 3 };
@@ -155,7 +157,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         byte[] signature1 = signColumnMasterKeyMetadata(provider, keyIDs[0], true);
@@ -185,7 +188,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         provider.setColumnEncryptionCacheTtl(Duration.ofSeconds(10));
@@ -201,6 +205,7 @@ public class MultiUserAKVTest extends AESetup {
         assertEquals(0, getCacheSize(cekCacheSizeGetterName, provider));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void cekCacheShouldBeDisabledWhenAkvProviderIsRegisteredGlobally() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
@@ -210,7 +215,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
@@ -249,7 +255,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
         
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
@@ -270,11 +277,12 @@ public class MultiUserAKVTest extends AESetup {
             
             pstmt.setInt(1, customerId);
             
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                int intValue = rs.getInt(1);
-                String strValue = rs.getString(2);
-                assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    int intValue = rs.getInt(1);
+                    String strValue = rs.getString(2);
+                    assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
+                }
             }
             
             // Clean up global custom providers
@@ -285,11 +293,12 @@ public class MultiUserAKVTest extends AESetup {
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
             
             // Execute a query using provider from statement-level cache. this will cache the cek in the local cek cache
-            ResultSet rs2 = pstmt.executeQuery();
-            while (rs2.next()) {
-                int intValue = rs2.getInt(1);
-                String strValue = rs2.getString(2);
-                assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
+            try (ResultSet rs2 = pstmt.executeQuery()) {
+                while (rs2.next()) {
+                    int intValue = rs2.getInt(1);
+                    String strValue = rs2.getString(2);
+                    assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
+                }
             }
             
             // Register invalid key store provider on statement level. This will overwrite the previous one.
@@ -299,13 +308,12 @@ public class MultiUserAKVTest extends AESetup {
 
             // The following query should fail due to an empty cek cache and invalid credentials
             try (ResultSet rs3 = pstmt.executeQuery()) {
-                int numberOfColumns = rs3.getMetaData().getColumnCount(); 
                 while (rs3.next()) {
                     int intValue = rs3.getInt(1);
                     String strValue = rs3.getString(2);
                     assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
                 }               
-                fail("Expected SQLServerException is not caught.");
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (SQLServerException ex) {
                 assertTrue(ex.getMessage().contains("AADSTS700016"));
             }            
@@ -324,7 +332,8 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
@@ -346,53 +355,50 @@ public class MultiUserAKVTest extends AESetup {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 SQLServerStatementColumnEncryptionSetting.Enabled)) {
                 pstmt.setInt(1, customerId);
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
-                // kz debug
-                System.out.println(ex.getMessage());
                 assertTrue(ex instanceof UnsupportedOperationException);
             }         
             
-            // Register not required provider at connection instance level.
-            // It should not fall back to the global cache so the right provider will not be found.
+            /*
+             * Register not required provider at connection instance level.
+             * It should not fall back to the global cache so the right provider will not be found.
+             */ 
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(notRequiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 SQLServerStatementColumnEncryptionSetting.Enabled)) {
                 pstmt.setInt(1, customerId);
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
-                // kz debug
-                System.out.println(ex.getMessage());
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_UnrecognizedConnectionKeyStoreProviderName")));
             }
             
-            // required provider in connection instance cache
-            // if the instance cache is not empty, it is always checked for the provider.
-            // => if the provider is found, it must have been retrieved from the instance cache and not the global cache
+            
+            /*
+             * Required provider in connection instance cache.
+             * If the instance cache is not empty, it is always checked for the provider.
+             * If the provider is found, it must have been retrieved from the instance cache and not the global cache.
+             */
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(requiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 SQLServerStatementColumnEncryptionSetting.Enabled)) {
                 pstmt.setInt(1, customerId);
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
-                // kz debug
-                System.out.println(ex.getMessage());
                 assertTrue(ex instanceof UnsupportedOperationException);
             }
 
-            // not required provider will replace the previous entry so required provider will not be found
+            // Not required provider will replace the previous entry so required provider will not be found.
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(notRequiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                 SQLServerStatementColumnEncryptionSetting.Enabled)) {
                 pstmt.setInt(1, customerId);
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
-                // kz debug
-                System.out.println(ex.getMessage());
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_UnrecognizedConnectionKeyStoreProviderName")));
             }            
         } finally {
@@ -408,7 +414,8 @@ public class MultiUserAKVTest extends AESetup {
         DummyKeyStoreProvider dummyProvider = new DummyKeyStoreProvider();
 
         if (!isMasterKeyPathSetup) {
-            fail(TestResource.getResource("R_masterKeyPathNullOrEmpty"));
+            Object[] msgArg= {"master key path"};
+            fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
@@ -416,8 +423,7 @@ public class MultiUserAKVTest extends AESetup {
         providerMap.put(Constants.DUMMY_KEYSTORE_NAME, dummyProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 
-        // Create an empty table for testing
-        //String connString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled";
+        // Create an empty table for testing        
         createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
         createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
 
@@ -431,10 +437,12 @@ public class MultiUserAKVTest extends AESetup {
                     SQLServerStatementColumnEncryptionSetting.Enabled)) {
             pstmt.setInt(1, customerId);
 
-            // DummyProvider in global cache will be used.
-            // Provider will be found but it will throw when its methods are called
+            /*
+             * DummyProvider in global cache will be used.
+             * Provider will be found but it will throw when its methods are called.
+             */ 
             try {
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
                 assertTrue(ex instanceof UnsupportedOperationException);
@@ -443,44 +451,48 @@ public class MultiUserAKVTest extends AESetup {
             // Required provider will be found in statement instance level.
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(requiredKeyStoreProvider);
             try {
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
                 assertTrue(ex instanceof UnsupportedOperationException);
             }
             
-            // Register not required provider at statement instance level.
-            // It should not fall back to the global cache so the right provider will not be found.
+            /*
+             * Register not required provider at statement instance level.
+             * It should not fall back to the global cache so the right provider will not be found.
+             */
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(notRequiredKeyStoreProvider);
             try {
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_UnrecognizedStatementKeyStoreProviderName")));
             }
             
-            // Register required provider at connection level but keep not required provider at statement level.
-            // This should not fall back to connection level or global level.
+            /*
+             * Register required provider at connection level but keep not required provider at statement level.
+             * This should not fall back to connection level or global level.
+             */
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(requiredKeyStoreProvider);
             try {
-                ResultSet rs = pstmt.executeQuery(); 
+                pstmt.executeQuery(); 
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (Exception ex) {
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_UnrecognizedStatementKeyStoreProviderName")));
             }
 
-            // The new statement instance should have an empty cache and query will fall back to connection level
-            // which contains the required provider
+            /*
+             * The new statement instance should have an empty cache and query will fall back to connection level
+             * which contains the required provider
+             */
             try (SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                     SQLServerStatementColumnEncryptionSetting.Enabled)) {
                 pstmt2.setInt(1, customerId);
                 
                 try {
-                    ResultSet rs = pstmt2.executeQuery(); 
+                    pstmt2.executeQuery(); 
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (Exception ex) {
-                    // kz debug
-                    System.out.println(ex.getMessage());
                     assertTrue(ex instanceof UnsupportedOperationException);
                 }
             }
@@ -501,8 +513,7 @@ public class MultiUserAKVTest extends AESetup {
                     SQLServerStatementColumnEncryptionSetting.Enabled)) { 
             pstmt.setInt(1, customId);
             pstmt.setString(2, customName);
-            pstmt.executeUpdate();
-            System.out.println("1 Record inserted successfully.");                              
+            pstmt.executeUpdate();                           
         } catch(SQLException e) {
             fail(e.getMessage());
         }        
@@ -523,31 +534,10 @@ public class MultiUserAKVTest extends AESetup {
         }        
     }
 
-    private void dropObject(String connString, String objectType, String objectName) {
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connString, AEInfo);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            switch(objectType) {
-                case "TABLE":
-                    TestUtils.dropTableIfExists(objectName, stmt);
-                    break;
-                case "CEK":
-                    dropCEK(objectName, stmt);
-                    break;
-                case "CMK":
-                    dropCMK(objectName, stmt);
-                    break;
-                default:
-                    break;
-            }
-        } catch(Exception ex) {
-            fail(ex.getMessage());
-        }
-    }
-
     private boolean cekCacheContainsKey(byte[] encryptedKey, SQLServerColumnEncryptionAzureKeyVaultProvider provider) throws Exception {
         assertFalse(null == encryptedKey || 0 == encryptedKey.length);        
 
-        String encryptedCEKHexString = byteToHexDisplayString(encryptedKey);    
+        String encryptedCEKHexString = TestUtils.byteToHexDisplayString(encryptedKey);    
 
         Field cekCacheField = provider.getClass().getDeclaredField(cekCacheName);
         cekCacheField.setAccessible(true);
@@ -566,12 +556,7 @@ public class MultiUserAKVTest extends AESetup {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(Constants.AZURE_KEY_VAULT_NAME.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
         md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-        
-        if (allowEnclaveComputations) {
-            md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-        } else {
-            md.update("false".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-        }
+        md.update(Boolean.toString(allowEnclaveComputations).getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
 
         byte[] dataToSign = md.digest();
         if (null == dataToSign) {
@@ -596,9 +581,7 @@ public class MultiUserAKVTest extends AESetup {
         Method method = provider.getClass().getDeclaredMethod(methodName);
         method.setAccessible(true);
         
-        int count = (int)method.invoke(provider);
-
-        return count;     
+        return (int)method.invoke(provider);   
     }
 
     private SQLServerColumnEncryptionAzureKeyVaultProvider createAKVProvider() throws Exception {
@@ -625,19 +608,5 @@ public class MultiUserAKVTest extends AESetup {
         }
 
         return azureKeyVaultProvider;
-    }
-
-    private static String byteToHexDisplayString(byte[] b) {
-        if (null == b)
-            return "(null)";
-        int hexVal;
-        StringBuilder sb = new StringBuilder(b.length * 2 + 2);
-        sb.append("0x");
-        for (byte aB : b) {
-            hexVal = aB & 0xFF;
-            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
-            sb.append(hexChars[(hexVal & 0x0F)]);
-        }
-        return sb.toString();
     }
 }

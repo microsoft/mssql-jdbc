@@ -111,9 +111,9 @@ final class SQLServerSymmetricKeyCache {
                     cache.setCacheTtl(columnEncryptionKeyCacheTtl);
                     cache.put(keyLookupValue, encryptionKey);
                 }
-            }else {
+            } else {
                 encryptionKey = cache.get(keyLookupValue);
-            }            
+            }
         }
         return encryptionKey;
     }

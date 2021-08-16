@@ -515,9 +515,6 @@ public class AESetup extends AbstractTest {
                     + keyStoreName + "', KEY_PATH = '" + keyPath + "'"
                     + (TestUtils.isAEv2(con) ? ",ENCLAVE_COMPUTATIONS (SIGNATURE = " + signature + ")) end" : ") end");
             stmt.execute(sql);
-        } catch (Exception ex) {
-            // kz debug
-            ex.printStackTrace();
         }
     }
 
@@ -1941,6 +1938,27 @@ public class AESetup extends AbstractTest {
         String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')" + " begin"
                 + " drop column master key " + cmkName + " end";
         stmt.execute(cekSql);
+    }
+
+    protected static void dropObject(String connString, String objectType, String objectName) {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            switch(objectType) {
+                case "TABLE":
+                    TestUtils.dropTableIfExists(objectName, stmt);
+                    break;
+                case "CEK":
+                    dropCEK(objectName, stmt);
+                    break;
+                case "CMK":
+                    dropCMK(objectName, stmt);
+                    break;
+                default:
+                    break;
+            }
+        } catch(Exception ex) {
+            fail(ex.getMessage());
+        }
     }
 
     /**

@@ -26,8 +26,6 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
-import org.spongycastle.util.Arrays;
-
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.security.keyvault.keys.KeyClient;
@@ -966,10 +964,5 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     int getCmkMetadataSignatureVerificationCacheSize() {
         return cmkMetadataSignatureVerificationCache.getCacheSize();
-    }
-
-    // kz debug
-    public boolean testContains(String key) {
-        return columnEncryptionKeyCache.contains(key);
     }
 }
