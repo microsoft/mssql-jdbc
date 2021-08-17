@@ -78,7 +78,6 @@ public class MultiUserAKVTest extends AESetup {
 	private static String cekDummy = Constants.CEK_NAME + "_DUMMY";  // For dummyKeyStoreProvider
 
     private static boolean isMasterKeyPathSetup = false;
-    private static final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
     @BeforeAll
     public static void testSetup() throws Exception {

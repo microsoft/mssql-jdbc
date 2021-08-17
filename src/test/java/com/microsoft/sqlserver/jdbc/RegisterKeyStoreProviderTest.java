@@ -18,6 +18,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DummyKeyStoreProvider;
 
 /**
@@ -31,7 +32,7 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     private static final String dummyProviderName3 = "DummyProvider3";
     private static final String dummyProviderName4 = "DummyProvider4";
 
-    private static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
+    private static final String WINDOWS_KEY_STORE_NAME = Constants.WINDOWS_KEY_STORE_NAME;
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> singleKeyStoreProvider = new HashMap<>();
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> multipleKeyStoreProviders = new HashMap<>();
@@ -99,7 +100,7 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providers);
         }
         catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedException"));
+            fail(e.getMessage());
         }
 
         assertExceptionIsThrownForGlobalCustomProviderCache(providers, TestUtils.formatErrorMsg("R_CustomKeyStoreProviderSetOnce"));
@@ -116,7 +117,7 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
             assertProviderCacheContainsExpectedProviders(conn.connectionColumnEncryptionKeyStoreProvider, multipleKeyStoreProviders);
         }
         catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedException"));
+            fail(e.getMessage());
         }
     }
 
@@ -130,7 +131,7 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
             assertProviderCacheContainsExpectedProviders(stmt.statementColumnEncryptionKeyStoreProviders, multipleKeyStoreProviders);
         }
         catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedException"));
+            fail(e.getMessage());
         }
     }
 
@@ -189,7 +190,7 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
             assertTrue(ex.getMessage().matches(expectedString));
         }
         catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedException"));
+            fail(e.getMessage());
         }
     }
 

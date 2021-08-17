@@ -51,10 +51,11 @@ final class SimpleTtlCache<K,V> {
         }
     }
 
-    static final private java.util.logging.Logger simpleCacheLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache");
+    private static final java.util.logging.Logger simpleCacheLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache");
+    private static final long defaultTTLInHours = 2;  
 
     private final ConcurrentHashMap<K, V> cache;
-    private Duration cacheTtl = Duration.ofHours(2);  // The default time-to-live is set to 2 hours.
+    private Duration cacheTtl = Duration.ofHours(defaultTTLInHours);  // The default time-to-live is set to 2 hours.
 
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
         @Override
