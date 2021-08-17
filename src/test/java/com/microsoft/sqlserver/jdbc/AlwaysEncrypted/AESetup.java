@@ -61,7 +61,6 @@ public class AESetup extends AbstractTest {
     static String cekJks = Constants.CEK_NAME + "_JKS";
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
-    
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
 
     static String AETestConnectionString;
