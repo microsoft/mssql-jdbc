@@ -436,11 +436,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader(), this);
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader(), this);
     }
 
     private Object getStream(int parameterIndex, StreamType streamType) throws SQLServerException {
@@ -448,7 +448,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         activeStream = (Closeable) value;
         return value;
@@ -459,7 +460,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         if (null != value)
             activeStream = value.getStream();

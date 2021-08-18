@@ -17,6 +17,7 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -39,6 +40,64 @@ import com.azure.security.keyvault.keys.cryptography.models.VerifyResult;
 import com.azure.security.keyvault.keys.cryptography.models.WrapResult;
 import com.azure.security.keyvault.keys.models.KeyType;
 import com.azure.security.keyvault.keys.models.KeyVaultKey;
+
+
+class CMKMetadataSignatureInfo {
+    String masterKeyPath;
+    boolean allowEnclaveComputations;
+    String signatureHexString;
+    
+    public CMKMetadataSignatureInfo(String masterKeyPath, boolean allowEnclaveComputations, byte[] signature) {
+        this.masterKeyPath = masterKeyPath;
+        this.allowEnclaveComputations = allowEnclaveComputations;
+        this.signatureHexString = Util.byteToHexDisplayString(signature);
+    }
+
+    public String getMasterKeyPath() {
+        return masterKeyPath;
+    }
+
+    public boolean isAllowEnclaveComputations() {
+        return allowEnclaveComputations;
+    }
+
+    public String getSignatureHexString() {
+        return signatureHexString;
+    }
+    
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + (null != masterKeyPath ? masterKeyPath.hashCode() : 0);
+        hash = 31 * hash + (allowEnclaveComputations ? 1 : 0);
+        hash = 31 * hash + (null != signatureHexString ? signatureHexString.hashCode() : 0);
+        
+        return hash;
+    }
+   
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+        
+        if (null != object && CMKMetadataSignatureInfo.class == object.getClass()) {
+            CMKMetadataSignatureInfo other = (CMKMetadataSignatureInfo) object;
+            
+            if (hashCode() == other.hashCode()) {
+                return ((null == masterKeyPath ? null == other.masterKeyPath
+                                               : masterKeyPath.equals(other.masterKeyPath))
+                        && allowEnclaveComputations == other.allowEnclaveComputations
+                        && (null == signatureHexString ? null == other.signatureHexString 
+                                                       : signatureHexString.equals(other.signatureHexString))
+                        );
+            }
+            
+        }
+        
+        return false;        
+    }
+}
 
 
 /**
@@ -83,6 +142,18 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     private Map<String, CryptographyClient> cachedCryptographyClients = new ConcurrentHashMap<>();
     private TokenCredential credential;
 
+    /**
+     * A cache of column encryption keys (once they are unwrapped). This is useful for rapidly decrypting multiple data
+     * values. The default expiration is set to 2 hours.
+     */
+    private final SimpleTtlCache<String, byte[]> columnEncryptionKeyCache = new SimpleTtlCache<>();
+    
+    /**
+     * A cache for storing the results of signature verification of column master key metadata.
+     * The default expiration is set to 10 days.
+     */
+    private final SimpleTtlCache<CMKMetadataSignatureInfo, Boolean> cmkMetadataSignatureVerificationCache = new SimpleTtlCache<>(Duration.ofDays(10));
+
     public void setName(String name) {
         this.name = name;
     }
@@ -90,6 +161,28 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public String getName() {
         return this.name;
     }
+
+    /**
+     * Returns the time-to-live for items in the columnEncryptionKeyCache.
+     * 
+     * @return the time-to-live for items in the columnEncryptionKeyCache.
+     */
+    @Override
+    public Duration getColumnEncryptionKeyCacheTtl() {
+        return columnEncryptionKeyCache.getCacheTtl();
+    }
+
+    /**
+     * Sets the the time-to-live for items in the columnEncryptionKeyCache.
+     * 
+     * @param duration
+     *        value to be set for the time-to-live for items in the columnEncryptionKeyCache.
+     */
+    @Override
+    public void setColumnEncryptionCacheTtl(Duration duration) {
+        columnEncryptionKeyCache.setCacheTtl(duration);
+    }
+
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD using the client id and client
@@ -261,6 +354,17 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
+        // check cache if TimeToLive is not 0
+        boolean allowCache = false;
+        String encryptedColumnEncryptionKeyHexString = Util.byteToHexDisplayString(encryptedColumnEncryptionKey);
+        if (columnEncryptionKeyCache.getCacheTtl().getSeconds() > 0) {
+            allowCache = true;
+                        
+            if (columnEncryptionKeyCache.contains(encryptedColumnEncryptionKeyHexString)) {
+                return columnEncryptionKeyCache.get(encryptedColumnEncryptionKeyHexString);
+            }
+        }
+        
         // Get key path length
         int currentIndex = firstVersion.length;
         short keyPathLength = convertTwoBytesToShort(encryptedColumnEncryptionKey, currentIndex);
@@ -329,6 +433,10 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         // Decrypt the CEK
         byte[] decryptedCEK = this.AzureKeyVaultUnWrap(masterKeyPath, keyWrapAlgorithm, cipherText);
 
+        if (allowCache) {
+            columnEncryptionKeyCache.put(encryptedColumnEncryptionKeyHexString, decryptedCEK);
+        }
+        
         return decryptedCEK;
     }
 
@@ -758,6 +866,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
+        
+        CMKMetadataSignatureInfo key = new CMKMetadataSignatureInfo(masterKeyPath, allowEnclaveComputations, signature);
+        
+        if (cmkMetadataSignatureVerificationCache.contains(key)) {
+            return cmkMetadataSignatureVerificationCache.get(key);
+        }
 
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -778,7 +892,10 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             }
 
             // Validate the signature
-            return AzureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
+            boolean isValid = AzureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
+            cmkMetadataSignatureVerificationCache.put(key, isValid);
+            
+            return isValid;
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
@@ -839,5 +956,13 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             }
         }
         return (null != props && !props.isEmpty()) ? props : null;
+    }
+
+    int getColumnEncryptionKeyCacheSize() {
+        return columnEncryptionKeyCache.getCacheSize();
+    }
+
+    int getCmkMetadataSignatureVerificationCacheSize() {
+        return cmkMetadataSignatureVerificationCache.getCacheSize();
     }
 }

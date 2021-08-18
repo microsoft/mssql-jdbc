@@ -178,11 +178,17 @@ interface ISQLServerEnclaveProvider {
      *         if error
      */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
-            ArrayList<String> parameterNames, SQLServerConnection connection, PreparedStatement stmt, ResultSet rs,
+            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement, PreparedStatement stmt, ResultSet rs,
             ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
+        SQLServerStatement statement = (SQLServerStatement) ((SQLServerPreparedStatement) stmt);
+
+        if (null != sqlServerStatement && sqlServerStatement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
+        }
+        
         while (rs.next()) {
             int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
             if (!cekList.containsKey(currentOrdinal)) {
@@ -215,7 +221,7 @@ interface ISQLServerEnclaveProvider {
             if (isRequestedByEnclave) {
                 byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
                 String serverName = connection.getTrustedServerNameAE();
-                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, keyStoreName, keyPath, serverName,
+                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath, serverName,
                         isRequestedByEnclave, keySignature);
 
                 // DBID(4) + MDVER(8) + KEYID(2) + CEK(32) = 46
@@ -223,8 +229,9 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.order(ByteOrder.LITTLE_ENDIAN).putInt(dbID);
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
-                aev2CekEntry.put(connection.getColumnEncryptionKeyStoreProvider(keyStoreName)
-                        .decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
+
+                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility.getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+                aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
         }
@@ -257,7 +264,7 @@ interface ISQLServerEnclaveProvider {
                         encType.value,
                         (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
                 // Decrypt the symmetric key.(This will also validate and throw if needed).
-                SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
             } else {
                 if (params[paramIndex].getForceEncryption()) {
                     MessageFormat form = new MessageFormat(
@@ -284,6 +291,8 @@ interface ISQLServerEnclaveProvider {
      * 
      * @param connection
      *        connection
+     * @param statement
+     *        statement
      * @param userSql
      *        user sql
      * @param preparedTypeDefinitions
@@ -296,7 +305,7 @@ interface ISQLServerEnclaveProvider {
      * @throws SQLServerException
      *         when an error occurs.
      */
-    ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
+    ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException;
 
