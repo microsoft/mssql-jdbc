@@ -62,7 +62,7 @@ public final class SQLServerError extends StreamPacket implements Serializable {
          */
         SQLSERVER_ERROR_4221(4221),
 
-        // The follow are from SqlClient
+        // The following are from SqlClient
 
         // Resource ID: %d. The %s limit for the database is %d and has been reached.
         SQLSERVER_ERROR_10928(10928),
@@ -72,7 +72,13 @@ public final class SQLServerError extends StreamPacket implements Serializable {
          * Resource ID: %d. The %s minimum guarantee is %d, maximum limit is %d and the current usage for the database
          * is %d. However, the server is currently too busy to support requests greater than %d for this database.
          */
-        SQLSERVER_ERROR_10929(10929);
+        SQLSERVER_ERROR_10929(10929),
+
+        // Can not connect to the SQL pool since it is paused. Please resume the SQL pool and try again.
+        SQLSERVER_ERROR_42108(42108),
+
+        // The SQL pool is warming up. Please try again.
+        SQLSERVER_ERROR_42109(42109);
 
         private final int errNo;
 
