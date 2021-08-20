@@ -46,7 +46,7 @@ class CMKMetadataSignatureInfo {
     String masterKeyPath;
     boolean allowEnclaveComputations;
     String signatureHexString;
-    
+
     public CMKMetadataSignatureInfo(String masterKeyPath, boolean allowEnclaveComputations, byte[] signature) {
         this.masterKeyPath = masterKeyPath;
         this.allowEnclaveComputations = allowEnclaveComputations;
@@ -64,38 +64,37 @@ class CMKMetadataSignatureInfo {
     public String getSignatureHexString() {
         return signatureHexString;
     }
-    
+
     @Override
     public int hashCode() {
         int hash = 7;
         hash = 31 * hash + (null != masterKeyPath ? masterKeyPath.hashCode() : 0);
         hash = 31 * hash + (allowEnclaveComputations ? 1 : 0);
         hash = 31 * hash + (null != signatureHexString ? signatureHexString.hashCode() : 0);
-        
+
         return hash;
     }
-   
+
     @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;
         }
-        
+
         if (null != object && CMKMetadataSignatureInfo.class == object.getClass()) {
             CMKMetadataSignatureInfo other = (CMKMetadataSignatureInfo) object;
-            
+
             if (hashCode() == other.hashCode()) {
                 return ((null == masterKeyPath ? null == other.masterKeyPath
                                                : masterKeyPath.equals(other.masterKeyPath))
                         && allowEnclaveComputations == other.allowEnclaveComputations
-                        && (null == signatureHexString ? null == other.signatureHexString 
-                                                       : signatureHexString.equals(other.signatureHexString))
-                        );
+                        && (null == signatureHexString ? null == other.signatureHexString
+                                                       : signatureHexString.equals(other.signatureHexString)));
             }
-            
+
         }
-        
-        return false;        
+
+        return false;
     }
 }
 
@@ -147,12 +146,13 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * values. The default expiration is set to 2 hours.
      */
     private final SimpleTtlCache<String, byte[]> columnEncryptionKeyCache = new SimpleTtlCache<>();
-    
+
     /**
-     * A cache for storing the results of signature verification of column master key metadata.
-     * The default expiration is set to 10 days.
+     * A cache for storing the results of signature verification of column master key metadata. The default expiration
+     * is set to 10 days.
      */
-    private final SimpleTtlCache<CMKMetadataSignatureInfo, Boolean> cmkMetadataSignatureVerificationCache = new SimpleTtlCache<>(Duration.ofDays(10));
+    private final SimpleTtlCache<CMKMetadataSignatureInfo, Boolean> cmkMetadataSignatureVerificationCache = new SimpleTtlCache<>(
+            Duration.ofDays(10));
 
     public void setName(String name) {
         this.name = name;
@@ -182,7 +182,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public void setColumnEncryptionCacheTtl(Duration duration) {
         columnEncryptionKeyCache.setCacheTtl(duration);
     }
-
 
     /**
      * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider to authenticate to AAD using the client id and client
@@ -359,12 +358,12 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         String encryptedColumnEncryptionKeyHexString = Util.byteToHexDisplayString(encryptedColumnEncryptionKey);
         if (columnEncryptionKeyCache.getCacheTtl().getSeconds() > 0) {
             allowCache = true;
-                        
+
             if (columnEncryptionKeyCache.contains(encryptedColumnEncryptionKeyHexString)) {
                 return columnEncryptionKeyCache.get(encryptedColumnEncryptionKeyHexString);
             }
         }
-        
+
         // Get key path length
         int currentIndex = firstVersion.length;
         short keyPathLength = convertTwoBytesToShort(encryptedColumnEncryptionKey, currentIndex);
@@ -436,7 +435,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         if (allowCache) {
             columnEncryptionKeyCache.put(encryptedColumnEncryptionKeyHexString, decryptedCEK);
         }
-        
+
         return decryptedCEK;
     }
 
@@ -866,9 +865,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
-        
+
         CMKMetadataSignatureInfo key = new CMKMetadataSignatureInfo(masterKeyPath, allowEnclaveComputations, signature);
-        
+
         if (cmkMetadataSignatureVerificationCache.contains(key)) {
             return cmkMetadataSignatureVerificationCache.get(key);
         }
@@ -894,7 +893,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             // Validate the signature
             boolean isValid = AzureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
             cmkMetadataSignatureVerificationCache.put(key, isValid);
-            
+
             return isValid;
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
