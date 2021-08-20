@@ -1,6 +1,6 @@
 /*
- * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made available under the terms of the
- * MIT License. See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 package com.microsoft.sqlserver.jdbc;
 
@@ -21,6 +21,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DummyKeyStoreProvider;
 
+
 /**
  * Test key store provider registration.
  */
@@ -31,8 +32,6 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     private static final String dummyProviderName2 = "DummyProvider2";
     private static final String dummyProviderName3 = "DummyProvider3";
     private static final String dummyProviderName4 = "DummyProvider4";
-
-    private static final String WINDOWS_KEY_STORE_NAME = Constants.WINDOWS_KEY_STORE_NAME;
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> singleKeyStoreProvider = new HashMap<>();
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> multipleKeyStoreProviders = new HashMap<>();
@@ -47,16 +46,18 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
         multipleKeyStoreProviders.put(dummyProviderName4, new DummyKeyStoreProvider());
 
         if (null != SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders) {
-            globalKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>(SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders);
+            globalKeyStoreProviders = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>(
+                    SQLServerConnection.globalCustomColumnEncryptionKeyStoreProviders);
         }
-        
+
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
     }
 
     @Test
     public void testNullProviderMap() {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers = null;
-        assertExceptionIsThrownForAllCustomProviderCaches(providers, TestUtils.formatErrorMsg("R_CustomKeyStoreProviderMapNull"));
+        assertExceptionIsThrownForAllCustomProviderCaches(providers,
+                TestUtils.formatErrorMsg("R_CustomKeyStoreProviderMapNull"));
     }
 
     @Test
@@ -64,21 +65,24 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers = new HashMap<>();
         providers.put("MSSQL_DUMMY", new DummyKeyStoreProvider());
 
-        assertExceptionIsThrownForGlobalCustomProviderCache(providers, TestUtils.formatErrorMsg("R_InvalidCustomKeyStoreProviderName"));
+        assertExceptionIsThrownForGlobalCustomProviderCache(providers,
+                TestUtils.formatErrorMsg("R_InvalidCustomKeyStoreProviderName"));
     }
 
     @Test
     public void testInvalidProviderNameAllLevels() {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers = new HashMap<>();
-        providers.put(WINDOWS_KEY_STORE_NAME, new DummyKeyStoreProvider());
-        assertExceptionIsThrownForAllCustomProviderCaches(providers, TestUtils.formatErrorMsg("R_InvalidCustomKeyStoreProviderName"));
+        providers.put(Constants.WINDOWS_KEY_STORE_NAME, new DummyKeyStoreProvider());
+        assertExceptionIsThrownForAllCustomProviderCaches(providers,
+                TestUtils.formatErrorMsg("R_InvalidCustomKeyStoreProviderName"));
     }
 
     @Test
     public void testNullProviderAllLevels() {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers = new HashMap<>();
         providers.put("DUMMY_PROVIDER", null);
-        assertExceptionIsThrownForAllCustomProviderCaches(providers, TestUtils.formatErrorMsg("R_CustomKeyStoreProviderValueNull"));
+        assertExceptionIsThrownForAllCustomProviderCaches(providers,
+                TestUtils.formatErrorMsg("R_CustomKeyStoreProviderValueNull"));
 
     }
 
@@ -86,7 +90,8 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     public void testEmptyProviderNameAllLevels() {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers = new HashMap<>();
         providers.put(" ", new DummyKeyStoreProvider());
-        assertExceptionIsThrownForAllCustomProviderCaches(providers, TestUtils.formatErrorMsg("R_EmptyCustomKeyStoreProviderName"));
+        assertExceptionIsThrownForAllCustomProviderCaches(providers,
+                TestUtils.formatErrorMsg("R_EmptyCustomKeyStoreProviderName"));
     }
 
     @Test
@@ -98,12 +103,12 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
 
         try {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providers);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
 
-        assertExceptionIsThrownForGlobalCustomProviderCache(providers, TestUtils.formatErrorMsg("R_CustomKeyStoreProviderSetOnce"));
+        assertExceptionIsThrownForGlobalCustomProviderCache(providers,
+                TestUtils.formatErrorMsg("R_CustomKeyStoreProviderSetOnce"));
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
     }
 
@@ -111,26 +116,29 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     public void testSetProviderMoreThanOnceOnConnection() {
         try (SQLServerConnection conn = getConnection()) {
             conn.registerColumnEncryptionKeyStoreProvidersOnConnection(singleKeyStoreProvider);
-            assertProviderCacheContainsExpectedProviders(conn.connectionColumnEncryptionKeyStoreProvider, singleKeyStoreProvider);
+            assertProviderCacheContainsExpectedProviders(conn.connectionColumnEncryptionKeyStoreProvider,
+                    singleKeyStoreProvider);
 
             conn.registerColumnEncryptionKeyStoreProvidersOnConnection(multipleKeyStoreProviders);
-            assertProviderCacheContainsExpectedProviders(conn.connectionColumnEncryptionKeyStoreProvider, multipleKeyStoreProviders);
-        }
-        catch (Exception e) {
+            assertProviderCacheContainsExpectedProviders(conn.connectionColumnEncryptionKeyStoreProvider,
+                    multipleKeyStoreProviders);
+        } catch (Exception e) {
             fail(e.getMessage());
         }
     }
 
     @Test
     public void testSetProviderMoreThanOnceOnStatement() {
-        try (SQLServerConnection conn = getConnection(); SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (SQLServerConnection conn = getConnection();
+                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             stmt.registerColumnEncryptionKeyStoreProvidersOnStatement(singleKeyStoreProvider);
-            assertProviderCacheContainsExpectedProviders(stmt.statementColumnEncryptionKeyStoreProviders, singleKeyStoreProvider);
+            assertProviderCacheContainsExpectedProviders(stmt.statementColumnEncryptionKeyStoreProviders,
+                    singleKeyStoreProvider);
 
             stmt.registerColumnEncryptionKeyStoreProvidersOnStatement(multipleKeyStoreProviders);
-            assertProviderCacheContainsExpectedProviders(stmt.statementColumnEncryptionKeyStoreProviders, multipleKeyStoreProviders);
-        }
-        catch (Exception e) {
+            assertProviderCacheContainsExpectedProviders(stmt.statementColumnEncryptionKeyStoreProviders,
+                    multipleKeyStoreProviders);
+        } catch (Exception e) {
             fail(e.getMessage());
         }
     }
@@ -138,13 +146,14 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
     @AfterAll
     public static void testClearUp() throws Exception {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
-        
+
         if (null != globalKeyStoreProviders) {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(globalKeyStoreProviders);
-        }        
+        }
     }
 
-    private void assertProviderCacheContainsExpectedProviders(Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerCache,
+    private void assertProviderCacheContainsExpectedProviders(
+            Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerCache,
             Map<String, SQLServerColumnEncryptionKeyStoreProvider> expectedProviders) {
         assertEquals(providerCache.size(), expectedProviders.size());
 
@@ -153,43 +162,39 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
         }
     }
 
-    private void assertExceptionIsThrownForAllCustomProviderCaches(Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers,
-            String expectedString) {
+    private void assertExceptionIsThrownForAllCustomProviderCaches(
+            Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers, String expectedString) {
         assertExceptionIsThrownForGlobalCustomProviderCache(providers, expectedString);
 
-        try (SQLServerConnection conn = getConnection(); SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (SQLServerConnection conn = getConnection();
+                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             try {
                 conn.registerColumnEncryptionKeyStoreProvidersOnConnection(providers);
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-            catch (SQLServerException ex) {
+            } catch (SQLServerException ex) {
                 assertTrue(ex.getMessage().matches(expectedString));
             }
 
             try {
                 stmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providers);
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-            catch (SQLServerException ex) {
+            } catch (SQLServerException ex) {
                 assertTrue(ex.getMessage().matches(expectedString));
             }
-        }
-        catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedException"));
+        } catch (Exception e) {
+            fail(e.getMessage());
         }
 
     }
 
-    private void assertExceptionIsThrownForGlobalCustomProviderCache(Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers,
-            String expectedString) {
+    private void assertExceptionIsThrownForGlobalCustomProviderCache(
+            Map<String, SQLServerColumnEncryptionKeyStoreProvider> providers, String expectedString) {
         try {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providers);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-        }
-        catch (SQLServerException ex) {
+        } catch (SQLServerException ex) {
             assertTrue(ex.getMessage().matches(expectedString));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail(e.getMessage());
         }
     }

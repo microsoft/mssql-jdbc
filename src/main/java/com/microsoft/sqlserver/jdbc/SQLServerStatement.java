@@ -2410,6 +2410,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         loggerExternal.entering(loggingClassName, "registerColumnEncryptionKeyStoreProvidersOnStatement",
                 "Registering Column Encryption Key Store Providers on Statement");
 
+        checkClosed();
+
         if (null == clientKeyStoreProviders) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"), null,
                     0, false);
