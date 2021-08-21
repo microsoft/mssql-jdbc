@@ -2292,22 +2292,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            String colValueStr = colValue.toString();
 
+                            String colValueStr;
                             if (colValue instanceof LocalDateTime) {
                                 colValueStr = ((LocalDateTime)colValue).format(DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS"));
                             }
                             else if (colValue instanceof LocalTime) {
                                 colValueStr = ((LocalTime)colValue).format(DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS"));
                             }
+                            else {
+                                colValueStr = colValue.toString();
+                            }
 
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
-                                int stringLength = colValue.toString().length();
+                                int stringLength = colValueStr.length();
                                 byte[] typevarlen = new byte[2];
                                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                                 tdsWriter.writeBytes(typevarlen);
-                                tdsWriter.writeString(colValue.toString());
+                                tdsWriter.writeString(colValueStr);
                             } else {
                                 if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
                                     byte[] bytes = null;

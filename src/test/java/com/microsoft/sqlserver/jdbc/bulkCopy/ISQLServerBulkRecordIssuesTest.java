@@ -14,6 +14,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -225,6 +228,92 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
     }
 
     /**
+     * Testing that sending valid values of LocalDateTime for datetime2 column are successful
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSendValidValueforDatetime2ColumnAsLocalDateTime() throws Exception {
+        variation = "testSendValidValueforDatetime2ColumnAsLocalDateTime";
+        BulkData bData = new BulkData(variation);
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 datetime2(7))";
+        int counter = 0;
+        String[] result = {
+                "2021-01-01 00:00:00.0000000",
+                "2021-01-01 12:00:00.0000000",
+                "2021-01-01 12:30:00.0000000",
+                "2021-01-01 12:30:44.0000000",
+                "2021-01-01 12:30:44.0000007",
+                "2021-01-01 12:30:44.0030000",
+                "2021-01-01 12:30:44.1000000",
+                "2021-01-01 12:30:44.1230000",
+                "2021-01-01 12:30:44.1234567",
+                "2021-01-01 12:30:44.9999999"
+        };
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate(query);
+
+            try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
+                bcOperation.writeToServer(bData);
+
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+                    while (rs.next()) {
+                        assertEquals(rs.getString(1), result[counter]);
+                        counter++;
+                    }
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Testing that sending valid values of LocalTime for datetime2 column are successful
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSendValidValueforDatetime2ColumnAsLocalTime() throws Exception {
+        variation = "testSendValidValueforDatetime2ColumnAsLocalTime";
+        BulkData bData = new BulkData(variation);
+        query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 datetime2(7))";
+        int counter = 0;
+        String[] result = {
+                "1900-01-01 00:00:00.0000000",
+                "1900-01-01 12:00:00.0000000",
+                "1900-01-01 12:30:00.0000000",
+                "1900-01-01 12:30:44.0000000",
+                "1900-01-01 12:30:44.0000007",
+                "1900-01-01 12:30:44.0030000",
+                "1900-01-01 12:30:44.1000000",
+                "1900-01-01 12:30:44.1230000",
+                "1900-01-01 12:30:44.1234567",
+                "1900-01-01 12:30:44.9999999"
+        };
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate(query);
+
+            try (SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connectionString)) {
+                bcOperation.setDestinationTableName(AbstractSQLGenerator.escapeIdentifier(destTable));
+                bcOperation.writeToServer(bData);
+
+                try (ResultSet rs = stmt
+                        .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(destTable))) {
+                    while (rs.next()) {
+                        assertEquals(rs.getString(1), result[counter]);
+                        counter++;
+                    }
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Prepare test
      * 
      * @throws SQLException
@@ -272,7 +361,9 @@ class BulkData implements ISQLServerBulkData {
     }
 
     Map<Integer, ColumnMetadata> columnMetadata;
+    ArrayList<LocalDateTime> datetimeData;
     ArrayList<Timestamp> dateData;
+    ArrayList<LocalTime> timeData;
     ArrayList<String> stringData;
     ArrayList<byte[]> byteData;
 
@@ -328,9 +419,7 @@ class BulkData implements ISQLServerBulkData {
             stringData.add("616368697412");
             rowCount = stringData.size();
 
-        }
-
-        else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
+        } else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
             isStringData = true;
             columnMetadata = new HashMap<>();
 
@@ -340,7 +429,46 @@ class BulkData implements ISQLServerBulkData {
             stringData.add("010101");
             rowCount = stringData.size();
 
+        } else if (variation.equalsIgnoreCase("testSendValidValueforDatetime2ColumnAsLocalDateTime")) {
+            isStringData = false;
+            columnMetadata = new HashMap<>();
+
+            columnMetadata.put(1, new ColumnMetadata("datetime2(7)", java.sql.Types.VARCHAR, 0, 0));
+
+            datetimeData = new ArrayList<>();
+            datetimeData.add(LocalDateTime.parse("2021-01-01T00:00:00.0000000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:00:00.0000000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:00.0000000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.0000000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.0000007", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.0030000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.1000000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.1230000", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.1234567", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            datetimeData.add(LocalDateTime.parse("2021-01-01T12:30:44.9999999", DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSS")));
+            rowCount = datetimeData.size();
+
+        } else if (variation.equalsIgnoreCase("testSendValidValueforDatetime2ColumnAsLocalTime")) {
+            isStringData = false;
+            columnMetadata = new HashMap<>();
+
+            columnMetadata.put(1, new ColumnMetadata("datetime2(7)", java.sql.Types.TIME, 0, 0));
+
+            timeData = new ArrayList<>();
+            timeData.add(LocalTime.parse("00:00:00.0000000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:00:00.0000000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:00.0000000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.0000000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.0000007", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.0030000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.1000000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.1230000", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.1234567", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            timeData.add(LocalTime.parse("12:30:44.9999999", DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSS")));
+            rowCount = timeData.size();
+
         }
+
         counter = 0;
 
     }
@@ -378,6 +506,10 @@ class BulkData implements ISQLServerBulkData {
         else {
             if (null != dateData)
                 dataRow[0] = dateData.get(counter);
+            else if (null != datetimeData)
+                dataRow[0] = datetimeData.get(counter);
+            else if (null != timeData)
+                dataRow[0] = timeData.get(counter);
             else if (null != byteData)
                 dataRow[0] = byteData.get(counter);
         }
