@@ -824,7 +824,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
-    /** global system ColumnEncryptionKeyStoreProviders */
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
 
     SessionRecoveryFeature getSessionRecovery() {
@@ -832,7 +831,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static boolean isWindows;
-
+    
+    /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
@@ -5305,30 +5305,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } while (featureId != TDS.FEATURE_EXT_TERMINATOR);
     }
 
-    // Read the open visual studio code page
-
     private void onFeatureExtAck(byte featureId, TDSReader tdsReader) throws SQLServerException {
         // To be able to cache both control and tenant ring IPs, need to parse AZURESQLDNSCACHING.
         if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId)
             return;
 
         int dataLen;
-        dataLen = tdsReader.readInt();
-        byte[] data = new byte[dataLen];
-        
-        if (dataLen > 0) {
-            tdsReader.readBytes(data, 0, dataLen);
-        }
-        
-        // WZD Do we need this?
-//        if (TDS.TDS_FEATURE_EXT_SESSIONRECOVERY != featureId) {
-//            dataLen = tdsReader.readInt();
-//            data = new byte[dataLen];
-//
-//            if (dataLen > 0) {
-//                tdsReader.readBytes(data, 0, dataLen);
-//            }
+        byte[] data = null;
+//        dataLen = tdsReader.readInt();
+//        data = new byte[dataLen];
+//        
+//        if (dataLen > 0) {
+//            tdsReader.readBytes(data, 0, dataLen);
 //        }
+        
+        if (TDS.TDS_FEATURE_EXT_SESSIONRECOVERY != featureId) {
+            dataLen = tdsReader.readInt();
+            data = new byte[dataLen];
+
+            if (dataLen > 0) {
+                tdsReader.readBytes(data, 0, dataLen);
+            }
+        }
 
         switch (featureId) {
             case TDS.TDS_FEATURE_EXT_FEDAUTH: {
