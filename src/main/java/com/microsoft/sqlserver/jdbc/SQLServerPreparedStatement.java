@@ -657,7 +657,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
 
-            PrepStmtExecOutParamHandler(SQLServerStatement statement) {            
+            PrepStmtExecOutParamHandler(SQLServerStatement statement) {
                 super(statement);
             }
 
@@ -954,7 +954,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
                                     null, encType.value, (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
-                            
+
                             SQLServerStatement statement = (SQLServerStatement) stmt;
                             // Decrypt the symmetric key.(This will also validate and throw if needed).
                             SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
