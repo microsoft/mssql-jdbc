@@ -168,6 +168,8 @@ interface ISQLServerEnclaveProvider {
      *        param names
      * @param connection
      *        connection
+     * @param sqlServerStatement
+     *        sqlServerStatement
      * @param stmt
      *        statement
      * @param rs
