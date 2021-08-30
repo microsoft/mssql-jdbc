@@ -108,6 +108,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void decryptedCekIsCachedDuringDecryption() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
 
@@ -148,6 +149,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void signatureVerificationResultIsCachedDuringVerification() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
 
@@ -179,6 +181,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void cekCacheEntryIsEvictedAfterTtlExpires() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
 
@@ -206,6 +209,7 @@ public class MultiUserAKVTest extends AESetup {
 
     @SuppressWarnings("unchecked")
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void cekCacheShouldBeDisabledWhenAkvProviderIsRegisteredGlobally() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
 
@@ -250,6 +254,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void testLocalCekCacheIsScopedToProvider() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
 
@@ -328,6 +333,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void testConnectionCustomKeyStoreProviderDuringAeQuery() throws Exception {
         DummyKeyStoreProvider dummyProvider = new DummyKeyStoreProvider();
 
@@ -416,6 +422,7 @@ public class MultiUserAKVTest extends AESetup {
     }
 
     @Test
+    @Tag(Constants.reqExternalSetup)
     public void testStatementCustomKeyStoreProviderDuringAeQuery() throws Exception {
         DummyKeyStoreProvider dummyProvider = new DummyKeyStoreProvider();
 
