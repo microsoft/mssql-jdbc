@@ -98,6 +98,7 @@ public final class Constants {
     public static final String AZURE_KEY_VAULT_NAME = "AZURE_KEY_VAULT";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
     public static final String CUSTOM_KEYSTORE_NAME = "CUSTOM_KEYSTORE";
+    public static final String DUMMY_KEYSTORE_NAME = "DUMMY_PROVIDER";
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";

@@ -3092,7 +3092,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // normalize the values before encrypting them
                 colValue = SQLServerSecurityUtility.encryptWithKey(normalizedValue(destJdbcType, colValue,
                         baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale()), destCryptoMeta,
-                        connection);
+                        connection, null);
             }
         }
         writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
@@ -3351,7 +3351,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 calendar.setTimeInMillis(((Date) colValue).getTime());
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
                         0, // scale (dates are not scaled)
-                        SSType.DATE, (short) 0);
+                        SSType.DATE, (short) 0, null);
 
             case TIME:
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
@@ -3367,7 +3367,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (subSecondNanos < 0)
                         subSecondNanos += Nanos.PER_SECOND;
                 }
-                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0);
+                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0, null);
 
             case TIMESTAMP:
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
@@ -3377,7 +3377,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 calendar.setTimeInMillis(utcMillis);
                 subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIME2,
-                        (short) 0);
+                        (short) 0, null);
 
             case DATETIME:
             case SMALLDATETIME:
@@ -3387,7 +3387,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
                 subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
-                return tdsWriter.getEncryptedDateTimeAsBytes(calendar, subSecondNanos, srcTemporalJdbcType);
+                return tdsWriter.getEncryptedDateTimeAsBytes(calendar, subSecondNanos, srcTemporalJdbcType, null);
 
             case DATETIMEOFFSET:
                 microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) colValue;
@@ -3399,7 +3399,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET,
-                        (short) minutesOffset);
+                        (short) minutesOffset, null);
 
             default:
 
