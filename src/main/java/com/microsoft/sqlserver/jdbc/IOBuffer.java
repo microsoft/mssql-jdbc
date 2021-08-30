@@ -38,6 +38,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
@@ -453,6 +454,9 @@ final class TDS {
     final static int BASE_YEAR_1900 = 1900;
     final static int BASE_YEAR_1970 = 1970;
     final static String BASE_DATE_1970 = "1970-01-01";
+
+    final static LocalDate BASE_LOCAL_DATE = LocalDate.of(1, 1, 1);
+    final static LocalDate BASE_LOCAL_DATE_1900 = LocalDate.of(1900, 1, 1);
 
     static int timeValueLength(int scale) {
         return nanosSinceMidnightLength(scale);
