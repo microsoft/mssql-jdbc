@@ -533,6 +533,50 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
+     * Test {@link SQLServerDatabaseMetaData#getProcedures(String, String, String)}
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetProceduresResultSetMetaData() throws SQLException {
+        // We specify a procedure name that does not exist since we only care to validate the metadata.
+        try (Connection conn = getConnection(); ResultSet rs = conn.getMetaData().getProcedures(null, null, "NOMATCH")) {
+            final ResultSetMetaData metaData = rs.getMetaData();
+            // Column names 1 through 8.
+            assertEquals("PROCEDURE_CAT", metaData.getColumnName(1));
+            assertEquals("PROCEDURE_SCHEM", metaData.getColumnName(2));
+            assertEquals("PROCEDURE_NAME", metaData.getColumnName(3));
+            // columns 4 is reserved for future use, just don't blow up
+            metaData.getColumnName(4);
+            // columns 5 is reserved for future use, just don't blow up
+            metaData.getColumnName(5);
+            // columns 6 is reserved for future use, just don't blow up
+            metaData.getColumnName(6);
+            assertEquals("REMARKS", metaData.getColumnName(7));
+            assertEquals("PROCEDURE_TYPE", metaData.getColumnName(8));
+            //
+            // All 9th column APIs should not blow up after PR 1491
+            assertEquals("SPECIFIC_NAME", metaData.getColumnName(9));
+            assertEquals(9, metaData.getColumnCount());
+            //
+            assertEquals("", metaData.getCatalogName(9));
+            assertEquals("", metaData.getSchemaName(9));
+            assertEquals("", metaData.getTableName(9));
+            assertEquals("java.lang.String", metaData.getColumnClassName(9));
+            assertEquals("SPECIFIC_NAME", metaData.getColumnLabel(9));
+            // Some kind of string:
+            assertEquals(Types.NVARCHAR, metaData.getColumnType(9));
+            // Some kind of string:
+            assertEquals("nvarchar", metaData.getColumnTypeName(9));
+            // does not blow up:
+            metaData.getColumnDisplaySize(9);
+            metaData.getPrecision(9);
+            metaData.getScale(9);
+        }
+    }
+
+
+    /**
      * 
      * @throws SQLException
      */

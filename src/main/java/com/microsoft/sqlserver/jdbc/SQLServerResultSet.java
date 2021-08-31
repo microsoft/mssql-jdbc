@@ -205,7 +205,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private int rowCount;
 
     /** The current row's column values */
-    private final Column[] columns;
+    private Column[] columns;
 
     /** The CekTable retrieved from the COLMETADATA token for this resultset */
     private CekTable cekTable = null;
@@ -5788,6 +5788,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         updateObject(findColumn(columnName), obj, null, JDBCType.of(targetSqlType.getVendorTypeNumber()), null, false);
 
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
+    }
+
+    void addColumn(final Column newColumn) {
+        final int oldLen = columns.length;
+        Column[] temp = new Column[oldLen + 1];
+        System.arraycopy(columns, 0, temp, 0, oldLen);
+        temp[oldLen] = newColumn;
+        columns = temp;
     }
 
 }

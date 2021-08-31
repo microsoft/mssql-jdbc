@@ -228,6 +228,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String PROCEDURE_NAME = "PROCEDURE_NAME";
     private static final String PROCEDURE_SCHEM = "PROCEDURE_SCHEM";
     private static final String PROCEDURE_TYPE = "PROCEDURE_TYPE";
+    private static final String SPECIFIC_NAME = "SPECIFIC_NAME";
     private static final String PSEUDO_COLUMN = "PSEUDO_COLUMN";
     private static final String RADIX = "RADIX";
     private static final String REMARKS = "REMARKS";
@@ -331,16 +332,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      *        to execute
      * @param arguments
      *        for the stored procedure
-     * @return Resultset from the execution
+     * @return ResultSet from the execution
      * @throws SQLTimeoutException
      */
     private SQLServerResultSet getResultSetFromStoredProc(String catalog, CallableHandles procedure,
             String[] arguments) throws SQLServerException, SQLTimeoutException {
         checkClosed();
         assert null != arguments;
-        String orgCat = null;
-        orgCat = switchCatalogs(catalog);
-        SQLServerResultSet rs = null;
+        String orgCat = switchCatalogs(catalog);
         try {
             SQLServerCallableStatement call = (SQLServerCallableStatement) getCallableStatementHandle(procedure,
                     catalog);
@@ -349,13 +348,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 // note individual arguments can be null.
                 call.setString(i, arguments[i - 1]);
             }
-            rs = (SQLServerResultSet) call.executeQueryInternal();
+            return (SQLServerResultSet) call.executeQueryInternal();
         } finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
             }
         }
-        return rs;
     }
 
     private SQLServerResultSet getResultSetWithProvidedColumnNames(String catalog, CallableHandles procedure,
@@ -1362,7 +1360,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     private static final String[] getProceduresColumnNames = { /* 1 */ PROCEDURE_CAT, /* 2 */ PROCEDURE_SCHEM,
             /* 3 */ PROCEDURE_NAME, /* 4 */ NUM_INPUT_PARAMS, /* 5 */ NUM_OUTPUT_PARAMS, /* 6 */ NUM_RESULT_SETS,
-            /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE};
+            /* 7 */ REMARKS, /* 8 */ PROCEDURE_TYPE /* Not provided by server: 9 SPECIFIC_NAME */ };
 
     @Override
     public java.sql.ResultSet getProcedures(String catalog, String schema,
@@ -1380,8 +1378,19 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         arguments[0] = EscapeIDName(proc);
         arguments[1] = schema;
         arguments[2] = catalog;
-        return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
+
+        final SQLServerResultSet rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
                 getProceduresColumnNames);
+        if (rs.getColumnCount() == getProceduresColumnNames.length) {
+            // Since the 9th column is missing from the server, we add it here to follow the
+            // JDBC specification. We use the PROCEDURE_NAME column as the backing for
+            // SPECIFIC_NAME.
+            final Column baseColumn = rs.getColumn(3); // PROCEDURE_NAME
+            final Column column9 = new Column(baseColumn.getTypeInfo(), SPECIFIC_NAME, baseColumn.getTableName(),
+                    baseColumn.getCryptoMetadata());
+            rs.addColumn(column9);
+        }
+        return rs;
     }
 
     @Override
