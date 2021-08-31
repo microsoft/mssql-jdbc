@@ -22,6 +22,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String squareBracketTableName = RandomUtil.getIdentifier("BulkCopy]]]]test'");
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
     static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
+    static String tableNameBulkComputedCols = RandomUtil.getIdentifier("BulkCopyComputedCols");
 
     private Object[] generateExpectedValues() {
         float randomFloat = RandomData.generateReal(false);
@@ -690,6 +692,45 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(g2.toString(), Geography.STGeomFromWKB((byte[]) rs.getObject(2)).toString());
                 assertEquals(myTimestamp, rs.getObject(3));
                 assertEquals(myTimestamp, rs.getObject(4));
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xSQLv12)
+    public void testComputedCols() throws Exception {
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols) + " (id, json)"
+                + " values (?, ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols)
+                    + " (id nvarchar(100) not null, json nvarchar(max) not null,"
+                    + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
+            stmt.execute(createTable);
+
+            String jsonValue =
+                    "{\"vcol1\":\"" + UUID.randomUUID().toString() + "\",\"vcol2\":\"" + UUID.randomUUID().toString()
+                            + "\" }";
+            String idValue = UUID.randomUUID().toString();
+            pstmt.setString(1, idValue);
+            pstmt.setString(2, jsonValue);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols))) {
+                rs.next();
+
+                assertEquals(idValue, rs.getObject(1));
+                assertEquals(jsonValue, rs.getObject(2));
             }
         }
     }

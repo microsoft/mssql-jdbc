@@ -1701,6 +1701,24 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
+     * True if computed cols are supported by database server
+     *
+     * @return true if computed cols are supported
+     */
+    private boolean isComputedColsSupported() {
+        if (connection.sqlServerVersion != null) {
+            try {
+                int majorVersion = Integer.parseInt(connection.sqlServerVersion.split("\\.")[0]);
+                if (majorVersion >= 13) { // SQL Server 2016
+                    return true;
+                }
+            } catch (NumberFormatException e) {
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns the column metadata for the destination table (and saves it for later)
      */
     private void getDestinationMetadata() throws SQLServerException {
@@ -1727,32 +1745,42 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
             }
 
-            destColumnCount = rs.getMetaData().getColumnCount();
+            int destColumnMetadataCount = rs.getMetaData().getColumnCount();
             destColumnMetadata = new HashMap<>();
             destCekTable = rs.getCekTable();
 
-            if (!connection.getServerSupportsColumnEncryption()) {
-                metaDataQuery = "select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
-                        + escapedDestinationTableName + "') " + "order by column_id ASC";
-            } else {
-                metaDataQuery = "select collation_name, encryption_type from sys.columns where "
-                        + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+            List<String> colsMetaData = new ArrayList();
+            colsMetaData.add("collation_name");
+            if (connection.getServerSupportsColumnEncryption()) {
+                colsMetaData.add("encryption_type");
             }
+            if (isComputedColsSupported()) {
+                colsMetaData.add("is_computed");
+            }
+
+            metaDataQuery = "select " + String.join(", ", colsMetaData) + " from sys.columns where " + "object_id=OBJECT_ID('"
+                    + escapedDestinationTableName + "') " + "order by column_id ASC";
 
             try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
                     SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
-                for (int i = 1; i <= destColumnCount; ++i) {
+                for (int i = 1; i <= destColumnMetadataCount; ++i) {
                     if (rsMoreMetaData.next()) {
                         String bulkCopyEncryptionType = null;
                         if (connection.getServerSupportsColumnEncryption()) {
                             bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
                         }
-                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
+                        // Skip computed columns
+                        if (!isComputedColsSupported() || Boolean.FALSE
+                                .equals(rsMoreMetaData.getBoolean("is_computed"))) {
+                            destColumnMetadata.put(i,
+                                    new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
+                                            bulkCopyEncryptionType));
+                        }
                     } else {
                         destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                     }
                 }
+                destColumnCount = destColumnMetadata.size();
             }
         } catch (SQLException e) {
             // Unable to retrieve metadata for destination
