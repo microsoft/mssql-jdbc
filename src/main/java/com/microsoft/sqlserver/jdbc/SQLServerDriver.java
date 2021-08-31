@@ -453,7 +453,7 @@ enum SQLServerDriverBooleanProperty {
     REPLICATION("replication", false),
     SERVER_NAME_AS_ACE("serverNameAsACE", false),
     SEND_STRING_PARAMETERS_AS_UNICODE("sendStringParametersAsUnicode", true),
-    SEND_TIME_AS_DATETIME("sendTimeAsDatetime", true),
+    SEND_TIME_AS_DATETIME("sendTimeAsDatetime", false),
     TRANSPARENT_NETWORK_IP_RESOLUTION("TransparentNetworkIPResolution", true),
     TRUST_SERVER_CERTIFICATE("trustServerCertificate", false),
     XOPEN_STATES("xopenStates", false),

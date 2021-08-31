@@ -53,7 +53,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryDate() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_date = ?";
@@ -73,7 +73,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimestamp() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_timestamp = ?";
@@ -93,7 +93,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTime() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             String sPrepStmt = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " where my_time = ?";
@@ -113,7 +113,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryDateTVP() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.DATE);
@@ -137,7 +137,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimestampTVP() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIMESTAMP);
@@ -161,7 +161,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
      */
     @Test
     public void testQueryTimeTVP() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
 
             SQLServerDataTable tvp = new SQLServerDataTable();
             tvp.addColumnMetadata("c1", java.sql.Types.TIME);
@@ -181,7 +181,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
     }
 
     private void createTVPs(String tvpName, String tvpType) throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
 
             stmt.executeUpdate("IF EXISTS (SELECT * FROM sys.types WHERE is_table_type = 1 AND name = '"
@@ -195,9 +195,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
-        // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
-        // by default to the connection. See issue https://github.com/Microsoft/mssql-jdbc/issues/559
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
+        try (Connection connection = getConnection();
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)

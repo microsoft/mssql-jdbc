@@ -76,8 +76,9 @@ public class SetObjectTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testSetObjectWithOffsetTime() throws SQLException {
+    public void testSetObjectWithOffsetTime_sendTimeAsDatetimeEnabled() throws SQLException {
         try (Connection con = getConnection()) {
+            ((SQLServerConnection) con).setSendTimeAsDatetime(true);
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1970-01-01T" + testValue;
             try (Statement stmt = con.createStatement()) {
@@ -110,9 +111,8 @@ public class SetObjectTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    public void testSetObjectWithOffsetTime_sendTimeAsDatetimeDisabled() throws SQLException {
+    public void testSetObjectWithOffsetTime() throws SQLException {
         try (Connection con = getConnection()) {
-            ((SQLServerConnection) con).setSendTimeAsDatetime(false);
             final String testValue = "11:22:33.123456700+12:34";
             final String expectedDto = "1900-01-01T" + testValue;
             try (Statement stmt = con.createStatement()) {
