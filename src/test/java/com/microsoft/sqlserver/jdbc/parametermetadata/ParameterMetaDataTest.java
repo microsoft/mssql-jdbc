@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.parametermetadata;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -129,6 +130,21 @@ public class ParameterMetaDataTest extends AbstractTest {
     }
 
     /**
+     * Asserts that the input param to the sp_help stored procedure is properly defined.
+     */
+	private void assertSpHelpInputParam(ParameterMetaData metadata, int index) throws SQLException {
+		assert (metadata.getParameterType(index) == java.sql.Types.NVARCHAR);
+		assert (metadata.getParameterTypeName(index).equalsIgnoreCase("nvarchar"));
+		assert (metadata.getParameterClassName(index).equalsIgnoreCase(String.class.getName()));
+		assert (metadata.getParameterMode(index) == ParameterMetaData.parameterModeIn);
+		// Standard value - validate precision of sp_help stored procedure parameter
+		assert (metadata.getPrecision(index) == 776);
+		assert (metadata.getScale(index) == 0);
+		assert (metadata.isNullable(index) == ParameterMetaData.parameterNullable);
+		assert (!metadata.isSigned(index));
+	}
+
+    /**
      * Test MetaData for Stored procedure sp_help
      * 
      * Stored Procedure reference:
@@ -144,16 +160,35 @@ public class ParameterMetaDataTest extends AbstractTest {
 
             try (PreparedStatement pstmt = con.prepareStatement(query)) {
                 ParameterMetaData metadata = pstmt.getParameterMetaData();
+                assertThrows(SQLException.class, () -> metadata.getParameterType(3));
+                assertThrows(SQLException.class, () -> metadata.getParameterType(0));
                 assert (metadata.getParameterCount() == 1);
-                assert (metadata.getParameterType(1) == java.sql.Types.NVARCHAR);
-                assert (metadata.getParameterTypeName(1).equalsIgnoreCase("nvarchar"));
-                assert (metadata.getParameterClassName(1).equalsIgnoreCase(String.class.getName()));
-                assert (metadata.getParameterMode(1) == ParameterMetaData.parameterModeIn);
-                // Standard value - validate precision of sp_help stored procedure parameter
-                assert (metadata.getPrecision(1) == 776);
-                assert (metadata.getScale(1) == 0);
-                assert (metadata.isNullable(1) == ParameterMetaData.parameterNullable);
-                assert (!metadata.isSigned(1));
+                assertSpHelpInputParam(metadata, 1);
+            }
+        }
+    }
+
+    /**
+     * Test MetaData for Stored procedure sp_help
+     * 
+     * Stored Procedure reference:
+     * https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-help-transact-sql
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testParameterMetaDataProcMarkers() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            String query = "{? = call sp_help (?)}";
+
+            try (PreparedStatement pstmt = con.prepareStatement(query)) {
+                ParameterMetaData metadata = pstmt.getParameterMetaData();
+                assertThrows(SQLException.class, () -> metadata.getParameterType(3));
+                assertThrows(SQLException.class, () -> metadata.getParameterType(0));
+                assert (metadata.getParameterCount() == 2);
+                assert (metadata.getParameterMode(1) == ParameterMetaData.parameterModeOut);
+                assertSpHelpInputParam(metadata, 2);
             }
         }
     }
