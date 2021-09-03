@@ -74,7 +74,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testFullBufferingWithPartiallyParsedResultSet() throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString + ";responseBuffering=full");
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=full");
                 Statement s = c.createStatement(); Statement s2 = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
             // Partially parsed
@@ -95,7 +95,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testAdaptiveBufferingWithPartiallyBufferedResultSet() throws SQLException {
         // The table must contain enough rows to partially buffer the result set.
-        try (Connection c = DriverManager.getConnection(connectionString + ";responseBuffering=adaptive");
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=adaptive");
                 Statement s = c.createStatement(); Statement s2 = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
             ResiliencyUtils.killConnection(c, connectionString);
@@ -130,7 +130,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
     private void verifyResulSetResponseBuffering(String responseBuffering,
             boolean strongReferenceToResulSet) throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
             if (strongReferenceToResulSet) {

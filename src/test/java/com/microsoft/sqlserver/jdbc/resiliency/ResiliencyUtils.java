@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -173,7 +174,35 @@ public final class ResiliencyUtils {
         }
     }
 
+    public static Connection getConnection(String connectionString) throws SQLException {
+        Connection c = DriverManager.getConnection(connectionString);
+        minimizeIdleNetworkTracker(c);
+        return c;
+    }
+
+    public static void minimizeIdleNetworkTracker(Connection c) {
+        try {
+            Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
+            for (Field f : fields) {
+                if (f.getName() == "idleNetworkTracker") {
+                    f.setAccessible(true);
+                    Object idleNetworkTracker = f.get(c);
+                    Method method = idleNetworkTracker.getClass().getDeclaredMethod("setMaxIdleMillis", int.class);
+                    method.setAccessible(true);
+                    method.invoke(idleNetworkTracker, -1);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
+        }
+    }
+
     public static void killConnection(Connection c, String cString) throws SQLException {
+        killConnection(getSessionId(c), cString);
+    }
+
+    public static int getSessionId(Connection c) throws SQLException {
         int sessionID = 0;
         try (Statement s = c.createStatement()) {
             try (ResultSet rs = s.executeQuery("SELECT @@SPID")) {
@@ -182,6 +211,10 @@ public final class ResiliencyUtils {
                 }
             }
         }
+        return sessionID;
+    }
+
+    public static void killConnection(int sessionID, String cString) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
                 s.execute("KILL " + sessionID);

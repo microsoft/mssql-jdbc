@@ -496,6 +496,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientAllRecoveryAttemptsFailed", "The connection is broken and recovery is not possible. The client driver attempted to recover the connection one or more times and all attempts failed. Increase the value of ConnectRetryCount to increase the number of recovery attempts."},
         {"R_crClientNoRecoveryAckFromLogin", "The server did not acknowledge a recovery attempt, connection recovery is not possible."},
         {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
+        {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
     };
 }
