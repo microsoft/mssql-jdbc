@@ -199,15 +199,7 @@ public final class ResiliencyUtils {
     }
 
     public static void killConnection(Connection c, String cString) throws SQLException {
-        int sessionID = 0;
-        try (Statement s = c.createStatement()) {
-            try (ResultSet rs = s.executeQuery("SELECT @@SPID")) {
-                while (rs.next()) {
-                    sessionID = rs.getInt(1);
-                }
-            }
-        }
-        killConnection(sessionID, cString);
+        killConnection(getSessionId(c), cString);
     }
 
     public static int getSessionId(Connection c) throws SQLException {

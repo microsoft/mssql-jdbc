@@ -121,12 +121,7 @@ public class BasicConnectionTest extends AbstractTest {
         String expectedLanguage = "Italiano";
         String actualLanguage = "";
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
-//            try {
             s.execute("SET LANGUAGE " + expectedLanguage);
-//            } catch (SQLException e) {
-//                // Switching databases is not supported against Azure, skip/
-//                return;
-//            }
             ResiliencyUtils.killConnection(c, connectionString);
             try (ResultSet rs = s.executeQuery("SELECT @@LANGUAGE")) {
                 while (rs.next()) {
