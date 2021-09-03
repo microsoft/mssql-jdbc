@@ -75,15 +75,17 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testFullBufferingWithPartiallyParsedResultSet() throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=full");
-                Statement s = c.createStatement(); Statement s2 = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
-            // Partially parsed
-            rs.next();
-            rs.getString(2);
-            ResiliencyUtils.killConnection(c, connectionString);
-            // ResulSet is not completely parsed, connection recovery is disabled.
-            s2.execute("SELECT 1");
-            fail();
+                Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
+            int sessionId = ResiliencyUtils.getSessionId(c);
+            try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
+                // Partially parsed
+                rs.next();
+                rs.getString(2);
+                ResiliencyUtils.killConnection(sessionId, connectionString);
+                // ResulSet is not completely parsed, connection recovery is disabled.
+                s2.execute("SELECT 1");
+                fail();
+            }
         } catch (SQLServerException e) {
             assertEquals("08S01", e.getSQLState());
         }
@@ -96,12 +98,14 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public void testAdaptiveBufferingWithPartiallyBufferedResultSet() throws SQLException {
         // The table must contain enough rows to partially buffer the result set.
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=adaptive");
-                Statement s = c.createStatement(); Statement s2 = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
-            ResiliencyUtils.killConnection(c, connectionString);
-            // ResulSet is partially buffered, connection recovery is disabled.
-            s2.execute("SELECT 1");
-            fail();
+                Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
+            int sessionId = ResiliencyUtils.getSessionId(c);
+            try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
+                ResiliencyUtils.killConnection(sessionId, connectionString);
+                // ResulSet is partially buffered, connection recovery is disabled.
+                s2.execute("SELECT 1");
+                fail();
+            }
         } catch (SQLServerException e) {
             assertEquals("08S01", e.getSQLState());
         }

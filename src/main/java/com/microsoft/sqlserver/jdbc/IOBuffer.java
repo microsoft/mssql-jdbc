@@ -101,46 +101,48 @@ final class ExtendedSocketOptions {
         }
     }
 
-    private ExtendedSocketOptions() {
-    }
+    private ExtendedSocketOptions() {}
 
     /**
      * Keep-Alive idle time.
      *
      * <p>
-     * The value of this socket option is an {@code Integer} that is the number of seconds of idle time before keep-alive
-     * initiates a probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol. The exact
-     * semantics of this socket option are system dependent.
+     * The value of this socket option is an {@code Integer} that is the number of seconds of idle time before
+     * keep-alive initiates a probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol.
+     * The exact semantics of this socket option are system dependent.
      *
      * <p>
-     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a connection
-     * that has been idle for some amount of time. The default value for this idle period is system dependent, but is
-     * typically 2 hours. The {@code TCP_KEEPIDLE} option can be used to affect this value for a given socket.
+     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
+     * connection that has been idle for some amount of time. The default value for this idle period is system
+     * dependent, but is typically 2 hours. The {@code TCP_KEEPIDLE} option can be used to affect this value for a given
+     * socket.
      *
      * @since 11
      */
-    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<Integer>("TCP_KEEPIDLE", Integer.class);
+    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<Integer>("TCP_KEEPIDLE",
+            Integer.class);
 
     /**
      * Keep-Alive retransmission interval time.
      *
      * <p>
-     * The value of this socket option is an {@code Integer} that is the number of seconds to wait before retransmitting a
-     * keep-alive probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol. The exact
+     * The value of this socket option is an {@code Integer} that is the number of seconds to wait before retransmitting
+     * a keep-alive probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol. The exact
      * semantics of this socket option are system dependent.
      *
      * <p>
-     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a connection
-     * that has been idle for some amount of time. If the remote system does not respond to a keep-alive probe, TCP
-     * retransmits the probe after some amount of time. The default value for this retransmission interval is system
-     * dependent, but is typically 75 seconds. The {@code TCP_KEEPINTERVAL} option can be used to affect this value for a
-     * given socket.
+     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
+     * connection that has been idle for some amount of time. If the remote system does not respond to a keep-alive
+     * probe, TCP retransmits the probe after some amount of time. The default value for this retransmission interval is
+     * system dependent, but is typically 75 seconds. The {@code TCP_KEEPINTERVAL} option can be used to affect this
+     * value for a given socket.
      *
      * @since 11
      */
     public static final SocketOption<Integer> TCP_KEEPINTERVAL = new ExtSocketOption<Integer>("TCP_KEEPINTERVAL",
             Integer.class);
 }
+
 
 final class TDS {
     // TDS protocol versions
@@ -1086,7 +1088,8 @@ final class TDSChannel implements Serializable {
          * Poll the stream to verify connectivity.
          * 
          * @return true if the stream is readable.
-         * @throws IOException If an I/O exception occurs.
+         * @throws IOException
+         *         If an I/O exception occurs.
          */
         public synchronized boolean poll() throws IOException {
             synchronized (this) {
@@ -1203,8 +1206,8 @@ final class TDSChannel implements Serializable {
 
                     try {
                         byte[] bytesFromStream = new byte[maxBytes - bytesFromCache.length];
-                        int bytesReadFromStream = filteredStream.read(bytesFromStream, offset - offsetBytesToSkipInCache,
-                                maxBytes - bytesFromCache.length);
+                        int bytesReadFromStream = filteredStream.read(bytesFromStream,
+                                offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
                         bytesRead = bytesFromCache.length + bytesReadFromStream;
                         System.arraycopy(bytesFromCache, 0, b, 0, bytesFromCache.length);
                         System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
@@ -7493,6 +7496,7 @@ final class TDSReader implements Serializable {
     }
 }
 
+
 /**
  * The tds default implementation of a timeout command
  */
@@ -7528,8 +7532,6 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
         }
     }
 }
-
-
 
 
 /**
@@ -7698,7 +7700,7 @@ abstract class TDSCommand implements Serializable {
             counter = previousCounter;
         }
     }
-    
+
     synchronized void addToPoller() {
         if (!registeredInPoller) {
             // If command execution is subject to timeout then start timing until
@@ -8159,12 +8161,11 @@ abstract class TDSCommand implements Serializable {
     }
 
     /*
-     * Currently only used in Connection Resiliency scenarios. This thread reference
-     * allows the current command to interrupt the thread if it's sleeping. This is useful
-     * in timeout cases.
+     * Currently only used in Connection Resiliency scenarios. This thread reference allows the current command to
+     * interrupt the thread if it's sleeping. This is useful in timeout cases.
      */
     void attachThread(Thread reconnectThread) {
-        this.correspondingThread  = reconnectThread;
+        this.correspondingThread = reconnectThread;
     }
 }
 

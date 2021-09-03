@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ThreadLocalRandom;
@@ -26,7 +25,7 @@ public class PropertyTest extends AbstractTest {
             String expectedErrMsg) throws SQLException {
         StringBuilder sb = new StringBuilder();
         sb.append(connectionString).append(";").append(prop).append("=").append(val).append(";");
-        try (Connection c = DriverManager.getConnection(sb.toString())) {
+        try (Connection c = ResiliencyUtils.getConnection(sb.toString())) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 s.executeQuery("SELECT 1");
