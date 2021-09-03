@@ -31,7 +31,7 @@ public class ReflectiveTests extends AbstractTest {
             Optional<String> expectedErrMsg) throws SQLException {
         long startTime = 0;
         String cs = ResiliencyUtils.setConnectionProps(connectionString.concat(";"), props);
-        try (Connection c = DriverManager.getConnection(cs)) {
+        try (Connection c = ResiliencyUtils.getConnection(cs)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 ResiliencyUtils.blockConnection(c);
