@@ -82,21 +82,24 @@ class SessionRecoveryFeature {
         this.unprocessedResponseCount.set(0);
     }
 
-    void parseInitialSessionStateData(TDSReader tdsReader, byte[][] sessionStateInitial) throws SQLServerException {
+    void parseInitialSessionStateData(byte[] data, byte[][] sessionStateInitial) throws SQLServerException {
         int bytesRead = 0;
-        int dataLength = tdsReader.readInt();
 
         // Contains StateId, StateLen, StateValue
-        while (bytesRead < dataLength) {
-            short sessionStateId = (short) tdsReader.readUnsignedByte();
-            int sessionStateLength = (int) tdsReader.readUnsignedByte();
-            bytesRead += 2;
-            if (sessionStateLength >= 0xFF) {
-                sessionStateLength = (int) tdsReader.readUnsignedInt(); // xFF - xFFFF
-                bytesRead += 2;
+        while (bytesRead < data.length) {
+            short sessionStateId = (short) (data[bytesRead] & 0xFF);
+            bytesRead++;
+            int sessionStateLength;
+            byte byteLength = data[bytesRead];
+            bytesRead++;
+            if (byteLength == 0xFF) {
+                sessionStateLength = (int) (Util.readInt(data, bytesRead) & 0xFFFFFFFFL);
+                bytesRead += 4;
+            } else {
+                sessionStateLength = byteLength;
             }
             sessionStateInitial[sessionStateId] = new byte[sessionStateLength];
-            tdsReader.readBytes(sessionStateInitial[sessionStateId], 0, sessionStateLength);
+            System.arraycopy(data, bytesRead, sessionStateInitial[sessionStateId], 0, sessionStateLength);
             bytesRead += sessionStateLength;
         }
     }

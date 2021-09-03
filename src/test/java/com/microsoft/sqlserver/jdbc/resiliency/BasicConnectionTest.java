@@ -19,6 +19,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -37,7 +38,7 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     public void testGracefulClose() throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString)) {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 c.close();
@@ -51,7 +52,7 @@ public class BasicConnectionTest extends AbstractTest {
     
     @Test
     public void testSetAttributes() throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString)) {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             ResiliencyUtils.toggleRandomProperties(c);
             Map<String,String> expected = ResiliencyUtils.getUserOptions(c);
             ResiliencyUtils.killConnection(c, connectionString);
@@ -64,34 +65,118 @@ public class BasicConnectionTest extends AbstractTest {
     public void testCatalog() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
-        try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            expectedDatabaseName = RandomUtil.getIdentifier("resDB");
+            TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+            s.execute("CREATE DATABASE [" + expectedDatabaseName + "]");
             try {
-                expectedDatabaseName = RandomUtil.getIdentifier("resDB");
-                TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
-                s.execute("CREATE DATABASE [" + expectedDatabaseName + "]");
-                try {
-                    c.setCatalog(expectedDatabaseName);
-                } catch (SQLException e) {
-                    // Switching databases is not supported against Azure, skip/
-                    return;
-                }
-                ResiliencyUtils.killConnection(c, connectionString);
-                try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
-                    while (rs.next()) {
-                        actualDatabaseName = rs.getString(1);
-                    }
-                }
-                // Check if the driver reconnected to the expected database. 
-                assertEquals(expectedDatabaseName, actualDatabaseName);
+                c.setCatalog(expectedDatabaseName);
+            } catch (SQLException e) {
+                // Switching databases is not supported against Azure, skip/
+                return;
             }
-            finally {
-                TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString);
+            try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
+                while (rs.next()) {
+                    actualDatabaseName = rs.getString(1);
+                }
+            }
+            // Check if the driver reconnected to the expected database. 
+            assertEquals(expectedDatabaseName, actualDatabaseName);
+        }
+        finally {
+            TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+        }
+    }
+
+    @Test
+    public void testUseDb() throws SQLException {
+        String expectedDatabaseName = null;
+        String actualDatabaseName = null;
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            expectedDatabaseName = RandomUtil.getIdentifier("resDB");
+            TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+            s.execute("CREATE DATABASE [" + expectedDatabaseName + "]");
+            try {
+                s.execute("USE [" + expectedDatabaseName + "]");
+            } catch (SQLException e) {
+                // Switching databases is not supported against Azure, skip/
+                return;
+            }
+            ResiliencyUtils.killConnection(c, connectionString);
+            try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
+                while (rs.next()) {
+                    actualDatabaseName = rs.getString(1);
+                }
+            }
+            // Check if the driver reconnected to the expected database.
+            assertEquals(expectedDatabaseName, actualDatabaseName);
+        } finally {
+            TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+        }
+    }
+
+    @Test
+    public void testSetLanguage() throws SQLException {
+        String expectedLanguage = "Italiano";
+        String actualLanguage = "";
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+//            try {
+            s.execute("SET LANGUAGE " + expectedLanguage);
+//            } catch (SQLException e) {
+//                // Switching databases is not supported against Azure, skip/
+//                return;
+//            }
+            ResiliencyUtils.killConnection(c, connectionString);
+            try (ResultSet rs = s.executeQuery("SELECT @@LANGUAGE")) {
+                while (rs.next()) {
+                    actualLanguage = rs.getString(1);
+                }
+            }
+            // Check if the driver reconnected to the expected database.
+            assertEquals(expectedLanguage, actualLanguage);
+        }
+    }
+
+    @Test
+    public void testOpenTransaction() throws SQLException {
+        String tableName = RandomUtil.getIdentifier("resTable");
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, s);
+            s.execute("CREATE TABLE [" + tableName + "] (col1 varchar(1))");
+            c.setAutoCommit(false);
+            s.execute("INSERT INTO [" + tableName + "] values ('x')");
+            ResiliencyUtils.killConnection(c, connectionString);
+            try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
+                fail("Connection resiliency should not have reconnected with an open transaction!");
+            } catch (SQLException ex) {
+                String message = ex.getMessage();
+                assertEquals(TestResource.getResource("R_crServerSessionStateNotRecoverable"), message);
+            }
+        }
+        try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, s);
+        }
+    }
+
+    @Test
+    public void testOpenResultSets() throws SQLException {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            int sessionId = ResiliencyUtils.getSessionId(c);
+            try (ResultSet rs = s.executeQuery("select top 100000 * from sys.columns cross join sys.columns as c2")) {
+                rs.next();
+                ResiliencyUtils.killConnection(sessionId, connectionString);
+                s.execute("SELECT 1");
+                fail("Connection resiliency should not have reconnected with open results!");
+            } catch (SQLException ex) {
+                String message = ex.getMessage();
+                assertEquals(TestResource.getResource("R_connectionIsClosed"), message);
             }
         }
     }
 
     private void basicReconnect(String connectionString) throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString)) {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 s.executeQuery("SELECT 1");
