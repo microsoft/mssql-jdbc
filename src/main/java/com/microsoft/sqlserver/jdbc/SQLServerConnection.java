@@ -2551,6 +2551,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         Object[] msgArgs = {sPropValue};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
+                }
+                
+                connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        connectRetryInterval = Integer.parseInt(sPropValue);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+
                     if (connectRetryInterval < 1 || connectRetryInterval > 60) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_invalidConnectRetryInterval"));
