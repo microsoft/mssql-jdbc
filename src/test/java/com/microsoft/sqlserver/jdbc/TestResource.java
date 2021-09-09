@@ -197,5 +197,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."},
             {"R_maxResultBufferExceeded", "MaxResultBuffer exceeded {0}."},
             {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
+            {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
             {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"}};
 }

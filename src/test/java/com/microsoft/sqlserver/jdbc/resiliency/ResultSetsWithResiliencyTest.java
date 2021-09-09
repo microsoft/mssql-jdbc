@@ -5,8 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc.resiliency;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -87,7 +88,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail();
             }
         } catch (SQLServerException e) {
-            assertEquals("08S01", e.getSQLState());
+            assertEquals(TestResource.getResource("R_crClientUnrecoverable"), e.getMessage());
         }
     }
 
