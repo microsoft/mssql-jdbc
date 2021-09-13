@@ -65,11 +65,13 @@ public class ReflectiveTests extends AbstractTest {
     }
 
     /*
-     * Default retry count is 1, and login timeout is 15. Expected: Times out in 15 seconds
+     * Default retry count is 1. Expect timeout to be just above login timeout.
      */
     @Test
     public void testDefaultRetry() throws SQLException {
-        timeoutVariations(new HashMap<String, String>(), 26000, Optional.empty());
+        Map<String, String> m = new HashMap<>();
+        m.put("loginTimeout", "5");
+        timeoutVariations(m, 6000, Optional.empty());
     }
 
     /*
