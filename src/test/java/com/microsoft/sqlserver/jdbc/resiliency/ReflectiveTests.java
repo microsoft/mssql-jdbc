@@ -69,7 +69,7 @@ public class ReflectiveTests extends AbstractTest {
      */
     @Test
     public void testDefaultRetry() throws SQLException {
-        timeoutVariations(new HashMap<String, String>(), 16000, Optional.empty());
+        timeoutVariations(new HashMap<String, String>(), 26000, Optional.empty());
     }
 
     /*
