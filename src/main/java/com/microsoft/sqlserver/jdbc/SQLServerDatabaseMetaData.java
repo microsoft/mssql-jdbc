@@ -450,7 +450,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public boolean supportsSharding() throws SQLException {
-        DriverJDBCVersion.checkSupportsJDBC43();
+        if (!DriverJDBCVersion.checkSupportsJDBC43()) {
+            throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+        }
         checkClosed();
         return false;
     }

@@ -5,7 +5,13 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketOption;
 import java.sql.BatchUpdateException;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -20,8 +26,10 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 3;
 
-    static final void checkSupportsJDBC43() {
-        return;
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
+
+    static final boolean checkSupportsJDBC43() {
+        return true;
     }
 
     static final void throwBatchUpdateException(SQLServerException lastError,
@@ -50,5 +58,19 @@ final class DriverJDBCVersion {
 
     static int getProcessId() {
         return pid;
+    }
+
+    static void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+        Set<SocketOption<?>> options = tcpSocket.supportedOptions();
+        if (options.contains(ExtendedSocketOptions.TCP_KEEPIDLE)
+                && options.contains(ExtendedSocketOptions.TCP_KEEPINTERVAL)) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+            }
+            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, 30); // 30 seconds
+            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, 1); // 1 second
+        } else if (logger.isLoggable(Level.FINER)) {
+            logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+        }
     }
 }
