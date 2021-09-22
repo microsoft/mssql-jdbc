@@ -2078,7 +2078,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     private Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs,
             Calendar cal) throws SQLServerException {
-        Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader);
+        Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader, stmt);
         lastValueWasNull = (null == o);
         return o;
     }
@@ -3087,7 +3087,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         assert null != tdsReader;
 
         return deletedCurrentRow
-                || (0 != serverCursorId && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader));
+                || (0 != serverCursorId && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
     }
 
     /* ---------------- Column updates ---------------------- */
@@ -4781,7 +4781,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsWriter.writeRPCStringUnicode(tableName);
 
             for (Column column : columns)
-                column.sendByRPC(tdsWriter, stmt.connection);
+                column.sendByRPC(tdsWriter, stmt);
         } else {
             tdsWriter.writeRPCStringUnicode("");
             tdsWriter.writeRPCStringUnicode("INSERT INTO " + tableName + " DEFAULT VALUES");
@@ -4862,7 +4862,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         assert hasUpdatedColumns();
 
         for (Column column : columns)
-            column.sendByRPC(tdsWriter, stmt.connection);
+            column.sendByRPC(tdsWriter, stmt);
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }

@@ -198,5 +198,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_maxResultBufferExceeded", "MaxResultBuffer exceeded {0}."},
             {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
             {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
-            {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"}};
+            {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"},
+            {"R_AKVProviderNull", "The Azure key store provider is null."},
+            {"R_objectNullOrEmpty", "The {0} is null or empty."},
+            {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."}};
 }

@@ -479,6 +479,27 @@ public final class TestUtils {
         return sb.toString();
     }
 
+    
+    /**
+     * 
+     * @param b
+     *        byte value
+     * @return
+     */
+    public static String byteToHexDisplayString(byte[] b) {
+        if (null == b)
+            return "(null)";
+        int hexVal;
+        StringBuilder sb = new StringBuilder(b.length * 2 + 2);
+        sb.append("0x");
+        for (byte aB : b) {
+            hexVal = aB & 0xFF;
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
+        }
+        return sb.toString();
+    }
+
     /**
      * conversion routine valid values 0-9 a-f A-F throws exception when failed to convert
      * 

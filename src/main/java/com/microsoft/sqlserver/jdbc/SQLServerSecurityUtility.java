@@ -44,6 +44,8 @@ class SQLServerSecurityUtility {
     static final int INTERNAL_SERVER_ERROR = 500;
     static final int NETWORK_CONNECT_TIMEOUT_ERROR = 599;
 
+    static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
+
     /**
      * Give the hash of given plain text
      * 
@@ -96,17 +98,73 @@ class SQLServerSecurityUtility {
 
     }
 
+    static SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(String providerName, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
+        assert providerName != null && providerName.length() != 0 : "Provider name should not be null or empty";
+
+        // check statement level KeyStoreProvider if statement is not null.
+        if (statement != null && statement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+            return statement.getColumnEncryptionKeyStoreProvider(providerName);
+        }
+
+        return connection.getColumnEncryptionKeyStoreProviderOnConnection(providerName);
+    }
+
+    static boolean shouldUseInstanceLevelProviderFlow(String keyStoreName, SQLServerConnection connection, SQLServerStatement statement) {
+        return !keyStoreName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME) 
+            && (connection.hasConnectionColumnEncryptionKeyStoreProvidersRegistered() || (null != statement && statement.hasColumnEncryptionKeyStoreProvidersRegistered()));   
+    }
+
+    static SQLServerSymmetricKey getKeyFromLocalProviders(EncryptionKeyInfo keyInfo, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
+        String serverName = connection.getTrustedServerNameAE();
+        assert null != serverName : "serverName should not be null in getKey.";
+
+        if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
+            connectionlogger.fine("Checking trusted master key path...");
+        }
+        Boolean[] hasEntry = new Boolean[1];
+        List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName, hasEntry);
+        if (hasEntry[0]) {
+            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+                Object[] msgArgs = {keyInfo.keyPath, serverName};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+        }
+
+        SQLServerException lastException = null;
+        SQLServerColumnEncryptionKeyStoreProvider provider = null;
+        byte[] plaintextKey = null;
+        
+        try {
+            provider = getColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName, connection, statement);
+            plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
+            
+        } catch (SQLServerException e) {
+            lastException = e;
+        }
+        
+        if (null == plaintextKey) {
+            if (null != lastException) {
+                throw lastException;
+            } else {
+                throw new SQLServerException(null, SQLServerException.getErrString("R_CEKDecryptionFailed"), null, 0, false);
+            }
+        }
+        
+        return new SQLServerSymmetricKey(plaintextKey);
+    }
+
     /*
      * Encrypts the ciphertext.
      */
     static byte[] encryptWithKey(byte[] plainText, CryptoMetadata md,
-            SQLServerConnection connection) throws SQLServerException {
+            SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
         String serverName = connection.getTrustedServerNameAE();
-        assert serverName != null : "Server name should npt be null in EncryptWithKey";
+        assert serverName != null : "Server name should not be null in EncryptWithKey";
 
         // Initialize cipherAlgo if not already done.
         if (!md.IsAlgorithmInitialized()) {
-            SQLServerSecurityUtility.decryptSymmetricKey(md, connection);
+            SQLServerSecurityUtility.decryptSymmetricKey(md, connection, statement);
         }
 
         assert md.IsAlgorithmInitialized();
@@ -144,21 +202,26 @@ class SQLServerSecurityUtility {
      *        The cipher metadata
      * @param connection
      *        The connection
+     * @param statement
+     *        The statemenet
      */
-    static void decryptSymmetricKey(CryptoMetadata md, SQLServerConnection connection) throws SQLServerException {
+    static void decryptSymmetricKey(CryptoMetadata md, SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
         assert null != md : "md should not be null in DecryptSymmetricKey.";
         assert null != md.cekTableEntry : "md.EncryptionInfo should not be null in DecryptSymmetricKey.";
         assert null != md.cekTableEntry.columnEncryptionKeyValues : "md.EncryptionInfo.ColumnEncryptionKeyValues should not be null in DecryptSymmetricKey.";
 
         SQLServerSymmetricKey symKey = null;
         EncryptionKeyInfo encryptionkeyInfoChosen = null;
-        SQLServerSymmetricKeyCache cache = SQLServerSymmetricKeyCache.getInstance();
+        SQLServerSymmetricKeyCache globalCEKCache = SQLServerSymmetricKeyCache.getInstance();
         Iterator<EncryptionKeyInfo> it = md.cekTableEntry.columnEncryptionKeyValues.iterator();
         SQLServerException lastException = null;
         while (it.hasNext()) {
             EncryptionKeyInfo keyInfo = it.next();
             try {
-                symKey = cache.getKey(keyInfo, connection);
+                symKey = shouldUseInstanceLevelProviderFlow(keyInfo.keyStoreName, connection, statement) ?
+                getKeyFromLocalProviders(keyInfo, connection, statement) :
+                globalCEKCache.getKey(keyInfo, connection);
+
                 if (null != symKey) {
                     encryptionkeyInfoChosen = keyInfo;
                     break;
@@ -197,13 +260,13 @@ class SQLServerSecurityUtility {
      * Decrypts the ciphertext.
      */
     static byte[] decryptWithKey(byte[] cipherText, CryptoMetadata md,
-            SQLServerConnection connection) throws SQLServerException {
+            SQLServerConnection connection, SQLServerStatement statement) throws SQLServerException {
         String serverName = connection.getTrustedServerNameAE();
         assert null != serverName : "serverName should not be null in DecryptWithKey.";
 
         // Initialize cipherAlgo if not already done.
         if (!md.IsAlgorithmInitialized()) {
-            SQLServerSecurityUtility.decryptSymmetricKey(md, connection);
+            SQLServerSecurityUtility.decryptSymmetricKey(md, connection, statement);
         }
 
         assert md.IsAlgorithmInitialized() : "Decryption Algorithm is not initialized";
@@ -218,7 +281,7 @@ class SQLServerSecurityUtility {
     /*
      * Verify the signature for the CMK
      */
-    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, String keyStoreName, String keyPath,
+    static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, SQLServerStatement statement, String keyStoreName, String keyPath,
             String serverName, boolean isEnclaveEnabled, byte[] CMKSignature) throws SQLServerException {
 
         // check trusted key paths
@@ -233,8 +296,14 @@ class SQLServerSecurityUtility {
             }
         }
 
-        if (!connection.getColumnEncryptionKeyStoreProvider(keyStoreName).verifyColumnMasterKeyMetadata(keyPath,
-                isEnclaveEnabled, CMKSignature)) {
+        SQLServerColumnEncryptionKeyStoreProvider provider = null;
+        if (shouldUseInstanceLevelProviderFlow(keyStoreName, connection, statement)) {
+            provider = getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+        } else {
+            provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName);
+        }
+
+        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }
