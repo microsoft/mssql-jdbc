@@ -402,6 +402,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
+    
+    public IdleNetworkTracker getIdleNetworkTracker() {
+        return idleNetworkTracker;
+    }
 
     /** Size of the parsed SQL-text metadata cache */
     static final private int PARSED_SQL_CACHE_SIZE = 100;

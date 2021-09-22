@@ -17,7 +17,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import javax.sql.PooledConnection;
+
 import org.junit.Assert;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 
 
 public final class ResiliencyUtils {
@@ -173,13 +177,48 @@ public final class ResiliencyUtils {
             this.sleepTime = millis;
         }
     }
+    
+    public static Connection getPooledConnection(String connectionString) throws SQLException {
+        SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
+        mds.setURL(connectionString);
+        PooledConnection pooledConnection = mds.getPooledConnection();
+        Connection c = pooledConnection.getConnection();
+        
+        minimizeIdleNetworkTrackerPooledConnection(c);
+        return c;
+    }
 
     public static Connection getConnection(String connectionString) throws SQLException {
         Connection c = DriverManager.getConnection(connectionString);
         minimizeIdleNetworkTracker(c);
         return c;
     }
-
+    
+    public static void minimizeIdleNetworkTrackerPooledConnection(Connection c) {
+        try {
+            Field fieldsProxy[] = c.getClass().getDeclaredFields();
+            for (Field f : fieldsProxy ) {
+                if (f.getName() == "wrappedConnection") {
+                    f.setAccessible(true);
+                    Object wrappedConnection = f.get(c);
+                    Field fieldsConn[] = wrappedConnection.getClass().getSuperclass().getDeclaredFields();
+                    for (Field ff : fieldsConn) {
+                        if (ff.getName() == "idleNetworkTracker") {
+                            ff.setAccessible(true);
+                            Object idleNetworkTracker = ff.get(wrappedConnection);
+                            Method method = idleNetworkTracker.getClass().getDeclaredMethod("setMaxIdleMillis", int.class);
+                            method.setAccessible(true);
+                            method.invoke(idleNetworkTracker, -1);
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
+        }
+    }
+    
     public static void minimizeIdleNetworkTracker(Connection c) {
         try {
             Field fields[] = c.getClass().getSuperclass().getDeclaredFields();

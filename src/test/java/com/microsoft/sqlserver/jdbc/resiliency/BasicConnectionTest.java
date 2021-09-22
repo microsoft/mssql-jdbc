@@ -16,9 +16,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
+import javax.sql.PooledConnection;
+
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -168,6 +171,34 @@ public class BasicConnectionTest extends AbstractTest {
             }
         }
     }
+    
+    @Test
+    public void testPooledConnection() throws SQLException {
+        try (Connection c = ResiliencyUtils.getPooledConnection(connectionString); Statement s = c.createStatement()) {
+            ResiliencyUtils.killConnection(c, connectionString);
+            s.executeQuery("SELECT 1");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+    
+    @Test
+    public void testPooledConnectionLang() throws SQLException {
+        try (Connection c = ResiliencyUtils.getPooledConnection(connectionString); Statement s = c.createStatement()) {
+            ResultSet rs = s.executeQuery("SELECT @@LANGUAGE;");
+            rs.next();
+            String lang0 = rs.getString(1);
+            s.execute("SET LANGUAGE FRENCH;");
+            ResiliencyUtils.killConnection(c, connectionString);
+            rs = s.executeQuery("SELECT @@LANGUAGE;");
+            rs.next();
+            String lang1 = rs.getString(1);
+            assertEquals("Français", lang1);
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
 
     private void basicReconnect(String connectionString) throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
