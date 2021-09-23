@@ -487,19 +487,14 @@ class Nanos {
 //
 // Scoping these constants to a class defers their initialization to first use.
 class GregorianChange {
-    // Cutover date for a pure Gregorian calendar - that is, a proleptic Gregorian
-    // calendar with
-    // Gregorian leap year behavior throughout its entire range. This is the cutover
-    // date is used
-    // with temporal server values, which are represented in terms of number of days
-    // relative to a
+    // Cutover date for a pure Gregorian calendar - that is, a proleptic Gregorian calendar with
+    // Gregorian leap year behavior throughout its entire range. This is the cutover date is used
+    // with temporal server values, which are represented in terms of number of days relative to a
     // base date.
     static final java.util.Date PURE_CHANGE_DATE = new java.util.Date(Long.MIN_VALUE);
 
-    // The standard Julian to Gregorian cutover date (October 15, 1582) that the
-    // JDBC temporal
-    // classes (Time, Date, Timestamp) assume when converting to and from their UTC
-    // milliseconds
+    // The standard Julian to Gregorian cutover date (October 15, 1582) that the JDBC temporal
+    // classes (Time, Date, Timestamp) assume when converting to and from their UTC milliseconds
     // representations.
     static final java.util.Date STANDARD_CHANGE_DATE = (new GregorianCalendar(Locale.US)).getGregorianChange();
 
@@ -507,12 +502,10 @@ class GregorianChange {
     // not rationalize the difference between SQL Server behavior (pure Gregorian)
     // and Java behavior (standard Gregorian).
     //
-    // Not having to rationalize the difference has a substantial (measured)
-    // performance benefit
+    // Not having to rationalize the difference has a substantial (measured) performance benefit
     // for temporal getters.
     //
-    // The hint does not need to be exact, as long as it's later than the actual
-    // change date.
+    // The hint does not need to be exact, as long as it's later than the actual change date.
     static final int DAYS_SINCE_BASE_DATE_HINT = DDC.daysSinceBaseDate(1583, 1, 1);
 
     // Extra days that need to added to a pure gregorian date, post the gergorian
@@ -640,8 +633,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    // Last SPID received from the server. Used for logging and to tag subsequent
-    // outgoing
+    // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
     private int spid = 0;
 
@@ -1178,8 +1170,7 @@ final class TDSChannel implements Serializable {
             return proxyOutputStream;
         }
 
-        // Allow methods that should just forward to the underlying TCP socket or return
-        // fixed values
+        // Allow methods that should just forward to the underlying TCP socket or return fixed values
         public InetAddress getInetAddress() {
             return tdsChannel.tcpSocket.getInetAddress();
         }
@@ -1404,10 +1395,8 @@ final class TDSChannel implements Serializable {
         }
 
         // Parse name in RFC 2253 format
-        // Returns the common name if successful, null if failed to find the common
-        // name.
-        // The parser tuned to be safe than sorry so if it sees something it cant parse
-        // correctly it returns null
+        // Returns the common name if successful, null if failed to find the common name.
+        // The parser tuned to be safe than sorry so if it sees something it cant parse correctly it returns null
         private String parseCommonName(String distinguishedName) {
             int index;
             // canonical name converts entire name to lowercase
@@ -1417,11 +1406,9 @@ final class TDSChannel implements Serializable {
             }
             distinguishedName = distinguishedName.substring(index + 3);
             // Parse until a comma or end is reached
-            // Note the parser will handle gracefully (essentially will return empty string)
-            // , inside the quotes (e.g
+            // Note the parser will handle gracefully (essentially will return empty string) , inside the quotes (e.g
             // cn="Foo, bar") however
-            // RFC 952 says that the hostName cant have commas however the parser should not
-            // (and will not) crash if it
+            // RFC 952 says that the hostName cant have commas however the parser should not (and will not) crash if it
             // sees a , within quotes.
             for (index = 0; index < distinguishedName.length(); index++) {
                 if (distinguishedName.charAt(index) == ',') {
@@ -1647,10 +1634,8 @@ final class TDSChannel implements Serializable {
      */
     void enableSSL(String host, int port, String clientCertificate, String clientKey,
             String clientKeyPassword) throws SQLServerException {
-        // If enabling SSL fails, which it can for a number of reasons, the following
-        // items
-        // are used in logging information to the TDS channel logger to help diagnose
-        // the problem.
+        // If enabling SSL fails, which it can for a number of reasons, the following items
+        // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
         Provider sslContextProvider = null; // SSLContext provider
         Provider ksProvider = null; // KeyStore provider
@@ -1696,10 +1681,8 @@ final class TDSChannel implements Serializable {
                     TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
                     TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel(); // Full SSL
 
-            // If we requested login only SSL or full SSL without server certificate
-            // validation,
-            // then we'll "validate" the server certificate using a naive TrustManager that
-            // trusts
+            // If we requested login only SSL or full SSL without server certificate validation,
+            // then we'll "validate" the server certificate using a naive TrustManager that trusts
             // everything it sees.
             TrustManager[] tm = null;
             if (TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel()
@@ -1709,18 +1692,15 @@ final class TDSChannel implements Serializable {
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-            // Otherwise, we'll check if a specific TrustManager implemenation has been
-            // requested and
-            // if so instantiate it, optionally specifying a constructor argument to
-            // customize it.
+            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
+            // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
                 Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
                 tm = new TrustManager[] {Util.newInstance(TrustManager.class, con.getTrustManagerClass(),
                         con.getTrustManagerConstructorArg(), msgArgs)};
             }
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
-            // from the a security provider that is capable of validating X.509
-            // certificates.
+            // from the a security provider that is capable of validating X.509 certificates.
             else {
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " SSL handshake will validate server certificate");
@@ -1772,11 +1752,9 @@ final class TDSChannel implements Serializable {
                     }
                 }
 
-                // Either we now have a KeyStore populated with trust material or we are using
-                // the
+                // Either we now have a KeyStore populated with trust material or we are using the
                 // default source of trust material (cacerts). Either way, we are now ready to
-                // use a TrustManagerFactory to create a TrustManager that uses the trust
-                // material
+                // use a TrustManagerFactory to create a TrustManager that uses the trust material
                 // to validate the server certificate.
 
                 // Next step is to get a TrustManagerFactory that can produce TrustManagers
@@ -1798,8 +1776,7 @@ final class TDSChannel implements Serializable {
                 tmf.init(ks);
                 tm = tmf.getTrustManagers();
 
-                // if the host name in cert provided use it or use the host name Only if it is
-                // not FIPS
+                // if the host name in cert provided use it or use the host name Only if it is not FIPS
                 if (!isFips) {
                     if (null != hostNameInCertificate) {
                         tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0],
@@ -1849,8 +1826,7 @@ final class TDSChannel implements Serializable {
             sslSocket.startHandshake();
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP
-            // streams ...
+            // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");
 
@@ -1887,12 +1863,9 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINER))
                 logger.log(Level.FINER, e.getMessage(), e);
 
-            // If enabling SSL fails, the following information may help diagnose the
-            // problem.
-            // Do not use Level INFO or above which is sent to standard output/error
-            // streams.
-            // This is because due to an intermittent TLS 1.2 connection issue, we will be
-            // retrying the connection and
+            // If enabling SSL fails, the following information may help diagnose the problem.
+            // Do not use Level INFO or above which is sent to standard output/error streams.
+            // This is because due to an intermittent TLS 1.2 connection issue, we will be retrying the connection and
             // do not want to print this message in console.
             if (logger.isLoggable(Level.FINER))
                 logger.log(Level.FINER, "java.security path: " + JAVA_SECURITY + "\n" + "Security providers: "
@@ -2026,15 +1999,13 @@ final class TDSChannel implements Serializable {
                 if (logger.isLoggable(Level.FINE))
                     logger.fine(toString() + " Trust store not found: " + e.getMessage());
 
-                // If the trustStoreFileName connection property is set, but the file is not
-                // found,
+                // If the trustStoreFileName connection property is set, but the file is not found,
                 // then treat it as if the file was empty so that the TrustManager reports
                 // that no certificate is found.
             }
         }
 
-        // Second case: Trust store filename derived from javax.net.ssl.trustStore
-        // system property
+        // Second case: Trust store filename derived from javax.net.ssl.trustStore system property
         else if (null != (trustStoreFileName = System.getProperty("javax.net.ssl.trustStore"))) {
             try {
                 if (logger.isLoggable(Level.FINEST))
@@ -2052,8 +2023,7 @@ final class TDSChannel implements Serializable {
             }
         }
 
-        // Third case: No trust store specified and no system property set. Use
-        // jssecerts/cacerts.
+        // Third case: No trust store specified and no system property set. Use jssecerts/cacerts.
         else {
             try {
                 if (logger.isLoggable(Level.FINEST))
@@ -2313,8 +2283,7 @@ final class SocketFinder {
     private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 5,
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
-    // When parallel connections are to be used, use minimum timeout slice of 1500
-    // milliseconds.
+    // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
     private static final int minTimeoutForParallelConnections = 1500;
 
     // lock used for synchronization while updating
@@ -2385,10 +2354,8 @@ final class SocketFinder {
             InetAddress[] inetAddrs = null;
 
             if (!useParallel) {
-                // MSF is false. TNIR could be true or false. DBMirroring could be true or
-                // false.
-                // For TNIR first attempt, we should do existing behavior including how host
-                // name is resolved.
+                // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
+                // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
                     return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
                 } else if (!useTnir) {
@@ -2396,12 +2363,10 @@ final class SocketFinder {
                 }
             }
 
-            // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving
-            // address if that's not the
+            // inetAddrs is only used if useParallel is true or TNIR is true. Skip resolving address if that's not the
             // case.
             if (useParallel || useTnir) {
-                // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using
-                // original timeout for this.
+                // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
                 inetAddrs = InetAddress.getAllByName(hostName);
 
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
@@ -2410,8 +2375,7 @@ final class SocketFinder {
                 }
             }
 
-            // Code reaches here only if MSF = true or (TNIR = true and not TNIR first
-            // attempt)
+            // Code reaches here only if MSF = true or (TNIR = true and not TNIR first attempt)
 
             if (logger.isLoggable(Level.FINER)) {
                 StringBuilder loggingString = new StringBuilder(this.toString());
@@ -2453,8 +2417,7 @@ final class SocketFinder {
                 findSocketUsingThreading(inetAddrs, portNumber, timeoutInMilliSeconds);
             }
 
-            // If the thread continued execution due to timeout, the result may not be
-            // known.
+            // If the thread continued execution due to timeout, the result may not be known.
             // In that case, update the result to failure. Note that this case is possible
             // for both IPv4 and IPv6.
             // Using double-checked locking for performance reasons.
@@ -2486,8 +2449,7 @@ final class SocketFinder {
             }
 
         } catch (InterruptedException ex) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt
-            // status.
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
 
             close(selectedSocket);
@@ -2498,13 +2460,11 @@ final class SocketFinder {
             // If we do not move it, the functions open(caller of findSocket)
             // and findSocket will have to
             // declare both IOException and SQLServerException in the throws clause
-            // as we throw custom SQLServerExceptions(eg:IPAddressLimit, wrapping other
-            // exceptions
+            // as we throw custom SQLServerExceptions(eg:IPAddressLimit, wrapping other exceptions
             // like interruptedException) in findSocket.
             // That would be a bit awkward, because connecthelper(the caller of open)
             // just wraps IOException into SQLServerException and throws SQLServerException.
-            // Instead, it would be good to wrap all exceptions at one place - Right here,
-            // their origin.
+            // Instead, it would be good to wrap all exceptions at one place - Right here, their origin.
             SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
 
         }
@@ -2569,21 +2529,18 @@ final class SocketFinder {
 
             while (true) {
                 long timeRemaining = timerExpire - timerNow;
-                // if the timeout expired or a channel is selected or there are no more channels
-                // left to processes
+                // if the timeout expired or a channel is selected or there are no more channels left to processes
                 if ((timeRemaining <= 0) || (selectedChannel != null) || (noOfOutstandingChannels <= 0))
                     break;
 
-                // denotes the no of channels that are ready to be processed. i.e. they are
-                // either connected
+                // denotes the no of channels that are ready to be processed. i.e. they are either connected
                 // or encountered an exception while trying to connect
                 int readyChannels = selector.select(timeRemaining);
 
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(this.toString() + " no of channels ready: " + readyChannels);
 
-                // There are no real time guarantees on the time out of the select API used
-                // above.
+                // There are no real time guarantees on the time out of the select API used above.
                 // This check is necessary
                 // a) to guard against cases where the select returns faster than expected.
                 // b) for cases where no channels could connect with in the time out
@@ -2653,8 +2610,7 @@ final class SocketFinder {
             // its possible that we close a channel twice.
             // Closing a channel second time is a no-op.
             // This code is should be in the finally block to guard against cases where
-            // we pre-maturely exit try block due to an exception in selector or other
-            // places.
+            // we pre-maturely exit try block due to an exception in selector or other places.
             for (SocketChannel s : socketChannels) {
                 if (s != selectedChannel) {
                     close(s);
@@ -2748,8 +2704,7 @@ final class SocketFinder {
 
         try {
 
-            // create a socket, inetSocketAddress and a corresponding socketConnector per
-            // inetAddress
+            // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
                 Socket s = getSocketFactory().createSocket();
@@ -3169,10 +3124,8 @@ final class TDSWriter {
     private final static int TDS_PACKET_HEADER_SIZE = 8;
     private final static byte[] placeholderHeader = new byte[TDS_PACKET_HEADER_SIZE];
 
-    // Intermediate array used to convert typically "small" values such as
-    // fixed-length types
-    // (byte, int, long, etc.) and Strings from their native form to bytes for
-    // sending to
+    // Intermediate array used to convert typically "small" values such as fixed-length types
+    // (byte, int, long, etc.) and Strings from their native form to bytes for sending to
     // the channel buffers.
     private byte valueBytes[] = new byte[256];
 
@@ -3319,8 +3272,7 @@ final class TDSWriter {
     }
 
     // If a complete request has not been sent to the server,
-    // the client MUST send the next packet with both ignore bit (0x02) and EOM bit
-    // (0x01)
+    // the client MUST send the next packet with both ignore bit (0x02) and EOM bit (0x01)
     // set in the status to cancel the request.
     final boolean ignoreMessage() throws SQLServerException {
         if (packetNum > 0 || TDS.PKT_BULK == this.tdsMessageType) {
@@ -3540,13 +3492,11 @@ final class TDSWriter {
         writeByte((byte) (isNegative ? 0 : 1));
 
         // Get the bytes of the BigInteger value. It is in reverse order, with
-        // most significant byte in 0-th element. We need to reverse it first before
-        // sending over TDS.
+        // most significant byte in 0-th element. We need to reverse it first before sending over TDS.
         byte[] unscaledBytes = bi.toByteArray();
 
         if (unscaledBytes.length > bLength) {
-            // If precession of input is greater than maximum allowed (p><= 38) throw
-            // Exception
+            // If precession of input is greater than maximum allowed (p><= 38) throw Exception
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
             Object[] msgArgs = {JDBCType.of(srcJdbcType)};
             throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH,
@@ -3556,8 +3506,7 @@ final class TDSWriter {
         // Byte array to hold all the reversed and padding bytes.
         byte[] bytes = new byte[bLength];
 
-        // We need to fill up the rest of the array with zeros, as unscaledBytes may
-        // have less bytes
+        // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
         // than the required size for TDS.
         int remaining = bLength - unscaledBytes.length;
 
@@ -3575,8 +3524,7 @@ final class TDSWriter {
 
     void writeSmalldatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00
-                        // GMT)
+        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
 
@@ -3587,14 +3535,12 @@ final class TDSWriter {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.DAY_OF_YEAR), TDS.BASE_YEAR_1900);
 
-        // Next, figure out the number of milliseconds since midnight of the current
-        // day.
+        // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight = 1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
-        // The last millisecond of the current day is always rounded to the first
-        // millisecond
+        // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
         if (1000 * 60 * 60 * 24 - 1 <= millisSinceMidnight) {
             ++daysSinceSQLBaseDate;
@@ -3616,8 +3562,7 @@ final class TDSWriter {
 
     void writeDatetime(String value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00
-                        // GMT)
+        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
@@ -3633,15 +3578,13 @@ final class TDSWriter {
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                                                                                                         // the
-                                                                                                         // current
+                                                                                                         // the current
                                                                                                          // second
                 1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
-        // The last millisecond of the current day is always rounded to the first
-        // millisecond
+        // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
         if (1000 * 60 * 60 * 24 - 1 <= millisSinceMidnight) {
             ++daysSinceSQLBaseDate;
@@ -3685,8 +3628,7 @@ final class TDSWriter {
 
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00
-                        // GMT)
+        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         utcMillis = value.getTime();
         subSecondNanos = value.getNanos();
@@ -3770,8 +3712,7 @@ final class TDSWriter {
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
         } else {
-            long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00
-                            // GMT)
+            long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
 
             microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
             utcMillis = dtoValue.getTimestamp().getTime();
@@ -3806,16 +3747,13 @@ final class TDSWriter {
         int minutesOffset = 0;
 
         try {
-            // offsetTimeValue.getOffset() returns a ZoneOffset object which has only hours
-            // and minutes
-            // components. So the result of the division will be an integer always. SQL
-            // Server also supports
+            // offsetTimeValue.getOffset() returns a ZoneOffset object which has only hours and minutes
+            // components. So the result of the division will be an integer always. SQL Server also supports
             // offsets in minutes precision.
             minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
         } catch (Exception e) {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-                                                                                                     // as this error
-                                                                                                     // is
+                                                                                                     // as this error is
                                                                                                      // generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
@@ -3824,8 +3762,7 @@ final class TDSWriter {
         subSecondNanos = offsetDateTimeValue.getNano();
 
         // writeScaledTemporal() expects subSecondNanos in 9 digits precssion
-        // but getNano() used in OffsetDateTime returns precession based on nanoseconds
-        // read from csv
+        // but getNano() used in OffsetDateTime returns precession based on nanoseconds read from csv
         // padding zeros to match the expectation of writeScaledTemporal()
         int padding = 9 - String.valueOf(subSecondNanos).length();
         while (padding > 0) {
@@ -3837,8 +3774,7 @@ final class TDSWriter {
         timeZone = UTC.timeZone;
 
         // The behavior is similar to microsoft.sql.DateTimeOffset
-        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for
-        // the rest of the fields can be
+        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for the rest of the fields can be
         // omitted.
         String offDateTimeStr = String.format("%04d", offsetDateTimeValue.getYear()) + '-'
                 + offsetDateTimeValue.getMonthValue() + '-' + offsetDateTimeValue.getDayOfMonth() + ' '
@@ -3853,8 +3789,7 @@ final class TDSWriter {
         // check if date is in day light savings and add daylight saving minutes
         if (TimeZone.getDefault().inDaylightTime(calendar.getTime()))
             minuteAdjustment += (TimeZone.getDefault().getDSTSavings()) / (60 * 1000);
-        // If the local time is negative then positive minutesOffset must be subtracted
-        // from calender
+        // If the local time is negative then positive minutesOffset must be subtracted from calender
         minuteAdjustment += (minuteAdjustment < 0) ? (minutesOffset * (-1)) : minutesOffset;
         calendar.add(Calendar.MINUTE, minuteAdjustment);
 
@@ -3870,16 +3805,13 @@ final class TDSWriter {
         int minutesOffset = 0;
 
         try {
-            // offsetTimeValue.getOffset() returns a ZoneOffset object which has only hours
-            // and minutes
-            // components. So the result of the division will be an integer always. SQL
-            // Server also supports
+            // offsetTimeValue.getOffset() returns a ZoneOffset object which has only hours and minutes
+            // components. So the result of the division will be an integer always. SQL Server also supports
             // offsets in minutes precision.
             minutesOffset = offsetTimeValue.getOffset().getTotalSeconds() / 60;
         } catch (Exception e) {
             throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-                                                                                                     // as this error
-                                                                                                     // is
+                                                                                                     // as this error is
                                                                                                      // generated in
                                                                                                      // the driver
                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
@@ -3888,8 +3820,7 @@ final class TDSWriter {
         subSecondNanos = offsetTimeValue.getNano();
 
         // writeScaledTemporal() expects subSecondNanos in 9 digits precssion
-        // but getNano() used in OffsetDateTime returns precession based on nanoseconds
-        // read from csv
+        // but getNano() used in OffsetDateTime returns precession based on nanoseconds read from csv
         // padding zeros to match the expectation of writeScaledTemporal()
         int padding = 9 - String.valueOf(subSecondNanos).length();
         while (padding > 0) {
@@ -3912,12 +3843,10 @@ final class TDSWriter {
         calendar.setTimeInMillis(utcMillis);
 
         int minuteAdjustment = (TimeZone.getDefault().getRawOffset()) / (60 * 1000);
-        // check if date is in day light savings and add daylight saving minutes to
-        // Local timezone(in minutes)
+        // check if date is in day light savings and add daylight saving minutes to Local timezone(in minutes)
         if (TimeZone.getDefault().inDaylightTime(calendar.getTime()))
             minuteAdjustment += ((TimeZone.getDefault().getDSTSavings()) / (60 * 1000));
-        // If the local time is negative then positive minutesOffset must be subtracted
-        // from calender
+        // If the local time is negative then positive minutesOffset must be subtracted from calender
         minuteAdjustment += (minuteAdjustment < 0) ? (minutesOffset * (-1)) : minutesOffset;
         calendar.add(Calendar.MINUTE, minuteAdjustment);
 
@@ -4124,12 +4053,9 @@ final class TDSWriter {
 
             if (!isDestBinary) {
                 // Write it out
-                // This also writes the PLP_TERMINATOR token after all the data in the the
-                // stream are sent.
-                // The Do-While loop goes on one more time as charsToWrite is greater than 0 for
-                // the last chunk, and
-                // in this last round the only thing that is written is an int value of 0, which
-                // is the PLP Terminator
+                // This also writes the PLP_TERMINATOR token after all the data in the the stream are sent.
+                // The Do-While loop goes on one more time as charsToWrite is greater than 0 for the last chunk, and
+                // in this last round the only thing that is written is an int value of 0, which is the PLP Terminator
                 // token(0x00000000).
                 writeInt(charsToWrite);
 
@@ -4229,19 +4155,15 @@ final class TDSWriter {
     GregorianCalendar initializeCalender(TimeZone timeZone) {
         GregorianCalendar calendar;
 
-        // Create the calendar that will hold the value. For DateTimeOffset values, the
-        // calendar's
-        // time zone is UTC. For other values, the calendar's time zone is a local time
-        // zone.
+        // Create the calendar that will hold the value. For DateTimeOffset values, the calendar's
+        // time zone is UTC. For other values, the calendar's time zone is a local time zone.
         calendar = new GregorianCalendar(timeZone, Locale.US);
 
-        // Set the calendar lenient to allow setting the DAY_OF_YEAR and MILLISECOND
-        // fields
+        // Set the calendar lenient to allow setting the DAY_OF_YEAR and MILLISECOND fields
         // to roll other fields to their correct values.
         calendar.setLenient(true);
 
-        // Clear the calendar of any existing state. The state of a new Calendar object
-        // always
+        // Clear the calendar of any existing state. The state of a new Calendar object always
         // reflects the current date, time, DST offset, etc.
         calendar.clear();
 
@@ -4294,8 +4216,7 @@ final class TDSWriter {
         final boolean atEOM = (TDS.STATUS_BIT_EOM == (TDS.STATUS_BIT_EOM & tdsMessageStatus));
         final boolean isCancelled = ((TDS.PKT_CANCEL_REQ == tdsMessageType)
                 || ((tdsMessageStatus & TDS.STATUS_BIT_ATTENTION) == TDS.STATUS_BIT_ATTENTION));
-        // Before writing each packet to the channel, check if an interrupt has
-        // occurred.
+        // Before writing each packet to the channel, check if an interrupt has occurred.
         if (null != command && (!isCancelled))
             command.checkForInterrupt();
 
@@ -4308,8 +4229,7 @@ final class TDSWriter {
         // through the socket. The first flush() call ensured that data currently
         // waiting in the socket buffer was sent, flipped the buffers, and started
         // sending data from the staging buffer (flipped to be the new socket buffer).
-        // This flush() call ensures that all remaining data in the socket buffer is
-        // sent.
+        // This flush() call ensures that all remaining data in the socket buffer is sent.
         if (atEOM) {
             flush(atEOM);
             isEOMSent = true;
@@ -4323,8 +4243,7 @@ final class TDSWriter {
             tdsChannel.disableSSL();
         }
 
-        // Notify the currently associated command (if any) that we have written the
-        // last
+        // Notify the currently associated command (if any) that we have written the last
         // of the response packets to the channel.
         if (null != command && (!isCancelled) && atEOM)
             command.onRequestComplete();
@@ -4716,7 +4635,7 @@ final class TDSWriter {
                 writeInt(0);
             }
         } else { // non-PLP type
-                 // Write maximum length of data
+            // Write maximum length of data
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
             writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
@@ -4802,11 +4721,9 @@ final class TDSWriter {
 
         if (!value.isNull()) {
 
-            // If the preparedStatement and the ResultSet are created by the same
-            // connection, and TVP is set with
+            // If the preparedStatement and the ResultSet are created by the same connection, and TVP is set with
             // ResultSet and Server Cursor
-            // is used, the tdsWriter of the calling preparedStatement is overwritten by the
-            // SQLServerResultSet#next()
+            // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next()
             // method when fetching new rows.
             // Therefore, we need to send TVP data row by row before fetching new row.
             if (TVPType.ResultSet == value.tvpType) {
@@ -4857,8 +4774,7 @@ final class TDSWriter {
                 while (columnsIterator.hasNext()) {
                     Map.Entry<Integer, SQLServerMetaData> columnPair = columnsIterator.next();
 
-                    // If useServerDefault is set, client MUST NOT emit TvpColumnData for the
-                    // associated column
+                    // If useServerDefault is set, client MUST NOT emit TvpColumnData for the associated column
                     if (columnPair.getValue().useServerDefault) {
                         currentColumn++;
                         continue;
@@ -4869,8 +4785,7 @@ final class TDSWriter {
 
                     Object currentObject = null;
                     if (null != rowData) {
-                        // if rowData has value for the current column, retrieve it. If not, current
-                        // column will stay
+                        // if rowData has value for the current column, retrieve it. If not, current column will stay
                         // null.
                         if (rowData.length > currentColumn) {
                             currentObject = rowData[currentColumn];
@@ -4883,8 +4798,7 @@ final class TDSWriter {
                     currentColumn++;
                 }
 
-                // send this row, read its response (throw exception in case of errors) and
-                // reset command status
+                // send this row, read its response (throw exception in case of errors) and reset command status
                 if (tdsWritterCached) {
                     // TVP_END_TOKEN
                     writeByte((byte) 0x00);
@@ -5068,16 +4982,12 @@ final class TDSWriter {
                         // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
                         writeLong(0xFFFFFFFFFFFFFFFFL);
                     } else if (isSqlVariant) {
-                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to
-                        // false we can't
+                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't
                         // send nvarchar
-                        // since we are writing as nvarchar we need to write as tdstype.bigvarchar value
-                        // because if we
-                        // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we
-                        // should send as
+                        // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
+                        // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as
                         // longvarchar,
-                        // but we cannot send more than 8000 cause sql_variant datatype in sql server
-                        // does not support
+                        // but we cannot send more than 8000 cause sql_variant datatype in sql server does not support
                         // it.
                         // then throw exception if user is sending more than that
                         if (dataLength > 2 * DataTypes.SHORT_VARTYPE_MAX_BYTES) {
@@ -5116,8 +5026,7 @@ final class TDSWriter {
                         writeShort((short) -1); // actual len
                     else {
                         if (isSqlVariant) {
-                            // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to
-                            // false we
+                            // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we
                             // can't send nvarchar
                             // check for this
                             int length = currentColumnStringValue.length() * 2;
@@ -5231,8 +5140,7 @@ final class TDSWriter {
             JDBCType jdbcType = JDBCType.of(pair.getValue().javaSqlType);
             boolean useServerDefault = pair.getValue().useServerDefault;
             // ULONG ; UserType of column
-            // The value will be 0x0000 with the exceptions of TIMESTAMP (0x0050) and alias
-            // types (greater than 0x00FF).
+            // The value will be 0x0000 with the exceptions of TIMESTAMP (0x0050) and alias types (greater than 0x00FF).
             writeInt(0);
             /*
              * Flags = fNullable ; Column is nullable - %x01 fCaseSen -- Ignored ; usUpdateable -- Ignored ; fIdentity ;
@@ -5597,18 +5505,15 @@ final class TDSWriter {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
-        // Next, figure out the number of milliseconds since midnight of the current
-        // day.
+        // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                                                                                                         // the
-                                                                                                         // current
+                                                                                                         // the current
                                                                                                          // second
                 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
-        // The last millisecond of the current day is always rounded to the first
-        // millisecond
+        // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
         if (millisSinceMidnight >= 1000 * 60 * 60 * 24 - 1) {
             ++daysSinceSQLBaseDate;
@@ -5723,25 +5628,21 @@ final class TDSWriter {
         writeCryptoMetaData();
     }
 
-    // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or
-    // DATETIME
+    // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or DATETIME
     byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos, JDBCType jdbcType,
             SQLServerStatement statement) throws SQLServerException {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
-        // Next, figure out the number of milliseconds since midnight of the current
-        // day.
+        // Next, figure out the number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                                                                                                         // the
-                                                                                                         // current
+                                                                                                         // the current
                                                                                                          // second
                 1000 * cal.get(Calendar.SECOND) + // Seconds into the current minute
                 60 * 1000 * cal.get(Calendar.MINUTE) + // Minutes into the current hour
                 60 * 60 * 1000 * cal.get(Calendar.HOUR_OF_DAY); // Hours into the current day
 
-        // The last millisecond of the current day is always rounded to the first
-        // millisecond
+        // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
         if (millisSinceMidnight >= 1000 * 60 * 60 * 24 - 1) {
             ++daysSinceSQLBaseDate;
@@ -5759,16 +5660,12 @@ final class TDSWriter {
 
             // minutesSinceMidnight for (23:59:30)
             int maxMinutesSinceMidnight_SmallDateTime = 1440;
-            // Verification for smalldatetime to be within valid range of (1900.01.01) to
-            // (2079.06.06)
-            // smalldatetime for unencrypted does not allow insertion of 2079.06.06 23:59:59
-            // and it is rounded up
-            // to 2079.06.07 00:00:00, therefore, we are checking minutesSinceMidnight for
-            // that condition. If it's not
+            // Verification for smalldatetime to be within valid range of (1900.01.01) to (2079.06.06)
+            // smalldatetime for unencrypted does not allow insertion of 2079.06.06 23:59:59 and it is rounded up
+            // to 2079.06.07 00:00:00, therefore, we are checking minutesSinceMidnight for that condition. If it's not
             // within valid range, then
             // throw an exception now so that statement execution is safely canceled.
-            // 157 is the calculated day of year from 06-06 , 1440 is minutesince midnight
-            // for (23:59:30)
+            // 157 is the calculated day of year from 06-06 , 1440 is minutesince midnight for (23:59:30)
             if ((daysSinceSQLBaseDate < DDC.daysSinceBaseDate(1900, 1, TDS.BASE_YEAR_1900)
                     || daysSinceSQLBaseDate > DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900))
                     || (daysSinceSQLBaseDate == DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900)
@@ -5932,22 +5829,18 @@ final class TDSWriter {
             int secondsSinceMidnight = cal.get(Calendar.SECOND) + 60 * cal.get(Calendar.MINUTE)
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
-            // Scale nanos since midnight to the desired scale, rounding the value as
-            // necessary
+            // Scale nanos since midnight to the desired scale, rounding the value as necessary
             long divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
 
-            // The scaledNanos variable represents the fractional seconds of the value at
-            // the scale
-            // indicated by the scale variable. So, for example, scaledNanos = 3 means 300
-            // nanoseconds
+            // The scaledNanos variable represents the fractional seconds of the value at the scale
+            // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
             // at scale TDS.MAX_FRACTIONAL_SECONDS_SCALE, but 3000 nanoseconds at
             // TDS.MAX_FRACTIONAL_SECONDS_SCALE - 1
             long scaledNanos = ((long) Nanos.PER_SECOND * secondsSinceMidnight
                     + getRoundedSubSecondNanos(subSecondNanos) + divisor / 2) / divisor;
 
             // SQL Server rounding behavior indicates that it always rounds up unless
-            // we are at the max value of the type(NOT every day), in which case it
-            // truncates.
+            // we are at the max value of the type(NOT every day), in which case it truncates.
             // Side effect on Calendar date:
             // If rounding nanos to the specified scale rolls the value to the next day ...
             if (Nanos.PER_DAY / divisor == scaledNanos) {
@@ -5956,8 +5849,7 @@ final class TDSWriter {
                 if (SSType.TIME == ssType) {
                     --scaledNanos;
                 }
-                // If the type is datetime2 or datetimeoffset, truncate only if its the max
-                // value supported
+                // If the type is datetime2 or datetimeoffset, truncate only if its the max value supported
                 else {
                     assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: "
                             + ssType;
@@ -6062,8 +5954,7 @@ final class TDSWriter {
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
                 || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: " + ssType;
 
-        // store the time and minutesOffset portion of DATETIME2 and DATETIMEOFFSET to
-        // be used with date portion
+        // store the time and minutesOffset portion of DATETIME2 and DATETIMEOFFSET to be used with date portion
         byte encodedBytesForEncryption[] = null;
 
         int secondsSinceMidnight = 0;
@@ -6080,14 +5971,11 @@ final class TDSWriter {
             secondsSinceMidnight = cal.get(Calendar.SECOND) + 60 * cal.get(Calendar.MINUTE)
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
-            // Scale nanos since midnight to the desired scale, rounding the value as
-            // necessary
+            // Scale nanos since midnight to the desired scale, rounding the value as necessary
             divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
 
-            // The scaledNanos variable represents the fractional seconds of the value at
-            // the scale
-            // indicated by the scale variable. So, for example, scaledNanos = 3 means 300
-            // nanoseconds
+            // The scaledNanos variable represents the fractional seconds of the value at the scale
+            // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
             // at scale TDS.MAX_FRACTIONAL_SECONDS_SCALE, but 3000 nanoseconds at
             // TDS.MAX_FRACTIONAL_SECONDS_SCALE - 1
             scaledNanos = (((long) Nanos.PER_SECOND * secondsSinceMidnight + getRoundedSubSecondNanos(subSecondNanos)
@@ -6101,8 +5989,7 @@ final class TDSWriter {
             }
 
             // SQL Server rounding behavior indicates that it always rounds up unless
-            // we are at the max value of the type(NOT every day), in which case it
-            // truncates.
+            // we are at the max value of the type(NOT every day), in which case it truncates.
             // Side effect on Calendar date:
             // If rounding nanos to the specified scale rolls the value to the next day ...
             if (Nanos.PER_DAY / divisor == scaledNanos) {
@@ -6111,8 +5998,7 @@ final class TDSWriter {
                 if (SSType.TIME == ssType) {
                     --scaledNanos;
                 }
-                // If the type is datetime2 or datetimeoffset, truncate only if its the max
-                // value supported
+                // If the type is datetime2 or datetimeoffset, truncate only if its the max value supported
                 else {
                     assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: "
                             + ssType;
@@ -6306,10 +6192,8 @@ final class TDSWriter {
 
         // Send non-PLP in all other cases
         else {
-            // If the length of the InputStream is unknown then we need to buffer the entire
-            // stream
-            // in memory so that we can determine its length and send that length to the
-            // server
+            // If the length of the InputStream is unknown then we need to buffer the entire stream
+            // in memory so that we can determine its length and send that length to the server
             // before the stream data itself.
             if (DataTypes.UNKNOWN_STREAM_LENGTH == streamLength) {
                 // Create ByteArrayOutputStream with initial buffer size of 8K to handle typical
@@ -6317,8 +6201,7 @@ final class TDSWriter {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(8000);
                 streamLength = 0L;
 
-                // Since Shiloh is limited to 64K TDS packets, that's a good upper bound on the
-                // maximum
+                // Since Shiloh is limited to 64K TDS packets, that's a good upper bound on the maximum
                 // length of InputStream we should try to handle before throwing an exception.
                 long maxStreamLength = 65535L * con.getTDSPacketSize();
 
@@ -6453,16 +6336,13 @@ final class TDSWriter {
 
         // Send non-PLP in all other cases
         else {
-            // Length must be known if we're not sending PLP-chunked data. Yukon is handled
-            // above.
-            // For Shiloh, this is enforced in DTV by converting the Reader to some other
-            // length-
+            // Length must be known if we're not sending PLP-chunked data. Yukon is handled above.
+            // For Shiloh, this is enforced in DTV by converting the Reader to some other length-
             // prefixed value in the setter.
             assert 0 <= reLength && reLength <= DataTypes.NTEXT_MAX_CHARS;
 
             // For non-PLP types, use the long TEXT type rather than the short VARCHAR
-            // type if the stream is too long to fit in the latter or if we don't know the
-            // length up
+            // type if the stream is too long to fit in the latter or if we don't know the length up
             // front so we have to assume that it might be too long.
             boolean useVarType = reLength <= DataTypes.SHORT_VARTYPE_MAX_CHARS;
 
@@ -6613,8 +6493,7 @@ final class TDSReader implements Serializable {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
-        // if the logging level is not detailed than fine or more we will not have
-        // proper reader IDs.
+        // if the logging level is not detailed than fine or more we will not have proper reader IDs.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
         else
@@ -6684,11 +6563,9 @@ final class TDSReader implements Serializable {
 
         // If no buffered packets are left then maybe we can read one...
         // This action must be synchronized against against another thread calling
-        // readAllPackets() to read in ALL of the remaining packets of the current
-        // response.
+        // readAllPackets() to read in ALL of the remaining packets of the current response.
         if (null == consumedPacket.next) {
-            // if the read comes from getNext() and responseBuffering is Adaptive (in this
-            // place is), then reset Counter
+            // if the read comes from getNext() and responseBuffering is Adaptive (in this place is), then reset Counter
             // State
             if (null != command && command.getTDSWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
                 command.getCounter().resetCounter();
@@ -6766,8 +6643,7 @@ final class TDSReader implements Serializable {
         // Header size is a 2 byte unsigned short integer in big-endian order.
         int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
 
-        // Make header size is properly bounded and compute length of the packet
-        // payload.
+        // Make header size is properly bounded and compute length of the packet payload.
         if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength
@@ -6810,8 +6686,7 @@ final class TDSReader implements Serializable {
         lastPacket.next = newPacket;
         lastPacket = newPacket;
 
-        // When logging, append the payload to the log buffer and write out the whole
-        // thing.
+        // When logging, append the payload to the log buffer and write out the whole thing.
         if (tdsChannel.isLoggingPackets()) {
             System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
             tdsChannel.logPacket(logBuffer, 0, packetLength,
@@ -6893,8 +6768,7 @@ final class TDSReader implements Serializable {
     }
 
     final short peekStatusFlag() throws SQLServerException {
-        // skip the current packet(i.e, TDS packet type) and peek into the status flag
-        // (USHORT)
+        // skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
         if (payloadOffset + 3 <= currentPacket.payloadLength) {
             short value = Util.readShort(currentPacket.payload, payloadOffset + 1);
             return value;
@@ -7175,8 +7049,7 @@ final class TDSReader implements Serializable {
         if (TDS.datetimeoffsetValueLength(typeInfo.getScale()) != valueLength)
             throwInvalidTDS();
 
-        // The nanos since midnight and days into Common Era parts of DATETIMEOFFSET
-        // values
+        // The nanos since midnight and days into Common Era parts of DATETIMEOFFSET values
         // are in UTC. Use the minutes offset part to convert to local.
         long utcNanosSinceMidnight = readNanosSinceMidnight(typeInfo.getScale());
         int utcDaysIntoCE = readDaysIntoCE();
@@ -7196,16 +7069,14 @@ final class TDSReader implements Serializable {
         for (int i = 0; i < value.length; i++)
             daysIntoCE |= ((value[i] & 0xFF) << (8 * i));
 
-        // Theoretically should never encounter a value that is outside of the valid
-        // date range
+        // Theoretically should never encounter a value that is outside of the valid date range
         if (daysIntoCE < 0)
             throwInvalidTDS();
 
         return daysIntoCE;
     }
 
-    // Scale multipliers used to convert variable-scaled temporal values to a fixed
-    // 100ns scale.
+    // Scale multipliers used to convert variable-scaled temporal values to a fixed 100ns scale.
     //
     // Using this array is measurably faster than using Math.pow(10, ...)
     private final static int[] SCALED_MULTIPLIERS = {10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
@@ -7345,8 +7216,7 @@ final class TDSReader implements Serializable {
     }
 
     final void tryProcessFeatureExtAck(boolean featureExtAckReceived) throws SQLServerException {
-        // in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received
-        // or not.
+        // in case of redirection, do not check if TDS_FEATURE_EXTENSION_ACK is received or not.
         if (null != this.con.getRoutingInfo()) {
             return;
         }
@@ -7442,12 +7312,9 @@ abstract class TDSCommand implements Serializable {
     private volatile String interruptReason = null;
 
     // Flag set when this command's request to the server is complete.
-    // If a command is interrupted before its request is complete, it is the
-    // executing
-    // thread's responsibility to send the attention signal to the server if
-    // necessary.
-    // After the request is complete, the interrupting thread must send the
-    // attention signal.
+    // If a command is interrupted before its request is complete, it is the executing
+    // thread's responsibility to send the attention signal to the server if necessary.
+    // After the request is complete, the interrupting thread must send the attention signal.
     private volatile boolean requestComplete;
 
     protected boolean getRequestComplete() {
@@ -7460,22 +7327,17 @@ abstract class TDSCommand implements Serializable {
         }
     }
 
-    // Flag set when an attention signal has been sent to the server, indicating
-    // that a
-    // TDS packet containing the attention ack message is to be expected in the
-    // response.
-    // This flag is cleared after the attention ack message has been received and
-    // processed.
+    // Flag set when an attention signal has been sent to the server, indicating that a
+    // TDS packet containing the attention ack message is to be expected in the response.
+    // This flag is cleared after the attention ack message has been received and processed.
     private volatile boolean attentionPending = false;
 
     boolean attentionPending() {
         return attentionPending;
     }
 
-    // Flag set when this command's response has been processed. Until this flag is
-    // set,
-    // there may be unprocessed information left in the response, such as
-    // transaction
+    // Flag set when this command's response has been processed. Until this flag is set,
+    // there may be unprocessed information left in the response, such as transaction
     // ENVCHANGE notifications.
     private volatile boolean processedResponse;
 
@@ -7489,12 +7351,9 @@ abstract class TDSCommand implements Serializable {
         }
     }
 
-    // Flag set when this command's response is ready to be read from the server and
-    // cleared
-    // after its response has been received, but not necessarily processed, up to
-    // and including
-    // any attention ack. The command's response is read either on demand as it is
-    // processed,
+    // Flag set when this command's response is ready to be read from the server and cleared
+    // after its response has been received, but not necessarily processed, up to and including
+    // any attention ack. The command's response is read either on demand as it is processed,
     // or by detaching.
     private volatile boolean readingResponse;
     private int queryTimeoutSeconds;
@@ -7580,8 +7439,7 @@ abstract class TDSCommand implements Serializable {
                     logger.fine(this.toString() + ": Ignoring error in sending attention: "
                             + interruptException.getMessage());
             }
-            // throw the original exception even if trying to interrupt fails even in the
-            // case
+            // throw the original exception even if trying to interrupt fails even in the case
             // of trying to send a cancel to the server.
             throw e;
         }
@@ -7684,10 +7542,8 @@ abstract class TDSCommand implements Serializable {
         }
 
         // Postcondition:
-        // Response has been processed and there is no attention pending -- the command
-        // is closed.
-        // Of course the connection may be closed too, but the command is done
-        // regardless...
+        // Response has been processed and there is no attention pending -- the command is closed.
+        // Of course the connection may be closed too, but the command is done regardless...
         assert processedResponse && !attentionPending;
     }
 
