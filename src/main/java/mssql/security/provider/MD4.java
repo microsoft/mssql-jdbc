@@ -4,20 +4,16 @@
  */
 
 /**
- * This is a modified implementation of org.bouncycastle.crypto.digests.MD4Digest
+ * This code is extracted from org.bouncycastle.crypto.digests.MD4Digest and modified to remove dependencies.
  */
 package mssql.security.provider;
 
 public class MD4 {
     private final byte[] xBuf = new byte[4];
     private int xBufOff;
-
     private long byteCount;
-
     private static final int DIGEST_LENGTH = 16;
-
     private int H1, H2, H3, H4; // IV's
-
     private int[] X = new int[16];
     private int xOff;
 
