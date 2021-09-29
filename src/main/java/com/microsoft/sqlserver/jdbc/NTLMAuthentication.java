@@ -617,8 +617,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static byte[] md4(final byte[] str) {
         MD4 md = new MD4();
         md.reset();
-        md.update(str);
-        return md.digest();
+        md.update(str, 0, str.length);
+        byte[] hash = new byte[md.getDigestSize()];
+        md.doFinal(hash, 0);
+        return hash;
     }
 
     /**
