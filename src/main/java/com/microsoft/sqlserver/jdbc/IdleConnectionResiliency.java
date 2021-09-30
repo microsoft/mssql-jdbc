@@ -232,6 +232,7 @@ class SessionStateTable {
     private String originalLanguage;
     private SQLCollation originalCollation;
     private byte originalNegotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
+    private boolean resetCalled = false;
 
     SessionStateTable() {
         this.sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
@@ -350,6 +351,20 @@ class SessionStateTable {
 
     void setOriginalNegotiatedEncryptionLevel(byte originalNegotiatedEncryptionLevel) {
         this.originalNegotiatedEncryptionLevel = originalNegotiatedEncryptionLevel;
+    }
+    
+    boolean spResetCalled() {
+        return resetCalled;
+    }
+    
+    void setspResetCalled(boolean status) {
+        this.resetCalled = status;
+    }
+
+    public void reset() {
+        resetCalled = true;
+        sessionStateDelta = new SessionStateValue[SESSION_STATE_ID_MAX];
+        unRecoverableSessionStateCount = new AtomicInteger(0);
     }
 }
 

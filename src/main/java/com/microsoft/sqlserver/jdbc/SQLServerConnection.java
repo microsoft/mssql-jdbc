@@ -388,7 +388,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         /** Has it been more than maxIdleMillis since network activity has been marked */
         public boolean isIdle() {
-            return Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
+            boolean ret = Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
+            return ret;
         }
 
         /** Mark network activity now */
@@ -4659,6 +4660,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
                 tdsWriter.writeInt(currentLength);
+                
+                if (ssTable.spResetCalled()) {
+                    sCatalog = ssTable.getOriginalCatalog();
+                    databaseCollation = ssTable.getOriginalCollation();
+                    sLanguage = ssTable.getOriginalLanguage();
+                    ssTable.setspResetCalled(false);
+                }
 
                 // database/catalog
                 if (sCatalog.equals(ssTable.getOriginalCatalog())) {
@@ -4923,6 +4931,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_LANGUAGE:
                 setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
+            case ENVCHANGE_RESET_COMPLETE:
+                sessionRecovery.getSessionStateTable().reset();
+                break;
             // Skip unsupported, ENVCHANGES
             case ENVCHANGE_CHARSET:
             case ENVCHANGE_SORTLOCALEID:
@@ -4930,7 +4941,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_DTC_PROMOTE:
             case ENVCHANGE_DTC_MGR_ADDR:
             case ENVCHANGE_XACT_ENDED:
-            case ENVCHANGE_RESET_COMPLETE:
             case ENVCHANGE_USER_INFO:
                 if (connectionlogger.isLoggable(Level.FINER))
                     connectionlogger.finer(toString() + " Ignored env change: " + envchange);
@@ -5934,7 +5944,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
-        // WZD Todo
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
             len = len + writeSessionRecoveryFeatureRequest(false, tdsWriter);

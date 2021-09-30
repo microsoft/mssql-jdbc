@@ -15,6 +15,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import javax.sql.PooledConnection;
 
@@ -174,31 +176,86 @@ public class BasicConnectionTest extends AbstractTest {
     
     @Test
     public void testPooledConnection() throws SQLException {
-        try (Connection c = ResiliencyUtils.getPooledConnection(connectionString); Statement s = c.createStatement()) {
-            ResiliencyUtils.killConnection(c, connectionString);
-            s.executeQuery("SELECT 1");
+        SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
+        mds.setURL(connectionString);
+        PooledConnection pooledConnection = mds.getPooledConnection();
+        try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
+            c.close();
+            Connection c1 = pooledConnection.getConnection();
+            Statement s1 = c1.createStatement();
+            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+            s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
     }
     
     @Test
+    public void testPooledConnectionDB() throws SQLException {
+        SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
+        mds.setURL(connectionString);
+        PooledConnection pooledConnection = mds.getPooledConnection();
+        String newDBName = null;
+        String resultDBName = null;
+        String originalDBName = null;
+        try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
+            ResultSet rs = s.executeQuery("SELECT DB_NAME();");
+            rs.next();
+            originalDBName = rs.getString(1);
+            newDBName = RandomUtil.getIdentifier("resDB");
+            TestUtils.dropDatabaseIfExists(newDBName, connectionString);
+            s.execute("CREATE DATABASE [" + newDBName + "]");
+            try {
+                s.execute("USE [" + newDBName + "]");
+            } catch (SQLException e) {
+                // Switching databases is not supported against Azure, skip/
+                return;
+            }
+            c.close();
+            Connection c1 = pooledConnection.getConnection();
+            Statement s1 = c1.createStatement();
+            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+            rs = s1.executeQuery("SELECT db_name();");
+            while (rs.next()) {
+                resultDBName = rs.getString(1);
+            }
+            // Check if the driver reconnected to the expected database.
+            assertEquals(originalDBName, resultDBName);
+        } finally {
+            TestUtils.dropDatabaseIfExists(newDBName, connectionString);
+        }
+    }
+    
+    @Test
     public void testPooledConnectionLang() throws SQLException {
-        try (Connection c = ResiliencyUtils.getPooledConnection(connectionString); Statement s = c.createStatement()) {
+        SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
+        mds.setURL(connectionString);
+        PooledConnection pooledConnection = mds.getPooledConnection();
+        String lang0 = null, lang1 = null;
+        
+        try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
             ResultSet rs = s.executeQuery("SELECT @@LANGUAGE;");
-            rs.next();
-            String lang0 = rs.getString(1);
+            while (rs.next())
+            lang0 = rs.getString(1);
             s.execute("SET LANGUAGE FRENCH;");
-            ResiliencyUtils.killConnection(c, connectionString);
-            rs = s.executeQuery("SELECT @@LANGUAGE;");
-            rs.next();
-            String lang1 = rs.getString(1);
-            assertEquals("Français", lang1);
+            c.close();
+            Connection c1 = pooledConnection.getConnection();
+            Statement s1 = c1.createStatement();
+            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+            rs = s1.executeQuery("SELECT @@LANGUAGE;");
+            while (rs.next())
+            lang1 = rs.getString(1);
+            assertEquals(lang0, lang1);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
     }
-
 
     private void basicReconnect(String connectionString) throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
