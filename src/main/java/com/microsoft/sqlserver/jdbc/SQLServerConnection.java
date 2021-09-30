@@ -5643,6 +5643,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         dnsCache.remove(currentConnectPlaceHolder.getServerName());
                     }
                 }
+                break;
             }
 
             case TDS.TDS_FEATURE_EXT_SESSIONRECOVERY: {
