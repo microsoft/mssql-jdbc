@@ -252,7 +252,10 @@ public class BasicConnectionTest extends AbstractTest {
             while (rs.next())
             lang1 = rs.getString(1);
             assertEquals(lang0, lang1);
+            s1.close();
+            c1.close();
         } catch (SQLException e) {
+            e.printStackTrace();
             fail(e.getMessage());
         }
     }
