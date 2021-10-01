@@ -1522,6 +1522,7 @@ final class TDSChannel implements Serializable {
             }
 
             boolean isServerNameValidated;
+            String dnsNameInSANCert = "";
 
             // the name in cert is in RFC2253 format parse it to get the actual subject name
             String subjectCN = parseCommonName(nameInCertDN);
@@ -1562,7 +1563,7 @@ final class TDSChannel implements Serializable {
                                 // Java docs guarantee that the second entry in the list
                                 // will be a string for dnsName
                                 if (value != null && value instanceof String) {
-                                    String dnsNameInSANCert = (String) value;
+                                    dnsNameInSANCert = (String) value;
 
                                     // Use English locale to avoid Turkish i issues.
                                     // Note that, this conversion was not necessary for
@@ -1599,8 +1600,9 @@ final class TDSChannel implements Serializable {
             }
 
             if (!isServerNameValidated) {
-                String msg = SQLServerException.getErrString("R_certNameFailed");
-                throw new CertificateException(msg);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_certNameFailed"));
+                Object[] msgArgs = {hostName, dnsNameInSANCert};
+                throw new CertificateException(form.format(msgArgs));
             }
         }
 
@@ -5578,15 +5580,16 @@ final class TDSWriter {
         if (null == localCalendar)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME, (short) 0, statement));
+            writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME,
+                    (short) 0, statement));
 
         writeByte(TDSType.TIMEN.byteValue());
         writeByte((byte) scale);
         writeCryptoMetaData();
     }
 
-    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut, SQLServerStatement statement) throws SQLServerException {
+    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut,
+            SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
@@ -5626,8 +5629,8 @@ final class TDSWriter {
     }
 
     // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or DATETIME
-    byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos,
-            JDBCType jdbcType, SQLServerStatement statement) throws SQLServerException {
+    byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos, JDBCType jdbcType,
+            SQLServerStatement statement) throws SQLServerException {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
@@ -5721,8 +5724,8 @@ final class TDSWriter {
         if (null == localCalendar)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.DATETIME2, (short) 0, statement));
+            writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale,
+                    SSType.DATETIME2, (short) 0, statement));
 
         writeByte(TDSType.DATETIME2N.byteValue());
         writeByte((byte) (scale));
@@ -6104,7 +6107,8 @@ final class TDSWriter {
                 // Copy the 3 byte date value
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 3), 3);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con, statement);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con,
+                        statement);
             } else {
                 // for Max value, does not round up, do casting instead.
                 if (3652058 == daysIntoCE) { // 9999-12-31
@@ -6130,7 +6134,8 @@ final class TDSWriter {
                                 .putShort(minutesOffset).array(),
                         0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 2), 2);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con, statement);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con,
+                        statement);
             }
             return cipherText;
         }
