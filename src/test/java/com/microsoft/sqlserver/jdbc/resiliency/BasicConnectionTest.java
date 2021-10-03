@@ -173,7 +173,7 @@ public class BasicConnectionTest extends AbstractTest {
             }
         }
     }
-    
+
     @Test
     public void testPooledConnection() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
@@ -191,7 +191,7 @@ public class BasicConnectionTest extends AbstractTest {
             fail(e.getMessage());
         }
     }
-    
+
     @Test
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
@@ -229,31 +229,33 @@ public class BasicConnectionTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(newDBName, connectionString);
         }
     }
-    
+
     @Test
     public void testPooledConnectionLang() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
         String lang0 = null, lang1 = null;
-        
+
         try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
             ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
             ResultSet rs = s.executeQuery("SELECT @@LANGUAGE;");
             while (rs.next())
-            lang0 = rs.getString(1);
+                lang0 = rs.getString(1);
             s.execute("SET LANGUAGE FRENCH;");
             c.close();
-            Connection c1 = pooledConnection.getConnection();
-            Statement s1 = c1.createStatement();
-            ResiliencyUtils.killConnection(c1, connectionString);
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
-            rs = s1.executeQuery("SELECT @@LANGUAGE;");
-            while (rs.next())
-            lang1 = rs.getString(1);
-            assertEquals(lang0, lang1);
-            s1.close();
-            c1.close();
+            try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
+                ResiliencyUtils.killConnection(c1, connectionString);
+                ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+                rs = s1.executeQuery("SELECT @@LANGUAGE;");
+                while (rs.next())
+                    lang1 = rs.getString(1);
+                assertEquals(lang0, lang1);
+                s1.close();
+                c1.close();
+            } finally {
+                rs.close();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             fail(e.getMessage());
