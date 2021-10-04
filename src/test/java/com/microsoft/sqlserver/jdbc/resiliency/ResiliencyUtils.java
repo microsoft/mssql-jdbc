@@ -325,12 +325,12 @@ public final class ResiliencyUtils {
     }
 
     /**
-     * Get declared fields of connection depending on Java version. Connection class SQLServerConnection43 is returned
-     * for Java >=9 and SQLServerConnection for Java 8
+     * Get declared fields of connection class depending on Java version. Connection class SQLServerConnection43 is
+     * returned for Java >=9 and SQLServerConnection or SQLServerConnectPoolProxy for Java 8
      * 
      * @param c
-     *        Connection class that implements ISQLServerConnection
-     * @return declared fields for SQLServerConnection class
+     *        connection class that implements ISQLServerConnection
+     * @return declared fields for Connection class
      */
     private static Field[] getConnectionFields(Connection c) {
         Class cls = c.getClass();
