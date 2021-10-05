@@ -43,7 +43,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testAdaptiveBuffering() throws SQLException {
-        verifyResulSetResponseBuffering("adaptive", true);
+        verifyResultSetResponseBuffering("adaptive", true);
     }
 
     /*
@@ -51,7 +51,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testFullBuffering() throws SQLException {
-        verifyResulSetResponseBuffering("full", true);
+        verifyResultSetResponseBuffering("full", true);
     }
 
     /*
@@ -59,7 +59,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testAdaptiveBufferingNoStrongReferenceToResultSet() throws SQLException {
-        verifyResulSetResponseBuffering("adaptive", false);
+        verifyResultSetResponseBuffering("adaptive", false);
     }
 
     /*
@@ -67,7 +67,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testFullBufferingNoStrongReferenceToResultSet() throws SQLException {
-        verifyResulSetResponseBuffering("full", false);
+        verifyResultSetResponseBuffering("full", false);
     }
 
     /*
@@ -83,7 +83,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 rs.next();
                 rs.getString(2);
                 ResiliencyUtils.killConnection(sessionId, connectionString);
-                // ResulSet is not completely parsed, connection recovery is disabled.
+                // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail();
             }
@@ -103,7 +103,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                 ResiliencyUtils.killConnection(sessionId, connectionString);
-                // ResulSet is partially buffered, connection recovery is disabled.
+                // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail();
             }
@@ -133,12 +133,12 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         assertEquals(numberOfRows, count);
     }
 
-    private void verifyResulSetResponseBuffering(String responseBuffering,
-            boolean strongReferenceToResulSet) throws SQLException {
+    private void verifyResultSetResponseBuffering(String responseBuffering,
+            boolean strongReferenceToResultSet) throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
-            if (strongReferenceToResulSet) {
+            if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                     verifyResultSet(rs);
                 }

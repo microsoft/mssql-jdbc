@@ -14,9 +14,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import javax.sql.PooledConnection;
 
@@ -52,17 +49,6 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 assertTrue(e.getMessage().contains("The connection is closed."));
             }
-        }
-    }
-
-    @Test
-    public void testSetAttributes() throws SQLException {
-        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
-            ResiliencyUtils.toggleRandomProperties(c);
-            Map<String, String> expected = ResiliencyUtils.getUserOptions(c);
-            ResiliencyUtils.killConnection(c, connectionString);
-            Map<String, String> recieved = ResiliencyUtils.getUserOptions(c);
-            assertTrue("User options do not match", expected.equals(recieved));
         }
     }
 
@@ -189,6 +175,7 @@ public class BasicConnectionTest extends AbstractTest {
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
+            e.printStackTrace();
         }
     }
 
