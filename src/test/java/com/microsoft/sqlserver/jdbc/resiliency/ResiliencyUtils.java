@@ -20,11 +20,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.sql.PooledConnection;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Tag;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
+@Tag(Constants.xSQLv11)
 public final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
@@ -196,12 +198,13 @@ public final class ResiliencyUtils {
 
     protected static void minimizeIdleNetworkTrackerPooledConnection(Connection c) {
         try {
-            Field fieldsProxy[] = c.getClass().getDeclaredFields();
+            Field fieldsProxy[] = getConnectionFields(c);
             for (Field f : fieldsProxy) {
                 if (f.getName() == "wrappedConnection") {
                     f.setAccessible(true);
                     Object wrappedConnection = f.get(c);
-                    Field fieldsConn[] = wrappedConnection.getClass().getSuperclass().getDeclaredFields();
+                    // Field fieldsConn[] = wrappedConnection.getClass().getSuperclass().getDeclaredFields();
+                    Field fieldsConn[] = getConnectionFields((Connection) (wrappedConnection));
                     for (Field ff : fieldsConn) {
                         if (ff.getName() == "idleNetworkTracker") {
                             ff.setAccessible(true);
@@ -222,7 +225,7 @@ public final class ResiliencyUtils {
 
     protected static void minimizeIdleNetworkTracker(Connection c) {
         try {
-            Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
+            Field fields[] = getConnectionFields(c);
             for (Field f : fields) {
                 if (f.getName() == "idleNetworkTracker") {
                     f.setAccessible(true);
@@ -264,13 +267,7 @@ public final class ResiliencyUtils {
 
     // uses reflection to "corrupt" a Connection's server target
     protected static void blockConnection(Connection c) throws SQLException {
-        Class cls = c.getClass();
-        // SQLServerConnection43 is returend for java >=9 otherwise SQLServerConnection
-        if (cls != SQLServerConnection.class) {
-            cls = cls.getSuperclass();
-        }
-
-        Field fields[] = cls.getDeclaredFields();
+        Field fields[] = getConnectionFields(c);
         for (Field f : fields) {
             if (f.getName() == "activeConnectionProperties" && Properties.class == f.getType()) {
                 f.setAccessible(true);
@@ -327,5 +324,23 @@ public final class ResiliencyUtils {
         sb.append(base);
         props.forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
         return sb.toString();
+    }
+
+    /**
+     * Get declared fields of connection class depending on Java version. Connection class SQLServerConnection43 is
+     * returned for Java >=9 and SQLServerConnection or SQLServerConnectPoolProxy for Java 8
+     * 
+     * @param c
+     *        connection class that implements ISQLServerConnection
+     * @return declared fields for Connection class
+     */
+    private static Field[] getConnectionFields(Connection c) {
+        Class<? extends Connection> cls = c.getClass();
+        // SQLServerConnection43 is returned for Java >=9 so need to get super class
+        if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {
+            return cls.getSuperclass().getDeclaredFields();
+        }
+
+        return cls.getDeclaredFields();
     }
 }

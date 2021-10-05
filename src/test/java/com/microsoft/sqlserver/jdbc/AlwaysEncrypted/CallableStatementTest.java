@@ -47,6 +47,7 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(Parameterized.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)

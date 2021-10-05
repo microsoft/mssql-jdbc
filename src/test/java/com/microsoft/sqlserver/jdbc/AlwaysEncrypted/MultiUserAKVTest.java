@@ -54,6 +54,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * Test multi-user Azure Key Store provider.
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)

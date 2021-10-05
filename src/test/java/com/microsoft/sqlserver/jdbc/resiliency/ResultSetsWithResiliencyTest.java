@@ -16,6 +16,7 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -23,8 +24,10 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
+@Tag(Constants.xSQLv11)
 public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = "[" + RandomUtil.getIdentifier("resTable") + "]";
     static int numberOfRows = 10000;
