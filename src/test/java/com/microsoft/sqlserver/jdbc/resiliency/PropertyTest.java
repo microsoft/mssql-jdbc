@@ -13,12 +13,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
+@Tag(Constants.xSQLv11)
 public class PropertyTest extends AbstractTest {
 
     private void testInvalidPropertyOverBrokenConnection(String prop, String val,

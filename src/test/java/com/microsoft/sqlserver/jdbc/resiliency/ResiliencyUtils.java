@@ -20,10 +20,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import javax.sql.PooledConnection;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
+@Tag(Constants.xSQLv11)
 public final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
