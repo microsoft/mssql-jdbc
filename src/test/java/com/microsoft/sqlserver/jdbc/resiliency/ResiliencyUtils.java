@@ -21,7 +21,6 @@ import javax.sql.PooledConnection;
 
 import org.junit.Assert;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 
 
@@ -333,12 +332,12 @@ public final class ResiliencyUtils {
      * @return declared fields for Connection class
      */
     private static Field[] getConnectionFields(Connection c) {
-        Class cls = c.getClass();
-        // SQLServerConnection43 is returned for java >=9 so need to get super class
-        if (!ISQLServerConnection.class.isAssignableFrom(c.getClass())) {
+        Class<? extends Connection> cls = c.getClass();
+        // SQLServerConnection43 is returned for Java >=9 so need to get super class
+        if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {
             return cls.getSuperclass().getDeclaredFields();
         }
-        return cls.getDeclaredFields();
 
+        return cls.getDeclaredFields();
     }
 }

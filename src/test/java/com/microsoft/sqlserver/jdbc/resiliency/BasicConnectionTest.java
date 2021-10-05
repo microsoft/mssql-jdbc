@@ -15,9 +15,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
 import javax.sql.PooledConnection;
 
 import org.junit.jupiter.api.Test;
