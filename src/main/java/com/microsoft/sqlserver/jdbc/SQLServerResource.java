@@ -153,7 +153,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_sslRequiredNoServerSupport", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. The application requested encryption but the server is not configured to support SSL."},
         {"R_sslRequiredByServer", "SQL Server login requires an encrypted connection that uses Secure Sockets Layer (SSL)."},
         {"R_sslFailed", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. Error: \"{0}\"."},
-        {"R_certNameFailed", "Failed to validate the server name in a certificate during Secure Sockets Layer (SSL) initialization."},
+        {"R_certNameFailed", "Failed to validate the server name \"{0}\"in a certificate during Secure Sockets Layer (SSL) initialization. Name in certificate \"{1}\""},
         {"R_failedToInitializeXA", "Failed to initialize the stored procedure xp_sqljdbc_xa_init. The status is: {0}. Error: \"{1}\""},
         {"R_failedFunctionXA", "The function {0} failed. The status is: {1}. Error: \"{2}\""},
         {"R_noTransactionCookie", "The function {0} failed. No transaction cookie was returned."},
