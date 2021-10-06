@@ -88,7 +88,7 @@ final class SQLServerSymmetricKeyCache {
  
                 // search system/global key store providers
                 SQLServerColumnEncryptionKeyStoreProvider provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
-                assert null != provider : "Provider should not be null.";                
+                assert null != provider : "Provider should not be null.";
 
                 byte[] plaintextKey;
                 
