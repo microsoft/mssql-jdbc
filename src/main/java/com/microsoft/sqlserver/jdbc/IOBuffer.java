@@ -1196,12 +1196,21 @@ final class TDSChannel implements Serializable {
                 } else {
                     int offsetBytesToSkipInCache = Math.min(offset, cachedLength);
                     for (int i = 0; i < offsetBytesToSkipInCache; i++) {
-                        getOneFromCache();
+                        if (getOneFromCache() == -1) // Hit end of stream in the cache
+                            return -1;
                     }
 
                     byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
                     for (int i = 0; i < bytesFromCache.length; i++) {
                         bytesFromCache[i] = (byte) getOneFromCache();
+                        if (bytesFromCache[i] == -1) { // Hit end of stream in the cache
+                            if (i == 0) { // First cached byte was EOS.
+                                return -1;
+                            } else { // Return cached bytes up to, but not including EOS
+                                System.arraycopy(bytesFromCache, 0, b, 0, i);
+                                return i;
+                            }
+                        }
                     }
 
                     try {
