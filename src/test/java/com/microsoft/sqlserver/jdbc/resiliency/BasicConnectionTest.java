@@ -169,16 +169,15 @@ public class BasicConnectionTest extends AbstractTest {
         mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
         try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
+            ResiliencyUtils.minimizeIdleNetworkTracker(c);
             c.close();
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+            ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -191,7 +190,7 @@ public class BasicConnectionTest extends AbstractTest {
         String resultDBName = null;
         String originalDBName = null;
         try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
+            ResiliencyUtils.minimizeIdleNetworkTracker(c);
             ResultSet rs = s.executeQuery("SELECT DB_NAME();");
             rs.next();
             originalDBName = rs.getString(1);
@@ -208,7 +207,7 @@ public class BasicConnectionTest extends AbstractTest {
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+            ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             rs = s1.executeQuery("SELECT db_name();");
             while (rs.next()) {
                 resultDBName = rs.getString(1);
@@ -228,7 +227,7 @@ public class BasicConnectionTest extends AbstractTest {
         String lang0 = null, lang1 = null;
 
         try (Connection c = pooledConnection.getConnection(); Statement s = c.createStatement()) {
-            ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c);
+            ResiliencyUtils.minimizeIdleNetworkTracker(c);
             ResultSet rs = s.executeQuery("SELECT @@LANGUAGE;");
             while (rs.next())
                 lang0 = rs.getString(1);
@@ -236,7 +235,7 @@ public class BasicConnectionTest extends AbstractTest {
             c.close();
             try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
                 ResiliencyUtils.killConnection(c1, connectionString);
-                ResiliencyUtils.minimizeIdleNetworkTrackerPooledConnection(c1);
+                ResiliencyUtils.minimizeIdleNetworkTracker(c1);
                 rs = s1.executeQuery("SELECT @@LANGUAGE;");
                 while (rs.next())
                     lang1 = rs.getString(1);
@@ -247,7 +246,6 @@ public class BasicConnectionTest extends AbstractTest {
                 rs.close();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
             fail(e.getMessage());
         }
     }

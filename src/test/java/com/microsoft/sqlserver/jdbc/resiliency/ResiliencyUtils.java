@@ -186,7 +186,7 @@ public final class ResiliencyUtils {
         PooledConnection pooledConnection = mds.getPooledConnection();
         Connection c = pooledConnection.getConnection();
 
-        minimizeIdleNetworkTrackerPooledConnection(c);
+        minimizeIdleNetworkTracker(c);
         return c;
     }
 
@@ -196,45 +196,33 @@ public final class ResiliencyUtils {
         return c;
     }
 
-    protected static void minimizeIdleNetworkTrackerPooledConnection(Connection c) {
-        try {
-            Field fieldsProxy[] = getConnectionFields(c);
-            for (Field f : fieldsProxy) {
-                if (f.getName() == "wrappedConnection") {
-                    f.setAccessible(true);
-                    Object wrappedConnection = f.get(c);
-                    // Field fieldsConn[] = wrappedConnection.getClass().getSuperclass().getDeclaredFields();
-                    Field fieldsConn[] = getConnectionFields((Connection) (wrappedConnection));
-                    for (Field ff : fieldsConn) {
-                        if (ff.getName() == "idleNetworkTracker") {
-                            ff.setAccessible(true);
-                            Object idleNetworkTracker = ff.get(wrappedConnection);
-                            Method method = idleNetworkTracker.getClass().getDeclaredMethod("setMaxIdleMillis",
-                                    int.class);
-                            method.setAccessible(true);
-                            method.invoke(idleNetworkTracker, -1);
-                            break;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
-        }
-    }
-
     protected static void minimizeIdleNetworkTracker(Connection c) {
         try {
-            Field fields[] = getConnectionFields(c);
-            for (Field f : fields) {
+            Connection conn = c;
+
+            // See if we were handed a pooled connection
+            for (Field f : c.getClass().getDeclaredFields()) {
+                if (f.getName() == "wrappedConnection") {
+                    f.setAccessible(true);
+                    conn = (Connection) f.get(c);
+                    break;
+                }
+            }
+
+            boolean methodInvoked = false;
+            for (Field f : getConnectionFields(conn)) {
                 if (f.getName() == "idleNetworkTracker") {
                     f.setAccessible(true);
-                    Object idleNetworkTracker = f.get(c);
+                    Object idleNetworkTracker = f.get(conn);
                     Method method = idleNetworkTracker.getClass().getDeclaredMethod("setMaxIdleMillis", int.class);
                     method.setAccessible(true);
                     method.invoke(idleNetworkTracker, -1);
+                    methodInvoked = true;
                     break;
                 }
+            }
+            if (!methodInvoked) {
+                throw new Exception("Failed to find setMaxIdleMillis via reflection to adjust the internal idle time.");
             }
         } catch (Exception e) {
             Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
