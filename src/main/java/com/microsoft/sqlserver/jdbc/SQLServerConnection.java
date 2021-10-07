@@ -28,8 +28,8 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -3757,7 +3757,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (this.connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()) {
                         if (isConnectionDead()) {
                             if (connectionlogger.isLoggable(Level.FINER)) {
-                                connectionlogger.finer(this.toString() + "Connection is detected to be broken.");
+                                connectionlogger.finer(this.toString() + " Connection is detected to be broken.");
                             }
                             if (!sessionRecovery.isConnectionRecoveryPossible()
                                     || sessionRecovery.getUnprocessedResponseCount() != 0) {
@@ -3831,6 +3831,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // networkSocketStillConnected would affect perf if called every time. Only run
         // when the connection has not seen recent activity.
         if (!idleNetworkTracker.isIdle()) {
+            if (connectionlogger.isLoggable(Level.FINEST)) {
+                connectionlogger.finest(toString() + " Network not idle. Skipping networkSocketStillConnected check.");
+            }
             return false;
         }
         // Only one thread should ever try to perform an idle check on a
@@ -3838,6 +3841,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         synchronized (this) {
             // check again if connection is reset already.
             if (!idleNetworkTracker.isIdle()) {
+                if (connectionlogger.isLoggable(Level.FINEST)) {
+                    connectionlogger
+                            .finest(toString() + " Network not idle. Skipping networkSocketStillConnected check.");
+                }
                 return false;
             }
 

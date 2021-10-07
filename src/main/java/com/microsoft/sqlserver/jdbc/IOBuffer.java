@@ -1091,12 +1091,26 @@ final class TDSChannel implements Serializable {
          * @throws IOException
          *         If an I/O exception occurs.
          */
-        public synchronized boolean poll() throws IOException {
+        public synchronized boolean poll() {
             synchronized (this) {
-                int b = filteredStream.read();
+                int b;
+                try {
+                    b = filteredStream.read();
+                } catch (SocketTimeoutException e) {
+                    // Not a disconnected socket, so we're good to go
+                    return true;
+                } catch (IOException e) {
+                    return false;
+                }
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(toString() + "poll() - read() returned " + b);
+                }
+
+                if (b == -1) // end-of-stream
+                    return false;
 
                 // if we got here, a byte was read and we need to save it
-
                 // Increase the size of the cache, if needed (should be very rare).
                 if (cachedBytes.length <= cachedLength) {
                     int temp[] = new int[cachedBytes.length + 10];
@@ -1196,21 +1210,12 @@ final class TDSChannel implements Serializable {
                 } else {
                     int offsetBytesToSkipInCache = Math.min(offset, cachedLength);
                     for (int i = 0; i < offsetBytesToSkipInCache; i++) {
-                        if (getOneFromCache() == -1) // Hit end of stream in the cache
-                            return -1;
+                        getOneFromCache();
                     }
 
                     byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
                     for (int i = 0; i < bytesFromCache.length; i++) {
                         bytesFromCache[i] = (byte) getOneFromCache();
-                        if (bytesFromCache[i] == -1) { // Hit end of stream in the cache
-                            if (i == 0) { // First cached byte was EOS.
-                                return -1;
-                            } else { // Return cached bytes up to, but not including EOS
-                                System.arraycopy(bytesFromCache, 0, b, 0, i);
-                                return i;
-                            }
-                        }
                     }
 
                     try {
@@ -2257,15 +2262,20 @@ final class TDSChannel implements Serializable {
         return is;
     }
 
-    final Boolean networkSocketStillConnected() throws SQLServerException {
+    final Boolean networkSocketStillConnected() {
         int origSoTimeout = 50;
         synchronized (inputStream) {
             synchronized (outputStream) {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(toString() + "(networkSocketStillConnected) Checking for socket disconnect.");
+                }
+
                 try {
                     origSoTimeout = channelSocket.getSoTimeout();
                 } catch (SocketException e) {
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.fine(toString() + " proxySocket.getSoTimeout() failed. Unable to poll connection:"
+                        logger.fine(toString()
+                                + "(networkSocketStillConnected) proxySocket.getSoTimeout() failed. Unable to poll connection:"
                                 + e.getMessage());
                     }
                     return false;
@@ -2273,36 +2283,28 @@ final class TDSChannel implements Serializable {
 
                 try {
                     channelSocket.setSoTimeout(1);
-                    inputStream.poll();
+                    boolean pollResult = inputStream.poll();
                     channelSocket.setSoTimeout(origSoTimeout);
-                } catch (SocketTimeoutException e) {
-                    // Not a disconnected socket, so we're good to go
-                    try {
-                        channelSocket.setSoTimeout(origSoTimeout);
-                    } catch (SocketException se) {
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
+                    if (logger.isLoggable(Level.FINEST)) {
+                        if (pollResult) {
+                            logger.finest(toString() + "(networkSocketStillConnected) Network still connected.");
+                        } else {
+                            logger.finest(toString() + "(networkSocketStillConnected) Network disconnected:");
                         }
-                        return false;
                     }
-                    return true;
-                } catch (IOException e) {
+
+                    return pollResult;
+
+                } catch (SocketException se) {
+                    // Should never get here since the first one would have failed.
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.fine(toString() + " read failed:" + e.getMessage());
-                    }
-                    try {
-                        channelSocket.setSoTimeout(origSoTimeout);
-                    } catch (SocketException se) {
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine(toString() + " getSoTimeout failed:" + se.getMessage());
-                        }
+                        logger.fine(toString() + "(networkSocketStillConnected) getSoTimeout failed:"
+                                + se.getMessage());
                     }
                     return false;
                 }
             }
         }
-        // Server responded in 1ms, so not disconnected
-        return true;
     }
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
