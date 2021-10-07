@@ -225,6 +225,7 @@ public final class ResiliencyUtils {
 
     protected static void minimizeIdleNetworkTracker(Connection c) {
         try {
+            boolean methodInvoked = false;
             Field fields[] = getConnectionFields(c);
             for (Field f : fields) {
                 if (f.getName() == "idleNetworkTracker") {
@@ -233,8 +234,12 @@ public final class ResiliencyUtils {
                     Method method = idleNetworkTracker.getClass().getDeclaredMethod("setMaxIdleMillis", int.class);
                     method.setAccessible(true);
                     method.invoke(idleNetworkTracker, -1);
+                    methodInvoked = true;
                     break;
                 }
+            }
+            if (!methodInvoked) {
+                throw new Exception("Failed to find setMaxIdleMillis via reflection to adjust the internal idle time.");
             }
         } catch (Exception e) {
             Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
