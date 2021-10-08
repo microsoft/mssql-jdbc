@@ -111,6 +111,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail();
             }
         } catch (SQLServerException e) {
+            e.printStackTrace();
             assertEquals("08S01", e.getSQLState());
         }
     }

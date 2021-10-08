@@ -1224,7 +1224,8 @@ final class TDSChannel implements Serializable {
                                 offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
                         bytesRead = bytesFromCache.length + bytesReadFromStream;
                         System.arraycopy(bytesFromCache, 0, b, 0, bytesFromCache.length);
-                        System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
+                        if (bytesReadFromStream >= 0)
+                            System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
                     } catch (IOException e) {
                         if (logger.isLoggable(Level.FINER))
                             logger.finer(toString() + " " + e.getMessage());
