@@ -2299,8 +2299,8 @@ final class TDSChannel implements Serializable {
                 } catch (SocketException se) {
                     // Should never get here since the first one would have failed.
                     if (logger.isLoggable(Level.FINE)) {
-                        logger.fine(toString() + "(networkSocketStillConnected) getSoTimeout failed:"
-                                + se.getMessage());
+                        logger.fine(
+                                toString() + "(networkSocketStillConnected) getSoTimeout failed:" + se.getMessage());
                     }
                     return false;
                 }

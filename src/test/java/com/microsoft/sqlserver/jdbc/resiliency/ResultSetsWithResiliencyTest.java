@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -111,8 +112,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail();
             }
         } catch (SQLServerException e) {
-            e.printStackTrace();
-            assertEquals("08S01", e.getSQLState());
+            assertTrue("08S01" == e.getSQLState()
+                    || TestResource.getResource("R_crClientUnrecoverable") == e.getMessage());
         }
     }
 

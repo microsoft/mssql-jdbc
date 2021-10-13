@@ -352,11 +352,11 @@ class SessionStateTable {
     void setOriginalNegotiatedEncryptionLevel(byte originalNegotiatedEncryptionLevel) {
         this.originalNegotiatedEncryptionLevel = originalNegotiatedEncryptionLevel;
     }
-    
+
     boolean spResetCalled() {
         return resetCalled;
     }
-    
+
     void setspResetCalled(boolean status) {
         this.resetCalled = status;
     }

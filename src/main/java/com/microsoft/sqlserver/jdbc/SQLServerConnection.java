@@ -404,7 +404,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
-    
+
     public IdleNetworkTracker getIdleNetworkTracker() {
         return idleNetworkTracker;
     }
@@ -923,8 +923,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             SQLServerColumnEncryptionKeyStoreProvider provider = entry.getValue();
             if (null == provider) {
-                throw new SQLServerException(null,
-                        String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
             }
 
@@ -989,13 +989,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     synchronized SQLServerColumnEncryptionKeyStoreProvider getSystemOrGlobalColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
-        
+
         // check for global system providers
         keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
 
         // Check for the connection system provider.
-        if (null == keystoreProvider)
-        {
+        if (null == keystoreProvider) {
             keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
         }
 
@@ -1018,7 +1017,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     synchronized boolean hasConnectionColumnEncryptionKeyStoreProvidersRegistered() {
-        return null != connectionColumnEncryptionKeyStoreProvider && connectionColumnEncryptionKeyStoreProvider.size() > 0;
+        return null != connectionColumnEncryptionKeyStoreProvider
+                && connectionColumnEncryptionKeyStoreProvider.size() > 0;
     }
 
     synchronized String getAllConnectionColumnEncryptionKeyStoreProviders() {
@@ -1032,8 +1032,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String providerName) throws SQLServerException {
 
         // Check for a connection-level provider first
-        if (null != connectionColumnEncryptionKeyStoreProvider &&
-                connectionColumnEncryptionKeyStoreProvider.size() > 0) {
+        if (null != connectionColumnEncryptionKeyStoreProvider
+                && connectionColumnEncryptionKeyStoreProvider.size() > 0) {
             // If any connection-level providers are registered, we don't fall back to system/global providers
             if (connectionColumnEncryptionKeyStoreProvider.containsKey(providerName)) {
                 return connectionColumnEncryptionKeyStoreProvider.get(providerName);
@@ -1088,10 +1088,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             if (null == entry.getValue()) {
-                throw new SQLServerException(null,
-                        String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
-            }            
+            }
 
             connectionColumnEncryptionKeyStoreProvider.put(entry.getKey(), entry.getValue());
         }
@@ -2654,7 +2654,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
                 }
-                
+
                 connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
                 sPropValue = activeConnectionProperties
                         .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
@@ -4667,7 +4667,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
                 tdsWriter.writeInt(currentLength);
-                
+
                 if (ssTable.spResetCalled()) {
                     sCatalog = ssTable.getOriginalCatalog();
                     databaseCollation = ssTable.getOriginalCollation();
@@ -7148,8 +7148,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Sets time-to-live for column encryption key entries in the column encryption key cache for the Always Encrypted
-     * feature. The default value is 2 hours. This variable holds the value in seconds. This only applies to global-level
-     * key store providers. Connection and Statement-level providers need to set their own cache TTL values.
+     * feature. The default value is 2 hours. This variable holds the value in seconds. This only applies to
+     * global-level key store providers. Connection and Statement-level providers need to set their own cache TTL
+     * values.
      * 
      * @param columnEncryptionKeyCacheTTL
      *        The timeunit in seconds
@@ -7527,12 +7528,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Enclave provider */
     private ISQLServerEnclaveProvider enclaveProvider;
 
-    ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql, String preparedTypeDefinitions, Parameter[] params,
+    ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql,
+            String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
             enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
-        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params, parameterNames);
+        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
+                parameterNames);
     }
 
     boolean enclaveEstablished() {

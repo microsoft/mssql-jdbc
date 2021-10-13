@@ -178,7 +178,6 @@ public class BasicConnectionTest extends AbstractTest {
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -247,7 +246,6 @@ public class BasicConnectionTest extends AbstractTest {
                 rs.close();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
             fail(e.getMessage());
         }
     }
