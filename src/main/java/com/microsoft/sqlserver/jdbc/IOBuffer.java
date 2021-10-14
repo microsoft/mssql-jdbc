@@ -71,6 +71,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import com.microsoft.sqlserver.jdbc.SQLCollation.WindowsLocale;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 
@@ -4018,7 +4019,6 @@ final class TDSWriter {
      * efficiency. As this method will only be used in bulk copy, it needs to be efficient. Note: Any changes in
      * algorithm/logic should propagate to both writeReader() and writeNonUnicodeReader().
      */
-
     void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary,
             Charset charSet) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
@@ -4057,18 +4057,31 @@ final class TDSWriter {
                 // The Do-While loop goes on one more time as charsToWrite is greater than 0 for the last chunk, and
                 // in this last round the only thing that is written is an int value of 0, which is the PLP Terminator
                 // token(0x00000000).
-                writeInt(charsToWrite);
 
-                for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
-                    if (null == charSet) {
+                if (null == charSet) {
+                    writeInt(charsToWrite);
+
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
                         streamByteBuffer[charsCopied] = (byte) (streamCharBuffer[charsCopied] & 0xFF);
-                    } else {
-                        // encoding as per collation
-                        streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] + "")
-                                .getBytes(charSet)[0];
                     }
+
+                    writeBytes(streamByteBuffer, 0, charsToWrite);
+                } else {
+                    // encoding as per collation
+                    int bytesPerChar = (int) (1 / (Charset.forName(charSet.name()).newDecoder().averageCharsPerByte()));
+                    writeInt(charsToWrite * bytesPerChar);
+
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
+                        streamByteBuffer[bytesPerChar * charsCopied] = new String(streamCharBuffer[charsCopied] + "")
+                                .getBytes(charSet)[0];
+                        if (bytesPerChar > 1) {
+                            streamByteBuffer[bytesPerChar * charsCopied
+                                    + 1] = new String(streamCharBuffer[charsCopied] + "").getBytes(charSet)[1];
+                        }
+                    }
+
+                    writeBytes(streamByteBuffer, 0, bytesPerChar * charsToWrite);
                 }
-                writeBytes(streamByteBuffer, 0, charsToWrite);
             } else {
                 bytesToWrite = charsToWrite;
                 if (0 != charsToWrite)

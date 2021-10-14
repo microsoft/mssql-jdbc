@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Column Mapping Test")
 public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
+    private String prcdb = RandomUtil.getIdentifier("BulkCopy_PRC_DB");
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
@@ -374,11 +375,30 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         // Windows only as this test has problems getting dependent H2 package from Maven in Unix
         org.junit.Assume.assumeTrue(isWindows);
 
-        validateMapping("CHAR(5)", "NCHAR(5)", "фщыab");
-        validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+        validateNMapping("CHAR(5)", "NCHAR(5)", "фщыab");
+        validateNMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+    }
+
+    @Tag(Constants.xAzureSQLDW)
+    @Test
+    @DisplayName("BulkCopy:test unicode char/varchar to char/varchar")
+    public void testUnicodeCharToChar() throws SQLException, ClassNotFoundException {
+
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE [" + prcdb + "]");
+            stmt.executeUpdate("ALTER DATABASE " + "[" + prcdb + "]" + " COLLATE Chinese_PRC_CI_AS;");
+
+            validateMapping("CHAR(10)", "CHAR(10)", "测试设计者");
+            validateMapping("CHAR(10)", "VARCHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "CHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "VARCHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "VARCHAR(max)", "测试设计者");
+        } finally {
+            TestUtils.dropDatabaseIfExists(prcdb, connectionString);
+        }
     }
 
     @Tag(Constants.xAzureSQLDW)
@@ -466,7 +486,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         }
     }
 
-    private void validateMapping(String sourceType, String destType,
+    // validate mapping from Char/Varchar to NChar/Varchar types
+    private void validateNMapping(String sourceType, String destType,
             String data) throws SQLException, ClassNotFoundException {
         Class.forName("org.h2.Driver");
         Random rand = new Random();
@@ -475,6 +496,37 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
         try (Connection sourceCon = DriverManager.getConnection("jdbc:h2:~/test", "sa", "");
                 Connection destCon = DriverManager.getConnection(connectionString);
+                Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
+            try {
+                bulkCopy.setDestinationTableName(destTable);
+
+                sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " (col " + sourceType + ");");
+                sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + data + "');");
+
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col NCHAR(5));");
+                ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
+                bulkCopy.writeToServer(sourceRs);
+
+                ResultSet destRs = destStmt.executeQuery("SELECT * FROM " + destTable);
+                destRs.next();
+                String receivedUnicodeData = destRs.getString(1);
+                assertEquals(data, receivedUnicodeData);
+            } finally {
+                sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
+                TestUtils.dropTableIfExists(destTable, destStmt);
+            }
+        }
+    }
+
+    private void validateMapping(String sourceType, String destType,
+            String data) throws SQLException, ClassNotFoundException {
+        Random rand = new Random();
+        String sourceTable = "sourceTable" + rand.nextInt(Integer.MAX_VALUE);
+        String destTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
+        try (Connection sourceCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
+                Connection destCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
                 Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
             try {

@@ -2263,6 +2263,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     reader = new StringReader(colValue.toString());
                                 }
+
                                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                     // writeReader is unicode.
                                     tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
@@ -3367,7 +3368,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (subSecondNanos < 0)
                         subSecondNanos += Nanos.PER_SECOND;
                 }
-                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0, null);
+                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0,
+                        null);
 
             case TIMESTAMP:
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
