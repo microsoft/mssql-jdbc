@@ -71,7 +71,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-import com.microsoft.sqlserver.jdbc.SQLCollation.WindowsLocale;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 
