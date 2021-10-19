@@ -26,7 +26,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -63,6 +62,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
                 bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -104,6 +105,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -149,6 +152,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTableUnicode, destTableUnicode);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(sourceTableUnicode.getEscapedTableName(), (Statement) stmt.product());
                 TestUtils.dropTableIfExists(destTableUnicode.getEscapedTableName(), (Statement) stmt.product());
@@ -214,6 +219,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                     fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
                 }
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(sourceTable1.getEscapedTableName(), (Statement) stmt.product());
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
@@ -255,6 +262,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -362,6 +371,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -396,6 +407,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
             validateMapping("VARCHAR(10)", "CHAR(10)", "测试设计者");
             validateMapping("VARCHAR(10)", "VARCHAR(10)", "测试设计者");
             validateMapping("VARCHAR(10)", "VARCHAR(max)", "测试设计者");
+        } catch (Exception e) {
+            fail(e.getMessage());
         } finally {
             TestUtils.dropDatabaseIfExists(prcdb, connectionString);
         }
@@ -512,6 +525,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 destRs.next();
                 String receivedUnicodeData = destRs.getString(1);
                 assertEquals(data, receivedUnicodeData);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
                 TestUtils.dropTableIfExists(destTable, destStmt);
@@ -543,6 +558,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 destRs.next();
                 String receivedUnicodeData = destRs.getString(1);
                 assertEquals(data, receivedUnicodeData);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
                 TestUtils.dropTableIfExists(destTable, destStmt);
