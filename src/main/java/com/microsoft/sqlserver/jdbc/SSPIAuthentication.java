@@ -143,8 +143,8 @@ abstract class SSPIAuthentication {
         }
 
         // Try to derive realm if not specified in the connection. This might take some time if DNS lookup is slow
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("Deriving realm");
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer("Deriving realm");
         }
 
         String dnsName = m.group(1);
@@ -157,8 +157,7 @@ abstract class SSPIAuthentication {
                 try {
                     String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
                     realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as
-                    // well
+                    // match means hostname is correct (eg if server name was an IP) so override dnsName as well
                     dnsName = canonicalHostName;
                 } catch (UnknownHostException e) {
                     // ignored, cannot canonicalize
@@ -170,13 +169,13 @@ abstract class SSPIAuthentication {
         }
 
         if (null == realm) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("Could not derive realm.");
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Could not derive realm.");
             }
             return spn;
         } else {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("Derived realm: " + realm);
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Derived realm: " + realm);
             }
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
             sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
