@@ -33,7 +33,7 @@ abstract class SSPIAuthentication {
      */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
-    
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SSPIAuthentication");
 
     /**
@@ -141,9 +141,14 @@ abstract class SSPIAuthentication {
             // Realm is already present, no need to enrich, the job has already been done
             return spn;
         }
+
+        // Try to derive realm if not specified in the connection. This might take some time if DNS lookup is slow
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest("Deriving realm");
+        }
+
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        // If realm is not specified in the connection, try to derive it.
         if (null == realm || realm.trim().isEmpty()) {
             RealmValidator realmValidator = getRealmValidator();
             realm = findRealmFromHostname(realmValidator, dnsName);
@@ -152,7 +157,8 @@ abstract class SSPIAuthentication {
                 try {
                     String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
                     realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
+                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as
+                    // well
                     dnsName = canonicalHostName;
                 } catch (UnknownHostException e) {
                     // ignored, cannot canonicalize
@@ -162,9 +168,16 @@ abstract class SSPIAuthentication {
                 }
             }
         }
+
         if (null == realm) {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest("Could not derive realm.");
+            }
             return spn;
         } else {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest("Derived realm: " + realm);
+            }
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
             sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
             return sb.toString();
