@@ -3827,7 +3827,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    public boolean isConnectionDead() throws SQLServerException {
+    boolean isConnectionDead() throws SQLServerException {
         // networkSocketStillConnected would affect perf if called every time. Only run
         // when the connection has not seen recent activity.
         if (!idleNetworkTracker.isIdle()) {

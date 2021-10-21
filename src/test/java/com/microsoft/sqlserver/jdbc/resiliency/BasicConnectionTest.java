@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -128,7 +129,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-    @Test
+    @RepeatedTest(50)
     public void testOpenTransaction() throws SQLException, InterruptedException {
         String tableName = RandomUtil.getIdentifier("resTable");
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
