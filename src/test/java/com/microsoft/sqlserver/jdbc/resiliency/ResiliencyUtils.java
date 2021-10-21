@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -31,6 +32,7 @@ public final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
     public static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public static final int checkRecoveryAliveInterval = 100;
 
     private ResiliencyUtils() {};
 
@@ -228,6 +230,28 @@ public final class ResiliencyUtils {
             Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
         }
     }
+    
+    protected static boolean recoveryThreadAlive(Connection c) {
+        Field fields[] = getConnectionFields(c);
+        for (Field f : fields) {
+            if (f.getName() == "sessionRecovery") {
+                f.setAccessible(true);
+                Object sessionRecovery;
+                try {
+                    sessionRecovery = f.get(c);
+                    Method method = sessionRecovery.getClass().getDeclaredMethod("getReconnectThread");
+                    method.setAccessible(true);
+                    if (method.invoke(sessionRecovery) != null) {
+                        return true;
+                    }
+                    break;
+                } catch (IllegalArgumentException | IllegalAccessException | NoSuchMethodException | SecurityException | InvocationTargetException e) {
+                    Assert.fail("Failed to check recovery thread state: " + e.getMessage());
+                }
+            }
+        }
+        return false;
+    }
 
     protected static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString);
@@ -272,6 +296,8 @@ public final class ResiliencyUtils {
         }
         Assert.fail("Failed to block connection.");
     }
+    
+
 
     protected static Map<String, String> getUserOptions(Connection c) throws SQLException {
         Map<String, String> options = new HashMap<>();

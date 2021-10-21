@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
@@ -127,7 +128,7 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testOpenTransaction() throws SQLException {
+    public void testOpenTransaction() throws SQLException, InterruptedException {
         String tableName = RandomUtil.getIdentifier("resTable");
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
@@ -135,6 +136,9 @@ public class BasicConnectionTest extends AbstractTest {
             c.setAutoCommit(false);
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
             ResiliencyUtils.killConnection(c, connectionString);
+            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
+                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
+            }
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {

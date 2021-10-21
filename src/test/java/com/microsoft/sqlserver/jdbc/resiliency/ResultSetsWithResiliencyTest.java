@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -143,6 +144,9 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
+            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
+                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
+            }
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                     verifyResultSet(rs);
@@ -150,6 +154,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             } else {
                 s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;");
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
