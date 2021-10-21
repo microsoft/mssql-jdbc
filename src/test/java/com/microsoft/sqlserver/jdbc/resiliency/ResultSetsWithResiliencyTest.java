@@ -146,7 +146,11 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
             // Full Buffering against AzureDB are sometimes too slow to disconnect, check first.
-            while (!ResiliencyUtils.recoveryThreadAlive(c) || !ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
+            // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
+            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
+                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
+            }
+            while (!ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
             }
             if (strongReferenceToResultSet) {

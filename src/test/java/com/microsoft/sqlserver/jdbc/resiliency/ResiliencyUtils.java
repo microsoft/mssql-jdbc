@@ -256,18 +256,15 @@ public final class ResiliencyUtils {
     }
     
     protected static boolean isConnectionDead(SQLServerConnection c) {
-        
         try {
             Method method = c.getClass().getSuperclass().getDeclaredMethod("isConnectionDead");
             method.setAccessible(true);
             if ((boolean)method.invoke(c) == true) {
                 return true;
             }
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            // TODO Auto-generated catch block
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        
         return false;
     }
 
