@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -136,7 +137,8 @@ public class BasicConnectionTest extends AbstractTest {
             c.setAutoCommit(false);
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
             ResiliencyUtils.killConnection(c, connectionString);
-            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
+            // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
+            while (!ResiliencyUtils.recoveryThreadAlive(c) || !ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
             }
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
@@ -144,6 +146,8 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException ex) {
                 String message = ex.getMessage();
                 assertEquals(TestResource.getResource("R_crServerSessionStateNotRecoverable"), message);
+                if (!TestResource.getResource("R_crServerSessionStateNotRecoverable").equals(message))
+                    ex.printStackTrace();
             }
         }
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {

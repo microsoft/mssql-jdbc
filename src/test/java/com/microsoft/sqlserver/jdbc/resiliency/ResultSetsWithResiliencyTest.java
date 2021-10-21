@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -144,7 +145,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
-            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
+            // Full Buffering against AzureDB are sometimes too slow to disconnect, check first.
+            while (!ResiliencyUtils.recoveryThreadAlive(c) || !ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
             }
             if (strongReferenceToResultSet) {

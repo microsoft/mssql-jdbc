@@ -23,7 +23,9 @@ import javax.sql.PooledConnection;
 import org.junit.Assert;
 import org.junit.jupiter.api.Tag;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -32,7 +34,7 @@ public final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
     public static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    public static final int checkRecoveryAliveInterval = 100;
+    public static final int checkRecoveryAliveInterval = 500;
 
     private ResiliencyUtils() {};
 
@@ -239,17 +241,30 @@ public final class ResiliencyUtils {
                 Object sessionRecovery;
                 try {
                     sessionRecovery = f.get(c);
-                    Method method = sessionRecovery.getClass().getDeclaredMethod("getReconnectThread");
+                    Method method = sessionRecovery.getClass().getDeclaredMethod("isConnectionRecoveryNegotiated");
                     method.setAccessible(true);
-                    if (method.invoke(sessionRecovery) != null) {
+                    if ((boolean)method.invoke(sessionRecovery) == true) {
                         return true;
                     }
                     break;
-                } catch (IllegalArgumentException | IllegalAccessException | NoSuchMethodException | SecurityException | InvocationTargetException e) {
+                } catch (Exception e) {
                     Assert.fail("Failed to check recovery thread state: " + e.getMessage());
                 }
             }
         }
+        return false;
+    }
+    
+    protected static boolean isConnectionDead(SQLServerConnection c) {
+        
+        try {
+            if (c.isConnectionDead())
+                return true;
+        } catch (SQLServerException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+        
         return false;
     }
 
