@@ -551,7 +551,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " (col " + sourceType + ");");
                 sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + data + "');");
 
-                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col NCHAR(5));");
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col CHAR(10));");
                 ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
                 bulkCopy.writeToServer(sourceRs);
 
