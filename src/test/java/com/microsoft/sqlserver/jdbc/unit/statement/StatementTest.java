@@ -2054,41 +2054,6 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests reusing Statement after being automatically closed via closeOnCompletion().
-         *
-         * @throws Exception
-         */
-        @Test
-        public void testReuseAfterCloseOnCompletion() throws Exception {
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-
-                // enable isCloseOnCompletion
-                try {
-                    stmt.closeOnCompletion();
-                } catch (Exception e) {
-                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-                }
-
-                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT 1")) {
-                    assertNotNull(rs, TestResource.getResource("R_resultsetNull"));
-
-                    try {
-                        // Executing a new command should close the previous ResultSet
-                        // ... and closing the original ResultSet should close the Statement
-                        // ... so this should fail with an error indicating that the Statement is closed.
-                        stmt.executeQuery("SELECT 1");
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                    } catch (SQLException e) {
-                        assertEquals(TestResource.getResource("R_statementClosed"), e.getMessage());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-                    }
-                }
-            }
-        }
-
-        /**
          * Tests closing statement will close resultset
          * 
          * @throws Exception
