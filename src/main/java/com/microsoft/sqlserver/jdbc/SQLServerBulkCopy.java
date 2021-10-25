@@ -2270,13 +2270,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
                                             || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true
-                                                );
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                     } else {
                                         SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
                                         if (null != destCollation) {
-                                            System.out.println("destCollation="+destCollation.getCharset());
-
                                             tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
                                                     false);
                                         } else {
