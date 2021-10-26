@@ -231,7 +231,7 @@ public final class ResiliencyUtils {
             Assert.fail("Failed to setMaxIdleMillis in Connection's idleNetworkTracker: " + e.getMessage());
         }
     }
-    
+
     protected static boolean recoveryThreadAlive(Connection c) {
         Field fields[] = getConnectionFields(c);
         for (Field f : fields) {
@@ -242,7 +242,7 @@ public final class ResiliencyUtils {
                     sessionRecovery = f.get(c);
                     Method method = sessionRecovery.getClass().getDeclaredMethod("isConnectionRecoveryNegotiated");
                     method.setAccessible(true);
-                    if ((boolean)method.invoke(sessionRecovery) == true) {
+                    if ((boolean) method.invoke(sessionRecovery) == true) {
                         return true;
                     }
                     break;
@@ -253,12 +253,12 @@ public final class ResiliencyUtils {
         }
         return false;
     }
-    
+
     protected static boolean isConnectionDead(SQLServerConnection c) {
         try {
             Method method = c.getClass().getSuperclass().getDeclaredMethod("isConnectionDead");
             method.setAccessible(true);
-            if ((boolean)method.invoke(c) == true) {
+            if ((boolean) method.invoke(c) == true) {
                 return true;
             }
         } catch (Exception e) {
@@ -270,20 +270,22 @@ public final class ResiliencyUtils {
     protected static boolean isRecoveryAliveAndConnDead(SQLServerConnection c) {
         int waits = 0;
         try {
-            while (recoveryThreadAlive(c)) {
+            while (!recoveryThreadAlive(c)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-                if (waits++ > 5) return false;
+                if (waits++ > 5)
+                    return false;
             }
-            while (isConnectionDead((SQLServerConnection) c)) {
+            while (!isConnectionDead((SQLServerConnection) c)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-                if (waits++ > 5) return false;
+                if (waits++ > 5)
+                    return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return true;
     }
-    
+
     protected static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString);
     }
@@ -327,8 +329,6 @@ public final class ResiliencyUtils {
         }
         Assert.fail("Failed to block connection.");
     }
-    
-
 
     protected static Map<String, String> getUserOptions(Connection c) throws SQLException {
         Map<String, String> options = new HashMap<>();

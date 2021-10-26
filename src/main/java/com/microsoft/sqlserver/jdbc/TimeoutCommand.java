@@ -37,5 +37,5 @@ abstract class TimeoutCommand<T> {
     /**
      * The implementation for interrupting this timeout command
      */
-    public abstract void interrupt();
+    protected abstract void interrupt();
 }

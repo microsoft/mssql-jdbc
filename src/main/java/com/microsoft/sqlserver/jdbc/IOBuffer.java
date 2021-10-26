@@ -7520,11 +7520,11 @@ final class TDSReader implements Serializable {
  * The tds default implementation of a timeout command
  */
 class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
-    public TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+    protected TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
         super(timeout, command, sqlServerConnection);
     }
 
-    public void interrupt() {
+    protected void interrupt() {
         TDSCommand command = getCommand();
         SQLServerConnection sqlServerConnection = getSqlServerConnection();
         try {

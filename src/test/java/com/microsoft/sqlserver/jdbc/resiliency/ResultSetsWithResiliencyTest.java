@@ -48,7 +48,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      * Execute statement with adaptive buffering on a broken connection.
      */
     @Test
-    public void testAdaptiveBuffering() throws SQLException {
+    public void testAdaptiveBuffering() throws SQLException, InterruptedException {
         verifyResultSetResponseBuffering("adaptive", true);
     }
 
@@ -56,7 +56,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      * Execute statement with full buffering on a broken connection.
      */
     @Test
-    public void testFullBuffering() throws SQLException {
+    public void testFullBuffering() throws SQLException, InterruptedException {
         verifyResultSetResponseBuffering("full", true);
     }
 
@@ -64,7 +64,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      * Execute statement with adaptive buffering and no strong reference to result set.
      */
     @Test
-    public void testAdaptiveBufferingNoStrongReferenceToResultSet() throws SQLException {
+    public void testAdaptiveBufferingNoStrongReferenceToResultSet() throws SQLException, InterruptedException {
         verifyResultSetResponseBuffering("adaptive", false);
     }
 
@@ -72,7 +72,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      * Execute statement with full buffering and no strong reference to result set.
      */
     @Test
-    public void testFullBufferingNoStrongReferenceToResultSet() throws SQLException {
+    public void testFullBufferingNoStrongReferenceToResultSet() throws SQLException, InterruptedException {
         verifyResultSetResponseBuffering("full", false);
     }
 
@@ -141,18 +141,13 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     }
 
     private void verifyResultSetResponseBuffering(String responseBuffering,
-            boolean strongReferenceToResultSet) throws SQLException {
+            boolean strongReferenceToResultSet) throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
             // Full Buffering against AzureDB are sometimes too slow to disconnect, check first.
             // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
-            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
-                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-            }
-            while (!ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
-                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-            }
+            ResiliencyUtils.isRecoveryAliveAndConnDead((SQLServerConnection) c);
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                     verifyResultSet(rs);
@@ -160,8 +155,6 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             } else {
                 s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;");
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 
