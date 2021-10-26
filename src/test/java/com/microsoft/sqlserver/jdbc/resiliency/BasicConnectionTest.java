@@ -138,12 +138,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
             ResiliencyUtils.killConnection(c, connectionString);
             // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
-            while (!ResiliencyUtils.recoveryThreadAlive(c)) {
-                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-            }
-            while (!ResiliencyUtils.isConnectionDead((SQLServerConnection) c)) {
-                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
-            }
+            ResiliencyUtils.isRecoveryAliveAndConnDead((SQLServerConnection)c);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {

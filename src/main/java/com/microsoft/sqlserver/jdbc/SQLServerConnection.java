@@ -387,18 +387,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private int maxIdleMillis = 15000;
 
         /** Has it been more than maxIdleMillis since network activity has been marked */
-        public boolean isIdle() {
+        private boolean isIdle() {
             boolean ret = Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
             return ret;
         }
 
         /** Mark network activity now */
-        public void markNetworkActivity() {
+        protected void markNetworkActivity() {
             lastNetworkActivity = Instant.now();
         }
 
         /** Set max idle time in milliseconds */
-        public void setMaxIdleMillis(int millis) {
+        protected void setMaxIdleMillis(int millis) {
             maxIdleMillis = millis;
         }
     }

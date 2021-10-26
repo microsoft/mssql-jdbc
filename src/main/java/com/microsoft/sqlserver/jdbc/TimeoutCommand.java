@@ -21,16 +21,16 @@ abstract class TimeoutCommand<T> {
         this.startTime = System.currentTimeMillis();
     }
 
-    public boolean canTimeout() {
+    protected boolean canTimeout() {
         long currentTime = System.currentTimeMillis();
         return ((currentTime - startTime) / 1000) >= timeout;
     }
 
-    public T getCommand() {
+    protected T getCommand() {
         return command;
     }
 
-    public SQLServerConnection getSqlServerConnection() {
+    protected SQLServerConnection getSqlServerConnection() {
         return sqlServerConnection;
     }
 

@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -17,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -268,6 +267,23 @@ public final class ResiliencyUtils {
         return false;
     }
 
+    protected static boolean isRecoveryAliveAndConnDead(SQLServerConnection c) {
+        int waits = 0;
+        try {
+            while (recoveryThreadAlive(c)) {
+                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
+                if (waits++ > 5) return false;
+            }
+            while (isConnectionDead((SQLServerConnection) c)) {
+                TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
+                if (waits++ > 5) return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+    
     protected static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString);
     }
