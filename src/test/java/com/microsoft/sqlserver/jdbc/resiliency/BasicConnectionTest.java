@@ -14,7 +14,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
@@ -22,7 +21,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -138,7 +136,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
             ResiliencyUtils.killConnection(c, connectionString);
             // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
-            ResiliencyUtils.isRecoveryAliveAndConnDead((SQLServerConnection) c);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {
@@ -242,6 +240,8 @@ public class BasicConnectionTest extends AbstractTest {
             try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
                 ResiliencyUtils.killConnection(c1, connectionString);
                 ResiliencyUtils.minimizeIdleNetworkTracker(c1);
+                // Sometimes connects drop too slowly when testing against Azure SQL DB, so we need to ensure it has already been dropped.
+                ResiliencyUtils.isRecoveryAliveAndConnDead(c1);
                 rs = s1.executeQuery("SELECT @@LANGUAGE;");
                 while (rs.next())
                     lang1 = rs.getString(1);
@@ -252,7 +252,9 @@ public class BasicConnectionTest extends AbstractTest {
                 rs.close();
             }
         } catch (SQLException e) {
-            fail(e.getMessage());
+            e.printStackTrace();
+            fail(e.toString());
+
         }
     }
 

@@ -267,15 +267,31 @@ public final class ResiliencyUtils {
         return false;
     }
 
-    protected static boolean isRecoveryAliveAndConnDead(SQLServerConnection c) {
+    protected static boolean isRecoveryAliveAndConnDead(Connection c) {
+        Connection conn = c;
+        // See if we were handed a pooled connection
+        for (Field f : c.getClass().getDeclaredFields()) {
+            if (f.getName() == "wrappedConnection") {
+                f.setAccessible(true);
+                try {
+                    conn = (Connection) f.get(c);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
+        
+        SQLServerConnection sqlc = (SQLServerConnection) conn;
         int waits = 0;
         try {
-            while (!recoveryThreadAlive(c)) {
+            while (!recoveryThreadAlive(sqlc)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
                 if (waits++ > 5)
                     return false;
             }
-            while (!isConnectionDead((SQLServerConnection) c)) {
+            while (!isConnectionDead((SQLServerConnection) sqlc)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
                 if (waits++ > 5)
                     return false;
