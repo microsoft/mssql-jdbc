@@ -267,6 +267,13 @@ public final class ResiliencyUtils {
         return false;
     }
 
+    /**
+     * Since we are using reflection to the IdleNetworkTracker to immediately deem a connection idle, 
+     * in certain scenarios  (ie testing against Azure SQL DB), it takes too long for the connection to drop from the server side after sending a kill connection command.
+     * This method checks to make sure the recovery thread exists and the connection has died before proceeding.
+     * @param c Connection
+     * @return True if recovery thread was started and connection is dead, false if timeout
+     */
     protected static boolean isRecoveryAliveAndConnDead(Connection c) {
         Connection conn = c;
         // See if we were handed a pooled connection

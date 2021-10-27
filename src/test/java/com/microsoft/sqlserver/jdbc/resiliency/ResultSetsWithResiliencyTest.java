@@ -145,8 +145,6 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
-            // Full Buffering against AzureDB are sometimes too slow to disconnect, check first.
-            // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
             ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {

@@ -116,6 +116,7 @@ public class BasicConnectionTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             s.execute("SET LANGUAGE " + expectedLanguage);
             ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             try (ResultSet rs = s.executeQuery("SELECT @@LANGUAGE")) {
                 while (rs.next()) {
                     actualLanguage = rs.getString(1);
@@ -135,7 +136,6 @@ public class BasicConnectionTest extends AbstractTest {
             c.setAutoCommit(false);
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
             ResiliencyUtils.killConnection(c, connectionString);
-            // Open Transactions against AzureDB are sometimes too slow to disconnect, check first.
             ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
@@ -158,6 +158,7 @@ public class BasicConnectionTest extends AbstractTest {
             try (ResultSet rs = s.executeQuery("select top 100000 * from sys.columns cross join sys.columns as c2")) {
                 rs.next();
                 ResiliencyUtils.killConnection(sessionId, connectionString);
+                ResiliencyUtils.isRecoveryAliveAndConnDead(c);
                 s.execute("SELECT 1");
                 fail("Connection resiliency should not have reconnected with open results!");
             } catch (SQLException ex) {
@@ -179,6 +180,7 @@ public class BasicConnectionTest extends AbstractTest {
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -212,6 +214,7 @@ public class BasicConnectionTest extends AbstractTest {
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             rs = s1.executeQuery("SELECT db_name();");
             while (rs.next()) {
                 resultDBName = rs.getString(1);
@@ -240,7 +243,6 @@ public class BasicConnectionTest extends AbstractTest {
             try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
                 ResiliencyUtils.killConnection(c1, connectionString);
                 ResiliencyUtils.minimizeIdleNetworkTracker(c1);
-                // Sometimes connects drop too slowly when testing against Azure SQL DB, so we need to ensure it has already been dropped.
                 ResiliencyUtils.isRecoveryAliveAndConnDead(c1);
                 rs = s1.executeQuery("SELECT @@LANGUAGE;");
                 while (rs.next())
@@ -262,6 +264,7 @@ public class BasicConnectionTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.isRecoveryAliveAndConnDead(c);
                 s.executeQuery("SELECT 1");
             }
         }
