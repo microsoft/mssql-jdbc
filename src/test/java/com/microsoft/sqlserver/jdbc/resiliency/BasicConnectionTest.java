@@ -167,6 +167,8 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException ex) {
                 String message = ex.getMessage();
                 assertEquals(TestResource.getResource("R_connectionIsClosed"), message);
+                if (!TestResource.getResource("R_connectionIsClosed").equals(message))
+                    ex.printStackTrace();
             }
         }
     }
