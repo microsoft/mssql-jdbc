@@ -146,7 +146,7 @@ public class BasicConnectionTest extends AbstractTest {
                 String message = ex.getMessage();
                 assertEquals(TestResource.getResource("R_crServerSessionStateNotRecoverable"), message);
                 if (!TestResource.getResource("R_crServerSessionStateNotRecoverable").equals(message))
-                    ex.printStackTrace();
+                    
             }
         }
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
@@ -166,9 +166,8 @@ public class BasicConnectionTest extends AbstractTest {
                 fail("Connection resiliency should not have reconnected with open results!");
             } catch (SQLException ex) {
                 String message = ex.getMessage();
+                ex.printStackTrace();
                 assertEquals(TestResource.getResource("R_connectionIsClosed"), message);
-                if (!TestResource.getResource("R_connectionIsClosed").equals(message))
-                    ex.printStackTrace();
             }
         }
     }
