@@ -146,7 +146,7 @@ public class BasicConnectionTest extends AbstractTest {
                 String message = ex.getMessage();
                 assertEquals(TestResource.getResource("R_crServerSessionStateNotRecoverable"), message);
                 if (!TestResource.getResource("R_crServerSessionStateNotRecoverable").equals(message))
-                    
+                    ex.printStackTrace();
             }
         }
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
