@@ -2286,12 +2286,13 @@ final class TDSChannel implements Serializable {
         try {
             synchronized (inputStream) {
                 con.idleNetworkTracker.markNetworkActivity();
+                System.out.println("xdbug: reached TDSChannel.read");
                 return inputStream.read(data, offset, length);
             }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
-
+            
             if (e instanceof SocketTimeoutException) {
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             } else {
