@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
@@ -155,12 +156,13 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testOpenResultSets() throws SQLException {
+    public void testOpenResultSets() throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("select top 100000 * from sys.columns cross join sys.columns as c2")) {
                 rs.next();
                 ResiliencyUtils.killConnection(sessionId, connectionString);
+                TimeUnit.MILLISECONDS.sleep(1000);
                 ResiliencyUtils.isRecoveryAliveAndConnDead(c);
                 s.execute("SELECT 1");
                 fail("Connection resiliency should not have reconnected with open results!");
