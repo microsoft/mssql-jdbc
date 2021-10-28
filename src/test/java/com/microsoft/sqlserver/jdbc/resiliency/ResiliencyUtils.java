@@ -29,11 +29,11 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
-public final class ResiliencyUtils {
+final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
-    public static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    public static final int checkRecoveryAliveInterval = 500;
+    static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static final int checkRecoveryAliveInterval = 500;
 
     private ResiliencyUtils() {};
 
@@ -173,7 +173,7 @@ public final class ResiliencyUtils {
             }
         }
 
-        public void setProperties(Connection c, String cString) {
+        protected void setProperties(Connection c, String cString) {
             this.c = c;
             this.cString = cString;
         }
@@ -183,7 +183,7 @@ public final class ResiliencyUtils {
         }
     }
 
-    protected static Connection getPooledConnection(String connectionString) throws SQLException {
+    static Connection getPooledConnection(String connectionString) throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
@@ -193,13 +193,13 @@ public final class ResiliencyUtils {
         return c;
     }
 
-    protected static Connection getConnection(String connectionString) throws SQLException {
+    static Connection getConnection(String connectionString) throws SQLException {
         Connection c = DriverManager.getConnection(connectionString);
         minimizeIdleNetworkTracker(c);
         return c;
     }
 
-    protected static void minimizeIdleNetworkTracker(Connection c) {
+    static void minimizeIdleNetworkTracker(Connection c) {
         try {
             Connection conn = c;
 
@@ -232,7 +232,7 @@ public final class ResiliencyUtils {
         }
     }
 
-    protected static boolean recoveryThreadAlive(Connection c) {
+    static boolean recoveryThreadAlive(Connection c) {
         Field fields[] = getConnectionFields(c);
         for (Field f : fields) {
             if (f.getName() == "sessionRecovery") {
@@ -254,7 +254,7 @@ public final class ResiliencyUtils {
         return false;
     }
 
-    protected static boolean isConnectionDead(SQLServerConnection c) {
+    static boolean isConnectionDead(SQLServerConnection c) {
         try {
             Method method = c.getClass().getSuperclass().getDeclaredMethod("isConnectionDead");
             method.setAccessible(true);
@@ -274,7 +274,7 @@ public final class ResiliencyUtils {
      * @param c Connection
      * @return True if recovery thread was started and connection is dead, false if timeout
      */
-    protected static boolean isRecoveryAliveAndConnDead(Connection c) {
+    static boolean isRecoveryAliveAndConnDead(Connection c) {
         Connection conn = c;
         // See if we were handed a pooled connection
         for (Field f : c.getClass().getDeclaredFields()) {
@@ -283,7 +283,6 @@ public final class ResiliencyUtils {
                 try {
                     conn = (Connection) f.get(c);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
                 break;
@@ -309,11 +308,11 @@ public final class ResiliencyUtils {
         return true;
     }
 
-    protected static void killConnection(Connection c, String cString) throws SQLException {
+    static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString);
     }
 
-    protected static int getSessionId(Connection c) throws SQLException {
+    static int getSessionId(Connection c) throws SQLException {
         int sessionID = 0;
         try (Statement s = c.createStatement()) {
             try (ResultSet rs = s.executeQuery("SELECT @@SPID")) {
@@ -325,7 +324,7 @@ public final class ResiliencyUtils {
         return sessionID;
     }
 
-    protected static void killConnection(int sessionID, String cString) throws SQLException {
+    static void killConnection(int sessionID, String cString) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
                 s.execute("KILL " + sessionID);
@@ -334,7 +333,7 @@ public final class ResiliencyUtils {
     }
 
     // uses reflection to "corrupt" a Connection's server target
-    protected static void blockConnection(Connection c) throws SQLException {
+    static void blockConnection(Connection c) throws SQLException {
         Field fields[] = getConnectionFields(c);
         for (Field f : fields) {
             if (f.getName() == "activeConnectionProperties" && Properties.class == f.getType()) {
@@ -353,7 +352,7 @@ public final class ResiliencyUtils {
         Assert.fail("Failed to block connection.");
     }
 
-    protected static Map<String, String> getUserOptions(Connection c) throws SQLException {
+    static Map<String, String> getUserOptions(Connection c) throws SQLException {
         Map<String, String> options = new HashMap<>();
         try (Statement stmt = c.createStatement()) {
             try (ResultSet rs = stmt.executeQuery("DBCC USEROPTIONS")) {
@@ -367,7 +366,7 @@ public final class ResiliencyUtils {
         return options;
     }
 
-    protected static void toggleRandomProperties(Connection c) throws SQLException {
+    static void toggleRandomProperties(Connection c) throws SQLException {
         try (Statement stmt = c.createStatement()) {
             for (USER_OPTIONS uo : USER_OPTIONS.values()) {
                 stmt.execute("SET " + uo.toString() + " " + uo.getValue());
@@ -375,11 +374,11 @@ public final class ResiliencyUtils {
         }
     }
 
-    protected static int getRandomInt(int min, int max) {
+    static int getRandomInt(int min, int max) {
         return ThreadLocalRandom.current().nextInt(min, max);
     }
 
-    protected static String getRandomString(String pool, int length) {
+    static String getRandomString(String pool, int length) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
             sb.append(String.valueOf(pool.charAt(getRandomInt(0, pool.length()))));
@@ -387,7 +386,7 @@ public final class ResiliencyUtils {
         return sb.toString();
     }
 
-    protected static String setConnectionProps(String base, Map<String, String> props) {
+    static String setConnectionProps(String base, Map<String, String> props) {
         StringBuilder sb = new StringBuilder();
         sb.append(base);
         props.forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
@@ -402,7 +401,7 @@ public final class ResiliencyUtils {
      *        connection class that implements ISQLServerConnection
      * @return declared fields for Connection class
      */
-    private static Field[] getConnectionFields(Connection c) {
+    static Field[] getConnectionFields(Connection c) {
         Class<? extends Connection> cls = c.getClass();
         // SQLServerConnection43 is returned for Java >=9 so need to get super class
         if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {

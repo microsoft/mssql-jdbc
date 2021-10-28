@@ -838,32 +838,6 @@ final class TDSChannel implements Serializable {
             logger.finer(toString() + " SSL disabled");
     }
 
-    boolean checkConnected() throws SQLServerException {
-        int originalTimeout = 0;
-        try {
-            originalTimeout = tcpSocket.getSoTimeout();
-            tcpSocket.setSoTimeout(1);
-        } catch (SocketException e) {
-            return false;
-        }
-        try {
-            tcpSocket.getInputStream().read(new byte[1], 0, 1);
-            SQLServerException.makeFromDriverError(con, this, "", null, true);
-            // Keeping the compiler happy for now.
-            return true;
-        } catch (SocketTimeoutException ste) {
-            return true;
-        } catch (IOException e) {
-            return false;
-        } finally {
-            try {
-                tcpSocket.setSoTimeout(originalTimeout);
-            } catch (SocketException e) {
-
-            }
-        }
-    }
-
     /**
      * Used during SSL handshake, this class implements an InputStream that reads SSL handshake response data (framed in
      * TDS messages) from the TDS channel.
@@ -1069,7 +1043,7 @@ final class TDSChannel implements Serializable {
         /**
          * Bytes that have been read by a poll(s).
          */
-        private int cachedBytes[] = new int[10];;
+        private int[] cachedBytes = new int[10];;
 
         /**
          * How many bytes have been cached.
@@ -1113,7 +1087,7 @@ final class TDSChannel implements Serializable {
                 // if we got here, a byte was read and we need to save it
                 // Increase the size of the cache, if needed (should be very rare).
                 if (cachedBytes.length <= cachedLength) {
-                    int temp[] = new int[cachedBytes.length + 10];
+                    int[] temp = new int[cachedBytes.length + 10];
                     for (int i = 0; i < cachedBytes.length; i++) {
                         temp[i] = cachedBytes[i];
                     }
@@ -2264,7 +2238,7 @@ final class TDSChannel implements Serializable {
     }
 
     final Boolean networkSocketStillConnected() {
-        int origSoTimeout = 50;
+        int origSoTimeout;
         synchronized (inputStream) {
             synchronized (outputStream) {
                 if (logger.isLoggable(Level.FINEST)) {

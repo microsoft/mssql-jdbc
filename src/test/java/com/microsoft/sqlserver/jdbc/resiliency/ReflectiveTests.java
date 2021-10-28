@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -47,7 +48,7 @@ public class ReflectiveTests extends AbstractTest {
                 assertTrue("Query did not timeout in " + expectedDuration + "ms, elapsed time(ms): " + elapsedTime,
                         elapsedTime < expectedDuration);
                 if (expectedErrMsg.isPresent()) {
-                    assertTrue("Unexpected Error Message recieved: " + e.getMessage(),
+                    assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(),
                             e.getMessage().matches(TestUtils.formatErrorMsg(expectedErrMsg.get())));
                 }
             }
@@ -155,7 +156,7 @@ public class ReflectiveTests extends AbstractTest {
                             .getDeclaredMethod("isConnectionRecoveryNegotiated");
                     method.setAccessible(true);
                     boolean b = (boolean) method.invoke(sessionRecoveryFeature);
-                    assertTrue("Session Recovery recieved when not negotiated", !b);
+                    assertTrue("Session Recovery received when not negotiated", !b);
                 }
             }
         }

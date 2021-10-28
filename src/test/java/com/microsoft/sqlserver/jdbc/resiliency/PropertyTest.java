@@ -16,6 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -32,10 +33,10 @@ public class PropertyTest extends AbstractTest {
             try (Statement s = c.createStatement()) {
                 ResiliencyUtils.killConnection(c, connectionString);
                 s.executeQuery("SELECT 1");
-                fail("No exception caught when " + prop + "=" + val);
+                fail(TestResource.getResource("R_expectedExceptionNotThrown") + prop + "=" + val);
             }
         } catch (SQLException e) {
-            assertTrue("Unexpected Error Caught: " + e.getMessage(), e.getMessage().matches(expectedErrMsg));
+            assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(), e.getMessage().matches(expectedErrMsg));
         }
     }
 

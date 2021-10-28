@@ -50,12 +50,15 @@ public class BasicConnectionTest extends AbstractTest {
                 s.executeQuery("SELECT 1");
                 fail("Query execution did not throw an exception on a closed execution");
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("The connection is closed."));
+                String message = e.getMessage();
+                assertEquals(TestResource.getResource("R_connectionIsClosed"), message);
             }
         }
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
+    @Tag(Constants.xAzureSQLDW)
     public void testCatalog() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -66,7 +69,6 @@ public class BasicConnectionTest extends AbstractTest {
             try {
                 c.setCatalog(expectedDatabaseName);
             } catch (SQLException e) {
-                // Switching databases is not supported against Azure, skip/
                 return;
             }
             ResiliencyUtils.killConnection(c, connectionString);
@@ -83,6 +85,8 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
+    @Tag(Constants.xAzureSQLDW)
     public void testUseDb() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -93,7 +97,6 @@ public class BasicConnectionTest extends AbstractTest {
             try {
                 s.execute("USE [" + expectedDatabaseName + "]");
             } catch (SQLException e) {
-                // Switching databases is not supported against Azure, skip/
                 return;
             }
             ResiliencyUtils.killConnection(c, connectionString);
@@ -128,7 +131,7 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testOpenTransaction() throws SQLException, InterruptedException {
+    public void testOpenTransaction() throws SQLException {
         String tableName = RandomUtil.getIdentifier("resTable");
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
@@ -180,7 +183,7 @@ public class BasicConnectionTest extends AbstractTest {
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
-            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c1);
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -188,6 +191,8 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
+    @Tag(Constants.xAzureSQLDW)
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -206,7 +211,6 @@ public class BasicConnectionTest extends AbstractTest {
             try {
                 s.execute("USE [" + newDBName + "]");
             } catch (SQLException e) {
-                // Switching databases is not supported against Azure, skip/
                 return;
             }
             c.close();
@@ -214,7 +218,7 @@ public class BasicConnectionTest extends AbstractTest {
             Statement s1 = c1.createStatement();
             ResiliencyUtils.killConnection(c1, connectionString);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
-            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
+            ResiliencyUtils.isRecoveryAliveAndConnDead(c1);
             rs = s1.executeQuery("SELECT db_name();");
             while (rs.next()) {
                 resultDBName = rs.getString(1);
