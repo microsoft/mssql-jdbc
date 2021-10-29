@@ -2286,7 +2286,6 @@ final class TDSChannel implements Serializable {
         try {
             synchronized (inputStream) {
                 con.idleNetworkTracker.markNetworkActivity();
-                System.out.println("xdbug: reached TDSChannel.read");
                 return inputStream.read(data, offset, length);
             }
         } catch (IOException e) {
