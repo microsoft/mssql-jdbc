@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -14,7 +13,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.TimeUnit;
 
 import javax.sql.PooledConnection;
 
@@ -84,7 +82,7 @@ public class BasicConnectionTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
         }
     }
-
+    
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
     @Tag(Constants.xAzureSQLDW)
@@ -162,7 +160,6 @@ public class BasicConnectionTest extends AbstractTest {
             try (ResultSet rs = s.executeQuery("select top 100000 * from sys.columns cross join sys.columns as c2")) {
                 rs.next();
                 ResiliencyUtils.killConnection(sessionId, connectionString);
-                TimeUnit.MILLISECONDS.sleep(1000);
                 ResiliencyUtils.isRecoveryAliveAndConnDead(c);
                 s.execute("SELECT 1");
                 fail("Connection resiliency should not have reconnected with open results!");

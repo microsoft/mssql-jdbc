@@ -323,11 +323,41 @@ final class ResiliencyUtils {
         }
         return sessionID;
     }
+    
+    private static boolean isAzureSQLDW(Connection c) {
+        Connection conn = c;
+        // See if we were handed a pooled connection
+        for (Field f : c.getClass().getDeclaredFields()) {
+            if (f.getName() == "wrappedConnection") {
+                f.setAccessible(true);
+                try {
+                    conn = (Connection) f.get(c);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
+        SQLServerConnection sqlc = (SQLServerConnection) conn;
+        try {
+            Method method = sqlc.getClass().getSuperclass().getDeclaredMethod("isAzureDW");
+            method.setAccessible(true);
+            if ((boolean) method.invoke(c) == true) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
     static void killConnection(int sessionID, String cString) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
-                s.execute("KILL " + sessionID);
+                if(isAzureSQLDW(c2)) // AzureSQLDW and Synapse uses different syntax
+                    s.execute("KILL '" + sessionID + "'");
+                else
+                    s.execute("KILL " + sessionID);
             }
         }
     }
