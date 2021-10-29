@@ -150,8 +150,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (null != lastStmtExecCmd && !bIsClosed) {
             lastStmtExecCmd.close();
             lastStmtExecCmd = null;
-        } else {
-            System.out.println("xdbug: dicardLastExecutionResults(): lastStmtExecCmd.close() not called");
         }
 
         clearLastResult();
