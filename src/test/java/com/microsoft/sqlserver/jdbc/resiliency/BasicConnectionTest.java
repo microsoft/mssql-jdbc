@@ -157,7 +157,7 @@ public class BasicConnectionTest extends AbstractTest {
     public void testOpenResultSets() throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
-            try (ResultSet rs = s.executeQuery("select top 100000 * from sys.columns cross join sys.columns as c2")) {
+            try (ResultSet rs = s.executeQuery("select top 2 * from sys.columns cross join sys.columns as c2")) {
                 rs.next();
                 ResiliencyUtils.killConnection(sessionId, connectionString);
                 ResiliencyUtils.isRecoveryAliveAndConnDead(c);
