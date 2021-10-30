@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.logging.LogManager;
 
 import static org.junit.Assert.fail;
 
@@ -65,6 +66,9 @@ public class MaxResultBufferTest extends AbstractTest {
      */
     @BeforeAll
     static void createAndPopulateNCharTestTable() throws SQLException {
+        // reset logging to avoid severe logs triggered from tests
+        LogManager.getLogManager().reset();
+        
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME) + " VALUES (?)";
         int numberOfRows = 800;
         int precision = 10;
@@ -246,10 +250,7 @@ public class MaxResultBufferTest extends AbstractTest {
     }
 
     private static Iterable<Object[]> preparedStatementData() {
-        return Arrays.asList(new Object[][] {
-                {"20k", true},
-                {"20k", false},
-        });
+        return Arrays.asList(new Object[][] {{"20k", true}, {"20k", false},});
     }
 
     /**
@@ -274,21 +275,15 @@ public class MaxResultBufferTest extends AbstractTest {
     private static Iterable<Object[]> preparedStatementDataThrowsSQLException() {
         return Arrays.asList(new Object[][] {
                 // maxResultBuffer set to 3k
-                {"3k", true},
-                {"3k", false},
+                {"3k", true}, {"3k", false},
                 // maxResultBuffer set to 5k
-                {"5k", true},
-                {"5k", false},
+                {"5k", true}, {"5k", false},
                 // maxResultBuffer set to 10k
-                {"10k", true},
-                {"10k", false},
+                {"10k", true}, {"10k", false},
                 // maxResultBuffer set to 15k
-                {"15k", true},
-                {"15k", false},
+                {"15k", true}, {"15k", false},
                 // maxResultBuffer set to 17k
-                {"17k", true},
-                {"17k", false},
-        });
+                {"17k", true}, {"17k", false},});
     }
 
     /**
@@ -313,12 +308,7 @@ public class MaxResultBufferTest extends AbstractTest {
     }
 
     private static Iterable<Object[]> twoQueriesData() {
-        return Arrays.asList(new Object[][] {
-                {"10k", true},
-                {"15k", true},
-                {"17k", true},
-                {"20k", true},
-        });
+        return Arrays.asList(new Object[][] {{"10k", true}, {"15k", true}, {"17k", true}, {"20k", true},});
     }
 
     /**
@@ -342,11 +332,9 @@ public class MaxResultBufferTest extends AbstractTest {
     private static Iterable<Object[]> twoQueriesDataThrowsSQLException() {
         return Arrays.asList(new Object[][] {
                 // maxResultBuffer set to 3k
-                {"3k", true},
-                {"3k", false},
+                {"3k", true}, {"3k", false},
                 // maxResultBuffer set to 5k
-                {"5k", true},
-                {"5k", false},
+                {"5k", true}, {"5k", false},
                 // maxResultBuffer set to 10k
                 {"10k", false},
                 // maxResultBuffer set to 15k
@@ -354,8 +342,7 @@ public class MaxResultBufferTest extends AbstractTest {
                 // maxResultBuffer set to 17k
                 {"17k", false},
                 // maxResultBuffer set to 20k
-                {"20k", false},
-        });
+                {"20k", false},});
     }
 
     /**
