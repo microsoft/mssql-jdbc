@@ -154,19 +154,16 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testOpenResultSets() throws SQLException, InterruptedException {
+    public void testOpenResultSetShouldBeCleanedUp() throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
-            try (ResultSet rs = s.executeQuery("select top 2 * from sys.columns cross join sys.columns as c2")) {
+            try (ResultSet rs = s.executeQuery("select 2")) {
                 rs.next();
                 ResiliencyUtils.killConnection(sessionId, connectionString);
                 ResiliencyUtils.isRecoveryAliveAndConnDead(c);
-                s.execute("SELECT 1");
-                fail("Connection resiliency should not have reconnected with open results!");
             } catch (SQLException ex) {
-                String message = ex.getMessage();
                 ex.printStackTrace();
-                assertEquals(TestResource.getResource("R_connectionIsClosed"), message);
+                fail("Connection failed to clean up open resultset.");
             }
         }
     }

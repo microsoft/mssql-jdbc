@@ -31,7 +31,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xSQLv11)
 public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = "[" + RandomUtil.getIdentifier("resTable") + "]";
-    static int numberOfRows = 10000;
+    static int numberOfRows = 10;
 
     @BeforeAll
     public static void setUp() throws SQLException {
