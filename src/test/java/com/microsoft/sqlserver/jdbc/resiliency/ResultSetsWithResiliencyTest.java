@@ -92,6 +92,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail();
             }
         } catch (SQLServerException e) {
+            e.printStackTrace();
             assertEquals(TestResource.getResource("R_crClientUnrecoverable"), e.getMessage());
         }
     }
