@@ -143,7 +143,6 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString);
-            ResiliencyUtils.isRecoveryAliveAndConnDead(c);
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                     verifyResultSet(rs);

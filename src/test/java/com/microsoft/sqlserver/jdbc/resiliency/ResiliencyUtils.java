@@ -308,10 +308,6 @@ final class ResiliencyUtils {
         return true;
     }
 
-    static void killConnection(Connection c, String cString) throws SQLException {
-        killConnection(getSessionId(c), cString);
-    }
-
     static int getSessionId(Connection c) throws SQLException {
         int sessionID = 0;
         try (Statement s = c.createStatement()) {
@@ -349,6 +345,11 @@ final class ResiliencyUtils {
             e.printStackTrace();
         }
         return false;
+    }
+    
+    static void killConnection(Connection c, String cString) throws SQLException {
+        killConnection(getSessionId(c), cString);
+        isRecoveryAliveAndConnDead(c);
     }
 
     static void killConnection(int sessionID, String cString) throws SQLException {
