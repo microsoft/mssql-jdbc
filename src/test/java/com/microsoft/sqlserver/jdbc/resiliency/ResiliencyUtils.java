@@ -323,7 +323,7 @@ final class ResiliencyUtils {
     private static boolean isAzureSQLDW(Connection c) {
         Connection conn = c;
         // See if we were handed a pooled connection
-        for (Field f : c.getClass().getDeclaredFields()) {
+        for (Field f : getConnectionFields(conn)) {
             if (f.getName() == "wrappedConnection") {
                 f.setAccessible(true);
                 try {
