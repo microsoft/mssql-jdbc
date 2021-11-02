@@ -3,10 +3,7 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre16 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre16
- * jre11 - - PS> gradle build -PbuildProfile=jre11
- * jre8  - - PS> gradle build -PbuildProfile=jre8
+ * jreXX - - PS> gradle build -PbuildProfile=jreXX
  *
  * For Excluding Groups in command line:
  * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
@@ -35,17 +32,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre16")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre17")){
 	
-	jreVersion = "jre16"
+	jreVersion = "jre17"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 16
-	targetCompatibility = 16
+	sourceCompatibility = 17
+	targetCompatibility = 17
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
