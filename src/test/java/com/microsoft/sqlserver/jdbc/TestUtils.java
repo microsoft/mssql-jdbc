@@ -479,7 +479,6 @@ public final class TestUtils {
         return sb.toString();
     }
 
-    
     /**
      * 
      * @param b

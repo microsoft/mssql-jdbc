@@ -411,7 +411,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     class StmtExecOutParamHandler extends TDSTokenHandler {
         SQLServerStatement statement;
-        StmtExecOutParamHandler(SQLServerStatement statement) {            
+        StmtExecOutParamHandler(SQLServerStatement statement) {
             super("StmtExecOutParamHandler");
             this.statement = statement;
         }
@@ -1322,6 +1322,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final void processExecuteResults() throws SQLServerException {
         if (wasExecuted()) {
             processBatch();
+            checkClosed(); // processBatch could have resulted in a closed connection if isCloseOnCompletion is set
             TDSParser.parse(resultsReader(), "batch completion");
             ensureExecuteResultsReader(null);
         }
