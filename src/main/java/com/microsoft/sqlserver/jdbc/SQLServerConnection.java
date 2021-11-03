@@ -403,8 +403,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    /** Keeps track of network idle status */
     IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
 
+    /** Public getter for network idle status tracker */
     public IdleNetworkTracker getIdleNetworkTracker() {
         return idleNetworkTracker;
     }
@@ -859,6 +861,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    /** Session Recovery Object */
     private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
 
     SessionRecoveryFeature getSessionRecovery() {
@@ -1333,6 +1336,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** This is the catalog immediately after login. */
     private String originalCatalog = "master";
 
+    /** This is the current language */
     private String sLanguage = "us_english";
 
     /** transaction isolation level */

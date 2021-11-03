@@ -155,8 +155,7 @@ public class ReflectiveTests extends AbstractTest {
                     Method method = sessionRecoveryFeature.getClass()
                             .getDeclaredMethod("isConnectionRecoveryNegotiated");
                     method.setAccessible(true);
-                    boolean b = (boolean) method.invoke(sessionRecoveryFeature);
-                    assertTrue("Session Recovery received when not negotiated", !b);
+                    assertTrue("Session Recovery received when not negotiated", !(boolean) method.invoke(sessionRecoveryFeature));
                 }
             }
         }

@@ -89,10 +89,9 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString);
                 // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail();
+                fail("Driver should not have succesfully reconnected but it did.");
             }
         } catch (SQLServerException e) {
-            e.printStackTrace();
             assertEquals(TestResource.getResource("R_crClientUnrecoverable"), e.getMessage());
         }
     }
@@ -110,7 +109,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString);
                 // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail();
+                fail("Driver should not have succesfully reconnected but it did.");
             }
         } catch (SQLServerException e) {
             assertTrue("08S01" == e.getSQLState()
