@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -140,10 +141,7 @@ public class BasicConnectionTest extends AbstractTest {
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {
-                String message = ex.getMessage();
-                assertEquals(TestResource.getResource("R_crServerSessionStateNotRecoverable"), message);
-                if (!TestResource.getResource("R_crServerSessionStateNotRecoverable").equals(message))
-                    ex.printStackTrace();
+                assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_crServerSessionStateNotRecoverable")));
             }
         }
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {

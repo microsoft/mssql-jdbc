@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -92,7 +91,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail("Driver should not have succesfully reconnected but it did.");
             }
         } catch (SQLServerException e) {
-            assertEquals(TestResource.getResource("R_crClientUnrecoverable"), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));
         }
     }
 
@@ -113,7 +112,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             }
         } catch (SQLServerException e) {
             assertTrue("08S01" == e.getSQLState()
-                    || TestResource.getResource("R_crClientUnrecoverable") == e.getMessage());
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));
+            
         }
     }
 

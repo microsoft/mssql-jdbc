@@ -864,7 +864,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @param useBulkCopyForBatchInsert
      *        indicates whether Bulk Copy API should be used for Batch Insert operations.
      */
-
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
