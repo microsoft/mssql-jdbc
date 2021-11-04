@@ -155,7 +155,7 @@ public class BasicConnectionTest extends AbstractTest {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("select 2")) {
                 rs.next();
-                ResiliencyUtils.killConnection(sessionId, connectionString);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c);
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 fail("Connection failed to clean up open resultset.");

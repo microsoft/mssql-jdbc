@@ -85,7 +85,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 // Partially parsed
                 rs.next();
                 rs.getString(2);
-                ResiliencyUtils.killConnection(sessionId, connectionString);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c);
                 // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail("Driver should not have succesfully reconnected but it did.");
@@ -110,7 +110,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
-                ResiliencyUtils.killConnection(sessionId, connectionString);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c);
                 // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail("Driver should not have succesfully reconnected but it did.");

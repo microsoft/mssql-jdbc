@@ -348,11 +348,18 @@ final class ResiliencyUtils {
     }
     
     static void killConnection(Connection c, String cString) throws SQLException {
-        killConnection(getSessionId(c), cString);
+        killConnection(getSessionId(c), cString, c);
         isRecoveryAliveAndConnDead(c);
     }
 
-    static void killConnection(int sessionID, String cString) throws SQLException {
+    /** 
+     * Running a query on a connection can affect it adversely, this method should not run a query on the connection being passed.
+     * @param sessionID
+     * @param cString
+     * @param c
+     * @throws SQLException
+     */
+    static void killConnection(int sessionID, String cString, Connection c) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
                 if(isAzureSQLDW(c2)) // AzureSQLDW and Synapse uses different syntax
@@ -361,6 +368,7 @@ final class ResiliencyUtils {
                     s.execute("KILL " + sessionID);
             }
         }
+        isRecoveryAliveAndConnDead(c);
     }
 
     // uses reflection to "corrupt" a Connection's server target

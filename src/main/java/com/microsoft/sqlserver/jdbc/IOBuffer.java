@@ -777,6 +777,13 @@ final class TDSChannel implements Serializable {
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Disabling SSL...");
 
+        // Guard in case of disableSSL being called before enableSSL
+        if (proxySocket == null) {
+            if (logger.isLoggable(Level.FINE))
+                logger.finer(toString() + " proxySocket is null, exit early");
+            return;
+        }
+        
         /*
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
          * socket and streams. The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown
