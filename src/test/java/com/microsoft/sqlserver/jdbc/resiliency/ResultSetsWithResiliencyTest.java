@@ -92,7 +92,6 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             }
         } catch (SQLServerException e) {
             if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable"))) {
-                System.out.println(e.getMessage());
                 e.printStackTrace();
             }
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));

@@ -23,7 +23,6 @@ import javax.sql.PooledConnection;
 import org.junit.Assert;
 import org.junit.jupiter.api.Tag;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -233,52 +232,20 @@ final class ResiliencyUtils {
         }
     }
 
-    static boolean recoveryThreadAlive(Connection c) {
-        Field fields[] = getConnectionFields(c);
-        for (Field f : fields) {
-            if (f.getName() == "sessionRecovery") {
-                f.setAccessible(true);
-                Object sessionRecovery;
-                try {
-                    sessionRecovery = f.get(c);
-                    Method method = sessionRecovery.getClass().getDeclaredMethod("isConnectionRecoveryNegotiated");
-                    method.setAccessible(true);
-                    if ((boolean) method.invoke(sessionRecovery) == true) {
-                        return true;
-                    }
-                    break;
-                } catch (Exception e) {
-                    Assert.fail("Failed to check recovery thread state: " + e.getMessage());
-                }
-            }
-        }
-        return false;
-    }
-
-    static boolean isConnectionDead(SQLServerConnection c) {
-        try {
-            Method method = c.getClass().getSuperclass().getDeclaredMethod("isConnectionDead");
-            method.setAccessible(true);
-            if ((boolean) method.invoke(c) == true) {
-                return true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     /**
-     * Since we are using reflection to the IdleNetworkTracker to immediately deem a connection idle, 
-     * in certain scenarios  (ie testing against Azure SQL DB), it takes too long for the connection to drop from the server side after sending a kill connection command.
-     * This method checks to make sure the recovery thread exists and the connection has died before proceeding.
-     * @param c Connection
+     * Since we are using reflection to the IdleNetworkTracker to immediately deem a connection idle, in certain
+     * scenarios (ie testing against Azure SQL DB), it takes too long for the connection to drop from the server side
+     * after sending a kill connection command. This method checks to make sure the recovery thread exists and the
+     * connection has died before proceeding.
+     * 
+     * @param c
+     *        Connection
      * @return True if recovery thread was started and connection is dead, false if timeout
      */
     static boolean isRecoveryAliveAndConnDead(Connection c) {
         Connection conn = c;
         // See if we were handed a pooled connection
-        for (Field f : c.getClass().getDeclaredFields()) {
+        for (Field f : getConnectionFields(c)) {
             if (f.getName() == "wrappedConnection") {
                 f.setAccessible(true);
                 try {
@@ -289,16 +256,15 @@ final class ResiliencyUtils {
                 break;
             }
         }
-        
-        SQLServerConnection sqlc = (SQLServerConnection) conn;
+
         int waits = 0;
         try {
-            while (!recoveryThreadAlive(sqlc)) {
+            while (!TestUtils.isConnectionRecoveryNegotiated(conn)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
                 if (waits++ > 5)
                     return false;
             }
-            while (!isConnectionDead((SQLServerConnection) sqlc)) {
+            while (!TestUtils.isConnectionDead(conn)) {
                 TimeUnit.MILLISECONDS.sleep(ResiliencyUtils.checkRecoveryAliveInterval);
                 if (waits++ > 5)
                     return false;
@@ -320,13 +286,15 @@ final class ResiliencyUtils {
         }
         return sessionID;
     }
-    
+
     static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString, c);
     }
 
-    /** 
-     * Running a query on a connection can affect it adversely, this method should not run a query on the connection being passed.
+    /**
+     * Running a query on a connection can affect it adversely, this method should not run a query on the connection
+     * being passed.
+     * 
      * @param sessionID
      * @param cString
      * @param c
@@ -335,7 +303,7 @@ final class ResiliencyUtils {
     static void killConnection(int sessionID, String cString, Connection c) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
-                if(TestUtils.isAzureDW(c2)) // AzureSQLDW and Synapse uses different syntax
+                if (TestUtils.isAzureDW(c2)) // AzureSQLDW and Synapse uses different syntax
                     s.execute("KILL '" + sessionID + "'");
                 else
                     s.execute("KILL " + sessionID);

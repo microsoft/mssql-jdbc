@@ -6168,8 +6168,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
         if (sessionRecovery.getReconnectThread().isAlive() && !sessionRecovery.isConnectionRecoveryPossible()) {
-            if (connectionlogger.isLoggable(Level.SEVERE)) {
-                connectionlogger.severe(this.toString()
+            if (connectionlogger.isLoggable(Level.WARNING)) {
+                connectionlogger.warning(this.toString()
                         + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
             }
             terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,

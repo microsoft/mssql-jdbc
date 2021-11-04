@@ -75,6 +75,25 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
     private TestUtils() {}
+    
+    /**
+     * Checks if the connection session recovery object has negotiated reflection.
+     * @param con
+     * @return
+     */
+    public static boolean isConnectionRecoveryNegotiated(Connection con) {
+        return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
+    }
+    
+    /**
+     * Checks if connection is dead.
+     * @param con
+     * @return
+     * @throws SQLServerException
+     */
+    public static boolean isConnectionDead(Connection con) throws SQLServerException {
+        return ((SQLServerConnection) con).isConnectionDead();
+    }
 
     /**
      * Checks if connection is established to Azure server.
