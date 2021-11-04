@@ -81,7 +81,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=full");
                 Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
-            try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
+            try (ResultSet rs = s.executeQuery("SELECT * FROM sys.syslanguages")) {
                 // Partially parsed
                 rs.next();
                 rs.getString(2);
