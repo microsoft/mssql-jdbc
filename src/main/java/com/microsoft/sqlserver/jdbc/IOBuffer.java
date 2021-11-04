@@ -773,7 +773,7 @@ final class TDSChannel implements Serializable {
     /**
      * Disables SSL on this TDS channel.
      */
-    void disableSSL() {
+    synchronized void disableSSL() {
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Disabling SSL...");
 
