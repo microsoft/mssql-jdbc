@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -320,36 +321,8 @@ final class ResiliencyUtils {
         return sessionID;
     }
     
-    private static boolean isAzureSQLDW(Connection c) {
-        Connection conn = c;
-        // See if we were handed a pooled connection
-        for (Field f : getConnectionFields(conn)) {
-            if (f.getName() == "wrappedConnection") {
-                f.setAccessible(true);
-                try {
-                    conn = (Connection) f.get(c);
-                } catch (IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-                break;
-            }
-        }
-        SQLServerConnection sqlc = (SQLServerConnection) conn;
-        try {
-            Method method = sqlc.getClass().getSuperclass().getDeclaredMethod("isAzureDW");
-            method.setAccessible(true);
-            if ((boolean) method.invoke(c) == true) {
-                return true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-    
     static void killConnection(Connection c, String cString) throws SQLException {
         killConnection(getSessionId(c), cString, c);
-        isRecoveryAliveAndConnDead(c);
     }
 
     /** 
@@ -362,7 +335,7 @@ final class ResiliencyUtils {
     static void killConnection(int sessionID, String cString, Connection c) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
-                if(isAzureSQLDW(c2)) // AzureSQLDW and Synapse uses different syntax
+                if(TestUtils.isAzureDW(c2)) // AzureSQLDW and Synapse uses different syntax
                     s.execute("KILL '" + sessionID + "'");
                 else
                     s.execute("KILL " + sessionID);

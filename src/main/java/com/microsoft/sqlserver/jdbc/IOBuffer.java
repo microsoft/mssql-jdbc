@@ -779,7 +779,7 @@ final class TDSChannel implements Serializable {
 
         // Guard in case of disableSSL being called before enableSSL
         if (proxySocket == null) {
-            if (logger.isLoggable(Level.FINE))
+            if (logger.isLoggable(Level.INFO))
                 logger.finer(toString() + " proxySocket is null, exit early");
             return;
         }
