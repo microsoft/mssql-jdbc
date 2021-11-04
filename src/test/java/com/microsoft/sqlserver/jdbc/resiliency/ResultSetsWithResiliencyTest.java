@@ -91,9 +91,12 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail("Driver should not have succesfully reconnected but it did.");
             }
         } catch (SQLServerException e) {
+            if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable"))) {
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));
-            System.out.println(e.getMessage());
-            e.printStackTrace();
+            
         }
     }
 
