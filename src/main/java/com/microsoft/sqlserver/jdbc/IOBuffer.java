@@ -2257,7 +2257,7 @@ final class TDSChannel implements Serializable {
                 } catch (SocketException e) {
                     if (logger.isLoggable(Level.FINE)) {
                         logger.fine(toString()
-                                + "(networkSocketStillConnected) proxySocket.getSoTimeout() failed. Unable to poll connection:"
+                                + "(networkSocketStillConnected) channelSocket.getSoTimeout() failed. Unable to poll connection:"
                                 + e.getMessage());
                     }
                     return false;
