@@ -74,10 +74,6 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
-    private static Boolean isAzure = null;
-    private static Boolean isAzureDW = null;
-    private static Boolean isAzureMI = null;
-
     private TestUtils() {}
 
     /**
@@ -96,7 +92,7 @@ public final class TestUtils {
      */
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
-        return isAzureDW;
+        return ((SQLServerConnection) con).isAzureDW();
     }
 
     /**
@@ -106,7 +102,7 @@ public final class TestUtils {
      */
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
-        return isAzureMI;
+        return ((SQLServerConnection) con).isAzureMI();
     }
 
     /**
