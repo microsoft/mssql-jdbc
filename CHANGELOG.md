@@ -12,8 +12,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added check for closed statement to registerColumnEncryptionKeyStoreProvidersOnStatement [1644](https://github.com/microsoft/mssql-jdbc/pull/1644)
 - Added 42108 and 42109 to transient error list [1643](https://github.com/microsoft/mssql-jdbc/pull/1643)
 ### Changed
+- Updated MD4 based on Bouncy Castle implementation [1665](https://github.com/microsoft/mssql-jdbc/pull/1665)
 - Updated mssql-jdbc_auth_LICENSE [1663](https://github.com/microsoft/mssql-jdbc/pull/1663)
-- Moved CI to https://sqlclientdrivers.visualstudio.com/public [1655](https://github.com/microsoft/mssql-jdbc/pull/1655)
 ### Fixed issues
 - Fixed and issue where Statement.closeOnCompletion() would cause a Null Pointer Exeception [1639](https://github.com/microsoft/mssql-jdbc/pull/1639)
 
