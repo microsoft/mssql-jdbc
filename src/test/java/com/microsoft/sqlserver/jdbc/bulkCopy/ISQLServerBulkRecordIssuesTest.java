@@ -14,10 +14,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.format.DateTimeFormatter;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -238,17 +237,9 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 datetime2(7))";
         int counter = 0;
-        String[] result = {
-                "2021-01-01 00:00:00.0000000",
-                "2021-01-01 12:00:00.0000000",
-                "2021-01-01 12:30:00.0000000",
-                "2021-01-01 12:30:44.0000000",
-                "2021-01-01 12:30:44.0000000",
-                "2021-01-01 12:30:44.0030000",
-                "2021-01-01 12:30:44.1000000",
-                "2021-01-01 12:30:44.1230000",
-                "2021-01-01 12:30:44.9990000"
-        };
+        String[] result = {"2021-01-01 00:00:00.0000000", "2021-01-01 12:00:00.0000000", "2021-01-01 12:30:00.0000000",
+                "2021-01-01 12:30:44.0000000", "2021-01-01 12:30:44.0000000", "2021-01-01 12:30:44.0030000",
+                "2021-01-01 12:30:44.1000000", "2021-01-01 12:30:44.1230000", "2021-01-01 12:30:44.9990000"};
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
@@ -280,19 +271,10 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 datetime2(7))";
         int counter = 0;
-        String[] result = {
-                "2021-01-01 00:00:00.0000000",
-                "2021-01-01 12:00:00.0000000",
-                "2021-01-01 12:30:00.0000000",
-                "2021-01-01 12:30:44.0000000",
-                "2021-01-01 12:30:44.0000000",
-                "2021-01-01 12:30:44.0000007",
-                "2021-01-01 12:30:44.0030000",
-                "2021-01-01 12:30:44.1000000",
-                "2021-01-01 12:30:44.1230000",
-                "2021-01-01 12:30:44.1234567",
-                "2021-01-01 12:30:44.9999999"
-        };
+        String[] result = {"2021-01-01 00:00:00.0000000", "2021-01-01 12:00:00.0000000", "2021-01-01 12:30:00.0000000",
+                "2021-01-01 12:30:44.0000000", "2021-01-01 12:30:44.0000000", "2021-01-01 12:30:44.0000007",
+                "2021-01-01 12:30:44.0030000", "2021-01-01 12:30:44.1000000", "2021-01-01 12:30:44.1230000",
+                "2021-01-01 12:30:44.1234567", "2021-01-01 12:30:44.9999999"};
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
@@ -324,18 +306,10 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
         BulkData bData = new BulkData(variation);
         query = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(destTable) + " (col1 datetime2(7))";
         int counter = 0;
-        String[] result = {
-                "1900-01-01 00:00:00.0000000",
-                "1900-01-01 12:00:00.0000000",
-                "1900-01-01 12:30:00.0000000",
-                "1900-01-01 12:30:44.0000000",
-                "1900-01-01 12:30:44.0000007",
-                "1900-01-01 12:30:44.0030000",
-                "1900-01-01 12:30:44.1000000",
-                "1900-01-01 12:30:44.1230000",
-                "1900-01-01 12:30:44.1234567",
-                "1900-01-01 12:30:44.9999999"
-        };
+        String[] result = {"1900-01-01 00:00:00.0000000", "1900-01-01 12:00:00.0000000", "1900-01-01 12:30:00.0000000",
+                "1900-01-01 12:30:44.0000000", "1900-01-01 12:30:44.0000007", "1900-01-01 12:30:44.0030000",
+                "1900-01-01 12:30:44.1000000", "1900-01-01 12:30:44.1230000", "1900-01-01 12:30:44.1234567",
+                "1900-01-01 12:30:44.9999999"};
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate(query);
 
@@ -442,7 +416,6 @@ class BulkData implements ISQLServerBulkData {
             dateData = new ArrayList<>();
             dateData.add(Timestamp.valueOf("1954-05-22 02:43:37.1234"));
             rowCount = dateData.size();
-
         } else if (variation.equalsIgnoreCase("testBinaryColumnAsByte")) {
             isStringData = false;
             columnMetadata = new HashMap<>();
@@ -452,7 +425,6 @@ class BulkData implements ISQLServerBulkData {
             byteData = new ArrayList<>();
             byteData.add("helloo".getBytes());
             rowCount = byteData.size();
-
         } else if (variation.equalsIgnoreCase("testBinaryColumnAsString")) {
             isStringData = true;
             columnMetadata = new HashMap<>();
@@ -462,7 +434,6 @@ class BulkData implements ISQLServerBulkData {
             stringData = new ArrayList<>();
             stringData.add("616368697412");
             rowCount = stringData.size();
-
         } else if (variation.equalsIgnoreCase("testSendValidValueforBinaryColumnAsString")) {
             isStringData = true;
             columnMetadata = new HashMap<>();
@@ -472,7 +443,6 @@ class BulkData implements ISQLServerBulkData {
             stringData = new ArrayList<>();
             stringData.add("010101");
             rowCount = stringData.size();
-
         } else if (variation.equalsIgnoreCase("testSendValidValueforDatetime3ColumnAsLocalDateTime")) {
             isStringData = false;
             columnMetadata = new HashMap<>();
@@ -490,7 +460,6 @@ class BulkData implements ISQLServerBulkData {
             datetime3Data.add(LocalDateTime.of(2021, 1, 1, 12, 30, 44, 123000000));
             datetime3Data.add(LocalDateTime.of(2021, 1, 1, 12, 30, 44, 999000000));
             rowCount = datetime3Data.size();
-
         } else if (variation.equalsIgnoreCase("testSendValidValueforDatetime7ColumnAsLocalDateTime")) {
             isStringData = false;
             columnMetadata = new HashMap<>();
@@ -510,7 +479,6 @@ class BulkData implements ISQLServerBulkData {
             datetime7Data.add(LocalDateTime.of(2021, 1, 1, 12, 30, 44, 123456700));
             datetime7Data.add(LocalDateTime.of(2021, 1, 1, 12, 30, 44, 999999900));
             rowCount = datetime7Data.size();
-
         } else if (variation.equalsIgnoreCase("testSendValidValueforDatetime2ColumnAsLocalTime")) {
             isStringData = false;
             columnMetadata = new HashMap<>();
@@ -529,11 +497,9 @@ class BulkData implements ISQLServerBulkData {
             timeData.add(LocalTime.of(12, 30, 44, 123456700));
             timeData.add(LocalTime.of(12, 30, 44, 999999900));
             rowCount = timeData.size();
-
         }
 
         counter = 0;
-
     }
 
     @Override
