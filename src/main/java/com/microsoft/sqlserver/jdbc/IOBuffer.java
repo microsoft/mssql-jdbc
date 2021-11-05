@@ -7508,7 +7508,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
         super(timeout, command, sqlServerConnection);
     }
 
-    protected void interrupt() {
+    protected void interrupt() throws Exception {
         TDSCommand command = getCommand();
         SQLServerConnection sqlServerConnection = getSqlServerConnection();
         try {
@@ -7527,11 +7527,10 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
                 command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
             }
         } catch (SQLServerException e) {
-            // Unfortunately, there's nothing we can do if we
-            // fail to time out the request. There is no way
-            // to report back what happened.
-            assert null != command;
-            command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+            // Request failed to time out and SQLServerConnection does not exist
+            if (null != command)
+                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+            throw new Exception("Command could not be timed out. Reason: " + e.getMessage());
         }
     }
 }
