@@ -36,7 +36,6 @@ public interface ISQLServerConnection43 extends ISQLServerConnection {
      * <p>
      * The pooling manager should call {@code beginRequest} on the underlying connection prior to returning a connection
      * to the caller.
-     * <p>
      * 
      * @throws SQLException
      *         if an error occurs
@@ -52,7 +51,6 @@ public interface ISQLServerConnection43 extends ISQLServerConnection {
      * without an intervening call to {@code beginRequest} is not an error. The first {@code endRequest} call marks the
      * request completed and subsequent calls are treated as a no-op. If {@code endRequest} is called without an initial
      * call to {@code beginRequest} is a no-op. This method is to be used by Connection pooling managers.
-     * <p>
      * 
      * @throws SQLException
      *         if an error occurs

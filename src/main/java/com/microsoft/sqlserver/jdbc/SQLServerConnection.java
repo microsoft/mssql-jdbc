@@ -29,6 +29,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -376,6 +377,41 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             handleRefCount.decrementAndGet();
         }
     }
+
+    /**
+     * Keeps track of the last network activity in order to tell if the connection has been idle. This is done to avoid
+     * checking the socket for a disconnect every command execution, which has a high impact on perf.
+     */
+    class IdleNetworkTracker {
+        private Instant lastNetworkActivity = Instant.now();
+
+        /**
+         * An “idle” connection will only ever get its socket disconnected by a keepalive packet after a connection has
+         * been severed. KeepAlive packets are only sent on idle sockets. Default setting by the driver (on platforms
+         * that have Java support for setting it) and the recommended setting is 30s (and OS default for those that
+         * don't set it is 2 hrs).
+         */
+        private int maxIdleMillis = 15000;
+
+        /** Has it been more than maxIdleMillis since network activity has been marked */
+        private boolean isIdle() {
+            boolean ret = Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
+            return ret;
+        }
+
+        /** Mark network activity now */
+        protected void markNetworkActivity() {
+            lastNetworkActivity = Instant.now();
+        }
+
+        /** Set max idle time in milliseconds */
+        protected void setMaxIdleMillis(int millis) {
+            maxIdleMillis = millis;
+        }
+    }
+
+    /** Keeps track of network idle status */
+    IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
 
     /** Size of the parsed SQL-text metadata cache */
     static final private int PARSED_SQL_CACHE_SIZE = 100;
@@ -827,6 +863,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    /** Session Recovery Object */
+    private IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
+
+    IdleConnectionResiliency getSessionRecovery() {
+        return sessionRecovery;
+    }
+
+    static boolean isWindows;
+
     /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
 
@@ -883,8 +928,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             SQLServerColumnEncryptionKeyStoreProvider provider = entry.getValue();
             if (null == provider) {
-                throw new SQLServerException(null,
-                        String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
             }
 
@@ -949,13 +994,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     synchronized SQLServerColumnEncryptionKeyStoreProvider getSystemOrGlobalColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
-        
+
         // check for global system providers
         keystoreProvider = getGlobalSystemColumnEncryptionKeyStoreProvider(providerName);
 
         // Check for the connection system provider.
-        if (null == keystoreProvider)
-        {
+        if (null == keystoreProvider) {
             keystoreProvider = getSystemColumnEncryptionKeyStoreProvider(providerName);
         }
 
@@ -978,7 +1022,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     synchronized boolean hasConnectionColumnEncryptionKeyStoreProvidersRegistered() {
-        return null != connectionColumnEncryptionKeyStoreProvider && connectionColumnEncryptionKeyStoreProvider.size() > 0;
+        return null != connectionColumnEncryptionKeyStoreProvider
+                && connectionColumnEncryptionKeyStoreProvider.size() > 0;
     }
 
     synchronized String getAllConnectionColumnEncryptionKeyStoreProviders() {
@@ -992,8 +1037,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String providerName) throws SQLServerException {
 
         // Check for a connection-level provider first
-        if (null != connectionColumnEncryptionKeyStoreProvider &&
-                connectionColumnEncryptionKeyStoreProvider.size() > 0) {
+        if (null != connectionColumnEncryptionKeyStoreProvider
+                && connectionColumnEncryptionKeyStoreProvider.size() > 0) {
             // If any connection-level providers are registered, we don't fall back to system/global providers
             if (connectionColumnEncryptionKeyStoreProvider.containsKey(providerName)) {
                 return connectionColumnEncryptionKeyStoreProvider.get(providerName);
@@ -1048,10 +1093,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             if (null == entry.getValue()) {
-                throw new SQLServerException(null,
-                        String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
-            }            
+            }
 
             connectionColumnEncryptionKeyStoreProvider.put(entry.getKey(), entry.getValue());
         }
@@ -1293,6 +1338,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** This is the catalog immediately after login. */
     private String originalCatalog = "master";
 
+    /** This is the current language */
+    private String sLanguage = "us_english";
+
     /** transaction isolation level */
     private int transactionIsolationLevel;
 
@@ -1309,6 +1357,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
     static final private java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
+
     private static String loggingClassNameBase = "com.microsoft.sqlserver.jdbc.SQLServerConnection";
 
     /** Instance-specific loggingClassName to identity the connection in logs */
@@ -1388,8 +1437,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return clientConnectionId;
     }
 
+    final int getRetryInterval() {
+        return connectRetryInterval;
+    }
+
+    final int getRetryCount() {
+        return connectRetryCount;
+    }
+
     final boolean attachConnId() {
         return state.equals(State.Connected);
+    }
+
+    SQLServerPooledConnection getPooledConnectionParent() {
+        return pooledConnectionParent;
     }
 
     SQLServerConnection(String parentInfo) throws SQLServerException {
@@ -1533,18 +1594,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-        String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-        try {
-            if (null != sPropValue && sPropValue.length() > 0) {
-                int sPropValueInt = Integer.parseInt(sPropValue);
-                if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
-                    loginTimeoutSeconds = sPropValueInt;
+        if (propsIn != null) {
+            String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+            try {
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    int sPropValueInt = Integer.parseInt(sPropValue);
+                    if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                        loginTimeoutSeconds = sPropValueInt;
+                    }
                 }
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             }
-        } catch (NumberFormatException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
-            Object[] msgArgs = {sPropValue};
-            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
         }
 
         long elapsedSeconds = 0;
@@ -1733,840 +1796,906 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     Connection connectInternal(Properties propsIn,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try {
-            activeConnectionProperties = (Properties) propsIn.clone();
+            if (propsIn != null) {
 
-            pooledConnectionParent = pooledConnection;
+                activeConnectionProperties = (Properties) propsIn.clone();
 
-            String hostNameInCertificate = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
+                pooledConnectionParent = pooledConnection;
 
-            /*
-             * hostNameInCertificate property can change when redirection is involved, so maintain this value for every
-             * instance of SQLServerConnection.
-             */
-            if (null == originalHostNameInCertificate && null != hostNameInCertificate
-                    && !hostNameInCertificate.isEmpty()) {
-                originalHostNameInCertificate = activeConnectionProperties
+                String hostNameInCertificate = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
-            }
 
-            /*
-             * if hostNameInCertificate has a legitimate value (and not empty or null), reset hostNameInCertificate to
-             * the original value every time we connect (or re-connect).
-             */
-            if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
-                activeConnectionProperties.setProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
-                        originalHostNameInCertificate);
-            }
-
-            String sPropKey;
-            String sPropValue;
-
-            sPropKey = SQLServerDriverStringProperty.USER.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.USER.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            validateMaxSQLLoginName(sPropKey, sPropValue);
-
-            sPropKey = SQLServerDriverStringProperty.PASSWORD.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.PASSWORD.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            validateMaxSQLLoginName(sPropKey, sPropValue);
-
-            sPropKey = SQLServerDriverStringProperty.DATABASE_NAME.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            validateMaxSQLLoginName(sPropKey, sPropValue);
-
-            // if the user does not specify a default timeout, default is 15 per spec
-            int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
-
-            connectRetryCount = validateTimeout(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT);
-            connectRetryInterval = validateTimeout(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL);
-
-            // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
-            // operation of RFC 3490.
-            sPropKey = SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            serverNameAsACE = isBooleanPropertyOn(sPropKey, sPropValue);
-
-            // get the server name from the properties if it has instance name in it, getProperty the instance name
-            // if there is a port number specified do not get the port number from the instance name
-            sPropKey = SQLServerDriverStringProperty.SERVER_NAME.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-
-            if (null == sPropValue) {
-                sPropValue = "localhost";
-            }
-
-            String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
-            String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
-
-            int px = sPropValue.indexOf('\\');
-
-            String instanceValue = null;
-
-            String instanceNameProperty = SQLServerDriverStringProperty.INSTANCE_NAME.toString();
-            // found the instance name with the servername
-            if (px >= 0) {
-                instanceValue = sPropValue.substring(px + 1, sPropValue.length());
-                validateMaxSQLLoginName(instanceNameProperty, instanceValue);
-                sPropValue = sPropValue.substring(0, px);
-            }
-            trustedServerNameAE = sPropValue;
-
-            if (serverNameAsACE) {
-                try {
-                    sPropValue = java.net.IDN.toASCII(sPropValue);
-                } catch (IllegalArgumentException ex) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_InvalidConnectionSetting"));
-                    Object[] msgArgs = {"serverNameAsACE", sPropValue};
-                    throw new SQLServerException(form.format(msgArgs), ex);
+                /*
+                 * hostNameInCertificate property can change when redirection is involved, so maintain this value for
+                 * every instance of SQLServerConnection.
+                 */
+                if (null == originalHostNameInCertificate && null != hostNameInCertificate
+                        && !hostNameInCertificate.isEmpty()) {
+                    originalHostNameInCertificate = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
                 }
-            }
-            activeConnectionProperties.setProperty(sPropKey, sPropValue);
 
-            String instanceValueFromProp = activeConnectionProperties.getProperty(instanceNameProperty);
-            // property takes precedence
-            if (null != instanceValueFromProp)
-                instanceValue = instanceValueFromProp;
+                /*
+                 * if hostNameInCertificate has a legitimate value (and not empty or null), reset hostNameInCertificate
+                 * to the original value every time we connect (or re-connect).
+                 */
+                if (null != originalHostNameInCertificate && !originalHostNameInCertificate.isEmpty()) {
+                    activeConnectionProperties.setProperty(
+                            SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
+                            originalHostNameInCertificate);
+                }
 
-            if (instanceValue != null) {
-                validateMaxSQLLoginName(instanceNameProperty, instanceValue);
-                // only get port if the port is not specified
-                activeConnectionProperties.setProperty(instanceNameProperty, instanceValue);
-                trustedServerNameAE += "\\" + instanceValue;
-            }
+                String sPropKey;
+                String sPropValue;
 
-            if (null != sPropValuePort) {
-                trustedServerNameAE += ":" + sPropValuePort;
-            }
-
-            sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue)
+                sPropKey = SQLServerDriverStringProperty.USER.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.USER.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
                 validateMaxSQLLoginName(sPropKey, sPropValue);
-            else
-                activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
 
-            sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
+                sPropKey = SQLServerDriverStringProperty.PASSWORD.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.PASSWORD.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                validateMaxSQLLoginName(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.DATABASE_NAME.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                validateMaxSQLLoginName(sPropKey, sPropValue);
+
+                // if the user does not specify a default timeout, default is 15 per spec
+                int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+
+                // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
+                // operation of RFC 3490.
+                sPropKey = SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.SERVER_NAME_AS_ACE.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                serverNameAsACE = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                // get the server name from the properties if it has instance name in it, getProperty the instance name
+                // if there is a port number specified do not get the port number from the instance name
+                sPropKey = SQLServerDriverStringProperty.SERVER_NAME.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+
+                if (null == sPropValue) {
+                    sPropValue = "localhost";
+                }
+
+                String sPropKeyPort = SQLServerDriverIntProperty.PORT_NUMBER.toString();
+                String sPropValuePort = activeConnectionProperties.getProperty(sPropKeyPort);
+
+                int px = sPropValue.indexOf('\\');
+
+                String instanceValue = null;
+
+                String instanceNameProperty = SQLServerDriverStringProperty.INSTANCE_NAME.toString();
+                // found the instance name with the servername
+                if (px >= 0) {
+                    instanceValue = sPropValue.substring(px + 1, sPropValue.length());
+                    validateMaxSQLLoginName(instanceNameProperty, instanceValue);
+                    sPropValue = sPropValue.substring(0, px);
+                }
+                trustedServerNameAE = sPropValue;
+
+                if (serverNameAsACE) {
+                    try {
+                        sPropValue = java.net.IDN.toASCII(sPropValue);
+                    } catch (IllegalArgumentException ex) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_InvalidConnectionSetting"));
+                        Object[] msgArgs = {"serverNameAsACE", sPropValue};
+                        throw new SQLServerException(form.format(msgArgs), ex);
+                    }
+                }
                 activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
 
-            sPropKey = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
+                String instanceValueFromProp = activeConnectionProperties.getProperty(instanceNameProperty);
+                // property takes precedence
+                if (null != instanceValueFromProp)
+                    instanceValue = instanceValueFromProp;
 
-            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                enclaveAttestationUrl = sPropValue;
-            }
+                if (instanceValue != null) {
+                    validateMaxSQLLoginName(instanceNameProperty, instanceValue);
+                    // only get port if the port is not specified
+                    activeConnectionProperties.setProperty(instanceNameProperty, instanceValue);
+                    trustedServerNameAE += "\\" + instanceValue;
+                }
 
-            sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                enclaveAttestationProtocol = sPropValue;
-                if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"),
+                if (null != sPropValuePort) {
+                    trustedServerNameAE += ":" + sPropValuePort;
+                }
+
+                sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue)
+                    validateMaxSQLLoginName(sPropKey, sPropValue);
+                else
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
+
+                sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                sPropKey = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                columnEncryptionSetting = ColumnEncryptionSetting.valueOfString(sPropValue).toString();
+
+                sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_URL.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    enclaveAttestationUrl = sPropValue;
+                }
+
+                sPropKey = SQLServerDriverStringProperty.ENCLAVE_ATTESTATION_PROTOCOL.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    enclaveAttestationProtocol = sPropValue;
+                    if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"), null);
+                    }
+
+                    if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
+                        this.enclaveProvider = new SQLServerVSMEnclaveProvider();
+                    } else {
+                        // If it's a valid Provider & not HGS, then it has to be AAS
+                        this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                    }
+                }
+
+                // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
+                if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                        && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
+                        || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
+                                && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
+                        || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                                && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
+                                && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
+                }
+
+                sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    keyStoreAuthentication = KeyStoreAuthentication.valueOfString(sPropValue).toString();
+                }
+
+                sPropKey = SQLServerDriverStringProperty.KEY_STORE_SECRET.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    keyStoreSecret = sPropValue;
+                }
+
+                sPropKey = SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    keyStoreLocation = sPropValue;
+                }
+
+                sPropKey = SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    keyStorePrincipalId = sPropValue;
+                }
+
+                registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
+
+                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    if (null != keyStoreAuthentication) {
+                        throw new SQLServerException(SQLServerException
+                                .getErrString("R_keyVaultProviderNotSupportedWithKeyStoreAuthentication"), null);
+                    }
+                    String keyVaultColumnEncryptionProviderClientId = sPropValue;
+                    sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null == sPropValue) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
+                    }
+                    String keyVaultColumnEncryptionProviderClientKey = sPropValue;
+                    SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                            keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                }
+
+                sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                multiSubnetFailover = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    userSetTNIR = false;
+                    sPropValue = Boolean.toString(
+                            SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                transparentNetworkIPResolution = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.ENCRYPT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                socketFactoryClass = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
+                socketFactoryConstructorArg = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
+
+                // Set requestedEncryptionLevel according to the value of the encrypt connection property
+                requestedEncryptionLevel = isBooleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;
+
+                sPropKey = SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+                trustManagerClass = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
+                trustManagerConstructorArg = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
+
+                sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
+                }
+
+                if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
+                    sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                    selectMethod = sPropValue;
+                } else {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
+                }
+
+                if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
+                } else {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidresponseBuffering"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                sPropKey = SQLServerDriverStringProperty.APPLICATION_INTENT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue();
+                }
+
+                applicationIntent = ApplicationIntent.valueOfString(sPropValue);
+                activeConnectionProperties.setProperty(sPropKey, applicationIntent.toString());
+
+                sPropKey = SQLServerDriverBooleanProperty.REPLICATION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                replication = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                sendTimeAsDatetime = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useFmtOnly = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                // Must be set before DISABLE_STATEMENT_POOLING
+                sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        this.setStatementPoolingCacheSize(n);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_statementPoolingCacheSize"));
+                        Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                }
+
+                sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                aadPrincipalID = sPropValue;
+
+                sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                aadPrincipalSecret = sPropValue;
+
+                // Must be set after STATEMENT_POOLING_CACHE_SIZE
+                sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    setDisableStatementPooling(isBooleanPropertyOn(sPropKey, sPropValue));
+                }
+
+                sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    integratedSecurity = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
+
+                // Ignore authenticationScheme setting if integrated authentication not specified
+                if (integratedSecurity) {
+                    sPropKey = SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        intAuthScheme = AuthenticationScheme.valueOfString(sPropValue);
+                    }
+                }
+
+                if (intAuthScheme == AuthenticationScheme.javaKerberos) {
+                    sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
+                    if (activeConnectionProperties.containsKey(sPropKey)) {
+                        impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
+                        isUserCreatedCredential = true;
+                    }
+                } else if (intAuthScheme == AuthenticationScheme.ntlm) {
+                    String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
+                    String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
+                    if (null == sPropValueDomain) {
+                        activeConnectionProperties.setProperty(sPropKeyDomain,
+                                SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
+                    }
+
+                    // NTLM and no user or password
+                    if (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
+                            || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                    .isEmpty()) {
+
+                        if (connectionlogger.isLoggable(Level.SEVERE)) {
+                            connectionlogger.severe(
+                                    toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
+                        }
+                        throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"),
+                                null);
+                    }
+                    ntlmAuthentication = true;
+                }
+
+                sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
+                }
+                authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
+
+                if (integratedSecurity
+                        && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
+                    }
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
+                }
+
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                        && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty())
+                                || (!activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"));
+                    }
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
+                }
+
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
+                        && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_NoUserPasswordForActivePassword"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
                             null);
                 }
 
-                if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
-                    this.enclaveProvider = new SQLServerVSMEnclaveProvider();
-                } else {
-                    // If it's a valid Provider & not HGS, then it has to be AAS
-                    this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                        && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty())
+                                || (!activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
+                            null);
                 }
-            }
 
-            // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
-            if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
-                    && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
-                    || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
-                            && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
-                    || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
-                            && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
-                            && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
-                throw new SQLServerException(SQLServerException.getErrString("R_enclavePropertiesError"), null);
-            }
-
-            sPropKey = SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                keyStoreAuthentication = KeyStoreAuthentication.valueOfString(sPropValue).toString();
-            }
-
-            sPropKey = SQLServerDriverStringProperty.KEY_STORE_SECRET.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                keyStoreSecret = sPropValue;
-            }
-
-            sPropKey = SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                keyStoreLocation = sPropValue;
-            }
-
-            sPropKey = SQLServerDriverStringProperty.KEY_STORE_PRINCIPAL_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                keyStorePrincipalId = sPropValue;
-            }
-
-            registerKeyStoreProviderOnConnection(keyStoreAuthentication, keyStoreSecret, keyStoreLocation);
-
-            sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                if (null != keyStoreAuthentication) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderNotSupportedWithKeyStoreAuthentication"), null);
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
+                        && ((activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString())
+                                .isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(
+                                                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
+                                        .isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"));
+                    }
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
                 }
-                String keyVaultColumnEncryptionProviderClientId = sPropValue;
-                sPropKey = SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString();
+
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())
+                        && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"));
+                    }
+
+                    throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"),
+                            null);
+                }
+
+                sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null == sPropValue) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
+                if (null != sPropValue) {
+                    accessTokenInByte = sPropValue.getBytes(UTF_16LE);
                 }
-                String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-                SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                        keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
-                systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
-            }
 
-            sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            multiSubnetFailover = isBooleanPropertyOn(sPropKey, sPropValue);
+                if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"), null);
+                }
 
-            sPropKey = SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                userSetTNIR = false;
-                sPropValue = Boolean
-                        .toString(SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            transparentNetworkIPResolution = isBooleanPropertyOn(sPropKey, sPropValue);
+                if (integratedSecurity && (null != accessTokenInByte)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"));
+                    }
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"), null);
+                }
 
-            sPropKey = SQLServerDriverBooleanProperty.ENCRYPT.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
+                if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+                        && (null != accessTokenInByte)) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(toString() + " "
+                                + SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"));
+                    }
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"), null);
+                }
 
-            socketFactoryClass = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
-            socketFactoryConstructorArg = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
+                if ((null != accessTokenInByte) && ((!activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                        || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty()))) {
+                    if (connectionlogger.isLoggable(Level.SEVERE)) {
+                        connectionlogger.severe(
+                                toString() + " " + SQLServerException.getErrString("R_AccessTokenWithUserPassword"));
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"),
+                            null);
+                }
 
-            // Set requestedEncryptionLevel according to the value of the encrypt connection property
-            requestedEncryptionLevel = isBooleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;
+                // Turn off TNIR for FedAuth if user did not set TNIR explicitly
+                if (!userSetTNIR && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
+                        || null != accessTokenInByte)) {
+                    transparentNetworkIPResolution = false;
+                }
 
-            sPropKey = SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean
-                        .toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
+                sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                validateMaxSQLLoginName(sPropKey, sPropValue);
 
-            trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
-
-            trustManagerClass = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
-            trustManagerConstructorArg = activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString());
-
-            sPropKey = SQLServerDriverStringProperty.SELECT_METHOD.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
-            }
-
-            if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
-                sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                selectMethod = sPropValue;
-            } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidselectMethod"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-            }
-
-            sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.RESPONSE_BUFFERING.getDefaultValue();
-            }
-
-            if ("full".equalsIgnoreCase(sPropValue) || "adaptive".equalsIgnoreCase(sPropValue)) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue.toLowerCase(Locale.ENGLISH));
-            } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidresponseBuffering"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-            }
-
-            sPropKey = SQLServerDriverStringProperty.APPLICATION_INTENT.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue();
-            }
-
-            applicationIntent = ApplicationIntent.valueOfString(sPropValue);
-            activeConnectionProperties.setProperty(sPropKey, applicationIntent.toString());
-
-            sPropKey = SQLServerDriverBooleanProperty.REPLICATION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-
-            replication = isBooleanPropertyOn(sPropKey, sPropValue);
-
-            sPropKey = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-
-            sendTimeAsDatetime = isBooleanPropertyOn(sPropKey, sPropValue);
-
-            sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            useFmtOnly = isBooleanPropertyOn(sPropKey, sPropValue);
-
-            // Must be set before DISABLE_STATEMENT_POOLING
-            sPropKey = SQLServerDriverIntProperty.STATEMENT_POOLING_CACHE_SIZE.toString();
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                int nPort = 0;
+                sPropKey = SQLServerDriverIntProperty.PORT_NUMBER.toString();
                 try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    this.setStatementPoolingCacheSize(n);
+                    String strPort = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != strPort) {
+                        nPort = Integer.parseInt(strPort);
+                        if ((nPort < 0) || (nPort > 65535)) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidPortNumber"));
+                            Object[] msgArgs = {Integer.toString(nPort)};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                        }
+                    }
                 } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_statementPoolingCacheSize"));
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
                     Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            }
 
-            sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            aadPrincipalID = sPropValue;
-
-            sPropKey = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            aadPrincipalSecret = sPropValue;
-
-            // Must be set after STATEMENT_POOLING_CACHE_SIZE
-            sPropKey = SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                setDisableStatementPooling(isBooleanPropertyOn(sPropKey, sPropValue));
-            }
-
-            sPropKey = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                integratedSecurity = isBooleanPropertyOn(sPropKey, sPropValue);
-            }
-
-            // Ignore authenticationScheme setting if integrated authentication not specified
-            if (integratedSecurity) {
-                sPropKey = SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString();
+                // Handle optional packetSize property
+                sPropKey = SQLServerDriverIntProperty.PACKET_SIZE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    intAuthScheme = AuthenticationScheme.valueOfString(sPropValue);
-                }
-            }
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        requestedPacketSize = Integer.parseInt(sPropValue);
 
-            if (intAuthScheme == AuthenticationScheme.javaKerberos) {
-                sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
-                if (activeConnectionProperties.containsKey(sPropKey)) {
-                    impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
-                    isUserCreatedCredential = true;
-                }
-            } else if (intAuthScheme == AuthenticationScheme.ntlm) {
-                String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
-                String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
-                if (null == sPropValueDomain) {
-                    activeConnectionProperties.setProperty(sPropKeyDomain,
-                            SQLServerDriverStringProperty.DOMAIN.getDefaultValue());
-                }
+                        // -1 --> Use server default
+                        if (-1 == requestedPacketSize)
+                            requestedPacketSize = TDS.SERVER_PACKET_SIZE;
 
-                // NTLM and no user or password
-                if (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty()) {
-
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(
-                                toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
+                        // 0 --> Use maximum size
+                        else if (0 == requestedPacketSize)
+                            requestedPacketSize = TDS.MAX_PACKET_SIZE;
+                    } catch (NumberFormatException e) {
+                        // Ensure that an invalid prop value results in an invalid packet size that
+                        // is not acceptable to the server.
+                        requestedPacketSize = TDS.INVALID_PACKET_SIZE;
                     }
-                    throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"), null);
-                }
-                ntlmAuthentication = true;
-            }
 
-            sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue();
-            }
-            authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
-
-            if (integratedSecurity
-                    && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
-                }
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
-                    && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                            .isEmpty())
-                            || (!activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"));
-                }
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
-                    && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                            .isEmpty())
-                            || (activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForActivePassword"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
-                        null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
-                    && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                            .isEmpty())
-                            || (!activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
-                        null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
-                    && ((activeConnectionProperties
-                            .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString()).isEmpty())
-                            || (activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
-                                    .isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"));
-                }
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
-            }
-
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())
-                    && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                            .isEmpty())
-                            || (activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"), null);
-            }
-
-            sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                accessTokenInByte = sPropValue.getBytes(UTF_16LE);
-            }
-
-            if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger
-                            .severe(toString() + " " + SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"), null);
-            }
-
-            if (integratedSecurity && (null != accessTokenInByte)) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"));
-                }
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"), null);
-            }
-
-            if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
-                    && (null != accessTokenInByte)) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(toString() + " "
-                            + SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"),
-                        null);
-            }
-
-            if ((null != accessTokenInByte) && ((!activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
-                    || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                            .isEmpty()))) {
-                if (connectionlogger.isLoggable(Level.SEVERE)) {
-                    connectionlogger.severe(
-                            toString() + " " + SQLServerException.getErrString("R_AccessTokenWithUserPassword"));
-                }
-                throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"), null);
-            }
-
-            // Turn off TNIR for FedAuth if user did not set TNIR explicitly
-            if (!userSetTNIR && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
-                    || null != accessTokenInByte)) {
-                transparentNetworkIPResolution = false;
-            }
-
-            sPropKey = SQLServerDriverStringProperty.WORKSTATION_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            validateMaxSQLLoginName(sPropKey, sPropValue);
-
-            int nPort = 0;
-            sPropKey = SQLServerDriverIntProperty.PORT_NUMBER.toString();
-            try {
-                String strPort = activeConnectionProperties.getProperty(sPropKey);
-                if (null != strPort) {
-                    nPort = Integer.parseInt(strPort);
-
-                    if ((nPort < 0) || (nPort > 65535)) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
-                        Object[] msgArgs = {Integer.toString(nPort)};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    if (TDS.SERVER_PACKET_SIZE != requestedPacketSize) {
+                        // Complain if the packet size is not in the range acceptable to the server.
+                        if (requestedPacketSize < TDS.MIN_PACKET_SIZE || requestedPacketSize > TDS.MAX_PACKET_SIZE) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidPacketSize"));
+                            Object[] msgArgs = {sPropValue};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                        }
                     }
                 }
-            } catch (NumberFormatException e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
-                Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-            }
 
-            // Handle optional packetSize property
-            sPropKey = SQLServerDriverIntProperty.PACKET_SIZE.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue && sPropValue.length() > 0) {
-                try {
-                    requestedPacketSize = Integer.parseInt(sPropValue);
+                // Note isBooleanPropertyOn will throw exception if parsed value is not valid.
 
-                    // -1 --> Use server default
-                    if (-1 == requestedPacketSize)
-                        requestedPacketSize = TDS.SERVER_PACKET_SIZE;
+                // have to check for null before calling isBooleanPropertyOn, because isBooleanPropertyOn
+                // assumes that the null property defaults to false.
+                sPropKey = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString();
+                sendStringParametersAsUnicode = (null == activeConnectionProperties.getProperty(
+                        sPropKey)) ? SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue()
+                                   : isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
 
-                    // 0 --> Use maximum size
-                    else if (0 == requestedPacketSize)
-                        requestedPacketSize = TDS.MAX_PACKET_SIZE;
-                } catch (NumberFormatException e) {
-                    // Ensure that an invalid prop value results in an invalid packet size that
-                    // is not acceptable to the server.
-                    requestedPacketSize = TDS.INVALID_PACKET_SIZE;
-                }
+                sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
+                lastUpdateCount = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
+                sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
+                xopenStates = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
 
-                if (TDS.SERVER_PACKET_SIZE != requestedPacketSize) {
-                    // Complain if the packet size is not in the range acceptable to the server.
-                    if (requestedPacketSize < TDS.MIN_PACKET_SIZE || requestedPacketSize > TDS.MAX_PACKET_SIZE) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPacketSize"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                }
-            }
+                sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
+                responseBuffering = (null != activeConnectionProperties.getProperty(sPropKey)
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0)
+                                                                                          ? activeConnectionProperties
+                                                                                                  .getProperty(sPropKey)
+                                                                                          : null;
 
-            // Note isBooleanPropertyOn will throw exception if parsed value is not valid.
-
-            // have to check for null before calling isBooleanPropertyOn, because isBooleanPropertyOn
-            // assumes that the null property defaults to false.
-            sPropKey = SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.toString();
-            sendStringParametersAsUnicode = (null == activeConnectionProperties.getProperty(
-                    sPropKey)) ? SQLServerDriverBooleanProperty.SEND_STRING_PARAMETERS_AS_UNICODE.getDefaultValue()
-                               : isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
-            lastUpdateCount = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-            sPropKey = SQLServerDriverBooleanProperty.XOPEN_STATES.toString();
-            xopenStates = isBooleanPropertyOn(sPropKey, activeConnectionProperties.getProperty(sPropKey));
-
-            sPropKey = SQLServerDriverStringProperty.RESPONSE_BUFFERING.toString();
-            responseBuffering = (null != activeConnectionProperties.getProperty(sPropKey)
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0)
-                                                                                      ? activeConnectionProperties
-                                                                                              .getProperty(sPropKey)
-                                                                                      : null;
-
-            sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
-            int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
-            nLockTimeout = defaultLockTimeOut; // Wait forever
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    if (n >= defaultLockTimeOut)
-                        nLockTimeout = n;
-                    else {
+                sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
+                int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
+                nLockTimeout = defaultLockTimeOut; // Wait forever
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        if (n >= defaultLockTimeOut)
+                            nLockTimeout = n;
+                        else {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidLockTimeOut"));
+                            Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                        }
+                    } catch (NumberFormatException e) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLockTimeOut"));
                         Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLockTimeOut"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            }
 
-            sPropKey = SQLServerDriverIntProperty.QUERY_TIMEOUT.toString();
-            int defaultQueryTimeout = SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue();
-            queryTimeoutSeconds = defaultQueryTimeout; // Wait forever
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    if (n >= defaultQueryTimeout) {
-                        queryTimeoutSeconds = n;
-                    } else {
+                sPropKey = SQLServerDriverIntProperty.QUERY_TIMEOUT.toString();
+                int defaultQueryTimeout = SQLServerDriverIntProperty.QUERY_TIMEOUT.getDefaultValue();
+                queryTimeoutSeconds = defaultQueryTimeout; // Wait forever
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        if (n >= defaultQueryTimeout) {
+                            queryTimeoutSeconds = n;
+                        } else {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidQueryTimeout"));
+                            Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                        }
+                    } catch (NumberFormatException e) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_invalidQueryTimeout"));
                         Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidQueryTimeout"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            }
 
-            sPropKey = SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString();
-            int defaultSocketTimeout = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
-            socketTimeoutMilliseconds = defaultSocketTimeout; // Wait forever
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    if (n >= defaultSocketTimeout) {
-                        socketTimeoutMilliseconds = n;
-                    } else {
+                sPropKey = SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString();
+                int defaultSocketTimeout = SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue();
+                socketTimeoutMilliseconds = defaultSocketTimeout; // Wait forever
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        if (n >= defaultSocketTimeout) {
+                            socketTimeoutMilliseconds = n;
+                        } else {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidSocketTimeout"));
+                            Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                        }
+                    } catch (NumberFormatException e) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_invalidSocketTimeout"));
                         Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            }
 
-            sPropKey = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString();
-            int cancelQueryTimeout = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue();
+                sPropKey = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.toString();
+                int cancelQueryTimeout = SQLServerDriverIntProperty.CANCEL_QUERY_TIMEOUT.getDefaultValue();
 
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    if (n >= cancelQueryTimeout) {
-                        // use cancelQueryTimeout only if queryTimeout is set.
-                        if (queryTimeoutSeconds > defaultQueryTimeout) {
-                            cancelQueryTimeoutSeconds = n;
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        if (n >= cancelQueryTimeout) {
+                            // use cancelQueryTimeout only if queryTimeout is set.
+                            if (queryTimeoutSeconds > defaultQueryTimeout) {
+                                cancelQueryTimeoutSeconds = n;
+                            }
+                        } else {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
+                            Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                         }
-                    } else {
+                    } catch (NumberFormatException e) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
                         Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_invalidCancelQueryTimeout"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            }
 
-            sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
-            if (activeConnectionProperties.getProperty(sPropKey) != null
-                    && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                try {
-                    int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                    setServerPreparedStatementDiscardThreshold(n);
-                } catch (NumberFormatException e) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_serverPreparedStatementDiscardThreshold"));
-                    Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                sPropKey = SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString();
+                if (activeConnectionProperties.getProperty(sPropKey) != null
+                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
+                    try {
+                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
+                        setServerPreparedStatementDiscardThreshold(n);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_serverPreparedStatementDiscardThreshold"));
+                        Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
                 }
-            }
 
-            sPropKey = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                setEnablePrepareOnFirstPreparedStatementCall(isBooleanPropertyOn(sPropKey, sPropValue));
-            }
+                sPropKey = SQLServerDriverBooleanProperty.ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    setEnablePrepareOnFirstPreparedStatementCall(isBooleanPropertyOn(sPropKey, sPropValue));
+                }
 
-            sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
-            }
+                sPropKey = SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
 
-            sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue();
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            } else {
-                activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
-            }
+                sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                } else {
+                    activeConnectionProperties.setProperty(sPropKey, SSLProtocol.valueOfString(sPropValue).toString());
+                }
 
-            sPropKey = SQLServerDriverStringProperty.MSI_CLIENT_ID.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
+                sPropKey = SQLServerDriverStringProperty.MSI_CLIENT_ID.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
 
-            sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                clientCertificate = sPropValue;
-            }
+                sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                    clientCertificate = sPropValue;
+                }
 
-            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                clientKey = sPropValue;
-            }
+                sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                    clientKey = sPropValue;
+                }
 
-            sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                clientKeyPassword = sPropValue;
-            }
+                sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                    clientKeyPassword = sPropValue;
+                }
 
-            sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null != sPropValue) {
-                sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
-            }
+                sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
 
-            sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            activeConnectionProperties.setProperty(sPropKey,
-                    String.valueOf(MaxResultBufferParser.validateMaxResultBuffer(sPropValue)));
+                sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                activeConnectionProperties.setProperty(sPropKey,
+                        String.valueOf(MaxResultBufferParser.validateMaxResultBuffer(sPropValue)));
 
-            sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+                sPropKey = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
 
-            FailoverInfo fo = null;
-            String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
-            String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
-            String failOverPartnerProperty = SQLServerDriverStringProperty.FAILOVER_PARTNER.toString();
-            String failOverPartnerPropertyValue = activeConnectionProperties.getProperty(failOverPartnerProperty);
+                FailoverInfo fo = null;
+                String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
+                String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
+                String failOverPartnerProperty = SQLServerDriverStringProperty.FAILOVER_PARTNER.toString();
+                String failOverPartnerPropertyValue = activeConnectionProperties.getProperty(failOverPartnerProperty);
 
-            // failoverPartner and multiSubnetFailover=true cannot be used together
-            if (multiSubnetFailover && failOverPartnerPropertyValue != null) {
-                SQLServerException.makeFromDriverError(this, this,
-                        SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover"), null, false);
-            }
-
-            // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user did not
-            // set TNIR explicitly
-            if ((multiSubnetFailover || null != failOverPartnerPropertyValue) && !userSetTNIR) {
-                transparentNetworkIPResolution = false;
-            }
-
-            // failoverPartner and applicationIntent=ReadOnly cannot be used together
-            if ((applicationIntent != null) && applicationIntent.equals(ApplicationIntent.READ_ONLY)
-                    && failOverPartnerPropertyValue != null) {
-                SQLServerException.makeFromDriverError(this, this,
-                        SQLServerException.getErrString("R_dbMirroringWithReadOnlyIntent"), null, false);
-            }
-
-            // check to see failover specified without DB error here if not.
-            if (null != activeConnectionProperties.getProperty(databaseNameProperty)) {
-                // look to see if there exists a failover
-                fo = FailoverMapSingleton.getFailoverInfo(this,
-                        activeConnectionProperties.getProperty(serverNameProperty),
-                        activeConnectionProperties.getProperty(instanceNameProperty),
-                        activeConnectionProperties.getProperty(databaseNameProperty));
-            } else {
-                // it is an error to specify failover without db.
-                if (null != failOverPartnerPropertyValue)
+                // failoverPartner and multiSubnetFailover=true cannot be used together
+                if (multiSubnetFailover && failOverPartnerPropertyValue != null) {
                     SQLServerException.makeFromDriverError(this, this,
-                            SQLServerException.getErrString("R_failoverPartnerWithoutDB"), null, true);
+                            SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover"), null, false);
+                }
+
+                // transparentNetworkIPResolution is ignored if multiSubnetFailover or DBMirroring is true and user did
+                // not set TNIR explicitly
+                if ((multiSubnetFailover || null != failOverPartnerPropertyValue) && !userSetTNIR) {
+                    transparentNetworkIPResolution = false;
+                }
+
+                // failoverPartner and applicationIntent=ReadOnly cannot be used together
+                if ((applicationIntent != null) && applicationIntent.equals(ApplicationIntent.READ_ONLY)
+                        && failOverPartnerPropertyValue != null) {
+                    SQLServerException.makeFromDriverError(this, this,
+                            SQLServerException.getErrString("R_dbMirroringWithReadOnlyIntent"), null, false);
+                }
+
+                // check to see failover specified without DB error here if not.
+                if (null != activeConnectionProperties.getProperty(databaseNameProperty)) {
+                    // look to see if there exists a failover
+                    fo = FailoverMapSingleton.getFailoverInfo(this,
+                            activeConnectionProperties.getProperty(serverNameProperty),
+                            activeConnectionProperties.getProperty(instanceNameProperty),
+                            activeConnectionProperties.getProperty(databaseNameProperty));
+                } else {
+                    // it is an error to specify failover without db.
+                    if (null != failOverPartnerPropertyValue)
+                        SQLServerException.makeFromDriverError(this, this,
+                                SQLServerException.getErrString("R_failoverPartnerWithoutDB"), null, true);
+                }
+
+                String mirror = (null == fo) ? failOverPartnerPropertyValue : null;
+
+                connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        connectRetryCount = Integer.parseInt(sPropValue);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                    if (connectRetryCount < 0 || connectRetryCount > 255) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                }
+
+                connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        connectRetryInterval = Integer.parseInt(sPropValue);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+
+                    if (connectRetryInterval < 1 || connectRetryInterval > 60) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                }
+
+                long startTime = System.currentTimeMillis();
+                sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
+                        ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds
+                                                                                                 : loginTimeoutSeconds);
+                login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
+                        loginTimeoutSeconds, startTime);
+            } else {
+                long startTime = System.currentTimeMillis();
+                login(activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()),
+                        sessionRecovery.getInstanceValue(), sessionRecovery.getNPort(),
+                        activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString()),
+                        sessionRecovery.getFailoverInfo(), sessionRecovery.getLoginTimeoutSeconds(), startTime);
             }
-
-            String mirror = (null == fo) ? failOverPartnerPropertyValue : null;
-
-            long startTime = System.currentTimeMillis();
-            login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
-                    loginTimeoutSeconds, startTime);
 
             // If SSL is to be used for the duration of the connection, then make sure
             // that the final negotiated TDS packet size is no larger than the SSL record size.
@@ -2599,7 +2728,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!state.equals(State.Closed))
                     this.close();
             }
-            
+
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
 
@@ -2616,6 +2745,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
+
         final boolean isDBMirroring = null != mirror || null != foActual;
 
         int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
@@ -2801,8 +2931,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                                  // packetsize, etc)
                         || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                         || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
-                        // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
-                        || (state.equals(State.Connected) && !isDBMirroring)) {
+                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
+                ) {
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -2942,6 +3072,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    boolean isFatalError(SQLServerException e) {
+        /*
+         * NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
+         * and Reconnect::run()
+         */
+
+        // actual logon failed (e.g. bad password)
+        if ((SQLServerException.LOGON_FAILED == e.getErrorCode())
+                // actual logon failed (e.g. password expired)
+                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode())
+                // actual logon failed (e.g. user account locked)
+                || (SQLServerException.USER_ACCOUNT_LOCKED == e.getErrorCode())
+                // invalid TDS received from server
+                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode())
+                // failure negotiating SSL
+                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode())
+                // failure TLS1.2
+                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode())
+                // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
+                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())
+                // no more time to try again
+                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()))
+            return true;
+        else
+            return false;
+    }
+
     // reset all params that could have been changed due to ENVCHANGE tokens to defaults,
     // excluding those changed due to routing ENVCHANGE token
     void resetNonRoutingEnvchangeValues() {
@@ -3071,9 +3228,36 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
 
-        // We have successfully connected, now do the login. logon takes seconds timeout
-        executeCommand(new LogonCommand());
+        if (sessionRecovery.getReconnectThread().isAlive()) {
+            if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable()
+                    .getOriginalNegotiatedEncryptionLevel()) {
+                connectionlogger.warning(toString()
+                        + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
+                        SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
+                // fails fast similar to pre-login errors.
+            }
+            try {
+                executeReconnect(new LogonCommand());
+            } catch (SQLServerException e) {
+                // Won't fail fast. Back-off reconnection attempts in effect.
+                throw new SQLServerException(SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"),
+                        e);
+            }
+        } else {
+            // We have successfully connected, now do the login. Log on takes seconds timeout
+            if (connectRetryCount > 0 && null == sessionRecovery.getSessionStateTable()) {
+                sessionRecovery.setSessionStateTable(new SessionStateTable());
+                sessionRecovery.getSessionStateTable().setOriginalNegotiatedEncryptionLevel(negotiatedEncryptionLevel);
+            }
+            executeCommand(new LogonCommand());
+        }
+
         return inetSocketAddress;
+    }
+
+    private void executeReconnect(LogonCommand logonCommand) throws SQLServerException {
+        logonCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(logonCommand));
     }
 
     /**
@@ -3086,7 +3270,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             fedAuthRequiredByUser = true;
         }
 
-        // Message length (incl. header)
+        // Message length (including header)
         final byte messageLength;
         final byte fedAuthOffset;
         if (fedAuthRequiredByUser) {
@@ -3139,14 +3323,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // PL_OPTION_DATA
         byte[] preloginOptionData = {
                 // Driver major and minor version, 1 byte each
-                (byte) SQLJdbcVersion.major,
-                (byte) SQLJdbcVersion.minor,
+                (byte) SQLJdbcVersion.major, (byte) SQLJdbcVersion.minor,
                 // Revision (Big Endian), 2 bytes
-                (byte) ((SQLJdbcVersion.patch & 0xff00) >> 8),
-                (byte) (SQLJdbcVersion.patch & 0xff),
+                (byte) ((SQLJdbcVersion.patch & 0xff00) >> 8), (byte) (SQLJdbcVersion.patch & 0xff),
                 // Build (Little Endian), 2 bytes
-                (byte) (SQLJdbcVersion.build & 0xff),
-                (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
+                (byte) (SQLJdbcVersion.build & 0xff), (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
 
                 // - Encryption -
                 (null == clientCertificate) ? requestedEncryptionLevel
@@ -3576,6 +3757,50 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              * Add Counter reference to newCommand
              */
             newCommand.createCounter(previousCounter, activeConnectionProperties);
+            if (!(newCommand instanceof LogonCommand)) {
+                // isAlive() doesn't guarantee the thread is actually running, just that it's been requested to start
+                if (!sessionRecovery.getReconnectThread().isAlive()) {
+                    if (this.connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()) {
+                        if (isConnectionDead()) {
+                            if (connectionlogger.isLoggable(Level.FINER)) {
+                                connectionlogger.finer(this.toString() + " Connection is detected to be broken.");
+                            }
+                            if (!sessionRecovery.isConnectionRecoveryPossible()
+                                    || sessionRecovery.getUnprocessedResponseCount() != 0) {
+                                SQLServerException.makeFromDriverError(this, this,
+                                        SQLServerException.getErrString("R_crClientUnrecoverable"), null, false);
+                            }
+                            if (!sessionRecovery.getSessionStateTable().isSessionRecoverable()) {
+                                SQLServerException.makeFromDriverError(this, this,
+                                        SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"), null,
+                                        false);
+                            }
+                            sessionRecovery.getReconnectThread().init(newCommand);
+                            sessionRecovery.getReconnectThread().start();
+                            /*
+                             * Join only blocks the thread that started the reconnect. Currently can't think of a good
+                             * reason to leave the original thread running, no work can be done while we're not
+                             * connected anyways. Can be easily changed to non-blocking if necessary.
+                             */
+                            try {
+                                sessionRecovery.getReconnectThread().join();
+                            } catch (InterruptedException e) {
+                                // Keep compiler happy, something's probably seriously wrong if this line is run
+                                SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
+                                        e.getMessage(), null, false);
+                            }
+                            if (sessionRecovery.getReconnectThread().getException() != null) {
+                                if (connectionlogger.isLoggable(Level.FINER)) {
+                                    connectionlogger.finer(
+                                            this.toString() + "Connection is broken and recovery is not possible.");
+                                }
+                                throw sessionRecovery.getReconnectThread().getException();
+                            }
+                        }
+                    }
+                }
+            }
+
             /*
              * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
              * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
@@ -3587,7 +3812,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 /*
                  * If execution of the new command left response bytes on the wire (e.g. a large ResultSet or complex
                  * response with multiple results) then remember it as the current command so that any subsequent call
-                 * to executeCommand will detach it before executing another new command.
+                 * to executeCommand will detach it before executing another new command. We should never displace an
+                 * existing currentCommand assert null == currentCommand; If execution of the new command left response
+                 * bytes on the wire (e.g. a large ResultSet or complex response with multiple results) then remember it
+                 * as the current command so that any subsequent call to executeCommand will detach it before executing
+                 * another new command.
                  */
                 if (!commandComplete && !isSessionUnAvailable())
                     currentCommand = newCommand;
@@ -3604,7 +3833,72 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    boolean isConnectionDead() throws SQLServerException {
+        // networkSocketStillConnected would affect perf if called every time. Only run
+        // when the connection has not seen recent activity.
+        if (!idleNetworkTracker.isIdle()) {
+            if (connectionlogger.isLoggable(Level.FINEST)) {
+                connectionlogger.finest(toString() + " Network not idle. Skipping networkSocketStillConnected check.");
+            }
+            return false;
+        }
+        // Only one thread should ever try to perform an idle check on a
+        // disconnected connection at a time.
+        synchronized (this) {
+            // check again if connection is reset already.
+            if (!idleNetworkTracker.isIdle()) {
+                if (connectionlogger.isLoggable(Level.FINEST)) {
+                    connectionlogger
+                            .finest(toString() + " Network not idle. Skipping networkSocketStillConnected check.");
+                }
+                return false;
+            }
+
+            if (isSessionUnAvailable()) {
+                SQLServerException.makeFromDriverError(null, null,
+                        SQLServerException.getErrString("R_connectionIsClosed"),
+                        SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
+            }
+
+            return !tdsChannel.networkSocketStillConnected();
+        }
+    }
+
     /**
+     * executeCommand without reconnection logic. Only used by the reconnect thread to avoid a lock.
+     */
+    synchronized boolean executeReconnectCommand(TDSCommand newCommand) throws SQLServerException {
+        /*
+         * Detach (buffer) the response from any previously executing command so that we can execute the new command.
+         * Note that detaching the response does not process it. Detaching just buffers the response off of the wire to
+         * clear the TDS channel.
+         */
+        if (null != currentCommand) {
+            currentCommand.detach();
+            currentCommand = null;
+        }
+
+        /*
+         * The implementation of this scheduler is pretty simple... Since only one command at a time may use a
+         * connection (to avoid TDS protocol errors), just synchronize to serialize command execution.
+         */
+        boolean commandComplete = false;
+        try {
+            commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
+        } finally {
+            /*
+             * We should never displace an existing currentCommand assert null == currentCommand; If execution of the
+             * new command left response bytes on the wire (e.g. a large ResultSet or complex response with multiple
+             * results) then remember it as the current command so that any subsequent call to executeCommand will
+             * detach it before executing another new command.
+             */
+            if (!commandComplete && !isSessionUnAvailable())
+                currentCommand = newCommand;
+        }
+        return commandComplete;
+    }
+
+    /*
      * Executes a connection-level command
      */
     private void connectionCommand(String sql, String logContext) throws SQLServerException {
@@ -3629,6 +3923,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
         executeCommand(new ConnectionCommand(sql, logContext));
+
+        if (sessionRecovery.getReconnectThread().isAlive()) {
+            executeReconnectCommand(new ConnectionCommand(sql, logContext));
+        } else {
+            executeCommand(new ConnectionCommand(sql, logContext));
+        }
     }
 
     /**
@@ -3648,12 +3948,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 
      * @param sDB
      *        the new catalog
-     * @return the required syntax
      */
     void setCatalogName(String sDB) {
         if (sDB != null) {
             if (sDB.length() > 0) {
                 sCatalog = sDB;
+            }
+        }
+    }
+
+    /**
+     * Sets the syntax to set the language to use.
+     *
+     * @param language
+     *        the new language
+     */
+    void setLanguageName(String language) {
+        if (language != null) {
+            if (language.length() > 0) {
+                sLanguage = language;
             }
         }
     }
@@ -4308,6 +4621,109 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
+        SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
+        int len = 1;
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
+        }
+        if (!sessionRecovery.getReconnectThread().isAlive()) {
+            if (write) {
+                tdsWriter.writeInt(0);
+            }
+            len += 4;
+        } else {
+            int initialLength = 0;
+            initialLength += 1 + 2 * ssTable.getOriginalCatalog().length();
+            initialLength += 1 + 2 * ssTable.getOriginalLanguage().length();
+            initialLength += 1 + (ssTable.getOriginalCollation() == null ? 0 : SQLCollation.tdsLength());
+            initialLength += ssTable.getInitialLength();
+
+            int currentLength = 0;
+            currentLength += 1 + 2 * (sCatalog.equals(ssTable.getOriginalCatalog()) ? 0 : sCatalog.length());
+            currentLength += 1 + 2 * (sLanguage.equals(ssTable.getOriginalLanguage()) ? 0 : sLanguage.length());
+            currentLength += 1 + (databaseCollation == null
+                    || databaseCollation.isEqual(ssTable.getOriginalCollation()) ? 0 : SQLCollation.tdsLength());
+            currentLength += ssTable.getDeltaLength();
+
+            if (write) {
+                // length of data w/o total length (initial + current + 2 * sizeof(DWORD))
+                tdsWriter.writeInt(8 + initialLength + currentLength);
+                tdsWriter.writeInt(initialLength);
+                tdsWriter.writeByte((byte) ssTable.getOriginalCatalog().length());
+                tdsWriter.writeBytes(toUCS16(ssTable.getOriginalCatalog()));
+                if (ssTable.getOriginalCollation() != null) {
+                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
+                    ssTable.getOriginalCollation().writeCollation(tdsWriter);
+                } else {
+                    tdsWriter.writeByte((byte) 0); // collation length
+                }
+                tdsWriter.writeByte((byte) ssTable.getOriginalLanguage().length());
+                tdsWriter.writeBytes(toUCS16(ssTable.getOriginalLanguage()));
+                for (int i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
+                    if (ssTable.getSessionStateInitial()[i] != null) {
+                        tdsWriter.writeByte((byte) i); // state id
+                        if (ssTable.getSessionStateInitial()[i].length >= 0xFF) {
+                            tdsWriter.writeByte((byte) 0xFF);
+                            tdsWriter.writeShort((short) ssTable.getSessionStateInitial()[i].length);
+                        } else {
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateInitial()[i]).length); // state length
+                        }
+                        tdsWriter.writeBytes(ssTable.getSessionStateInitial()[i]); // state value
+                    }
+                }
+                tdsWriter.writeInt(currentLength);
+
+                if (ssTable.spResetCalled()) {
+                    sCatalog = ssTable.getOriginalCatalog();
+                    databaseCollation = ssTable.getOriginalCollation();
+                    sLanguage = ssTable.getOriginalLanguage();
+                    ssTable.setspResetCalled(false);
+                }
+
+                // database/catalog
+                if (sCatalog.equals(ssTable.getOriginalCatalog())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    tdsWriter.writeByte((byte) sCatalog.length());
+                    tdsWriter.writeBytes(toUCS16(sCatalog));
+                }
+
+                // collation
+                if (databaseCollation == null || databaseCollation.isEqual(ssTable.getOriginalCollation())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    tdsWriter.writeByte((byte) SQLCollation.tdsLength());
+                    databaseCollation.writeCollation(tdsWriter);
+                }
+
+                // language
+                if (sLanguage.equals(ssTable.getOriginalLanguage())) {
+                    tdsWriter.writeByte((byte) 0);
+                } else {
+                    tdsWriter.writeByte((byte) sLanguage.length());
+                    tdsWriter.writeBytes(toUCS16(sLanguage));
+                }
+
+                // Delta session state
+                for (int i = 0; i < SessionStateTable.SESSION_STATE_ID_MAX; i++) {
+                    if (ssTable.getSessionStateDelta()[i] != null
+                            && ssTable.getSessionStateDelta()[i].getData() != null) {
+                        tdsWriter.writeByte((byte) i); // state id
+                        if (ssTable.getSessionStateDelta()[i].getDataLength() >= 0xFF) {
+                            tdsWriter.writeByte((byte) 0xFF);
+                            tdsWriter.writeShort((short) ssTable.getSessionStateDelta()[i].getDataLength());
+                        } else
+                            tdsWriter.writeByte((byte) (ssTable.getSessionStateDelta()[i].getDataLength()));
+                        tdsWriter.writeBytes(ssTable.getSessionStateDelta()[i].getData()); // state value
+                    }
+                }
+            }
+            len += initialLength + currentLength + 12 /* length fields (initial, current, total) */;
+        }
+        return len;
+    }
+
     /**
      * Logon Command
      *
@@ -4525,15 +4941,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_CHANGE_MIRROR:
                 setFailoverPartnerServerProvided(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
-            // Skip unsupported, ENVCHANGES
             case ENVCHANGE_LANGUAGE:
+                setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
+                break;
+            case ENVCHANGE_RESET_COMPLETE:
+                sessionRecovery.getSessionStateTable().reset();
+                break;
+            // Skip unsupported, ENVCHANGES
             case ENVCHANGE_CHARSET:
             case ENVCHANGE_SORTLOCALEID:
             case ENVCHANGE_SORTFLAGS:
             case ENVCHANGE_DTC_PROMOTE:
             case ENVCHANGE_DTC_MGR_ADDR:
             case ENVCHANGE_XACT_ENDED:
-            case ENVCHANGE_RESET_COMPLETE:
             case ENVCHANGE_USER_INFO:
                 if (connectionlogger.isLoggable(Level.FINER))
                     connectionlogger.finer(toString() + " Ignored env change: " + envchange);
@@ -4778,6 +5198,75 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         aadPrincipalSecret = "";
         activeConnectionProperties.remove(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString());
+    }
+
+    final void processSessionState(TDSReader tdsReader) throws SQLServerException {
+        if (sessionRecovery.isConnectionRecoveryNegotiated()) {
+            tdsReader.readUnsignedByte(); // token type
+            long dataLength = tdsReader.readUnsignedInt();
+            if (dataLength < 7) {
+                if (connectionlogger.isLoggable(Level.SEVERE))
+                    connectionlogger.severe(toString()
+                            + "SESSIONSTATETOKEN token stream is not long enough to contain the data it claims to.");
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+                tdsReader.throwInvalidTDS();
+            }
+            int sequenceNumber = tdsReader.readInt();
+            long dataBytesRead = 4;
+            /*
+             * Sequence number has reached max value and will now roll over. Hence disable CR permanently. This is set
+             * to false when session state data is being reset to initial state when connection is taken out of a
+             * connection pool.
+             */
+            if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER == sequenceNumber) {
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+            }
+
+            byte status = (byte) tdsReader.readUnsignedByte();
+            boolean fRecoverable = (status & 0x01) > 0 ? true : false;
+            dataBytesRead += 1;
+
+            while (dataBytesRead < dataLength) {
+                short sessionStateId = (short) tdsReader.readUnsignedByte();
+                int sessionStateLength = (int) tdsReader.readUnsignedByte();
+                dataBytesRead += 2;
+                if (sessionStateLength >= 0xFF) {
+                    sessionStateLength = (int) tdsReader.readUnsignedInt(); // xFF - xFFFF
+                    dataBytesRead += 4;
+                }
+
+                if (sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId] == null) {
+                    sessionRecovery.getSessionStateTable()
+                            .getSessionStateDelta()[sessionStateId] = new SessionStateValue();
+                }
+                /*
+                 * else Exception will not be thrown. Instead the state is just ignored.
+                 */
+
+                if (SessionStateTable.MASTER_RECOVERY_DISABLE_SEQ_NUMBER != sequenceNumber
+                        && ((null == sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
+                                .getData())
+                                || (sessionRecovery.getSessionStateTable().getSessionStateDelta()[sessionStateId]
+                                        .isSequenceNumberGreater(sequenceNumber)))) {
+                    sessionRecovery.getSessionStateTable().updateSessionState(tdsReader, sessionStateId,
+                            sessionStateLength, sequenceNumber, fRecoverable);
+                } else {
+                    tdsReader.readSkipBytes(sessionStateLength);
+                }
+                dataBytesRead += sessionStateLength;
+            }
+            if (dataBytesRead != dataLength) {
+                if (connectionlogger.isLoggable(Level.SEVERE))
+                    connectionlogger.severe(toString() + " Session State data length is corrupt.");
+                sessionRecovery.getSessionStateTable().setMasterRecoveryDisabled(true);
+                tdsReader.throwInvalidTDS();
+            }
+        } else {
+            if (connectionlogger.isLoggable(Level.SEVERE))
+                connectionlogger
+                        .severe(toString() + " Session state received when session recovery was not negotiated.");
+            tdsReader.throwInvalidTDSToken(TDS.getTokenName(tdsReader.peekTokenType()));
+        }
     }
 
     /**
@@ -5030,9 +5519,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private void onFeatureExtAck(byte featureId, byte[] data) throws SQLServerException {
         // To be able to cache both control and tenant ring IPs, need to parse AZURESQLDNSCACHING.
-        if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId) {
+        if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId)
             return;
-        }
 
         switch (featureId) {
             case TDS.TDS_FEATURE_EXT_FEDAUTH: {
@@ -5145,6 +5633,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 break;
             }
+
             case TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
                     connectionlogger.fine(
@@ -5167,6 +5656,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         dnsCache.remove(currentConnectPlaceHolder.getServerName());
                     }
                 }
+                break;
+            }
+
+            case TDS.TDS_FEATURE_EXT_SESSIONRECOVERY: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for Idle Connection Resiliency.");
+                }
+                sessionRecovery.parseInitialSessionStateData(data,
+                        sessionRecovery.getSessionStateTable().getSessionStateInitial());
+                sessionRecovery.setConnectionRecoveryNegotiated(true);
+                sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
             default: {
@@ -5457,6 +5958,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
+        // Idle Connection Resiliency is requested
+        if (connectRetryCount > 0) {
+            len = len + writeIdleConnectionResiliencyRequest(false, tdsWriter);
+        }
+
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len);
         tdsWriter.writeInt(tdsVersion);
@@ -5647,6 +6153,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeUTF8SupportFeatureRequest(true, tdsWriter);
         writeDNSCacheFeatureRequest(true, tdsWriter);
 
+        // Idle Connection Resiliency is requested
+        if (connectRetryCount > 0) {
+            writeIdleConnectionResiliencyRequest(true, tdsWriter);
+        }
+
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);
         tdsWriter.setDataLoggable(true);
 
@@ -5654,8 +6165,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         TDSReader tdsReader;
         do {
             tdsReader = logonCommand.startResponse();
+            sessionRecovery.setConnectionRecoveryPossible(false);
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
+
+        if (sessionRecovery.getReconnectThread().isAlive() && !sessionRecovery.isConnectionRecoveryPossible()) {
+            if (connectionlogger.isLoggable(Level.WARNING)) {
+                connectionlogger.warning(this.toString()
+                        + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
+            }
+            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,
+                    SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
+        }
+        if (connectRetryCount > 0 && !sessionRecovery.getReconnectThread().isAlive()) {
+            sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
+            sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
+            sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
+        }
     }
 
     /* --------------- JDBC 3.0 ------------- */
@@ -6628,8 +7154,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Sets time-to-live for column encryption key entries in the column encryption key cache for the Always Encrypted
-     * feature. The default value is 2 hours. This variable holds the value in seconds. This only applies to global-level
-     * key store providers. Connection and Statement-level providers need to set their own cache TTL values.
+     * feature. The default value is 2 hours. This variable holds the value in seconds. This only applies to
+     * global-level key store providers. Connection and Statement-level providers need to set their own cache TTL
+     * values.
      * 
      * @param columnEncryptionKeyCacheTTL
      *        The timeunit in seconds
@@ -7007,12 +7534,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Enclave provider */
     private ISQLServerEnclaveProvider enclaveProvider;
 
-    ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql, String preparedTypeDefinitions, Parameter[] params,
+    ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql,
+            String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         if (!this.enclaveEstablished()) {
             enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
-        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params, parameterNames);
+        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
+                parameterNames);
     }
 
     boolean enclaveEstablished() {
