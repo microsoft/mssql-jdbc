@@ -2296,11 +2296,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             String colValueStr;
                             if (colValue instanceof LocalDateTime) {
                                 colValueStr = ((LocalDateTime)colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                            }
-                            else if (colValue instanceof LocalTime) {
+                            } else if (colValue instanceof LocalTime) {
                                 colValueStr = ((LocalTime)colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
-                            }
-                            else {
+                            } else {
                                 colValueStr = colValue.toString();
                             }
 
