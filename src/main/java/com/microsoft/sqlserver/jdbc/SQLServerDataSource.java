@@ -508,6 +508,15 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
+    @Override
+    public void setDateTimeType(String dateTimeType) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(), dateTimeType);
+    }
+
+    @Override
+    public String getDateTimeType() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(), SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue());
+    }
 
     @Override
     public void setUseFmtOnly(boolean useFmtOnly) {

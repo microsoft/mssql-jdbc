@@ -680,6 +680,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** sendTimeAsDatetime flag */
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
+    /** dateTimeType property */
+    private DatetimeType dateTimeType = null;
+
     /** useFmtOnly property */
     private boolean useFmtOnly = SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue();
 
@@ -690,6 +693,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     final int baseYear() {
         return getSendTimeAsDatetime() ? TDS.BASE_YEAR_1970 : TDS.BASE_YEAR_1900;
+    }
+
+    @Override
+    public final String getDateTimeType() {
+        return dateTimeType.toString();
     }
 
     /** requested encryption level */
@@ -2055,6 +2063,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             sendTimeAsDatetime = isBooleanPropertyOn(sPropKey, sPropValue);
+
+            sPropKey = SQLServerDriverStringProperty.DATETIME_DATATYPE.toString();
+            sPropValue = activeConnectionProperties.getProperty(sPropKey);
+            if (null == sPropValue) {
+                sPropValue = SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue();
+            }
+
+            dateTimeType = DatetimeType.valueOfString(sPropValue);
+            activeConnectionProperties.setProperty(sPropKey, dateTimeType.toString());
+
 
             sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
             sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -6056,6 +6074,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
+    public void setDateTimeType(String dateTimeTypeValue) throws SQLServerException {
+        // cast the value to lowercase, so the case in the connection string does not matter
+        if (dateTimeTypeValue != null){
+            dateTimeTypeValue = dateTimeTypeValue.toLowerCase();
+        }
+
+        if (!isValidDateTimeType(dateTimeTypeValue)){
+            String errorMessage = "The timestamp encoding value (i.e. " + dateTimeTypeValue.toString() + ") must be: datetime, datetime2 or datetimeoffset.";
+            SQLServerException newe = new SQLServerException(errorMessage, null);
+            throw newe;
+        }
+        dateTimeType = DatetimeType.valueOfString(dateTimeTypeValue);
+    }
+
+    private boolean isValidDateTimeType(String dateTimeTypeValue) {
+        return (dateTimeTypeValue.equals("datetime") || dateTimeTypeValue.equals("datetime2") || dateTimeTypeValue.equals("datetimeoffset"));
+    }
+
+    @Override
     public void setUseFmtOnly(boolean useFmtOnly) {
         this.useFmtOnly = useFmtOnly;
     }
@@ -6271,6 +6308,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original sendTimeAsDateTime flag */
     private boolean originalSendTimeAsDatetime;
 
+    /** original dateTimeType flag */
+    private DatetimeType originalDateTimeType;
+
     /** original statement pooling cache size */
     private int originalStatementPoolingCacheSize;
 
@@ -6313,6 +6353,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalNetworkTimeout = getNetworkTimeout();
                 originalHoldability = holdability;
                 originalSendTimeAsDatetime = sendTimeAsDatetime;
+                originalDateTimeType = dateTimeType;
                 originalStatementPoolingCacheSize = statementPoolingCacheSize;
                 originalDisableStatementPooling = disableStatementPooling;
                 originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
@@ -6350,6 +6391,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
                     setSendTimeAsDatetime(originalSendTimeAsDatetime);
+                }
+                if (dateTimeType != originalDateTimeType) {
+                    setDateTimeType(originalDateTimeType.toString());
                 }
                 if (useFmtOnly != originalUseFmtOnly) {
                     setUseFmtOnly(originalUseFmtOnly);

@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -175,6 +176,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setSendTimeAsDatetime(booleanPropValue);
         assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setDateTimeType("datetime2");
+        assertEquals("datetime2", ds.getDateTimeType(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setUseFmtOnly(booleanPropValue);
         assertEquals(booleanPropValue, ds.getUseFmtOnly(), TestResource.getResource("R_valuesAreDifferent"));
@@ -763,6 +767,79 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             conn.getSchema();
         }
+    }
+
+    @Test
+    public void testSetDateTimeTypeShouldAcceptDatetime() throws SQLException {
+        String expected = "datetime";
+        String actual = "";
+
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setDateTimeType("datetime");
+            actual = conn.getDateTimeType();
+        }
+
+        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
+    }
+
+    @Test
+    public void testSetDateTimeTypeShouldAcceptDatetime2() throws SQLException {
+        String expected = "datetime2";
+        String actual = "";
+
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setDateTimeType("datetime2");
+            actual = conn.getDateTimeType();
+        }
+
+        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
+    }
+
+    @Test
+    public void testSetDateTimeTypeShouldAcceptDatetimeoffset() throws SQLException {
+        String expected = "datetimeoffset";
+        String actual = "";
+
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setDateTimeType("datetimeoffset");
+            actual = conn.getDateTimeType();
+        }
+
+        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
+    }
+
+    @Test
+    public void testSetDateTimeTypeThrowExceptionWhenBadValue() throws SQLException {
+        try (SQLServerConnection conn = getConnection()) {
+            assertThrows(SQLException.class, () -> {
+                conn.setDateTimeType("some_invalid_value");
+            });
+        }
+    }
+
+    @Test
+    public void testGetDateTimeTypeShouldReturnDatetime2AsDefault() throws SQLException {
+        String expected = "datetime2";
+        String actual = "";
+
+        try (SQLServerConnection conn = getConnection()) {
+            actual = conn.getDateTimeType();
+        }
+
+        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
+    }
+
+    @Test
+    public void testGetDateTimeTypeShouldConvertDateTimeTypeToLowercase() throws SQLException {
+        String expected = "datetime2";
+        String actual = "";
+
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setDateTimeType("DATETIME2");
+            actual = conn.getDateTimeType();
+        }
+
+        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
     /**

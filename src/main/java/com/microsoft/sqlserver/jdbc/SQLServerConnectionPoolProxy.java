@@ -525,6 +525,18 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public void setDateTimeType(String dateTimeTypeValue) throws SQLServerException {
+        checkClosed();
+        wrappedConnection.setDateTimeType(dateTimeTypeValue);
+    }
+
+    @Override
+    public String getDateTimeType() throws SQLServerException {
+        checkClosed();
+        return wrappedConnection.getDateTimeType();
+    }
+
+    @Override
     public int getDiscardedServerPreparedStatementCount() {
         return wrappedConnection.getDiscardedServerPreparedStatementCount();
     }
