@@ -7543,7 +7543,7 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
             // Request failed to time out and SQLServerConnection does not exist
             if (null != command)
                 command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-            throw new Exception("Command could not be timed out. Reason: " + e.getMessage());
+            throw new SQLServerException(SQLServerException.getErrString("R_crCommandCannotTimeOut"), e);
         }
     }
 }
