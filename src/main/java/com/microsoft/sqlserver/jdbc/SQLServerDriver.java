@@ -425,7 +425,7 @@ enum SQLServerDriverStringProperty {
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
-    DATETIME_DATATYPE("dateTimeType", DatetimeType.DATETIME2.toString());
+    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString());
 
     private final String name;
     private final String defaultValue;

@@ -204,7 +204,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
 
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";dateTimeType=datetime"); 
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime"); 
             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-01 23:59:59.996"); // if cast to a datetime, 996ms is rounded up to 997ms
@@ -235,7 +235,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
 
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";dateTimeType=datetime2"); 
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2"); 
             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-02 23:59:59.1234567");
@@ -267,7 +267,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String query = "SELECT CONVERT(VARCHAR(40), ?, 127) as [value]";
 
 
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";dateTimeType=datetimeoffset"); 
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetimeoffset"); 
             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-03 23:59:59.7654321");

@@ -680,8 +680,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** sendTimeAsDatetime flag */
     private boolean sendTimeAsDatetime = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue();
 
-    /** dateTimeType property */
-    private DatetimeType dateTimeType = null;
+    /** datetimeParameterType property */
+    private DatetimeType datetimeParameterType = null;
 
     /** useFmtOnly property */
     private boolean useFmtOnly = SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue();
@@ -696,8 +696,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
-    public final String getDateTimeType() {
-        return dateTimeType.toString();
+    public final String getDatetimeParameterType() {
+        return datetimeParameterType.toString();
     }
 
     /** requested encryption level */
@@ -2070,8 +2070,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue();
             }
 
-            dateTimeType = DatetimeType.valueOfString(sPropValue);
-            activeConnectionProperties.setProperty(sPropKey, dateTimeType.toString());
+            datetimeParameterType = DatetimeType.valueOfString(sPropValue);
+            activeConnectionProperties.setProperty(sPropKey, datetimeParameterType.toString());
 
 
             sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
@@ -6074,22 +6074,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
-    public void setDateTimeType(String dateTimeTypeValue) throws SQLServerException {
+    public void setDatetimeParameterType(String datetimeParameterTypeValue) throws SQLServerException {
         // cast the value to lowercase, so the case in the connection string does not matter
-        if (dateTimeTypeValue != null){
-            dateTimeTypeValue = dateTimeTypeValue.toLowerCase();
+        if (datetimeParameterTypeValue != null){
+            datetimeParameterTypeValue = datetimeParameterTypeValue.toLowerCase();
         }
 
-        if (!isValidDateTimeType(dateTimeTypeValue)){
-            String errorMessage = "The timestamp encoding value (i.e. " + dateTimeTypeValue.toString() + ") must be: datetime, datetime2 or datetimeoffset.";
+        if (!isValidDatetimeParameterType(datetimeParameterTypeValue)){
+            String errorMessage = "The timestamp encoding value (i.e. " + datetimeParameterTypeValue.toString() + ") must be: datetime, datetime2 or datetimeoffset.";
             SQLServerException newe = new SQLServerException(errorMessage, null);
             throw newe;
         }
-        dateTimeType = DatetimeType.valueOfString(dateTimeTypeValue);
+        datetimeParameterType = DatetimeType.valueOfString(datetimeParameterTypeValue);
     }
 
-    private boolean isValidDateTimeType(String dateTimeTypeValue) {
-        return (dateTimeTypeValue.equals("datetime") || dateTimeTypeValue.equals("datetime2") || dateTimeTypeValue.equals("datetimeoffset"));
+    private boolean isValidDatetimeParameterType(String datetimeParameterTypeValue) {
+        return (datetimeParameterTypeValue.equals("datetime") || datetimeParameterTypeValue.equals("datetime2") || datetimeParameterTypeValue.equals("datetimeoffset"));
     }
 
     @Override
@@ -6308,8 +6308,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original sendTimeAsDateTime flag */
     private boolean originalSendTimeAsDatetime;
 
-    /** original dateTimeType flag */
-    private DatetimeType originalDateTimeType;
+    /** original datetimeParameterType flag */
+    private DatetimeType originalDatetimeParameterType;
 
     /** original statement pooling cache size */
     private int originalStatementPoolingCacheSize;
@@ -6353,7 +6353,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalNetworkTimeout = getNetworkTimeout();
                 originalHoldability = holdability;
                 originalSendTimeAsDatetime = sendTimeAsDatetime;
-                originalDateTimeType = dateTimeType;
+                originalDatetimeParameterType = datetimeParameterType;
                 originalStatementPoolingCacheSize = statementPoolingCacheSize;
                 originalDisableStatementPooling = disableStatementPooling;
                 originalServerPreparedStatementDiscardThreshold = getServerPreparedStatementDiscardThreshold();
@@ -6392,8 +6392,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (sendTimeAsDatetime != originalSendTimeAsDatetime) {
                     setSendTimeAsDatetime(originalSendTimeAsDatetime);
                 }
-                if (dateTimeType != originalDateTimeType) {
-                    setDateTimeType(originalDateTimeType.toString());
+                if (datetimeParameterType != originalDatetimeParameterType) {
+                    setDatetimeParameterType(originalDatetimeParameterType.toString());
                 }
                 if (useFmtOnly != originalUseFmtOnly) {
                     setUseFmtOnly(originalUseFmtOnly);

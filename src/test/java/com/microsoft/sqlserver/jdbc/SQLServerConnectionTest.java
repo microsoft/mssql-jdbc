@@ -177,8 +177,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setSendTimeAsDatetime(booleanPropValue);
         assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setDateTimeType("datetime2");
-        assertEquals("datetime2", ds.getDateTimeType(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setDatetimeParameterType("datetime2");
+        assertEquals("datetime2", ds.getDatetimeParameterType(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setUseFmtOnly(booleanPropValue);
         assertEquals(booleanPropValue, ds.getUseFmtOnly(), TestResource.getResource("R_valuesAreDifferent"));
@@ -770,73 +770,73 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testSetDateTimeTypeShouldAcceptDatetime() throws SQLException {
+    public void testSetDatetimeParameterTypeShouldAcceptDatetime() throws SQLException {
         String expected = "datetime";
         String actual = "";
 
         try (SQLServerConnection conn = getConnection()) {
-            conn.setDateTimeType("datetime");
-            actual = conn.getDateTimeType();
+            conn.setDatetimeParameterType("datetime");
+            actual = conn.getDatetimeParameterType();
         }
 
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
     @Test
-    public void testSetDateTimeTypeShouldAcceptDatetime2() throws SQLException {
+    public void testSetDatetimeParameterTypeShouldAcceptDatetime2() throws SQLException {
         String expected = "datetime2";
         String actual = "";
 
         try (SQLServerConnection conn = getConnection()) {
-            conn.setDateTimeType("datetime2");
-            actual = conn.getDateTimeType();
+            conn.setDatetimeParameterType("datetime2");
+            actual = conn.getDatetimeParameterType();
         }
 
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
     @Test
-    public void testSetDateTimeTypeShouldAcceptDatetimeoffset() throws SQLException {
+    public void testSetDatetimeParameterTypeShouldAcceptDatetimeoffset() throws SQLException {
         String expected = "datetimeoffset";
         String actual = "";
 
         try (SQLServerConnection conn = getConnection()) {
-            conn.setDateTimeType("datetimeoffset");
-            actual = conn.getDateTimeType();
+            conn.setDatetimeParameterType("datetimeoffset");
+            actual = conn.getDatetimeParameterType();
         }
 
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
     @Test
-    public void testSetDateTimeTypeThrowExceptionWhenBadValue() throws SQLException {
+    public void testSetDatetimeParameterTypeThrowExceptionWhenBadValue() throws SQLException {
         try (SQLServerConnection conn = getConnection()) {
             assertThrows(SQLException.class, () -> {
-                conn.setDateTimeType("some_invalid_value");
+                conn.setDatetimeParameterType("some_invalid_value");
             });
         }
     }
 
     @Test
-    public void testGetDateTimeTypeShouldReturnDatetime2AsDefault() throws SQLException {
+    public void testGetDatetimeParameterTypeShouldReturnDatetime2AsDefault() throws SQLException {
         String expected = "datetime2";
         String actual = "";
 
         try (SQLServerConnection conn = getConnection()) {
-            actual = conn.getDateTimeType();
+            actual = conn.getDatetimeParameterType();
         }
 
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
     @Test
-    public void testGetDateTimeTypeShouldConvertDateTimeTypeToLowercase() throws SQLException {
+    public void testGetDatetimeParameterTypeShouldConvertDatetimeParameterTypeToLowercase() throws SQLException {
         String expected = "datetime2";
         String actual = "";
 
         try (SQLServerConnection conn = getConnection()) {
-            conn.setDateTimeType("DATETIME2");
-            actual = conn.getDateTimeType();
+            conn.setDatetimeParameterType("DATETIME2");
+            actual = conn.getDatetimeParameterType();
         }
 
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
