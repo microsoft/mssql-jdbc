@@ -74,7 +74,10 @@ import javax.net.ssl.X509TrustManager;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
-
+/**
+ * ExtendedSocketOptions provides methods to keep track of keep alive and socket information.
+ *
+ */
 final class ExtendedSocketOptions {
     private static class ExtSocketOption<T> implements SocketOption<T> {
         private final String name;

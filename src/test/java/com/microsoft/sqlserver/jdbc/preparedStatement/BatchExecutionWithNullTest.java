@@ -180,7 +180,6 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
 
     @BeforeEach
-    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testSetup() throws TestAbortedException, Exception {
         try (Statement stmt = connection.createStatement()) {

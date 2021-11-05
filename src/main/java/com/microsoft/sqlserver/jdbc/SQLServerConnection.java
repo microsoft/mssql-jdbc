@@ -413,11 +413,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Keeps track of network idle status */
     IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
 
-    /** Public getter for network idle status tracker */
-    public IdleNetworkTracker getIdleNetworkTracker() {
-        return idleNetworkTracker;
-    }
-
     /** Size of the parsed SQL-text metadata cache */
     static final private int PARSED_SQL_CACHE_SIZE = 100;
 
