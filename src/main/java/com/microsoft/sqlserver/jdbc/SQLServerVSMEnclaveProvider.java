@@ -55,7 +55,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         // Check if the session exists in our cache
@@ -66,7 +66,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             this.enclaveSession = entry.getEnclaveSession();
             this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
         }
-        ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
+        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions, params,
                 parameterNames);
         if (connection.enclaveEstablished()) {
             return b;
@@ -141,7 +141,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return certData;
     }
 
-    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
+    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
@@ -153,7 +153,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                     // Should never happen.
                     return enclaveRequestedCEKs;
                 }
-                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
+                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt, rs,
                         enclaveRequestedCEKs);
                 // Process the third resultset.
                 if (connection.isAEv2() && stmt.getMoreResults()) {

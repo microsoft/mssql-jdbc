@@ -189,6 +189,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setServerName(stringPropValue);
         assertEquals(stringPropValue, ds.getServerName(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setRealm(stringPropValue);
+        assertEquals(stringPropValue, ds.getRealm(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setServerSpn(stringPropValue);
         assertEquals(stringPropValue, ds.getServerSpn(), TestResource.getResource("R_valuesAreDifferent"));
 

@@ -389,22 +389,22 @@ final class Parameter {
     }
 
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
-            TDSReader tdsReader) throws SQLServerException {
+            TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
 
         deriveTypeInfo(tdsReader);
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
-        return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader);
+        return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader, statement);
     }
 
     Object getSetterValue() {
         return setterDTV.getSetterValue();
     }
 
-    int getInt(TDSReader tdsReader) throws SQLServerException {
-        Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
+    int getInt(TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+        Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader, statement);
         return null != value ? value : 0;
     }
 
@@ -1149,14 +1149,15 @@ final class Parameter {
         return typeDefinition;
     }
 
-    void sendByRPC(TDSWriter tdsWriter, SQLServerConnection conn) throws SQLServerException {
+    void sendByRPC(TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
         assert null != inputDTV : "Parameter was neither set nor registered";
-
+        SQLServerConnection conn = statement.connection;
+        
         try {
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
             inputDTV.sendByRPC(name, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
-                    isOutput(), tdsWriter, conn);
+                    isOutput(), tdsWriter, statement);
         } finally {
             // reset the cryptoMeta in IOBuffer
             inputDTV.sendCryptoMetaData(null, tdsWriter);

@@ -570,7 +570,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (connection.isAEv2() && !isInternalEncryptionQuery) {
-            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+            this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, inOutParam,
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
@@ -656,6 +656,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
+
+            PrepStmtExecOutParamHandler(SQLServerStatement statement) {
+                super(statement);
+            }
+
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // If no prepared statement handle is expected at this time
                 // then don't consume this OUT parameter as it does not contain
@@ -670,7 +675,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
 
-                setPreparedStatementHandle(param.getInt(tdsReader));
+                setPreparedStatementHandle(param.getInt(tdsReader, statement));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
@@ -688,7 +693,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (expectPrepStmtHandle || expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler(this));
             return true;
         }
 
@@ -707,7 +712,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
-            params[index].sendByRPC(tdsWriter, connection);
+            params[index].sendByRPC(tdsWriter, this);
         }
     }
 
@@ -877,6 +882,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().fine(
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
+
+            // pass registered custom provider to stmt
+            if (this.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+                ((SQLServerCallableStatement) stmt).registerColumnEncryptionKeyStoreProvidersOnStatement(this.statementColumnEncryptionKeyStoreProviders);
+            }
+
             ((SQLServerCallableStatement) stmt).isInternalEncryptionQuery = true;
             ((SQLServerCallableStatement) stmt).setNString(1, preparedSQL);
             ((SQLServerCallableStatement) stmt).setNString(2, preparedTypeDefinitions);
@@ -943,8 +954,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
                                     null, encType.value, (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+
+                            SQLServerStatement statement = (SQLServerStatement) stmt;
                             // Decrypt the symmetric key.(This will also validate and throw if needed).
-                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
                         } else {
                             if (params[paramIndex].getForceEncryption()) {
                                 MessageFormat form = new MessageFormat(SQLServerException
@@ -2739,7 +2752,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
                     && !encryptionMetadataIsRetrieved) {
-                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
+                this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, batchParam,
                         parameterNames);
                 encryptionMetadataIsRetrieved = true;
 

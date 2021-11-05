@@ -349,6 +349,7 @@ enum SQLServerDriverStringProperty {
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
     SERVER_SPN("serverSpn", ""),
+    REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
     SOCKET_FACTORY_CONSTRUCTOR_ARG("socketFactoryConstructorArg", ""),
     TRUST_STORE_TYPE("trustStoreType", "JKS"),
@@ -569,6 +570,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
+                    SQLServerDriverStringProperty.REALM.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString(),
                     SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString(),
@@ -908,11 +911,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         // Merge connectProperties (from URL) and supplied properties from user.
         Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
         if (connectProperties != null) {
-            if (Util.use43Wrapper()) {
-                result = new SQLServerConnection43(toString());
-            } else {
-                result = new SQLServerConnection(toString());
-            }
+            result = DriverJDBCVersion.getSQLServerConnection(toString());
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);

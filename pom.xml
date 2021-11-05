@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.3.1</version>
+	<version>9.5.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -41,36 +41,35 @@
 
 	<properties>
 		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
-			xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications 
-			xGradle - - - - - - For tests not compatible with Gradle Script - - - - - 
-			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
-			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
-			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
-			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
-			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
-			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup  - For tests requiring external setup (excluded by default)
-			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
-			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+			xJDBC42 - - - - - For tests not compatible with JDBC 42 Specifications - 
+			xGradle - - - - - For tests not compatible with Gradle Script - - - - - - 
+			xSQLv12 - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
+			xSQLv14 - - - - - For tests not compatible with SQL Server 2016 - 2017 - 
+			xSQLv15 - - - - - For tests not compatible with SQL Server 2019 - - - - - 
+			xAzureSQLDB - - - For tests not compatible with Azure SQL Database - - - 
+			xAzureSQLDW - - - For tests not compatible with Azure Data Warehouse - - 
+			xAzureSQLMI - - - For tests not compatible with Azure SQL Managed Instance 
+			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup For tests requiring external setup (excluded by default) 
+			clientCertAuth - For tests requiring client certificate auth setup (excluded 
+			by default) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 
-		<!-- Use -preview for preview release, leave empty for official release.-->
+		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>4.2.7</azure.keyvault.version>
-		<azure.identity.version>1.2.5</azure.identity.version>
+		<azure.keyvault.version>4.2.8</azure.keyvault.version>
+		<azure.identity.version>1.3.3</azure.identity.version>
 		<osgi.core.version>6.0.0</osgi.core.version>
 		<osgi.comp.version>5.0.0</osgi.comp.version>
 		<antlr.runtime.version>4.9.2</antlr.runtime.version>
-		<google.gson.version>2.8.6</google.gson.version>
-		<bouncycastle.bcprov.version>1.68</bouncycastle.bcprov.version>
-		<bouncycastle.bcpkix.version>1.68</bouncycastle.bcpkix.version>
+		<google.gson.version>2.8.7</google.gson.version>
+		<bouncycastle.bcprov.version>1.69</bouncycastle.bcprov.version>
+		<bouncycastle.bcpkix.version>1.69</bouncycastle.bcpkix.version>
 
 		<!-- JUnit Test Dependencies -->
-		<azure.adal4j.version>1.6.5</azure.adal4j.version>
+		<azure.adal4j.version>1.6.7</azure.adal4j.version>
 		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
 		<junit.jupiter.version>5.5.2</junit.jupiter.version>
 		<hikaricp.version>3.4.2</hikaricp.version>
@@ -251,8 +250,15 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerConnection43.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
+							<testExcludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/connection/ConnectionWrapper43Test.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/connection/RequestBoundaryMethodsTest.java</exclude>
+								<exclude>**/com/microsoft/sqlserver/jdbc/JDBC43Test.java</exclude>
+							</testExcludes>
 							<source>1.8</source>
 							<target>1.8</target>
 						</configuration>
@@ -281,7 +287,8 @@
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
-							<!-- needs to be overridden as illegal-access and MaxPermSize=256m not valid in java 8 -->
+							<!-- needs to be overridden as illegal-access and MaxPermSize=256m 
+								not valid in java 8 -->
 							<argLine>-Xmx1024m -Djava.library.path=${dllPath}</argLine>
 						</configuration>
 					</plugin>
@@ -322,12 +329,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre16</id>
+			<id>jre17</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre16${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -337,8 +344,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>16</source>
-							<target>16</target>
+							<source>17</source>
+							<target>17</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -422,8 +429,7 @@
 				<configuration>
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
-					<argLine>${argLine} --illegal-access=permit -Xmx1024m
-						-XX:MaxPermSize=256m -Djava.library.path=${dllPath}
+					<argLine>${argLine} -Xmx1024m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
@@ -499,7 +505,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.6</version>
+				<version>0.8.7</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>
@@ -516,6 +522,10 @@
 					</execution>
 				</executions>
 				<configuration>
+					<excludes>
+						<exclude>**/mssql/googlecode/**/*</exclude>
+						<exclude>**/mssql/security/**/*</exclude>
+					</excludes>
 					<fileSets>
 						<fileSet>
 							<directory>jacoco-execs/</directory>

@@ -26,7 +26,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
-import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -44,6 +43,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Column Mapping Test")
 public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
+    private String prcdb = RandomUtil.getIdentifier("BulkCopy_PRC_DB");
 
     @Test
     @DisplayName("BulkCopy:test no explicit column mapping")
@@ -62,6 +62,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingXAConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsXA);
                 bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -103,6 +105,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -148,6 +152,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTableUnicode, destTableUnicode);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(sourceTableUnicode.getEscapedTableName(), (Statement) stmt.product());
                 TestUtils.dropTableIfExists(destTableUnicode.getEscapedTableName(), (Statement) stmt.product());
@@ -213,6 +219,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
 
                     fail(form.format(msgArgs) + "\n" + destTable.getTableName() + "\n" + e.getMessage());
                 }
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(sourceTable1.getEscapedTableName(), (Statement) stmt.product());
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
@@ -254,6 +262,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                     }
                 }
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -361,6 +371,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 bulkWrapper.setUsingPooledConnection((0 == Constants.RANDOM.nextInt(2)) ? true : false, dsPool);
                 bulkWrapper.setColumnMapping(Integer.MIN_VALUE, Integer.MAX_VALUE);
                 BulkCopyTestUtil.performBulkCopy(bulkWrapper, sourceTable, destTable, true, true);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTable.getEscapedTableName(), (Statement) stmt.product());
             }
@@ -371,11 +383,36 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @Test
     @DisplayName("BulkCopy:test unicode char/varchar to nchar/nvarchar")
     public void testUnicodeCharToNchar() throws SQLException, ClassNotFoundException {
-        validateMapping("CHAR(5)", "NCHAR(5)", "фщыab");
-        validateMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
-        validateMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+        // Windows only as this test has problems getting dependent H2 package from Maven in Unix
+        org.junit.Assume.assumeTrue(isWindows);
+
+        validateNMapping("CHAR(5)", "NCHAR(5)", "фщыab");
+        validateNMapping("CHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NVARCHAR(5)", "фщыab");
+        validateNMapping("VARCHAR(5)", "NVARCHAR(max)", "фщыab");
+    }
+
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Test
+    @DisplayName("BulkCopy:test unicode char/varchar to char/varchar")
+    public void testUnicodeCharToChar() throws SQLException, ClassNotFoundException {
+
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE [" + prcdb + "]");
+            stmt.executeUpdate("ALTER DATABASE " + "[" + prcdb + "]" + " COLLATE Chinese_PRC_CI_AS;");
+
+            validateMapping("CHAR(10)", "CHAR(10)", "测试设计者");
+            validateMapping("CHAR(10)", "VARCHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "CHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "VARCHAR(10)", "测试设计者");
+            validateMapping("VARCHAR(10)", "VARCHAR(max)", "测试设计者");
+        } catch (Exception e) {
+            fail(e.getMessage());
+        } finally {
+            TestUtils.dropDatabaseIfExists(prcdb, connectionString);
+        }
     }
 
     @Tag(Constants.xAzureSQLDW)
@@ -463,7 +500,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         }
     }
 
-    private void validateMapping(String sourceType, String destType,
+    // validate mapping from Char/Varchar to NChar/Varchar types
+    private void validateNMapping(String sourceType, String destType,
             String data) throws SQLException, ClassNotFoundException {
         Class.forName("org.h2.Driver");
         Random rand = new Random();
@@ -480,7 +518,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " (col " + sourceType + ");");
                 sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + data + "');");
 
-                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col NCHAR(5));");
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col " + destType + ");");
+                
                 ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
                 bulkCopy.writeToServer(sourceRs);
 
@@ -488,6 +527,42 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
                 destRs.next();
                 String receivedUnicodeData = destRs.getString(1);
                 assertEquals(data, receivedUnicodeData);
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
+                TestUtils.dropTableIfExists(destTable, destStmt);
+            }
+        }
+    }
+
+    private void validateMapping(String sourceType, String destType,
+            String data) throws SQLException, ClassNotFoundException {
+        Random rand = new Random();
+        String sourceTable = "sourceTable" + rand.nextInt(Integer.MAX_VALUE);
+        String destTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
+        try (Connection sourceCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
+                Connection destCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
+                Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
+            try {
+                bulkCopy.setDestinationTableName(destTable);
+
+                sourceStmt.executeUpdate("CREATE TABLE " + sourceTable + " (col " + sourceType + ");");
+                sourceStmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES('" + data + "');");
+
+                destStmt.executeUpdate("CREATE TABLE " + destTable + " (col " + destType + ");");
+
+                ResultSet sourceRs = sourceStmt.executeQuery("SELECT * FROM " + sourceTable);
+                bulkCopy.writeToServer(sourceRs);
+
+                ResultSet destRs = destStmt.executeQuery("SELECT * FROM " + destTable);
+                destRs.next();
+                String receivedUnicodeData = destRs.getString(1);
+                assertEquals(data, receivedUnicodeData);
+            } catch (Exception e) {
+                fail(e.getMessage());
             } finally {
                 sourceStmt.executeUpdate("DROP TABLE " + sourceTable);
                 TestUtils.dropTableIfExists(destTable, destStmt);

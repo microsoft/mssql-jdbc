@@ -329,7 +329,7 @@ public class EnclavePackageTest extends AbstractTest {
             trustedKeyPaths.put(serverName, paths);
             SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
 
-            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, "My_KEYSTORE", "UnTrustedKeyPath",
+            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, null, "My_KEYSTORE", "UnTrustedKeyPath",
                     serverName, true, null);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {

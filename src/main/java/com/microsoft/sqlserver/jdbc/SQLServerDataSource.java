@@ -582,6 +582,22 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets the realm for Kerberos authentication.
+     * 
+     * @param realm
+     *        realm
+     */
+    @Override
+    public void setRealm(String realm) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), realm);
+    }
+
+    @Override
+    public String getRealm() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), null);
+    }
+
+    /**
      * Sets the Service Principal Name (SPN) of the target SQL Server.
      * https://msdn.microsoft.com/en-us/library/cc280459.aspx
      * 
@@ -1297,11 +1313,7 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
-        if (Util.use43Wrapper()) {
-            result = new SQLServerConnection43(toString());
-        } else {
-            result = new SQLServerConnection(toString());
-        }
+        result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());

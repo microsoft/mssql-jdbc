@@ -9,40 +9,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-
-
-class CacheClear implements Runnable {
-
-    private String keylookupValue;
-    static private java.util.logging.Logger aeLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.CacheClear");
-
-    CacheClear(String keylookupValue) {
-        this.keylookupValue = keylookupValue;
-    }
-
-    @Override
-    public void run() {
-        // remove() is a no-op if the key is not in the map.
-        // It is a concurrentHashMap, update/remove operations are thread safe.
-        synchronized (SQLServerSymmetricKeyCache.lock) {
-            SQLServerSymmetricKeyCache instance = SQLServerSymmetricKeyCache.getInstance();
-            if (instance.getCache().containsKey(keylookupValue)) {
-                instance.getCache().get(keylookupValue).zeroOutKey();
-                instance.getCache().remove(keylookupValue);
-                if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                    aeLogger.fine("Removed encryption key from cache...");
-                }
-            }
-        }
-    }
-}
 
 
 /**
@@ -52,29 +21,21 @@ class CacheClear implements Runnable {
  */
 final class SQLServerSymmetricKeyCache {
     static final Object lock = new Object();
-    private final ConcurrentHashMap<String, SQLServerSymmetricKey> cache;
+    private final SimpleTtlCache<String, SQLServerSymmetricKey> cache;
     private static final SQLServerSymmetricKeyCache instance = new SQLServerSymmetricKeyCache();
-    private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setDaemon(true);
-            return t;
-        }
-    });
 
     static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");
 
     private SQLServerSymmetricKeyCache() {
-        cache = new ConcurrentHashMap<>();
+        cache = new SimpleTtlCache<String, SQLServerSymmetricKey>();
     }
 
     static SQLServerSymmetricKeyCache getInstance() {
         return instance;
     }
 
-    ConcurrentHashMap<String, SQLServerSymmetricKey> getCache() {
+    SimpleTtlCache<String, SQLServerSymmetricKey> getCache() {
         return cache;
     }
 
@@ -123,11 +84,21 @@ final class SQLServerSymmetricKeyCache {
                 aeLogger.fine("Checking Symmetric key cache...");
             }
 
-            // if ColumnEncryptionKeyCacheTtl is 0 no caching at all
-            if (!cache.containsKey(keyLookupValue)) {
+            if (!cache.contains(keyLookupValue)) {
+ 
+                // search system/global key store providers
+                SQLServerColumnEncryptionKeyStoreProvider provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
+                assert null != provider : "Provider should not be null.";
+
                 byte[] plaintextKey;
-                plaintextKey = connection.getColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName)
-                        .decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
+                
+                /* 
+                 * When provider decrypt Column Encryption Key, it can cache the decrypted key if cacheTTL > 0.
+                 * To prevent conflicts between CEK caches, system providers and global providers should not use their own CEK caches.
+                 */
+                provider.setColumnEncryptionCacheTtl(Duration.ZERO);
+                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
+
                 encryptionKey = new SQLServerSymmetricKey(plaintextKey);
 
                 /*
@@ -137,11 +108,8 @@ final class SQLServerSymmetricKeyCache {
                  */
                 long columnEncryptionKeyCacheTtl = SQLServerConnection.getColumnEncryptionKeyCacheTtl();
                 if (0 != columnEncryptionKeyCacheTtl) {
-                    cache.putIfAbsent(keyLookupValue, encryptionKey);
-                    if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
-                        aeLogger.fine("Adding encryption key to cache...");
-                    }
-                    scheduler.schedule(new CacheClear(keyLookupValue), columnEncryptionKeyCacheTtl, SECONDS);
+                    cache.setCacheTtl(columnEncryptionKeyCacheTtl);
+                    cache.put(keyLookupValue, encryptionKey);
                 }
             } else {
                 encryptionKey = cache.get(keyLookupValue);
