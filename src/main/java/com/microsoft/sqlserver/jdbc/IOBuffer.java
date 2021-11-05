@@ -2244,6 +2244,7 @@ final class TDSChannel implements Serializable {
 
     /**
      * Attempts to poll the input stream to see if the network socket is still connected.
+     * 
      * @return
      */
     final Boolean networkSocketStillConnected() {
@@ -7669,8 +7670,8 @@ abstract class TDSCommand implements Serializable {
      * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
      * if it was actually executed.
      */
-    private boolean registeredInPoller = false;
-    private boolean executed = false;
+    private boolean isRegisteredInPoller = false;
+    private boolean isExecuted = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7704,19 +7705,19 @@ abstract class TDSCommand implements Serializable {
     }
 
     synchronized void addToPoller() {
-        if (!registeredInPoller) {
+        if (!isRegisteredInPoller) {
             // If command execution is subject to timeout then start timing until
             // the server returns the first response packet.
             if (queryTimeoutSeconds > 0) {
                 this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
                 TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-                registeredInPoller = true;
+                isRegisteredInPoller = true;
             }
         }
     }
 
     boolean wasExecuted() {
-        return executed;
+        return isExecuted;
     }
 
     /**
@@ -7745,7 +7746,7 @@ abstract class TDSCommand implements Serializable {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
-        executed = true;
+        isExecuted = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
