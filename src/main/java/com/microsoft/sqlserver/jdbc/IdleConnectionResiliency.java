@@ -8,7 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-class SessionRecoveryFeature {
+class IdleConnectionResiliency {
     private boolean connectionRecoveryNegotiated;
     private int connectRetryCount;
     private SQLServerConnection connection;
@@ -25,7 +25,7 @@ class SessionRecoveryFeature {
     private FailoverInfo loginFailoverInfo;
     private int loginLoginTimeoutSeconds;
 
-    SessionRecoveryFeature(SQLServerConnection connection) {
+    IdleConnectionResiliency(SQLServerConnection connection) {
         this.connection = connection;
         reconnectThread = new ReconnectThread(connection);
     }

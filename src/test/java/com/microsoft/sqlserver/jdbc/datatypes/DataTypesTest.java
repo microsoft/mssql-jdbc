@@ -1794,7 +1794,6 @@ public class DataTypesTest extends AbstractTest {
      * 
      * @throws Exception
      */
-    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Test
     public void testGetLocalDateTimePriorGregorian() throws Exception {

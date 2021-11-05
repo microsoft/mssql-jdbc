@@ -30,7 +30,6 @@ import com.microsoft.sqlserver.testframework.Constants;
  * 
  */
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)

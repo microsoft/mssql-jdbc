@@ -36,7 +36,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(Parameterized.class)
-@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)

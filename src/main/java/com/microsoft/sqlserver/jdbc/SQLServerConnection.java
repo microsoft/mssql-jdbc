@@ -384,6 +384,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     class IdleNetworkTracker {
         private Instant lastNetworkActivity = Instant.now();
+
+        /**
+         * An “idle” connection will only ever get its socket disconnected by a keepalive packet after a connection has
+         * been severed. KeepAlive packets are only sent on idle sockets. Default setting by the driver (on platforms
+         * that have Java support for setting it) and the recommended setting is 30s (and OS default for those that
+         * don't set it is 2 hrs).
+         */
         private int maxIdleMillis = 15000;
 
         /** Has it been more than maxIdleMillis since network activity has been marked */
@@ -862,9 +869,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Session Recovery Object */
-    private SessionRecoveryFeature sessionRecovery = new SessionRecoveryFeature(this);
+    private IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
-    SessionRecoveryFeature getSessionRecovery() {
+    IdleConnectionResiliency getSessionRecovery() {
         return sessionRecovery;
     }
 
@@ -4619,7 +4626,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
-    int writeSessionRecoveryFeatureRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
+    int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
         if (write) {
@@ -5958,7 +5965,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
-            len = len + writeSessionRecoveryFeatureRequest(false, tdsWriter);
+            len = len + writeIdleConnectionResiliencyRequest(false, tdsWriter);
         }
 
         // Length of entire Login 7 packet
@@ -6153,7 +6160,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
-            writeSessionRecoveryFeatureRequest(true, tdsWriter);
+            writeIdleConnectionResiliencyRequest(true, tdsWriter);
         }
 
         tdsWriter.writeByte((byte) TDS.FEATURE_EXT_TERMINATOR);

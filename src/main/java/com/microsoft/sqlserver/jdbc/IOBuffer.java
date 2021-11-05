@@ -783,7 +783,7 @@ final class TDSChannel implements Serializable {
                 logger.finer(toString() + " proxySocket is null, exit early");
             return;
         }
-        
+
         /*
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
          * socket and streams. The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown
@@ -1183,9 +1183,7 @@ final class TDSChannel implements Serializable {
                         bytesRead = filteredStream.read(b, offset, maxBytes);
                     } catch (IOException e) {
                         if (logger.isLoggable(Level.FINER))
-                            logger.finer(toString() + " " + e.getMessage());
-
-                        logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                            logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
                         throw e;
                     }
                 } else {
@@ -2244,6 +2242,10 @@ final class TDSChannel implements Serializable {
         return is;
     }
 
+    /**
+     * Attempts to poll the input stream to see if the network socket is still connected.
+     * @return
+     */
     final Boolean networkSocketStillConnected() {
         int origSoTimeout;
         synchronized (inputStream) {
@@ -2298,7 +2300,7 @@ final class TDSChannel implements Serializable {
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
-            
+
             if (e instanceof SocketTimeoutException) {
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             } else {

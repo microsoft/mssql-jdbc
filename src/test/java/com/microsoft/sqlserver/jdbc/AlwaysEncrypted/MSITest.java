@@ -48,7 +48,6 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth
      */
-    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -67,7 +66,6 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth with msiClientId
      */
-    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -87,7 +85,6 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth using datasource
      */
-    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
