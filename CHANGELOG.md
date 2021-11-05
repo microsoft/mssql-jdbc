@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Updated mssql-jdbc_auth_LICENSE [1663](https://github.com/microsoft/mssql-jdbc/pull/1663)
 ### Fixed issues
 - Fixed and issue where Statement.closeOnCompletion() would cause a Null Pointer Exeception [1639](https://github.com/microsoft/mssql-jdbc/pull/1639)
+- Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [1640](https://github.com/microsoft/mssql-jdbc/pull/1640)
 
 
 ## [9.4.0] Stable Release
