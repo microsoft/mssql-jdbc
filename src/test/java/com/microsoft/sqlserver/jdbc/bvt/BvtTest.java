@@ -34,7 +34,7 @@ import com.microsoft.sqlserver.testframework.DBTable;
 
 @RunWith(JUnitPlatform.class)
 public class BvtTest extends AbstractTest {
-    private static String driverNamePattern = "Microsoft JDBC Driver \\d.\\d for SQL Server";
+    private static String driverNamePattern = "Microsoft JDBC Driver \\d+.\\d for SQL Server";
     static DBTable table1;
     static DBTable table2;
 
