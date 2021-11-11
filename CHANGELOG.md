@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.5.0] Preview Release
+### Added
+- Idle Connection Resiliency Feature [1669](https://github.com/microsoft/mssql-jdbc/pull/1669)
+- Fix for Bulkcopy multi byte characters in char/vchar columns [1671](https://github.com/microsoft/mssql-jdbc/pull/1671)
+- Java 17 support [1676](https://github.com/microsoft/mssql-jdbc/pull/1676)
+- Added logging when deriving realm [1672](https://github.com/microsoft/mssql-jdbc/pull/1672)
+- Added check for closed statement to registerColumnEncryptionKeyStoreProvidersOnStatement [1644](https://github.com/microsoft/mssql-jdbc/pull/1644)
+- Added 42108 and 42109 to transient error list [1643](https://github.com/microsoft/mssql-jdbc/pull/1643)
+### Changed
+- Updated MD4 based on Bouncy Castle implementation [1665](https://github.com/microsoft/mssql-jdbc/pull/1665)
+- Updated mssql-jdbc_auth_LICENSE [1663](https://github.com/microsoft/mssql-jdbc/pull/1663)
+### Fixed issues
+- Fixed and issue where Statement.closeOnCompletion() would cause a Null Pointer Exeception [1639](https://github.com/microsoft/mssql-jdbc/pull/1639)
+
+
 ## [9.4.0] Stable Release
 ### Added
 - Added JAVA 16 support [#1579](https://github.com/microsoft/mssql-jdbc/pull/1579)

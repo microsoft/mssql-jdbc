@@ -4018,9 +4018,7 @@ final class TDSWriter {
      * efficiency. As this method will only be used in bulk copy, it needs to be efficient. Note: Any changes in
      * algorithm/logic should propagate to both writeReader() and writeNonUnicodeReader().
      */
-
-    void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary,
-            Charset charSet) throws SQLServerException {
+    void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
@@ -4057,18 +4055,30 @@ final class TDSWriter {
                 // The Do-While loop goes on one more time as charsToWrite is greater than 0 for the last chunk, and
                 // in this last round the only thing that is written is an int value of 0, which is the PLP Terminator
                 // token(0x00000000).
-                writeInt(charsToWrite);
 
-                for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
-                    if (null == charSet) {
+                // collation from database is the collation used
+                Charset charSet = con.getDatabaseCollation().getCharset();
+
+                if (null == charSet) {
+                    writeInt(charsToWrite);
+
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
                         streamByteBuffer[charsCopied] = (byte) (streamCharBuffer[charsCopied] & 0xFF);
-                    } else {
-                        // encoding as per collation
-                        streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] + "")
-                                .getBytes(charSet)[0];
                     }
+
+                    writeBytes(streamByteBuffer, 0, charsToWrite);
+                } else {
+                    bytesToWrite = 0;
+                    byte[] charBytes;
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
+                        charBytes = new String(streamCharBuffer[charsCopied] + "").getBytes(charSet);
+                        System.arraycopy(charBytes, 0, streamByteBuffer, bytesToWrite, charBytes.length);
+                        bytesToWrite += charBytes.length;
+                    }
+
+                    writeInt(bytesToWrite);
+                    writeBytes(streamByteBuffer, 0, bytesToWrite);
                 }
-                writeBytes(streamByteBuffer, 0, charsToWrite);
             } else {
                 bytesToWrite = charsToWrite;
                 if (0 != charsToWrite)
@@ -4982,7 +4992,7 @@ final class TDSWriter {
                         // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
                         writeLong(0xFFFFFFFFFFFFFFFFL);
                     } else if (isSqlVariant) {
-                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't
+                        // for now we send as bigger type, but is sendStringParameterAsUnicode is set to false we can't
                         // send nvarchar
                         // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
                         // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as

@@ -2263,22 +2263,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 } else {
                                     reader = new StringReader(colValue.toString());
                                 }
+
                                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                     // writeReader is unicode.
                                     tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                 } else {
                                     if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
                                             || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true,
-                                                null);
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                     } else {
                                         SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
                                         if (null != destCollation) {
                                             tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
-                                                    false, destCollation.getCharset());
+                                                    false);
                                         } else {
                                             tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
-                                                    false, null);
+                                                    false);
                                         }
                                     }
                                 }
@@ -2292,21 +2292,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            String colValueStr = colValue.toString();
 
-                            // Remove extra trailing zeros added from toString
-                            if (colValue instanceof LocalDateTime || colValue instanceof LocalTime) {
-                                colValueStr = colValueStr.contains(".") ? colValueStr.replaceAll("0*$", "")
-                                                                        : colValueStr;
+                            String colValueStr;
+                            if (colValue instanceof LocalDateTime) {
+                                colValueStr = ((LocalDateTime)colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                            } else if (colValue instanceof LocalTime) {
+                                colValueStr = ((LocalTime)colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
+                            } else {
+                                colValueStr = colValue.toString();
                             }
 
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
-                                int stringLength = colValue.toString().length();
+                                int stringLength = colValueStr.length();
                                 byte[] typevarlen = new byte[2];
                                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                                 tdsWriter.writeBytes(typevarlen);
-                                tdsWriter.writeString(colValue.toString());
+                                tdsWriter.writeString(colValueStr);
                             } else {
                                 if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
                                     byte[] bytes = null;
@@ -3367,7 +3369,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (subSecondNanos < 0)
                         subSecondNanos += Nanos.PER_SECOND;
                 }
-                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0, null);
+                return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0,
+                        null);
 
             case TIMESTAMP:
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
