@@ -149,24 +149,29 @@ abstract class SSPIAuthentication {
 
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        if (null == realm || realm.trim().isEmpty()) {
-            RealmValidator realmValidator = getRealmValidator();
-            realm = findRealmFromHostname(realmValidator, dnsName);
-            if (null == realm && allowHostnameCanonicalization) {
-                // We failed, try with canonical host name to find a better match
-                try {
-                    String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
-                    realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                    // match means hostname is correct (eg if server name was an IP) so override dnsName as well
-                    dnsName = canonicalHostName;
-                } catch (UnknownHostException e) {
-                    // ignored, cannot canonicalize
-                    if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("Could not canonicalize host name. " + e.toString());
-                    }
-                }
-            }
-        }
+		try {
+			if (null == realm || realm.trim().isEmpty()) {
+				RealmValidator realmValidator = getRealmValidator();
+				realm = findRealmFromHostname(realmValidator, dnsName);
+				if (null == realm && allowHostnameCanonicalization) {
+					// We failed, try with canonical host name to find a better match
+					String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
+					realm = findRealmFromHostname(realmValidator, canonicalHostName);
+					// match means hostname is correct (eg if server name was an IP) so override dnsName as well
+					dnsName = canonicalHostName;
+				}
+			} else {
+				if (allowHostnameCanonicalization) {
+					// realm was provided, try to resolve cname to hostname
+					dnsName = InetAddress.getByName(dnsName).getCanonicalHostName();
+				}
+			}
+		} catch (UnknownHostException e) {
+			// ignored, cannot canonicalize
+			if (logger.isLoggable(Level.FINER)) {
+				logger.finer("Could not canonicalize host name. " + e.toString());
+			}
+		}
 
         if (null == realm) {
             if (logger.isLoggable(Level.FINER)) {
