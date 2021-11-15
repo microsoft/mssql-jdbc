@@ -44,41 +44,62 @@ public final class SQLServerError extends StreamPacket implements Serializable {
         // Cannot process request. Not enough resources to process request
         SQLSERVER_ERROR_49918(49918),
 
-        /*
-         * Cannot process create or update request. Too many create or update operations in progress for subscription
-         * "%ld".
-         */
+        // Cannot process create or update request. Too many create or update operations in progress for subscription
+        // "%ld".
         SQLSERVER_ERROR_49919(49919),
 
         // Cannot process request. Too many operations in progress for subscription "%ld".
         SQLSERVER_ERROR_49920(49920),
 
-        /*
-         * Login to read-secondary failed due to long wait on 'HADR_DATABASE_WAIT_FOR_TRANSITION_TO_VERSIONING'. The
-         * replica is not available for login because row versions are missing for transactions that were in-flight when
-         * the replica was recycled. The issue can be resolved by rolling back or committing the active transactions on
-         * the primary replica. Occurrences of this condition can be minimized by avoiding long write transactions on
-         * the primary.
-         */
+        // Login to read-secondary failed due to long wait on 'HADR_DATABASE_WAIT_FOR_TRANSITION_TO_VERSIONING'. The
+        // replica is not available for login because row versions are missing for transactions that were in-flight when
+        // the replica was recycled. The issue can be resolved by rolling back or committing the active transactions on
+        // the primary replica. Occurrences of this condition can be minimized by avoiding long write transactions on
+        // the primary.
         SQLSERVER_ERROR_4221(4221),
 
-        // The following are from SqlClient
-
+        /**
+         * The following are from SqlClient
+         */
         // Resource ID: %d. The %s limit for the database is %d and has been reached.
         SQLSERVER_ERROR_10928(10928),
         SQLSERVER_ERROR_40020(40020),
 
-        /*
-         * Resource ID: %d. The %s minimum guarantee is %d, maximum limit is %d and the current usage for the database
-         * is %d. However, the server is currently too busy to support requests greater than %d for this database.
-         */
+        // Resource ID: %d. The %s minimum guarantee is %d, maximum limit is %d and the current usage for the database
+        // is %d. However, the server is currently too busy to support requests greater than %d for this database.
         SQLSERVER_ERROR_10929(10929),
 
         // Can not connect to the SQL pool since it is paused. Please resume the SQL pool and try again.
         SQLSERVER_ERROR_42108(42108),
 
         // The SQL pool is warming up. Please try again.
-        SQLSERVER_ERROR_42109(42109);
+        SQLSERVER_ERROR_42109(42109),
+
+        /**
+         * From <a
+         * href="https://docs.microsoft.com/en-us/azure/azure-sql/database/troubleshoot-common-connectivity-issues#entlib60-istransient-method-source-code"</a>
+         */
+        // A transport-level error has occurred when sending the request to the server.
+        // (provider: TCP Provider, error: 0 - An existing connection was forcibly closed by the remote host.)
+        SQLSERVER_ERROR_10053(10053),
+
+        // A transport-level error has occurred when sending the request to the server.
+        // (provider: TCP Provider, error: 0 - An existing connection was forcibly closed by the remote host.)
+        SQLSERVER_ERROR_10054(10054),
+
+        // The client was unable to establish a connection because of an error during connection initialization process
+        // before login.
+        // Possible causes include the following: the client tried to connect to an unsupported version of SQL Server;
+        // the server was too busy
+        // to accept new connections; or there was a resource limitation (insufficient memory or maximum allowed
+        // connections) on the server.
+        // (provider: TCP Provider, error: 0 - An existing connection was forcibly closed by the remote host.)
+        SQLSERVER_ERROR_233(233),
+
+        // A connection was successfully established with the server, but then an error occurred during the login
+        // process.
+        // (provider: TCP Provider, error: 0 - The specified network name is no longer available.)
+        SQLSERVER_ERROR_64(64);
 
         private final int errNo;
 
@@ -110,25 +131,25 @@ public final class SQLServerError extends StreamPacket implements Serializable {
      * Always update serialVersionUID when prompted
      */
     private static final long serialVersionUID = -7304033613218700719L;
-    
+
     /** error message string */
     private String errorMessage = "";
-    
+
     /** error number */
     private int errorNumber;
-    
+
     /** error state */
     private int errorState;
-    
+
     /** error severity */
     private int errorSeverity;
-    
+
     /** server name */
     private String serverName;
-    
+
     /** procedure name */
     private String procName;
-    
+
     /** line number */
     private long lineNumber;
 
