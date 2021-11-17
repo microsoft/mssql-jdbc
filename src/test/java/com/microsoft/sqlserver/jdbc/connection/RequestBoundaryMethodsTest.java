@@ -457,6 +457,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setEnablePrepareOnFirstPreparedStatementCall");
         verifiedMethodNames.add("isClosed");
         verifiedMethodNames.add("setSendTimeAsDatetime");
+        verifiedMethodNames.add("setDatetimeParameterType");
         verifiedMethodNames.add("setStatementPoolingCacheSize");
         verifiedMethodNames.add("setDisableStatementPooling");
         verifiedMethodNames.add("setTransactionIsolation");

@@ -308,6 +308,52 @@ enum ApplicationIntent {
 }
 
 
+enum DatetimeType {
+    DATETIME("datetime"),
+    DATETIME2("datetime2"),
+    DATETIMEOFFSET("datetimeoffset");
+
+    // the value of the enum
+    private final String value;
+
+    /**
+     * Constructs a DatetimeType that sets the string value of the enum.
+     */
+    private DatetimeType(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Returns the string value of enum.
+     */
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    static DatetimeType valueOfString(String value) throws SQLServerException {
+        DatetimeType datetimeType = DatetimeType.DATETIME2;
+
+        assert value != null;
+
+        value = value.toLowerCase(Locale.US);
+        if (value.equalsIgnoreCase(DatetimeType.DATETIME.toString())) {
+            datetimeType = DatetimeType.DATETIME;
+        } else if (value.equalsIgnoreCase(DatetimeType.DATETIME2.toString())) {
+            datetimeType = DatetimeType.DATETIME2;
+        } else if (value.equalsIgnoreCase(DatetimeType.DATETIMEOFFSET.toString())) {
+            datetimeType = DatetimeType.DATETIMEOFFSET;
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDatetimeType"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+
+        return datetimeType;
+    }
+}
+
+
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null);
 
@@ -378,7 +424,8 @@ enum SQLServerDriverStringProperty {
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
-    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
+    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString());
 
     private final String name;
     private final String defaultValue;
@@ -599,6 +646,11 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                    SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue(), false,
+                    new String[] {DatetimeType.DATETIME.toString(), 
+                            DatetimeType.DATETIME2.toString(), 
+                            DatetimeType.DATETIMEOFFSET.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),
                     SQLServerDriverStringProperty.USER.getDefaultValue(), true, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.WORKSTATION_ID.toString(),
