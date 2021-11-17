@@ -318,23 +318,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getSendTimeAsDatetime();
 
     /**
-     * Sets the SQL server datatype to use for Java datetime and timestamp values.
-     * 
-     * @param datetimeParameterType
-     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are: 
-     *        datetime, datetime2 or datetimeoffset.
-     */
-    void setDatetimeParameterType(String datetimeParameterType);
-
-    /**
-     * Returns the value of the datetimeParameterType connection property. This method was added in SQL Server JDBC Driver
-     * 9.4.0. Returns the setting of the datetimeParameterType connection property.
-     * 
-     * @return Returns the value of the datetimeParameterType property.
-     */
-    String getDatetimeParameterType();
-
-    /**
      * Sets a boolean value that indicates if sending string parameters to the server in UNICODE format is enabled.
      * 
      * @param sendStringParametersAsUnicode
