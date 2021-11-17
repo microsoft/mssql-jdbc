@@ -2119,24 +2119,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
 
+                sPropKey = SQLServerDriverStringProperty.DATETIME_DATATYPE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue();
+                }
+
+                datetimeParameterType = DatetimeType.valueOfString(sPropValue);
+                activeConnectionProperties.setProperty(sPropKey, datetimeParameterType.toString());
+
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useFmtOnly = isBooleanPropertyOn(sPropKey, sPropValue);
                 replication = isBooleanPropertyOn(sPropKey, sPropValue);
-            sPropKey = SQLServerDriverStringProperty.DATETIME_DATATYPE.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue();
-            }
-
-            datetimeParameterType = DatetimeType.valueOfString(sPropValue);
-            activeConnectionProperties.setProperty(sPropKey, datetimeParameterType.toString());
-
-
-            sPropKey = SQLServerDriverBooleanProperty.USE_FMT_ONLY.toString();
-            sPropValue = activeConnectionProperties.getProperty(sPropKey);
-            if (null == sPropValue) {
-                sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.USE_FMT_ONLY.getDefaultValue());
-                activeConnectionProperties.setProperty(sPropKey, sPropValue);
-            }
-            useFmtOnly = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);

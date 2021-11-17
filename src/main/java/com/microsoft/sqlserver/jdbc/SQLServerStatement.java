@@ -74,7 +74,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     final static String identityQuery = " select SCOPE_IDENTITY() AS GENERATED_KEYS";
-    
+
     static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
 
     /** the stored procedure name to call (if there is one) */
@@ -151,6 +151,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             lastStmtExecCmd.close();
             lastStmtExecCmd = null;
         }
+
         clearLastResult();
     }
 
@@ -245,7 +246,8 @@ public class SQLServerStatement implements ISQLServerStatement {
             else
                 throw e;
         } finally {
-            lastStmtExecCmd = newStmtCmd;
+            if (newStmtCmd.wasExecuted())
+                lastStmtExecCmd = newStmtCmd;
         }
     }
 
@@ -409,6 +411,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     class StmtExecOutParamHandler extends TDSTokenHandler {
         SQLServerStatement statement;
+
         StmtExecOutParamHandler(SQLServerStatement statement) {
             super("StmtExecOutParamHandler");
             this.statement = statement;
@@ -1478,6 +1481,10 @@ public class SQLServerStatement implements ISQLServerStatement {
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
 
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
                 // If the done token has the attention ack bit set, then record
                 // it as the attention ack DONE token. We may or may not throw
                 // an statement canceled/timed out exception later based on
@@ -2436,8 +2443,8 @@ public class SQLServerStatement implements ISQLServerStatement {
             }
 
             if (null == entry.getValue()) {
-                throw new SQLServerException(null,
-                        String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
                         null, 0, false);
             }
 
@@ -2457,15 +2464,16 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     synchronized boolean hasColumnEncryptionKeyStoreProvidersRegistered() {
-        return null != statementColumnEncryptionKeyStoreProviders && statementColumnEncryptionKeyStoreProviders.size() > 0;
+        return null != statementColumnEncryptionKeyStoreProviders
+                && statementColumnEncryptionKeyStoreProviders.size() > 0;
     }
 
     synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
 
         // Check for a statement-level provider first
-        if (null != statementColumnEncryptionKeyStoreProviders &&
-                statementColumnEncryptionKeyStoreProviders.size() > 0) {
+        if (null != statementColumnEncryptionKeyStoreProviders
+                && statementColumnEncryptionKeyStoreProviders.size() > 0) {
             // If any statement-level providers are registered, we don't fall back to connection-level providers
             if (statementColumnEncryptionKeyStoreProviders.containsKey(providerName)) {
                 return statementColumnEncryptionKeyStoreProviders.get(providerName);
