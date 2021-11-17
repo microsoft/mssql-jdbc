@@ -625,18 +625,24 @@ final class Parameter {
                          * generic type info can be used as before.
                          */
                         if (userProvidesScale) {
-                            param.typeDefinition = getDatetimeDataType(con, outScale);
+                            param.typeDefinition = con
+                                    .isKatmaiOrLater() ? (SSType.DATETIME2.toString() + "(" + outScale + ")")
+                                                       : (SSType.DATETIME.toString());
                         } else {
-                            param.typeDefinition = getDatetimeDataType(con, valueLength);
+                            param.typeDefinition = con.isKatmaiOrLater()
+                                                                         ? (SSType.DATETIME2.toString() + "("
+                                                                                 + valueLength + ")")
+                                                                         : SSType.DATETIME.toString();
                         }
                     } else {
-                        param.typeDefinition = getDatetimeDataType(con, null);
+                        param.typeDefinition = con.isKatmaiOrLater() ? SSType.DATETIME2.toString()
+                                                                     : SSType.DATETIME.toString();
                     }
                     break;
 
                 case DATETIME:
                     // send as Datetime by default
-                    param.typeDefinition = getDatetimeDataType(con, null);
+                    param.typeDefinition = SSType.DATETIME2.toString();
 
                     if (param.shouldHonorAEForParameter
                             && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
@@ -647,7 +653,7 @@ final class Parameter {
                         // if AE is off and it is output parameter of stored procedure, sent it as datetime2(3)
                         // otherwise it returns incorrect milliseconds.
                         if (param.isOutput()) {
-                            param.typeDefinition = getDatetimeDataType(con, outScale);
+                            param.typeDefinition = SSType.DATETIME2.toString() + "(" + outScale + ")";
                         }
                     } else {
                         // when AE is on, set it to Datetime by default,
@@ -655,7 +661,7 @@ final class Parameter {
                         // renew it to datetime2(3)
                         if (null == param.getCryptoMetadata() && param.renewDefinition) {
                             if (param.isOutput()) {
-                                param.typeDefinition = getDatetimeDataType(con, outScale);
+                                param.typeDefinition = SSType.DATETIME2.toString() + "(" + outScale + ")";
                             }
                             break;
                         }
@@ -663,7 +669,7 @@ final class Parameter {
                     break;
 
                 case SMALLDATETIME:
-                    param.typeDefinition = getDatetimeDataType(con, null);
+                    param.typeDefinition = SSType.DATETIME2.toString();
 
                     if (param.shouldHonorAEForParameter
                             && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
@@ -894,46 +900,6 @@ final class Parameter {
                     assert false : "Unexpected JDBC type " + dtv.getJdbcType();
                     break;
             }
-        }
-
-
-        /**
-         * Generates the SQL datatype to use for Java date-based values. This
-         * setting can be controlled by setting the "datetimeParameterType" connection
-         * string. It defaults to "datetime2" for SQL Server 2018+ and always
-         * uses "datetime" for older SQL Server installations.
-         */
-        String getDatetimeDataType(SQLServerConnection con, Integer scale) {
-            String datatype;
-
-            if (con.isKatmaiOrLater()) {
-                switch (con.getDatetimeParameterType()){
-                    case "datetime2":
-                        datatype = SSType.DATETIME2.toString();
-                        if (scale != null){
-                            datatype += "(" + scale + ")";
-                        }
-                        return datatype;
-                    case "datetimeoffset":
-                        datatype = SSType.DATETIMEOFFSET.toString();
-                        if (scale != null){
-                            datatype += "(" + scale + ")";
-                        }
-                        return datatype;
-
-                    case "datetime":
-                    default:
-                        return SSType.DATETIME.toString();
-
-                }
-            }
-
-            /*
-                For older versions of SQL server and for some reason the datetimeParameterType
-                connection property cannot be determined, we fall back to the "datetime"
-                format.
-            */
-            return SSType.DATETIME.toString();
         }
 
         void execute(DTV dtv, String strValue) throws SQLServerException {
