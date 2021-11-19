@@ -240,9 +240,11 @@ public class FedauthTest extends FedauthCommon {
     }
 
     /**
-     * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
+     * Test AAD Service Principal Authentication using AADSecurePrincipalId/AADSecurePrincipalSecret in connection
+     * string, data source and SSL encryption.
+     * 
+     * @deprecated
      */
-    @Deprecated
     @Test
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -262,7 +264,8 @@ public class FedauthTest extends FedauthCommon {
     }
 
     /**
-     * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
+     * Test AAD Service Principal Authentication using username/password in connection string, data source and SSL
+     * encryption.
      */
     @Test
     public void testAADServicePrincipalAuth() {
@@ -311,6 +314,12 @@ public class FedauthTest extends FedauthCommon {
 
         // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
+        url = baseUrl + "Username=" + azureAADPrincipialId + ";password=" + azureAADPrincipialSecret
+                + ";AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret="
+                + azureAADPrincipialSecret;
+        validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
     private static void validateException(String url, String resourceKey) {

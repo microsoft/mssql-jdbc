@@ -336,6 +336,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
         {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
         {"R_NoUserPasswordForSqlPassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
+        {"R_BothUserPasswordandDeprecated", "Both \"User\" (or \"UserName\"), \"Password\" and \"AADSecurePrincipalId\", \"AADSecurePrincipalSecret\" connection string keywords are specified, please use \"User\" (or \"UserName\"), \"Password\" only."},
         {"R_ForceEncryptionTrue_HonorAEFalse", "Cannot set Force Encryption to true for parameter {0} because enryption is not enabled for the statement or procedure {1}."},
         {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn", "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
         {"R_ForceEncryptionTrue_HonorAEFalseRS", "Cannot set Force Encryption to true for parameter {0} because encryption is not enabled for the statement or procedure."},
@@ -408,8 +409,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_certificateStoreInvalidKeyword", "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStoreLocationNotSet", "\"keyStoreLocation\" must be specified, if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStorePlatformInvalid", "Cannot set \"keyStoreAuthentication=CertificateStore\" on a Windows operating system."},
-        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for
-                                                                                                                                // JKS/PKCS
+        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for JKS/PKCS
         {"R_invalidCEKCacheTtl", "Invalid column encryption key cache time-to-live specified. The columnEncryptionKeyCacheTtl value cannot be negative and timeUnit can only be DAYS, HOURS, MINUTES or SECONDS."},
         {"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."},
         {"R_TVPnotWorkWithSetObjectResultSet", "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()."},
