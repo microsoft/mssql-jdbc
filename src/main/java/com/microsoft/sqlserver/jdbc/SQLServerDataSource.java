@@ -1076,13 +1076,6 @@ public class SQLServerDataSource
 
     @Override
     @Deprecated
-    public String getAADSecurePrincipalSecret() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue());
-    }
-
-    @Override
-    @Deprecated
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                 AADSecurePrincipalSecret);
