@@ -252,9 +252,9 @@ class TDSTokenHandler {
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
         // SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
-        if (logger.isLoggable(Level.SEVERE))
-            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
-                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
+        if (logger.isLoggable(Level.WARNING))
+            logger.warning(tdsReader.toString() + ": " + logContext + ": Encountered unexpected"
+                    + TDS.getTokenName(tdsReader.peekTokenType()) + ", ignoring.");
         (new StreamColumns(false)).setFromTDS(tdsReader);
         return false;
     }
