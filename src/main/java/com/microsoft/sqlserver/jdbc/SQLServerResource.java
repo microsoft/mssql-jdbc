@@ -334,7 +334,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
-        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"AADSecurePrincipalId\" and \"AADSecurePrincipalSecret\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
+        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
         {"R_NoUserPasswordForSqlPassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
         {"R_ForceEncryptionTrue_HonorAEFalse", "Cannot set Force Encryption to true for parameter {0} because enryption is not enabled for the statement or procedure {1}."},
         {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn", "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},

@@ -172,9 +172,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKeyPassword = "";
 
     /** AAD principal id */
+    @Deprecated
     private String aadPrincipalID = "";
 
     /** AAD principal secret */
+    @Deprecated
     private String aadPrincipalSecret = "";
 
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
@@ -828,7 +830,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverColumnEncryptionVersion;
     }
 
-    /** whether server supports data classiciation */
+    /** whether server supports data classification */
     private boolean serverSupportsDataClassification = false;
 
     /** server supported data classification version */
@@ -2202,11 +2204,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
                             || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                     .isEmpty()) {
-
-                        if (connectionlogger.isLoggable(Level.SEVERE)) {
-                            connectionlogger.severe(
-                                    toString() + " " + SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"));
-                        }
                         throw new SQLServerException(SQLServerException.getErrString("R_NtlmNoUserPasswordDomain"),
                                 null);
                     }
@@ -2222,10 +2219,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (integratedSecurity
                         && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"));
-                    }
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
                 }
@@ -2235,10 +2228,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .isEmpty())
                                 || (!activeConnectionProperties
                                         .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"));
-                    }
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
                 }
@@ -2248,10 +2237,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .isEmpty())
                                 || (activeConnectionProperties
                                         .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_NoUserPasswordForActivePassword"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
                             null);
                 }
@@ -2261,15 +2246,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .isEmpty())
                                 || (!activeConnectionProperties
                                         .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
                             null);
                 }
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
+                        && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty())
+                                || (activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))
                         && ((activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString())
                                 .isEmpty())
@@ -2277,10 +2262,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         .getProperty(
                                                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
                                         .isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"));
-                    }
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
                 }
@@ -2290,11 +2271,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .isEmpty())
                                 || (activeConnectionProperties
                                         .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(
-                                toString() + " " + SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"));
-                    }
-
                     throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForSqlPassword"),
                             null);
                 }
@@ -2306,28 +2282,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(
-                                toString() + " " + SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCannotBeEmpty"), null);
                 }
 
                 if (integratedSecurity && (null != accessTokenInByte)) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"));
-                    }
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"), null);
                 }
 
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                         && (null != accessTokenInByte)) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(toString() + " "
-                                + SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"));
-                    }
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"), null);
                 }
@@ -2336,10 +2300,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
                         || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty()))) {
-                    if (connectionlogger.isLoggable(Level.SEVERE)) {
-                        connectionlogger.severe(
-                                toString() + " " + SQLServerException.getErrString("R_AccessTokenWithUserPassword"));
-                    }
                     throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenWithUserPassword"),
                             null);
                 }
@@ -5348,8 +5308,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
-                        aadPrincipalSecret, authenticationString);
+
+                // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
+                if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
+                        && !aadPrincipalSecret.isEmpty()) {
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
+                            aadPrincipalSecret, authenticationString);
+                } else {
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
+                            authenticationString);
+                }
 
                 // Break out of the retry loop in successful case.
                 break;
