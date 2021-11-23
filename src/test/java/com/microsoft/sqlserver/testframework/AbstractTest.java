@@ -317,6 +317,9 @@ public abstract class AbstractTest {
                         case Constants.ENCRYPT:
                             ds.setEncrypt(Boolean.parseBoolean(value));
                             break;
+                        case Constants.TRUST_SERVER_CERTIFICATE:
+                            ds.setTrustServerCertificate(Boolean.parseBoolean(value));
+                            break;
                         case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
                             break;

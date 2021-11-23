@@ -74,6 +74,8 @@ public class FipsTest extends AbstractTest {
         props.remove(Constants.FIPS);
         props.remove(Constants.TRUST_STORE_TYPE);
         props.remove(Constants.ENCRYPT);
+        props.remove(Constants.TRUST_SERVER_CERTIFICATE);
+
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {
