@@ -186,17 +186,8 @@ public class StatementTest extends AbstractTest {
 
                 // Second execution:
                 // Verify connection is still usable.
-                // Verify execution with no timeout doesn't return too soon.
                 ps.setQueryTimeout(0);
-                elapsedMillis = -System.currentTimeMillis();
                 ps.execute();
-                elapsedMillis += System.currentTimeMillis();
-
-                // Oddly enough, the server's idea of 7 seconds is actually slightly less than
-                // 7000 milliseconds by our clock (!) so we have to allow some slack here.
-                if (elapsedMillis < 6500) {
-                    assertEquals(6500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
-                }
             }
         }
 
