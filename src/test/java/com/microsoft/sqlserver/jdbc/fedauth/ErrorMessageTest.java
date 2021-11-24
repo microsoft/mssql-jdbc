@@ -831,8 +831,6 @@ public class ErrorMessageTest extends FedauthCommon {
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
-            System.out.println("exceptiON:" + e.getMessage());
-
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
