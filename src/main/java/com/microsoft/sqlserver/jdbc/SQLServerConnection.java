@@ -870,6 +870,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return sessionRecovery;
     }
 
+    static boolean isWindows;
+
     /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
 
@@ -1606,6 +1608,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 Object[] msgArgs = {sPropValue};
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             }
+        }
+
+        // Interactive auth may involve MFA which require longer timeout
+        if (SqlAuthentication.ActiveDirectoryInteractive.toString().equalsIgnoreCase(authenticationString)) {
+            loginTimeoutSeconds *= 10;
         }
 
         long elapsedSeconds = 0;
@@ -2801,10 +2808,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     + " Timeout Unit Interval: " + timeoutUnitInterval);
         }
 
-        // Returns false if authenticationString is null
-        boolean isInteractive = SqlAuthentication.ActiveDirectoryInteractive.toString()
-                .equalsIgnoreCase(authenticationString);
-
         // Initialize loop variables
         int attemptNumber = 0;
 
@@ -2928,7 +2931,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                                  // (eg Sphinx, invalid
                                                                                                  // packetsize, etc)
                         || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
-                        || (timerHasExpired(timerExpire) && !isInteractive) // no time to try again and not interactive
+                        || timerHasExpired(timerExpire)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
                     // close the connection and throw the error back
@@ -2948,7 +2951,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
                     long remainingMilliseconds = timerRemaining(timerExpire);
-                    if (remainingMilliseconds <= sleepInterval && !isInteractive) {
+                    if (remainingMilliseconds <= sleepInterval) {
                         throw sqlex;
                     }
                 }
@@ -2979,14 +2982,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             } else if (isDBMirroring) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
-            } else if (isInteractive) {
-                // Interactive auth may involve MFA which will take longer and timeout. Reset timeout and retry silently
-                timerStart = System.currentTimeMillis();
-                timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-                timerTimeout = timeout * 1000L; // ConnectTimeout is in seconds, we need timer millis
-                timerExpire = timerStart + timerTimeout;
-                intervalExpire = timerStart + timeoutUnitInterval;
-                intervalExpireFullTimeout = timerStart + timerTimeout;
             } else if (useTnir) {
                 long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
 
@@ -3189,7 +3184,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             int timeOutFullInSeconds, boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
             int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
         // Make the initial tcp-ip connection.
-
         if (connectionlogger.isLoggable(Level.FINE)) {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: "
                     + serverInfo.getPortNumber() + " Timeout slice: " + timeOutSliceInMillis + " Timeout Full: "
