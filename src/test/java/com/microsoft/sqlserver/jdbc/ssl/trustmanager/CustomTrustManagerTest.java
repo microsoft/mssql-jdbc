@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.Constants;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -63,7 +64,7 @@ public class CustomTrustManagerTest extends AbstractTest {
         props.setProperty(Constants.TRUST_SERVER_CERTIFICATE, Boolean.FALSE.toString());
         String url = connectionString + ";trustManagerClass=" + InvalidTrustManager.class.getName();
         try (Connection con = PrepUtil.getConnection(url, props)) {
-            fail();
+            fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(
                     "The class specified by the trustManagerClass property must be assignable to javax.net.ssl.TrustManager."));
