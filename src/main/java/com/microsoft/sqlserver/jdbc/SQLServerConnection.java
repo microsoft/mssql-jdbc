@@ -870,8 +870,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return sessionRecovery;
     }
 
-    static boolean isWindows;
-
     /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
 
