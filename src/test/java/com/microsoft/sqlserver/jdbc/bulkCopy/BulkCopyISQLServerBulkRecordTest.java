@@ -73,7 +73,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
     
-    
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
         String dstTable = TestUtils
