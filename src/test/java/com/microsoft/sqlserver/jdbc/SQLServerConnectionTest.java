@@ -592,7 +592,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         } catch (SQLException e) {
             assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongDB"));
+                    TestResource.getResource("R_unexpectedWrongDB") + ": " + e.getMessage());
         }
 
         // Non-existent host, ClientConnectionId should not be available in error message
@@ -602,7 +602,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         } catch (SQLException e) {
             assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongHost"));
+                    TestResource.getResource("R_unexpectedWrongHost") + ": " + e.getMessage());
         }
     }
 
