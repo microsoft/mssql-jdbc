@@ -591,7 +591,9 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
+            assertTrue(
+                    e.getMessage().indexOf("ClientConnectionId") != -1
+                            || e.getMessage().contains(TestResource.getResource("R_connectTimedOut")),
                     TestResource.getResource("R_unexpectedWrongDB") + ": " + e.getMessage());
         }
 
@@ -601,7 +603,9 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
+            assertTrue(
+                    !(e.getMessage().indexOf("ClientConnectionId") != -1)
+                            || e.getMessage().contains(TestResource.getResource("R_connectTimedOut")),
                     TestResource.getResource("R_unexpectedWrongHost") + ": " + e.getMessage());
         }
     }
