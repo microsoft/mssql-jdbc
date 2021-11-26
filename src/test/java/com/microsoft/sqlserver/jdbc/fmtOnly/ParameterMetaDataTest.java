@@ -30,7 +30,10 @@ public class ParameterMetaDataTest extends AbstractTest {
     private static final String tableName = "[test_jdbc_" + UUID.randomUUID() + "]";
 
     @BeforeEach
-    public void setupTests() throws SQLException {
+    public void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Connection c = getConnection(); Statement s = c.createStatement()) {
             s.execute("CREATE TABLE " + tableName
                     + "(cBigint bigint, cNumeric numeric, cBit bit, cSmallint smallint, cDecimal decimal, "

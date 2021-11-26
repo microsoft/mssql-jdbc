@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,10 @@ public class ConnectionWrapper43Test extends AbstractTest {
     }
 
     @BeforeAll
-    public static void setupConnection() throws SQLException {
+    public static void setupConnection() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         connection = getConnection();
 
         DatabaseMetaData metadata = connection.getMetaData();

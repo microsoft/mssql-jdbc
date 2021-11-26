@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -39,6 +40,12 @@ public class TimeoutTest extends AbstractTest {
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     static final int waitForDelaySeconds = 10;
     static final int defaultTimeout = 15; // loginTimeout default value
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testDefaultLoginTimeout() {

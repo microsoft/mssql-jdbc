@@ -50,6 +50,12 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
     String variation;
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
+
     /**
      * Testing that sending a bigger varchar(3) to varchar(2) is thowing the proper error message.
      * 

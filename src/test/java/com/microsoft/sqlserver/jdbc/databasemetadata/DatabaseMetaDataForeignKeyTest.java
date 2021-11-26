@@ -53,7 +53,10 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String catalog = null;
 
     @BeforeAll
-    public static void setupVariation() throws SQLException {
+    public static void setupVariation() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         cleanup();
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {

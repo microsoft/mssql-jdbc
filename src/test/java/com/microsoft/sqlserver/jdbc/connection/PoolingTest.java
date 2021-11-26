@@ -20,6 +20,7 @@ import javax.sql.PooledConnection;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -45,6 +46,12 @@ import com.zaxxer.hikari.HikariDataSource;
 public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     @Tag(Constants.xAzureSQLDB)

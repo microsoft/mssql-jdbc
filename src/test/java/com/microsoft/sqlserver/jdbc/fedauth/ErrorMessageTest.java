@@ -12,6 +12,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -28,6 +30,12 @@ public class ErrorMessageTest extends FedauthCommon {
 
     String badUserName = "abc" + azureUserName;
     String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testWrongAccessTokenWithConnectionStringUserName() throws SQLException {

@@ -17,6 +17,7 @@ import java.sql.Statement;
 
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +31,13 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @Tag(Constants.xSQLv11)
 public class BasicConnectionTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        //Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        setConnection();
+    }
 
     @Test
     public void testBasicReconnectDefault() throws SQLException {

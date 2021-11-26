@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,12 @@ public class BatchExecuteWithErrorsTest extends AbstractTest {
 	String warning;
 	String error;
 	String severe;
+
+	@BeforeAll
+	public static void setupTests() throws Exception {
+		connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+		setConnection();
+	}
 
 	/**
 	 * Batch test

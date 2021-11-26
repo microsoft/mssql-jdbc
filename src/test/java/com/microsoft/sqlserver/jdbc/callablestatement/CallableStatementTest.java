@@ -56,7 +56,9 @@ public class CallableStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @BeforeAll
-    public static void setupTest() throws SQLException {
+    public static void setupTest() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
 
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);

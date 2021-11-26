@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -438,7 +439,10 @@ public class BvtTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void init() throws SQLException {
+    public static void init() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {
             // create tables
             table1 = new DBTable(true);

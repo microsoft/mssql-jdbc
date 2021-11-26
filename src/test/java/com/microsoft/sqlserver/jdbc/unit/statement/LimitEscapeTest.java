@@ -892,7 +892,10 @@ public class LimitEscapeTest extends AbstractTest {
      * clean up
      */
     @BeforeAll
-    public static void beforeAll() {
+    public static void beforeAll() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try {
             createAndPopulateTables(connection);
         } catch (Exception e) {

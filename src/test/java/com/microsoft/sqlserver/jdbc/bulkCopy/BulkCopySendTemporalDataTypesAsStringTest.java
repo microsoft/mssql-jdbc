@@ -255,7 +255,9 @@ public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void setupTest() throws SQLException {
+    public static void setupTest() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
         filePath = TestUtils.getCurrentClassPath();
     }
 

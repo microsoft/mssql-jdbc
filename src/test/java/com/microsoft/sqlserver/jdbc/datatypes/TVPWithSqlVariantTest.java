@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -464,6 +465,12 @@ public class TVPWithSqlVariantTest extends AbstractTest {
             C16_numeric = new BigDecimal(0);
         }
         return numericValues;
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
     }
 
     @BeforeEach

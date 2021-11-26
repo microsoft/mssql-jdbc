@@ -60,7 +60,10 @@ public class FedauthWithAE extends FedauthCommon {
     static SQLServerDataSource ds = new SQLServerDataSource();
 
     @BeforeAll
-    public static void setupTests() {
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setUser(azureUserName);

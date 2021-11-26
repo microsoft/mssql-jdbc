@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -33,6 +34,12 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  */
 @RunWith(JUnitPlatform.class)
 public class PoolableTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Poolable Test

@@ -21,6 +21,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 import static org.junit.Assert.assertTrue;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -34,6 +35,12 @@ public class ConnectionSuspensionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionSuspension")));
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testAccessTokenExpiredThenCreateNewStatementADPassword() throws SQLException {

@@ -104,6 +104,9 @@ public class BulkCopyRowSetTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             String sql1 = "create table " + tableName + " (c1 float, c2 real)";
             stmt.execute(sql1);

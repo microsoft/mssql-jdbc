@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -62,6 +63,12 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class StatementTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("StatementTest");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Nested
     @Tag(Constants.xAzureSQLDW)

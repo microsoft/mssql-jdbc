@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -32,6 +33,13 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_ConnectionEncryption")));
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        //Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        setConnection();
+    }
 
     @Test
     public void testCorrectCertificate() throws SQLException {
