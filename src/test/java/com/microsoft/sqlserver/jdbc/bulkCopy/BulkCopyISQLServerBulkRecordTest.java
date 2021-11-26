@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -74,7 +73,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
     
-    
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
         String dstTable = TestUtils
@@ -103,6 +101,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                         Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123450000));
                 LocalDateTime data7 = LocalDateTime.of(LocalDate.now(), LocalTime.of(Constants.RANDOM.nextInt(24),
                         Constants.RANDOM.nextInt(60), Constants.RANDOM.nextInt(60), 123456000));
+                LocalDateTime data8 = LocalDateTime.of(LocalDate.now(), LocalTime.of(0, 0, 0, 0));
                 bulkCopy.writeToServer(new BulkRecordDT(data));
                 bulkCopy.writeToServer(new BulkRecordDT(data1));
                 bulkCopy.writeToServer(new BulkRecordDT(data2));
@@ -111,6 +110,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordDT(data5));
                 bulkCopy.writeToServer(new BulkRecordDT(data6));
                 bulkCopy.writeToServer(new BulkRecordDT(data7));
+                bulkCopy.writeToServer(new BulkRecordDT(data8));
 
                 String select = "SELECT * FROM " + dstTable + " order by Dataid";
                 ResultSet rs = dstStmt.executeQuery(select);
@@ -131,6 +131,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 assertTrue(data6.equals(rs.getObject(2, LocalDateTime.class)));
                 assertTrue(rs.next());
                 assertTrue(data7.equals(rs.getObject(2, LocalDateTime.class)));
+                assertTrue(rs.next());
+                assertTrue(data8.equals(rs.getObject(2, LocalDateTime.class)));
 
             } catch (Exception e) {
                 fail(e.getMessage());
