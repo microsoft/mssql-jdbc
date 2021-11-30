@@ -39,6 +39,9 @@ public class RegisterKeyStoreProviderTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         singleKeyStoreProvider.put(dummyProviderName1, new DummyKeyStoreProvider());
 
         multipleKeyStoreProviders.put(dummyProviderName2, new DummyKeyStoreProvider());

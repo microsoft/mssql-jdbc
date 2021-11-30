@@ -37,7 +37,10 @@ public class TimeoutTest extends AbstractTest {
     private static final String WAIT_FOR_ONE_MINUTE_SQL = "WAITFOR DELAY '00:01:00'";
 
     @BeforeAll
-    public static void beforeAll() throws SQLException, InterruptedException {
+    public static void beforeAll() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         if (connection != null) {
             connection.close();
             connection = null;

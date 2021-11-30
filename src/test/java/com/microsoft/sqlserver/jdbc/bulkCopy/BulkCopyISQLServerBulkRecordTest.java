@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,12 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 @DisplayName("Test ISQLServerBulkRecord")
 @Tag(Constants.xAzureSQLDW)
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testISQLServerBulkRecord() throws SQLException {

@@ -15,6 +15,7 @@ import java.sql.Statement;
 import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -35,6 +36,12 @@ public class RegressionTest extends AbstractTest {
 
     private static String tableName = RandomUtil.getIdentifier("ServerCursorPStmt");
     private static String procName = RandomUtil.getIdentifier("ServerCursorProc");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests select into stored proc

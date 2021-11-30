@@ -33,7 +33,10 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     static int numberOfRows = 10;
 
     @BeforeAll
-    public static void setUp() throws SQLException {
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {
             TestUtils.dropTableIfExists(tableName, s);
             createTable(s);

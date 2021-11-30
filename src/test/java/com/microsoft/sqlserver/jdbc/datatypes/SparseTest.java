@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -22,6 +23,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class SparseTest extends AbstractTest {
     final static String tableName = RandomUtil.getIdentifier("SparseTestTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     @Tag(Constants.xAzureSQLDW)

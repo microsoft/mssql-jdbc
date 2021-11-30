@@ -15,6 +15,7 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -177,6 +178,12 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         for (int idx = 0; idx < rowCounts.length; idx++) {
             assertTrue(rowCounts[idx] == 1, "Row " + idx + " was not successfully inserted.");
         }
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
     }
 
     @BeforeEach

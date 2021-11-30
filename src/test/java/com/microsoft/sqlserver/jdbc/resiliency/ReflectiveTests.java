@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +31,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @Tag(Constants.xSQLv11)
 public class ReflectiveTests extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     private void timeoutVariations(Map<String, String> props, long expectedDuration,
             Optional<String> expectedErrMsg) throws SQLException {

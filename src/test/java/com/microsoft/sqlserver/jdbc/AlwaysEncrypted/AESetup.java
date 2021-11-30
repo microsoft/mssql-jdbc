@@ -192,6 +192,9 @@ public class AESetup extends AbstractTest {
 
     @BeforeAll
     public static void setupAETest() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
+        setConnection();
+
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
         stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;

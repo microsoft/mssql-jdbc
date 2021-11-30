@@ -1113,7 +1113,10 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {
+    public static void setupHere() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
         inputProc = RandomUtil.getIdentifier("sqlVariantProc");
     }

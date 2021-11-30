@@ -25,6 +25,7 @@ import java.util.Calendar;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -692,6 +693,12 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(myTimestamp, rs.getObject(4));
             }
         }
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
     }
 
     @BeforeEach

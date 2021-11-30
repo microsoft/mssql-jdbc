@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -187,6 +188,12 @@ public class EnclavePackageTest extends AbstractTest {
                         AbstractTest.enclaveAttestationProtocol[0]},
                 {AbstractTest.enclaveServer[1], AbstractTest.enclaveAttestationUrl[1],
                         AbstractTest.enclaveAttestationProtocol[1]}};
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
     }
 
     /**

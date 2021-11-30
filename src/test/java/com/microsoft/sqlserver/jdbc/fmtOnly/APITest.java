@@ -27,7 +27,10 @@ public class APITest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("FMT_API_Test");
 
     @BeforeAll
-    private static void setupTest() throws SQLException {
+    private static void setupTest() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Statement s = connection.createStatement()) {
             s.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (c1 int identity, c2 float, c3 real, c4 bigint, c5 nvarchar(4000))");

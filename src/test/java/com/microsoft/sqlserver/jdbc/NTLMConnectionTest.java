@@ -51,6 +51,9 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setUp() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         // reset logging to avoid servere logs due to negative testing
         LogManager.getLogManager().reset();
 
