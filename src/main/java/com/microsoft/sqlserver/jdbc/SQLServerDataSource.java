@@ -1061,24 +1061,21 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
     public String getAADSecurePrincipalId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
     }
 
     @Override
+    @Deprecated
     public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 AADSecurePrincipalId);
     }
 
     @Override
-    public String getAADSecurePrincipalSecret() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue());
-    }
-
-    @Override
+    @Deprecated
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                 AADSecurePrincipalSecret);
