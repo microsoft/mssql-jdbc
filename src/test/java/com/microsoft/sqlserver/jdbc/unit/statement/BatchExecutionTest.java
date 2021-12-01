@@ -232,6 +232,9 @@ public class BatchExecutionTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         ctstable1 = RandomUtil.getIdentifier("ctstable1");
         ctstable2 = RandomUtil.getIdentifier("ctstable2");
 

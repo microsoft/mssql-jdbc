@@ -17,22 +17,25 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import com.microsoft.sqlserver.jdbc.*;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
 public class NativeMSSQLDataSourceTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testNativeMSSQLDataSource() throws SQLException {

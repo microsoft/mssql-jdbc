@@ -32,7 +32,10 @@ public class ParameterMetaDataWhiteSpaceTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("ParameterMetaDataWhiteSpaceTest");
 
     @BeforeAll
-    public static void BeforeTests() throws SQLException {
+    public static void BeforeTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         createCharTable();
     }
 

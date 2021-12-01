@@ -11,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -47,6 +48,13 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     static final String ENCRYPTED_PKCS8_KEY_SUFFIX = "-encrypted-pkcs8.key;";
     static final String PFX_KEY_SUFFIX = ".pfx;";
     static final String ENCRYPTED_PFX_KEY_SUFFIX = "-encrypted.pfx;";
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        //Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        setConnection();
+    }
 
     /**
      * Tests client certificate authentication feature with PKCS1 private key.

@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -41,6 +42,12 @@ public class TVPAllTypesTest extends AbstractTest {
     private static String procedureName;
     private static DBTable tableSrc = null;
     private static DBTable tableDest = null;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Test TVP with result set

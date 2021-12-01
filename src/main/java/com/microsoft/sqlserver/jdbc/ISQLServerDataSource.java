@@ -1053,33 +1053,33 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value for the connection property 'AADSecurePrincipalId'.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
      *
      * @return 'AADSecurePrincipalId' property value.
      */
+    @Deprecated
     String getAADSecurePrincipalId();
 
     /**
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
      * @param AADSecurePrincipalId
      *        Active Directory Service Principal Id.
      */
+    @Deprecated
     void setAADSecurePrincipalId(String AADSecurePrincipalId);
-
-    /**
-     * Returns the value for the connection property 'AADSecurePrincipalSecret'.
-     *
-     * @return 'AADSecurePrincipalSecret' property value.
-     */
-    String getAADSecurePrincipalSecret();
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      * @param AADSecurePrincipalSecret
      *        Active Directory Service Principal secret.
      */
+    @Deprecated
     void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 
     /**
@@ -1098,34 +1098,32 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setMaxResultBuffer(String maxResultBuffer);
 
     /**
-     * Sets the 'connectRetryCount' property that specifies the number of reconnection attempts if there is a connection
-     * failure
-     * 
-     * @param count
-     *        the number of reconnection attempts if there is a connection failure
+     * Sets the maximum number of attempts to reestablish a broken connection.
+     *
+     * @param connectRetryCount
+     *        maximum number of attempts
      */
-    void setConnectRetryCount(int count);
+    void setConnectRetryCount(int connectRetryCount);
 
     /**
-     * Returns the value of 'connectRetryCount' property
-     * 
-     * @return 'connectRetryCount' property.
+     * Returns the maximum number of attempts set to reestablish a broken connection.
+     *
+     * @return maximum number of attempts
      */
     int getConnectRetryCount();
 
     /**
-     * Sets the 'connectRetryInterval' property that specifies the number of seconds between each connection retry
-     * attempt
-     * 
-     * @param interval
-     *        the number of seconds between each connection retry attempt
+     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @param connectRetryInterval
+     *        interval in seconds
      */
-    void setConnectRetryInterval(int interval);
+    void setConnectRetryInterval(int connectRetryInterval);
 
     /**
-     * Returns the value of 'connectRetryInterval' property
-     * 
-     * @return 'connectRetryInterval' property.
+     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @return interval in seconds
      */
     int getConnectRetryInterval();
 }

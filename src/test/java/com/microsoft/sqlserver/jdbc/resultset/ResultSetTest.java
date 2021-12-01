@@ -30,6 +30,7 @@ import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -48,6 +49,12 @@ public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
 
     static final String uuid = UUID.randomUUID().toString();
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests proper exception for unsupported operation

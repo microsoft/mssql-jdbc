@@ -13,14 +13,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 
+import com.microsoft.sqlserver.jdbc.*;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.DBConnection;
 
@@ -31,6 +29,12 @@ import com.microsoft.sqlserver.testframework.DBConnection;
  */
 @RunWith(JUnitPlatform.class)
 public class WrapperTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Wrapper tests

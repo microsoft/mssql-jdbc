@@ -795,7 +795,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void setupTable() throws SQLException {
+    public static void setupTable() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");

@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -36,6 +37,12 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xAzureSQLDW)
 public class SetObjectTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("SetObjectTestTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests setObject(n, java.time.OffsetDateTime.class).

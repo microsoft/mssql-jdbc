@@ -18,6 +18,7 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -663,6 +664,12 @@ public class TVPTypesTest extends AbstractTest {
                 assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
             }
         }
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
     }
 
     @BeforeEach

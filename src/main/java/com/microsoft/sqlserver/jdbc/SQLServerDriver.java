@@ -44,8 +44,8 @@ final class SQLServerDriverPropertyInfo {
     }
 
     DriverPropertyInfo build(Properties connProperties) {
-        String propValue = name.equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties
-                .getProperty(name);
+        String propValue = name
+                .equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties.getProperty(name);
 
         if (null == propValue)
             propValue = defaultValue;
@@ -376,7 +376,9 @@ enum SQLServerDriverStringProperty {
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
+    @Deprecated
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
+    @Deprecated
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
@@ -446,7 +448,7 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty {
     DISABLE_STATEMENT_POOLING("disableStatementPooling", true),
-    ENCRYPT("encrypt", false),
+    ENCRYPT("encrypt", true),
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),

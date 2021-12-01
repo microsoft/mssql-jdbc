@@ -29,7 +29,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
@@ -75,11 +74,26 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
-    private static Boolean isAzure = null;
-    private static Boolean isAzureDW = null;
-    private static Boolean isAzureMI = null;
-
     private TestUtils() {}
+    
+    /**
+     * Checks if the connection session recovery object has negotiated reflection.
+     * @param con
+     * @return
+     */
+    public static boolean isConnectionRecoveryNegotiated(Connection con) {
+        return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
+    }
+    
+    /**
+     * Checks if connection is dead.
+     * @param con
+     * @return
+     * @throws SQLServerException
+     */
+    public static boolean isConnectionDead(Connection con) throws SQLServerException {
+        return ((SQLServerConnection) con).isConnectionDead();
+    }
 
     /**
      * Checks if connection is established to Azure server.
@@ -97,7 +111,7 @@ public final class TestUtils {
      */
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
-        return isAzureDW;
+        return ((SQLServerConnection) con).isAzureDW();
     }
 
     /**
@@ -107,7 +121,7 @@ public final class TestUtils {
      */
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
-        return isAzureMI;
+        return ((SQLServerConnection) con).isAzureMI();
     }
 
     /**

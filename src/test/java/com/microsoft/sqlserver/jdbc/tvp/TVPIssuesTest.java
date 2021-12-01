@@ -132,7 +132,10 @@ public class TVPIssuesTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    public static void beforeAll() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
 
             String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable_varcharMax)

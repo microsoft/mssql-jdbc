@@ -20,6 +20,7 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -38,6 +39,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     static class TrustStore {
         private File trustStoreFile;
@@ -240,13 +247,38 @@ public class FedauthTest extends FedauthCommon {
     }
 
     /**
-     * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
+     * Test AAD Service Principal Authentication using AADSecurePrincipalId/AADSecurePrincipalSecret in connection
+     * string, data source and SSL encryption.
+     * 
+     * @deprecated
+     */
+    @Test
+    public void testAADServicePrincipalAuthDeprecated() {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
+                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(url, ds);
+        try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
+                Connection conn3 = DriverManager.getConnection(urlEncrypted)) {
+            assertNotNull(conn1);
+            assertNotNull(conn2);
+            assertNotNull(conn3);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test AAD Service Principal Authentication using username/password in connection string, data source and SSL
+     * encryption.
      */
     @Test
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
-                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + azureAADPrincipialId + ";Password="
+                + azureAADPrincipialSecret;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -275,16 +307,26 @@ public class FedauthTest extends FedauthCommon {
         url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
         validateException(url, "R_MSALExecution");
 
-        // AADSecurePrincipalSecret not provided.
+        // AADSecurePrincipalSecret/password not provided.
         url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-
-        // AADSecurePrincipalId not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        url = baseUrl + "Username=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
-        // Both AADSecurePrincipalId and AADSecurePrincipalSecret not provided.
+        // AADSecurePrincipalId/username not provided.
+        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+        url = baseUrl + "password=" + azureAADPrincipialSecret;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
+        url = baseUrl + "Username=" + azureAADPrincipialId + ";password=" + azureAADPrincipialSecret
+                + ";AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret="
+                + azureAADPrincipialSecret;
+        validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
     private static void validateException(String url, String resourceKey) {

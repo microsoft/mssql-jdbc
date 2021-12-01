@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.reflect.Array;
+import java.text.MessageFormat;
 import java.util.logging.Level;
 
 
@@ -58,7 +60,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
             }
             enabled = true;
         } catch (UnsatisfiedLinkError e) {
-            temp = e;
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadAuthDll"));
+            temp = new UnsatisfiedLinkError(form.format(new Object[] {SQLServerDriver.AUTH_DLL_NAME}));
             // This is not re-thrown on purpose - the constructor will terminate the properly with the appropriate error
             // string
         } finally {

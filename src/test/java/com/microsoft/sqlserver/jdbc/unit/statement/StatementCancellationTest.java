@@ -10,6 +10,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -26,6 +28,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class StatementCancellationTest extends AbstractTest {
     private static final long DELAY_WAIT_MILLISECONDS = 10000;
     private static final long CANCEL_WAIT_MILLISECONDS = 5000;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests Statement Cancellation works when MultiSubnetFailover is set to true

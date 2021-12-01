@@ -19,8 +19,10 @@ import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.eclipse.gemini.blueprint.mock.MockBundleContext;
 import org.eclipse.gemini.blueprint.mock.MockServiceRegistration;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -35,6 +37,12 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 public class DataFactoryTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testDataFactory() throws SQLException {

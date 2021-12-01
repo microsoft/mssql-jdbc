@@ -12,6 +12,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -28,6 +30,12 @@ public class ErrorMessageTest extends FedauthCommon {
 
     String badUserName = "abc" + azureUserName;
     String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     @Test
     public void testWrongAccessTokenWithConnectionStringUserName() throws SQLException {
@@ -822,10 +830,10 @@ public class ErrorMessageTest extends FedauthCommon {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setServerName(azureServer);
-            ds.setUser(azureUserName);
+            ds.setUser(badUserName);
             ds.setDatabaseName(azureDatabase);
             ds.setAuthentication("ActiveDirectoryInteractive");
-
+            ds.setLoginTimeout(1);
             ds.setEncrypt(false);
             ds.setTrustServerCertificate(true);
             try (Connection connection = ds.getConnection()) {}
@@ -835,7 +843,7 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage() + "," + e.getCause(),
-                    e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
+                    e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
                             + " in Active Directory (Authentication=ActiveDirectoryInteractive)."));
         }
     }

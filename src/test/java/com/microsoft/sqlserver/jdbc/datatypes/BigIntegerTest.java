@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -36,6 +37,12 @@ public class BigIntegerTest extends AbstractTest {
 
     final static String tableName = RandomUtil.getIdentifier("BigIntegerTestTable");
     final static String escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /*
      * Test BigInteger conversions

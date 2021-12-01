@@ -334,8 +334,9 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
-        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"AADSecurePrincipalId\" and \"AADSecurePrincipalSecret\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
+        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
         {"R_NoUserPasswordForSqlPassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
+        {"R_BothUserPasswordandDeprecated", "Both \"User\" (or \"UserName\"), \"Password\" and \"AADSecurePrincipalId\", \"AADSecurePrincipalSecret\" connection string keywords are specified, please use \"User\" (or \"UserName\"), \"Password\" only."},
         {"R_ForceEncryptionTrue_HonorAEFalse", "Cannot set Force Encryption to true for parameter {0} because enryption is not enabled for the statement or procedure {1}."},
         {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn", "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
         {"R_ForceEncryptionTrue_HonorAEFalseRS", "Cannot set Force Encryption to true for parameter {0} because encryption is not enabled for the statement or procedure."},
@@ -408,8 +409,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_certificateStoreInvalidKeyword", "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStoreLocationNotSet", "\"keyStoreLocation\" must be specified, if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStorePlatformInvalid", "Cannot set \"keyStoreAuthentication=CertificateStore\" on a Windows operating system."},
-        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for
-                                                                                                                                // JKS/PKCS
+        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for JKS/PKCS
         {"R_invalidCEKCacheTtl", "Invalid column encryption key cache time-to-live specified. The columnEncryptionKeyCacheTtl value cannot be negative and timeUnit can only be DAYS, HOURS, MINUTES or SECONDS."},
         {"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."},
         {"R_TVPnotWorkWithSetObjectResultSet", "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()."},
@@ -491,6 +491,17 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
         {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
+        {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
+        {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
+        {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
+        {"R_connectRetryIntervalPropertyDescription", "The interval, in seconds, between attempts to reestablish a connection."},
+        {"R_crClientAllRecoveryAttemptsFailed", "The connection is broken and recovery is not possible. The client driver attempted to recover the connection one or more times and all attempts failed. Increase the value of ConnectRetryCount to increase the number of recovery attempts."},
+        {"R_crClientNoRecoveryAckFromLogin", "The server did not acknowledge a recovery attempt, connection recovery is not possible."},
+        {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
+        {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
+        {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
+        {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
+        {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
     };
 }
 // @formatter:on

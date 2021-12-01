@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -38,6 +39,12 @@ public class BulkCopyWithSqlVariantTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
     static String destTableName = RandomUtil.getIdentifier("dest_sqlVariant");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Test integer value
