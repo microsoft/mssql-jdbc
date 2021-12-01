@@ -3,10 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [9.4.1] HotFix & Stable Release
+### Fixed issues
+- Fixed TDSParser stuck on TDS_COLMETADATA issue [#1662] (https://github.com/microsoft/mssql-jdbc/pull/1662)
+- Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [#1640] (https://github.com/microsoft/mssql-jdbc/pull/1640)
+
 ## [9.4.0] Stable Release
 ### Added
 - Added JAVA 16 support [#1579](https://github.com/microsoft/mssql-jdbc/pull/1579)
-- Added optional realm connection string property for Kerberos authenticatoin [#1581](https://github.com/microsoft/mssql-jdbc/pull/1581)
+- Added optional realm connection string property for Kerberos authentication [#1581](https://github.com/microsoft/mssql-jdbc/pull/1581)
 - Added support for multiple, successive connections using AKV provider [#1594](https://github.com/microsoft/mssql-jdbc/pull/1594)
 - Updated error messages for Enclave exceptions with forward link to troubleshooting guide [#1585](https://github.com/microsoft/mssql-jdbc/pull/1585)
 - Added driver version to the database during prelogin [#1583](https://github.com/microsoft/mssql-jdbc/pull/1583)
