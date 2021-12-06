@@ -3214,7 +3214,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         setState(State.Connected);
 
-        clientConnectionId = UUID.randomUUID();
+        try {
+            clientConnectionId = UUID.randomUUID();
+        } catch (InternalError e) {
+            // Java's NativeSeedGenerator can sometimes fail on getSeedBytes(). Exact reason is unknown but high system
+            // load seems to contribute to likelihood. Retry once to mitigate.
+            clientConnectionId = UUID.randomUUID();
+        }
+
         assert null != clientConnectionId;
 
         Prelogin(serverInfo.getServerName(), serverInfo.getPortNumber());
