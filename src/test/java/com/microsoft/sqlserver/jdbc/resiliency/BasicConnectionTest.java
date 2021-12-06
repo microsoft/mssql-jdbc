@@ -50,10 +50,10 @@ public class BasicConnectionTest extends AbstractTest {
         String azureDatabase = getConfiguredProperty("azureDatabase");
         String azureUserName = getConfiguredProperty("azureUserName");
         String azurePassword = getConfiguredProperty("azurePassword");
+        org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
 
         basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
-                + ";password=" + azurePassword
-                + ";loginTimeout=30;hostNameInCertificate=*.database.windows.net;Authentication=ActiveDirectoryPassword");
+                + ";password=" + azurePassword + ";loginTimeout=30;Authentication=ActiveDirectoryPassword");
     }
 
     @Test
