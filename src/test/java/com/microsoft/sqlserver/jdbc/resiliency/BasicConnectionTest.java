@@ -34,14 +34,26 @@ public class BasicConnectionTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        //Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        // Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
         setConnection();
     }
 
     @Test
     public void testBasicReconnectDefault() throws SQLException {
         basicReconnect(connectionString);
+    }
+
+    @Test
+    public void testBasicConnectionAAD() throws SQLException {
+        String azureServer = getConfiguredProperty("azureServer");
+        String azureDatabase = getConfiguredProperty("azureDatabase");
+        String azureUserName = getConfiguredProperty("azureUserName");
+        String azurePassword = getConfiguredProperty("azurePassword");
+
+        basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
+                + ";password=" + azurePassword
+                + ";loginTimeout=30;hostNameInCertificate=*.database.windows.net;Authentication=ActiveDirectoryPassword");
     }
 
     @Test
@@ -91,7 +103,7 @@ public class BasicConnectionTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
         }
     }
-    
+
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
     @Tag(Constants.xAzureSQLDW)

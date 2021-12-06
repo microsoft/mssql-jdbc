@@ -72,7 +72,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
 
 /**
  * ExtendedSocketOptions provides methods to keep track of keep alive and socket information.
@@ -8171,7 +8173,10 @@ abstract class TDSCommand implements Serializable {
             }
         }
         // A new response is received hence increment unprocessed response count.
-        tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
+        // but do not increment when sending fedauth tokens as that is an extra request
+        if (!(this instanceof FedAuthTokenCommand)) {
+            tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
+        }
         return tdsReader;
     }
 
