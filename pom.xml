@@ -289,9 +289,6 @@
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
-							<!-- needs to be overridden as illegal-access and MaxPermSize=256m 
-								not valid in java 8 -->
-							<argLine>-Xmx1024m -Djava.library.path=${dllPath}</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -516,12 +513,12 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>report</id>
-						<phase>test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
+				        <id>default-report</id>
+				        <phase>prepare-package</phase>
+				        <goals>
+				            <goal>report</goal>
+				        </goals>
+				    </execution>
 				</executions>
 				<configuration>
 					<excludes>
@@ -532,7 +529,7 @@
 						<fileSet>
 							<directory>jacoco-execs/</directory>
 							<includes>
-								<include>*.exec</include>
+								<include>**/*.exec</include>
 							</includes>
 						</fileSet>
 					</fileSets>
