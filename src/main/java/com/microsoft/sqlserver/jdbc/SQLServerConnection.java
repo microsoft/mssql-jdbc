@@ -3219,6 +3219,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } catch (InternalError e) {
             // Java's NativeSeedGenerator can sometimes fail on getSeedBytes(). Exact reason is unknown but high system
             // load seems to contribute to likelihood. Retry once to mitigate.
+            if (connectionlogger.isLoggable(Level.WARNING)) {
+                connectionlogger.warning(toString() + " Generating a random UUID has failed due to : " + e.getMessage() + "Retrying once.");
+            }
             clientConnectionId = UUID.randomUUID();
         }
 
