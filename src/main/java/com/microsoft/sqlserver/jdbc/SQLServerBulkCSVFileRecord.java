@@ -75,7 +75,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Constructs a simple reader to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
-     *        File to parse data from
+     *        File to parse data from, please ensure special regex characters are properly escaped.
      * @param encoding
      *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
