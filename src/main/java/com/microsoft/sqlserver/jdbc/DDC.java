@@ -1243,7 +1243,11 @@ final class DDC {
                     subSecondNanos = 0;
                 } else {
                     long nanoOfDay = ticksSinceMidnight * Nanos.PER_MILLISECOND;
-                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                    if (nanoOfDay > LocalTime.MAX.toNanoOfDay()) {
+                        ldt = LocalDateTime.of(ld, LocalTime.MIN).plusNanos(nanoOfDay);
+                    } else {
+                        ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                    }
                     subSecondNanos = (int) (nanoOfDay % Nanos.PER_SECOND);
                 }
                 break;
