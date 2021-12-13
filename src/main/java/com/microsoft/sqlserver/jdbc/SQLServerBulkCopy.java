@@ -1693,8 +1693,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             if (sourcePrecision > destPrecision) {
                 String srcType = JDBCType.of(srcJdbcType) + "(" + sourcePrecision + ")";
                 String destType = destSSType.toString() + "(" + destPrecision + ")";
+                String destName = destColumnMetadata.get(destCol).columnName;
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                Object[] msgArgs = {srcType, destType};
+                Object[] msgArgs = {srcType, destType, destName};
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
         }
@@ -2979,6 +2980,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
             Object colValue) throws SQLServerException {
+        String destName = destColumnMetadata.get(destColOrdinal).columnName;
         int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
         boolean isStreaming, srcNullable;
@@ -3034,7 +3036,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
                     String src = JDBCType.of(srcJdbcType) + "(" + srcPrecision + "," + srcScale + ")";
                     String dest = destSSType + "(" + baseDestPrecision + "," + baseDestScale + ")";
-                    Object[] msgArgs = {src, dest};
+                    Object[] msgArgs = {src, dest, destName};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
             }
@@ -3088,12 +3090,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if ((!Util.isBinaryType(destJdbcType.getIntValue())) && (colValue instanceof byte[])) {
 
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                    Object[] msgArgs = {baseSrcJdbcType, destJdbcType};
+                    Object[] msgArgs = {baseSrcJdbcType, destJdbcType, destName};
                     throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
                 // normalize the values before encrypting them
                 colValue = SQLServerSecurityUtility.encryptWithKey(normalizedValue(destJdbcType, colValue,
-                        baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale()), destCryptoMeta,
+                        baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale(), destName), destCryptoMeta,
                         connection, null);
             }
         }
@@ -3413,7 +3415,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     private byte[] normalizedValue(JDBCType destJdbcType, Object value, JDBCType srcJdbcType, int destPrecision,
-            int destScale) throws SQLServerException {
+            int destScale, String destName) throws SQLServerException {
         Long longValue = null;
         byte[] byteValue = null;
         int srcDataPrecision, srcDataScale;
@@ -3487,7 +3489,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     if (byteArrayValue.length > destPrecision) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                        Object[] msgArgs = {srcJdbcType, destJdbcType};
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return byteArrayValue;
@@ -3501,7 +3503,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     // Throw exception if length sent in column metadata is smaller than actual data
                     if (((String) value).length() > destPrecision) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                        Object[] msgArgs = {srcJdbcType, destJdbcType};
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return ((String) value).getBytes(UTF_8);
@@ -3512,7 +3514,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     // Throw exception if length sent in column metadata is smaller than actual data
                     if (((String) value).length() > destPrecision) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                        Object[] msgArgs = {srcJdbcType, destJdbcType};
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return ((String) value).getBytes(UTF_16LE);
@@ -3536,7 +3538,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     BigDecimal bigDataValue = (BigDecimal) value;
                     if ((srcDataPrecision > destPrecision) || (srcDataScale > destScale)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-                        Object[] msgArgs = {srcJdbcType, destJdbcType};
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     } else if (srcDataScale < destScale)
                         // update the scale of source data based on the metadata for scale sent early
@@ -3577,15 +3579,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // we don't want to throw R_errorConvertingValue error as it might expose decrypted data if source was encrypted
         catch (NumberFormatException ex) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-            Object[] msgArgs = {srcJdbcType, destJdbcType};
+            Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         } catch (IllegalArgumentException ex) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-            Object[] msgArgs = {srcJdbcType, destJdbcType};
+            Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         } catch (ClassCastException ex) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
-            Object[] msgArgs = {srcJdbcType, destJdbcType};
+            Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
     }
