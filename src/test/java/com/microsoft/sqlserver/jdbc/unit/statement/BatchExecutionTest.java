@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 public class BatchExecutionTest extends AbstractTest {
