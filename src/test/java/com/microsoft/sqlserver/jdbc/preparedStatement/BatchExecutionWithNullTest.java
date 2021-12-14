@@ -95,6 +95,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testAddbatch2AEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
@@ -120,6 +121,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testClearBatchAEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
@@ -187,6 +189,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     }
 
     @BeforeEach
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testSetup() throws TestAbortedException, Exception {
         try (Statement stmt = connection.createStatement()) {
