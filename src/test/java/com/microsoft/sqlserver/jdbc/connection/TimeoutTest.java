@@ -230,7 +230,7 @@ public class TimeoutTest extends AbstractTest {
     public void testConnectRetryTimeout() {
         long timerEnd = 0;
         long timerStart = System.currentTimeMillis();
-        int loginTimeout = 1;
+        int loginTimeout = 2;
 
         // non existent server with very short loginTimeout so there is no time to do all retries
         try (Connection con = PrepUtil.getConnection(
