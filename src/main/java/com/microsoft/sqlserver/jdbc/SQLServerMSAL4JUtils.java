@@ -190,7 +190,7 @@ class SQLServerMSAL4JUtils {
     private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
         if (!accounts.isEmpty()) {
             for (IAccount account : accounts) {
-                if (account.username().equals(username)) {
+                if (account.username().contentEquals(username)) {
                     return account;
                 }
             }
