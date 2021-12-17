@@ -7,9 +7,6 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -2307,27 +2304,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         }
     }
 
-    /**
-     * This tests callback implemented using ADAL lib
-     */
-    @ParameterizedTest
-    @MethodSource("enclaveParams")
-    @Tag(Constants.reqExternalSetup)
-    public void testAkvNameWithAuthCallback_ADAL(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-
-        try {
-            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    authenticationCallback_ADAL);
-            String keystoreName = "keystoreName";
-            akv.setName(keystoreName);
-            assertTrue(akv.getName().equals(keystoreName),
-                    "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
-        } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
@@ -2358,28 +2334,6 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")), e.getMessage());
         }
     }
-
-    /**
-     * This tests the callback implemented using the ADAL library
-     */
-    SQLServerKeyVaultAuthenticationCallback authenticationCallback_ADAL = new SQLServerKeyVaultAuthenticationCallback() {
-        // @Override
-        ExecutorService service = Executors.newFixedThreadPool(2);
-
-        public String getAccessToken(String authority, String resource, String scope) {
-
-            AuthenticationResult result = null;
-            try {
-                AuthenticationContext context = new AuthenticationContext(authority, false, service);
-                ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
-                Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
-                result = future.get();
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-            return result.getAccessToken();
-        }
-    };
 
     SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
         @Override

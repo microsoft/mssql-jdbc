@@ -7,10 +7,6 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
-import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -20,9 +16,6 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -50,18 +43,16 @@ public class FedauthWithAE extends FedauthCommon {
     static String cmkName2 = Constants.CMK_NAME + "fedauthAE2";
     static String cmkName3 = Constants.CMK_NAME + "fedauthAE3";
     static String cekName = Constants.CEK_NAME + "fedauthAE";
-    static String charTable = TestUtils
-            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE")));
-    static String charTableOld = TestUtils
-            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_old")));
-    static String charTableNew = TestUtils
-            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_new")));
+    static String charTableJKS = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_jks")));
+    static String charTableAKV = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthAE_akv")));
 
     static SQLServerDataSource ds = new SQLServerDataSource();
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
 
         ds.setServerName(azureServer);
@@ -78,24 +69,24 @@ public class FedauthWithAE extends FedauthCommon {
     @Test
     public void testFedAuthWithAE_JKS() throws SQLException {
         try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(charTable, stmt);
+            TestUtils.dropTableIfExists(charTableJKS, stmt);
             dropCEK(stmt);
             dropCMK(stmt, cmkName1);
 
             setupCMK_JKS(cmkName1, stmt);
             createCEK(cmkName1, setupKeyStoreProvider_JKS(), stmt, fedauthJavaKeyAliases[0]);
 
-            createCharTable(stmt, charTable);
+            createCharTable(stmt, charTableJKS);
 
             String[] charValues = {"hello world!!!", "hello world!!!", "hello world!!!", "你好啊~~~", "你好啊~~~", "你好啊~~~"};
-            populateCharNormalCase(charValues, connection, charTable);
-            testChar(charValues, stmt, charTable);
+            populateCharNormalCase(charValues, connection, charTableJKS);
+            testChar(charValues, stmt, charTableJKS);
         } catch (SQLServerException e) {
             fail(e.getMessage());
         } finally {
             if (null != ds) {
                 try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement()) {
-                    TestUtils.dropTableIfExists(charTable, stmt);
+                    TestUtils.dropTableIfExists(charTableJKS, stmt);
                     dropCEK(stmt);
                     dropCMK(stmt, cmkName1);
                     dropCMK(stmt, cmkName2);
@@ -111,39 +102,28 @@ public class FedauthWithAE extends FedauthCommon {
         try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement()) {
             callDbccFreeProcCache();
 
-            TestUtils.dropTableIfExists(charTableNew, stmt);
+            TestUtils.dropTableIfExists(charTableAKV, stmt);
             dropCEK(stmt);
             dropCMK(stmt, cmkName2);
-            setupCMK_AKVNew(cmkName2, stmt);
+            setupCMK_AKV(cmkName2, stmt);
 
-            createCEK(cmkName2, setupKeyStoreProvider_AKVNew(), stmt, keyIDs[0]);
-            createCharTable(stmt, charTableNew);
+            createCEK(cmkName2, setupKeyStoreProvider_AKV(), stmt, keyIDs[0]);
+            createCharTable(stmt, charTableAKV);
 
-            populateCharNormalCase(charValues, connection, charTableNew);
-            testChar(charValues, stmt, charTableNew);
+            populateCharNormalCase(charValues, connection, charTableAKV);
+            testChar(charValues, stmt, charTableAKV);
 
-            TestUtils.dropTableIfExists(charTableNew, stmt);
+            TestUtils.dropTableIfExists(charTableAKV, stmt);
             dropCEK(stmt);
             dropCMK(stmt, cmkName2);
 
             callDbccFreeProcCache();
-
-            dropCMK(stmt, cmkName3);
-            setupCMK_AKVOld(cmkName3, stmt);
-
-            createCEK(cmkName3, setupKeyStoreProvider_AKVOld(), stmt, keyIDs[0]);
-            createCharTable(stmt, charTableOld);
-
-            populateCharNormalCase(charValues, connection, charTableOld);
-            testChar(charValues, stmt, charTableOld);
-
         } catch (SQLServerException e) {
             fail(e.getMessage());
         } finally {
             if (null != ds) {
                 try (Connection connection = ds.getConnection(); Statement stmt = connection.createStatement()) {
-                    TestUtils.dropTableIfExists(charTableOld, stmt);
-                    TestUtils.dropTableIfExists(charTableNew, stmt);
+                    TestUtils.dropTableIfExists(charTableAKV, stmt);
                     dropCEK(stmt);
                     dropCMK(stmt, cmkName1);
                     dropCMK(stmt, cmkName2);
@@ -291,11 +271,7 @@ public class FedauthWithAE extends FedauthCommon {
         createCMK(cmkName, Constants.JAVA_KEY_STORE_NAME, fedauthJavaKeyAliases[0], stmt);
     }
 
-    private void setupCMK_AKVOld(String cmkName, Statement stmt) throws SQLException {
-        createCMK(cmkName, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], stmt);
-    }
-
-    private void setupCMK_AKVNew(String cmkName, Statement stmt) throws SQLException {
+    private void setupCMK_AKV(String cmkName, Statement stmt) throws SQLException {
         createCMK(cmkName, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], stmt);
     }
 
@@ -304,32 +280,10 @@ public class FedauthWithAE extends FedauthCommon {
                 Constants.JKS_SECRET_STRING.toCharArray());
     }
 
-    private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVNew() throws SQLServerException {
+    private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKV() throws SQLServerException {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         return registerAKVProvider(
                 new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
-    }
-
-    private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKVOld() throws SQLServerException {
-        ExecutorService service = Executors.newFixedThreadPool(2);
-        SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
-            @Override
-            public String getAccessToken(String authority, String resource, String scope) {
-                AuthenticationResult result = null;
-                try {
-                    AuthenticationContext context = new AuthenticationContext(authority, false, service);
-                    ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
-
-                    Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
-                    result = future.get();
-                    return result.getAccessToken();
-                } catch (Exception e) {
-                    fail(e.getMessage());
-                    return null;
-                }
-            }
-        };
-        return new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider(
@@ -374,9 +328,8 @@ public class FedauthWithAE extends FedauthCommon {
     public static void terminate() throws SQLException {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(charTableOld, stmt);
-            TestUtils.dropTableIfExists(charTableNew, stmt);
-            TestUtils.dropTableIfExists(charTable, stmt);
+            TestUtils.dropTableIfExists(charTableAKV, stmt);
+            TestUtils.dropTableIfExists(charTableJKS, stmt);
         }
     }
 }
