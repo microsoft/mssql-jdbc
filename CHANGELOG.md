@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fix for AAD Timeout during MFA [1696](https://github.com/microsoft/mssql-jdbc/pull/1696)
 ### Changed
 - Depreciated AADSecurePrincipalId/AADSecurePrincipalSecret [1693](https://github.com/microsoft/mssql-jdbc/pull/1693)
+### Fixed issues
+- Fixed TDSParser stuck on TDS_COLMETADATA issue [#1662] (https://github.com/microsoft/mssql-jdbc/pull/1662)
+- Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [#1640] (https://github.com/microsoft/mssql-jdbc/pull/1640)
 
 ## [9.5.0] Preview Release
 ### Added
