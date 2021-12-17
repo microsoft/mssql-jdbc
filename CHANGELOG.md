@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [10.1.0] Preview Release
+### Added
+- Fix for ICR for AAD auth [1706](https://github.com/microsoft/mssql-jdbc/pull/1706)
+- Retry for intermittent java NativeSeedGenerator [1705](https://github.com/microsoft/mssql-jdbc/pull/1705)
+- Default encryption to true [1697](https://github.com/microsoft/mssql-jdbc/pull/1697)
+- Fix for AAD Timeout during MFA [1696](https://github.com/microsoft/mssql-jdbc/pull/1696)
+### Changed
+- Depreciated AADSecurePrincipalId/AADSecurePrincipalSecret [1693](https://github.com/microsoft/mssql-jdbc/pull/1693)
+
 ## [9.5.0] Preview Release
 ### Added
 - Idle Connection Resiliency Feature [1669](https://github.com/microsoft/mssql-jdbc/pull/1669)
