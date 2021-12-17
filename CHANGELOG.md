@@ -5,12 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [10.1.0] Preview Release
 ### Added
-- Fix for ICR for AAD auth [1706](https://github.com/microsoft/mssql-jdbc/pull/1706)
+- Fix for Idle Connection Resiliency for Azure AD Authentication [1706](https://github.com/microsoft/mssql-jdbc/pull/1706)
 - Retry for intermittent java NativeSeedGenerator [1705](https://github.com/microsoft/mssql-jdbc/pull/1705)
 - Default encryption to true [1697](https://github.com/microsoft/mssql-jdbc/pull/1697)
-- Fix for AAD Timeout during MFA [1696](https://github.com/microsoft/mssql-jdbc/pull/1696)
+- Fix for Azure AD interactive authentication timeout [1696](https://github.com/microsoft/mssql-jdbc/pull/1696)
 ### Changed
-- Depreciated AADSecurePrincipalId/AADSecurePrincipalSecret [1693](https://github.com/microsoft/mssql-jdbc/pull/1693)
+- Deprecated AADSecurePrincipalId/AADSecurePrincipalSecret [1693](https://github.com/microsoft/mssql-jdbc/pull/1693)
 ### Fixed issues
 - Fixed TDSParser stuck on TDS_COLMETADATA issue [#1662] (https://github.com/microsoft/mssql-jdbc/pull/1662)
 - Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [#1640] (https://github.com/microsoft/mssql-jdbc/pull/1640)
