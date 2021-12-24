@@ -25,8 +25,11 @@ import java.util.regex.Pattern;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  *
- * Prepared statements are executed with SET FMT ONLY to retrieve column meta data Callable statements :
+ * For SQL Servers versioned below SQL Server 2012, prepared statements are executed with SET FMT ONLY to
+ * retrieve column meta data Callable statements :
  * sp_sp_sproc_columns is called to retrieve names and meta data for the procedures params.
+ *
+ * For SQL Server 2012 and above, sp_describe_undeclared_parameter is used to retrieve parameter metadata.
  */
 
 public final class SQLServerParameterMetaData implements ParameterMetaData {
