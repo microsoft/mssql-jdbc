@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class BasicConnectionTest extends AbstractTest {
 
     @BeforeAll
@@ -78,7 +79,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testCatalog() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -106,7 +106,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testUseDb() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -203,7 +202,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
