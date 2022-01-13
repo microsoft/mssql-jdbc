@@ -1877,18 +1877,17 @@ final class TDSChannel implements Serializable {
                     TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
                     TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel(); // Full SSL
 
-            // If we requested login only SSL or full SSL without server certificate validation,
+            // If encryption wasn't negotiated or trust server certificate is specified,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
             // everything it sees.
             TrustManager[] tm = null;
-            if (TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel()
-                    || (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel() && con.trustServerCertificate())) {
+            if (TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || con.trustServerCertificate()) {
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " SSL handshake will trust any certificate");
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
+            // Otherwise, we'll check if a specific TrustManager implementation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
                 Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
