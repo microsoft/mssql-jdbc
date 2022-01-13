@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class PropertyTest extends AbstractTest {
 
     @BeforeAll

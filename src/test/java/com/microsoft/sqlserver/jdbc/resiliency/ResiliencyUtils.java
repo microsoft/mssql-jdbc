@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};

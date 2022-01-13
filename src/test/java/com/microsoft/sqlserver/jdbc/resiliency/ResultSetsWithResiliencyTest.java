@@ -28,6 +28,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = "[" + RandomUtil.getIdentifier("resTable") + "]";
     static int numberOfRows = 10;
