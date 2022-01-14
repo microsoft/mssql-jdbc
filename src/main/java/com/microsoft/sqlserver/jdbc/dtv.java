@@ -4082,6 +4082,14 @@ final class ServerDTVImpl extends DTVImpl {
                 convertedValue = tdsReader.readDateTime2(expectedValueLength, typeInfo, cal, jdbcType);
                 break;
 
+            case DATETIMEOFFSETN:
+                jdbcType = JDBCType.DATETIMEOFFSET;
+                scale = tdsReader.readUnsignedByte();
+                typeInfo.setScale(scale);
+                internalVariant.setScale(scale);
+                convertedValue = tdsReader.readDateTimeOffset(expectedValueLength, typeInfo, jdbcType);
+                break;
+
             case BIGBINARY: // e.g binary20, binary 512, binary 8000 -> reads as bigbinary
             case BIGVARBINARY:
                 if (cbPropsActual != sqlVariantProbBytes.BIGBINARY.getIntValue()) {
