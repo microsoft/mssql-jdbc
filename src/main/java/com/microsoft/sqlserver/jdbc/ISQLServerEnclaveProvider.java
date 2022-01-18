@@ -78,7 +78,7 @@ interface ISQLServerEnclaveProvider {
                 enclavePackage.write(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
                 byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
+                new SecureRandom().nextBytes(randomGUID);
                 keys.write(randomGUID);
                 keys.write(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter())
                         .array());
