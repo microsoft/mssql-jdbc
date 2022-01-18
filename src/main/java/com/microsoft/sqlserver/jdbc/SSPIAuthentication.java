@@ -155,7 +155,7 @@ abstract class SSPIAuthentication {
                 realm = findRealmFromHostname(realmValidator, dnsName);
                 if (null == realm && allowHostnameCanonicalization) {
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("Realm not provided or found from host name, attempt to find canonical host name via InetAddress function and then derive realm");
+                        logger.finer("Attempt to derive realm using canonical host name with InetAddress");
                     }
                     // We failed, try with canonical host name to find a better match
                     String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
@@ -166,7 +166,7 @@ abstract class SSPIAuthentication {
             } else {
                 if (allowHostnameCanonicalization) {
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("Since realm is provided, attempt to get canonical host name with InetAddress function");
+                        logger.finer("Since realm is provided, try to resolve canonical host name to host name with InetAddress");
                     }
                     // Realm was provided, try to resolve cname to hostname
                     dnsName = InetAddress.getByName(dnsName).getCanonicalHostName();
