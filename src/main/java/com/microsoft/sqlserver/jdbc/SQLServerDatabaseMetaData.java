@@ -345,16 +345,19 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             SQLServerCallableStatement call = (SQLServerCallableStatement) getCallableStatementHandle(procedure,
                     catalog);
 
-            for (int i = 1; i <= arguments.length; i++) {
-                // note individual arguments can be null.
-                call.setString(i, arguments[i - 1]);
+            if (call != null) {
+                for (int i = 1; i <= arguments.length; i++) {
+                    // note individual arguments can be null.
+                    call.setString(i, arguments[i - 1]);
+                }
+                rs = (SQLServerResultSet) call.executeQueryInternal();
             }
-            rs = (SQLServerResultSet) call.executeQueryInternal();
         } finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
             }
         }
+
         return rs;
     }
 

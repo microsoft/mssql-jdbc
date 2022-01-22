@@ -150,18 +150,24 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
         bIsOpen = false;
 
-        executor.execute(new Runnable() {
-            public void run() {
-                if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-                    wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
-                try {
-                    wrappedConnection.poolCloseEventNotify();
-                    wrappedConnection = null;
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
+            executor.execute(new Runnable() {
+                public void run() {
+                    if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
+                    try {
+                        wrappedConnection.poolCloseEventNotify();
+                        wrappedConnection = null;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

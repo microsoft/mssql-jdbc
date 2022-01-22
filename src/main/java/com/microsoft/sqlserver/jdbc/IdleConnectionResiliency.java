@@ -255,7 +255,7 @@ class SessionStateTable {
         } else {
             // Not a first time state update hence if only there is a transition in state do we update the count.
             if (fRecoverable != sessionStateDelta[sessionStateId].isRecoverable()) {
-                if(fRecoverable)
+                if (fRecoverable)
                     unRecoverableSessionStateCount.decrementAndGet();
                 else
                     unRecoverableSessionStateCount.incrementAndGet();
@@ -424,6 +424,9 @@ final class ReconnectThread extends Thread {
                                 Thread.sleep(con.getRetryInterval() * 1000);
                             }
                         } catch (InterruptedException ie) {
+                            // re-interrupt thread
+                            Thread.currentThread().interrupt();
+
                             this.eReceived = new SQLServerException(SQLServerException.getErrString("R_queryTimedOut"),
                                     SQLState.STATEMENT_CANCELED, DriverError.NOT_SET, null);
                             keepRetrying = false;

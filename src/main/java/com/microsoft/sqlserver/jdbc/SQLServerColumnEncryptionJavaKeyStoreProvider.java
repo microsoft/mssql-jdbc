@@ -155,6 +155,11 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             catch (IOException e) {}
         }
 
+        if (certificateDetails == null) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CertificateError"));
+            Object[] msgArgs = {masterKeyPath, name};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
         return certificateDetails;
     }
 
@@ -177,7 +182,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
             return new CertificateDetails(publicCertificate, keyPrivate);
         } catch (UnrecoverableKeyException unrecoverableKeyException) {
-
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnrecoverableKeyAE"));
             Object[] msgArgs = {alias};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
@@ -198,15 +202,11 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
 
         if (null == plainTextColumnEncryptionKey) {
-
             throw new SQLServerException(null, SQLServerException.getErrString("R_NullColumnEncryptionKey"), null, 0,
                     false);
-
         } else if (0 == plainTextColumnEncryptionKey.length) {
-
             throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyColumnEncryptionKey"), null, 0,
                     false);
-
         }
 
         KeyStoreProviderCommon.validateEncryptionAlgorithm(encryptionAlgorithm, true);

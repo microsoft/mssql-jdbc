@@ -60,6 +60,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
@@ -86,6 +89,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
@@ -120,6 +126,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, "", authenticationString);
@@ -178,6 +187,9 @@ class SQLServerMSAL4JUtils {
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);

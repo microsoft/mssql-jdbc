@@ -6366,6 +6366,13 @@ final class TDSWriter {
                         System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                     }
                 }
+
+                if (encodedBytesForEncryption == null) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+                    Object[] msgArgs1 = {"encodedBytesForEncryption"};
+                    throw new SQLServerException(form.format(msgArgs1), null);
+                }
+
                 // Copy the 3 byte date value
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 3), 3);
 
@@ -6386,6 +6393,12 @@ final class TDSWriter {
                         encodedBytesForEncryption = new byte[encodedLength + 5];
                         System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                     }
+                }
+
+                if (encodedBytesForEncryption == null) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+                    Object[] msgArgs1 = {"encodedBytesForEncryption"};
+                    throw new SQLServerException(form.format(msgArgs1), null);
                 }
 
                 // Copy the 3 byte date value
@@ -6949,7 +6962,7 @@ final class TDSReader implements Serializable {
         lastPacket = newPacket;
 
         // When logging, append the payload to the log buffer and write out the whole thing.
-        if (tdsChannel.isLoggingPackets()) {
+        if (tdsChannel.isLoggingPackets() && logBuffer != null) {
             System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
             tdsChannel.logPacket(logBuffer, 0, packetLength,
                     this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
@@ -7542,7 +7555,8 @@ class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
             } else {
                 // If the timer wasn't canceled before it ran out of
                 // time then interrupt the registered command.
-                command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+                if (null != command)
+                    command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
             }
         } catch (SQLServerException e) {
             // Request failed to time out and SQLServerConnection does not exist

@@ -466,6 +466,13 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
         }
+
+        if (handler == null) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
+            Object[] msgArgs = {"null"};
+            SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
+        }
+
         outputStreamValue = new ByteArrayOutputStreamToInputStream();
         handler.setResult(new StreamResult(outputStreamValue));
         SAXResult result = new SAXResult(handler);

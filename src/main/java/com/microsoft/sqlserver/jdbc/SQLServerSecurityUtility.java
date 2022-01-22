@@ -436,6 +436,9 @@ class SQLServerSecurityUtility {
                                                                                    : retryTimeoutInMs;
                                 Thread.sleep(retryTimeoutInMs);
                             } catch (InterruptedException ex) {
+                                // re-interrupt thread
+                                Thread.currentThread().interrupt();
+                                
                                 // Throw runtime exception as driver must not be interrupted here
                                 throw new RuntimeException(ex);
                             }
