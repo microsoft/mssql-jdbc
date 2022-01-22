@@ -180,17 +180,18 @@ interface ISQLServerEnclaveProvider {
      *         if error
      */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
-            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement, PreparedStatement stmt, ResultSet rs,
-            ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
+            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement,
+            PreparedStatement stmt, ResultSet rs, ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
         SQLServerStatement statement = (SQLServerStatement) ((SQLServerPreparedStatement) stmt);
 
         if (null != sqlServerStatement && sqlServerStatement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
-            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
+            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(
+                    sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
         }
-        
+
         while (rs.next()) {
             int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
             if (!cekList.containsKey(currentOrdinal)) {
@@ -223,8 +224,8 @@ interface ISQLServerEnclaveProvider {
             if (isRequestedByEnclave) {
                 byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
                 String serverName = connection.getTrustedServerNameAE();
-                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath, serverName,
-                        isRequestedByEnclave, keySignature);
+                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath,
+                        serverName, isRequestedByEnclave, keySignature);
 
                 // DBID(4) + MDVER(8) + KEYID(2) + CEK(32) = 46
                 ByteBuffer aev2CekEntry = ByteBuffer.allocate(46);
@@ -232,7 +233,8 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
 
-                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility.getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility
+                        .getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
                 aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
@@ -244,35 +246,36 @@ interface ISQLServerEnclaveProvider {
                     0, false);
         }
 
-        rs = (SQLServerResultSet) stmt.getResultSet();
-        while (rs.next() && null != params) {
-            String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
-            int paramIndex = parameterNames.indexOf(paramName);
-            int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
-            cekEntry = cekList.get(cekOrdinal);
+        try (ResultSet rs2 = stmt.getResultSet()) {
+            while (rs2.next() && null != params) {
+                String paramName = rs2.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                int paramIndex = parameterNames.indexOf(paramName);
+                int cekOrdinal = rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                cekEntry = cekList.get(cekOrdinal);
 
-            // cekEntry will be null if none of the parameters are encrypted.
-            if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
-                Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
-            SQLServerEncryptionType encType = SQLServerEncryptionType
-                    .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
-            if (SQLServerEncryptionType.PlainText != encType) {
-                params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                        (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()), null,
-                        encType.value,
-                        (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
-                // Decrypt the symmetric key.(This will also validate and throw if needed).
-                SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
-            } else {
-                if (params[paramIndex].getForceEncryption()) {
+                // cekEntry will be null if none of the parameters are encrypted.
+                if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                     MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
-                    Object[] msgArgs = {userSql, paramIndex + 1};
-                    SQLServerException.makeFromDriverError(null, connection, form.format(msgArgs), "0", true);
+                            SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
+                    Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+                SQLServerEncryptionType encType = SQLServerEncryptionType
+                        .of((byte) rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                if (SQLServerEncryptionType.PlainText != encType) {
+                    params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            null, encType.value,
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                    // Decrypt the symmetric key.(This will also validate and throw if needed).
+                    SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
+                } else {
+                    if (params[paramIndex].getForceEncryption()) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
+                        Object[] msgArgs = {userSql, paramIndex + 1};
+                        SQLServerException.makeFromDriverError(null, connection, form.format(msgArgs), "0", true);
+                    }
                 }
             }
         }
