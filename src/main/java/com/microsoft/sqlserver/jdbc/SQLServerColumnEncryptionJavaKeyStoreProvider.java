@@ -348,9 +348,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
-        if (null == certificateDetails) {
-            return false;
-        }
 
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

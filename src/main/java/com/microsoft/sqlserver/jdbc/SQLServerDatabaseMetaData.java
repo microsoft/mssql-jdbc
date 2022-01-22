@@ -259,6 +259,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String FUNCTION_TYPE = "FUNCTION_TYPE";
     private static final String SS_IS_SPARSE = "SS_IS_SPARSE";
     private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
+    private static final String SS_UDT_CATALOG_NAME = "SS_UDT_CATALOG_NAME";
+    private static final String SS_UDT_SCHEMA_NAME = "SS_UDT_SCHEMA_NAME";
+    private static final String SS_UDT_ASSEMBLY_TYPE_NAME = "SS_UDT_ASSEMBLY_TYPE_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_CATALOG_NAME = "SS_XML_SCHEMACOLLECTION_CATALOG_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_SCHEMA_NAME = "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_NAME = "SS_XML_SCHEMACOLLECTION_NAME";
+
     private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
     private static final String SQL_KEYWORDS = createSqlKeyWords();
@@ -367,8 +374,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         SQLServerResultSet rs = getResultSetFromStoredProc(catalog, procedure, arguments);
 
         // Rename the columns
-        for (int i = 0; i < columnNames.length; i++)
-            rs.setColumnName(1 + i, columnNames[i]);
+        if (null != rs) {
+            for (int i = 0; i < columnNames.length; i++)
+                rs.setColumnName(1 + i, columnNames[i]);
+        }
         return rs;
     }
 
@@ -686,42 +695,42 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getColumnsDWColumns) {
                     getColumnsDWColumns = new LinkedHashMap<>();
-                    getColumnsDWColumns.put(1, "TABLE_CAT");
-                    getColumnsDWColumns.put(2, "TABLE_SCHEM");
-                    getColumnsDWColumns.put(3, "TABLE_NAME");
-                    getColumnsDWColumns.put(4, "COLUMN_NAME");
-                    getColumnsDWColumns.put(5, "DATA_TYPE");
-                    getColumnsDWColumns.put(6, "TYPE_NAME");
-                    getColumnsDWColumns.put(7, "COLUMN_SIZE");
-                    getColumnsDWColumns.put(8, "BUFFER_LENGTH");
-                    getColumnsDWColumns.put(9, "DECIMAL_DIGITS");
-                    getColumnsDWColumns.put(10, "NUM_PREC_RADIX");
-                    getColumnsDWColumns.put(11, "NULLABLE");
-                    getColumnsDWColumns.put(12, "REMARKS");
-                    getColumnsDWColumns.put(13, "COLUMN_DEF");
-                    getColumnsDWColumns.put(14, "SQL_DATA_TYPE");
-                    getColumnsDWColumns.put(15, "SQL_DATETIME_SUB");
-                    getColumnsDWColumns.put(16, "CHAR_OCTET_LENGTH");
-                    getColumnsDWColumns.put(17, "ORDINAL_POSITION");
-                    getColumnsDWColumns.put(18, "IS_NULLABLE");
+                    getColumnsDWColumns.put(1, TABLE_CAT);
+                    getColumnsDWColumns.put(2, TABLE_SCHEM);
+                    getColumnsDWColumns.put(3, TABLE_NAME);
+                    getColumnsDWColumns.put(4, COLUMN_NAME);
+                    getColumnsDWColumns.put(5, DATA_TYPE);
+                    getColumnsDWColumns.put(6, TYPE_NAME);
+                    getColumnsDWColumns.put(7, COLUMN_SIZE);
+                    getColumnsDWColumns.put(8, BUFFER_LENGTH);
+                    getColumnsDWColumns.put(9, DECIMAL_DIGITS);
+                    getColumnsDWColumns.put(10, NUM_PREC_RADIX);
+                    getColumnsDWColumns.put(11, NULLABLE);
+                    getColumnsDWColumns.put(12, REMARKS);
+                    getColumnsDWColumns.put(13, COLUMN_DEF);
+                    getColumnsDWColumns.put(14, SQL_DATA_TYPE);
+                    getColumnsDWColumns.put(15, SQL_DATETIME_SUB);
+                    getColumnsDWColumns.put(16, CHAR_OCTET_LENGTH);
+                    getColumnsDWColumns.put(17, ORDINAL_POSITION);
+                    getColumnsDWColumns.put(18, IS_NULLABLE);
                     /*
                      * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
                      * be queried as 'NULL'
                      */
-                    getColumnsDWColumns.put(-1, "SCOPE_CATALOG");
-                    getColumnsDWColumns.put(-2, "SCOPE_SCHEMA");
-                    getColumnsDWColumns.put(-3, "SCOPE_TABLE");
-                    getColumnsDWColumns.put(29, "SOURCE_DATA_TYPE");
-                    getColumnsDWColumns.put(22, "IS_AUTOINCREMENT");
-                    getColumnsDWColumns.put(21, "IS_GENERATEDCOLUMN");
-                    getColumnsDWColumns.put(19, "SS_IS_SPARSE");
-                    getColumnsDWColumns.put(20, "SS_IS_COLUMN_SET");
-                    getColumnsDWColumns.put(23, "SS_UDT_CATALOG_NAME");
-                    getColumnsDWColumns.put(24, "SS_UDT_SCHEMA_NAME");
-                    getColumnsDWColumns.put(25, "SS_UDT_ASSEMBLY_TYPE_NAME");
-                    getColumnsDWColumns.put(26, "SS_XML_SCHEMACOLLECTION_CATALOG_NAME");
-                    getColumnsDWColumns.put(27, "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME");
-                    getColumnsDWColumns.put(28, "SS_XML_SCHEMACOLLECTION_NAME");
+                    getColumnsDWColumns.put(-1, SCOPE_CATALOG);
+                    getColumnsDWColumns.put(-2, SCOPE_SCHEMA);
+                    getColumnsDWColumns.put(-3, SCOPE_TABLE);
+                    getColumnsDWColumns.put(29, SOURCE_DATA_TYPE);
+                    getColumnsDWColumns.put(22, IS_AUTOINCREMENT);
+                    getColumnsDWColumns.put(21, IS_GENERATEDCOLUMN);
+                    getColumnsDWColumns.put(19, SS_IS_SPARSE);
+                    getColumnsDWColumns.put(20, SS_IS_COLUMN_SET);
+                    getColumnsDWColumns.put(23, SS_UDT_CATALOG_NAME);
+                    getColumnsDWColumns.put(24, SS_UDT_SCHEMA_NAME);
+                    getColumnsDWColumns.put(25, SS_UDT_ASSEMBLY_TYPE_NAME);
+                    getColumnsDWColumns.put(26, SS_XML_SCHEMACOLLECTION_CATALOG_NAME);
+                    getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
+                    getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
                 }
             }
 
@@ -882,12 +891,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values. Also for the precision
-        rs.getColumn(6).setFilter(new DataTypeFilter());
+        if (null != rs) {
+            rs.getColumn(6).setFilter(new DataTypeFilter());
 
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(9).setFilter(new ZeroFixupFilter());
-            rs.getColumn(17).setFilter(new ZeroFixupFilter());
+            if (connection.isKatmaiOrLater()) {
+                rs.getColumn(8).setFilter(new ZeroFixupFilter());
+                rs.getColumn(9).setFilter(new ZeroFixupFilter());
+                rs.getColumn(17).setFilter(new ZeroFixupFilter());
+            }
         }
         return rs;
     }
@@ -938,7 +949,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values.
-        rs.getColumn(3).setFilter(new DataTypeFilter());
+        if (null != rs) {
+            rs.getColumn(3).setFilter(new DataTypeFilter());
+        }
         return rs;
     }
 
@@ -1077,20 +1090,20 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getImportedKeysDWColumns) {
                     getImportedKeysDWColumns = new LinkedHashMap<>();
-                    getImportedKeysDWColumns.put(1, "PKTABLE_CAT");
-                    getImportedKeysDWColumns.put(2, "PKTABLE_SCHEM");
-                    getImportedKeysDWColumns.put(3, "PKTABLE_NAME");
-                    getImportedKeysDWColumns.put(4, "PKCOLUMN_NAME");
-                    getImportedKeysDWColumns.put(5, "FKTABLE_CAT");
-                    getImportedKeysDWColumns.put(6, "FKTABLE_SCHEM");
-                    getImportedKeysDWColumns.put(7, "FKTABLE_NAME");
-                    getImportedKeysDWColumns.put(8, "FKCOLUMN_NAME");
-                    getImportedKeysDWColumns.put(9, "KEY_SEQ");
-                    getImportedKeysDWColumns.put(10, "UPDATE_RULE");
-                    getImportedKeysDWColumns.put(11, "DELETE_RULE");
-                    getImportedKeysDWColumns.put(12, "FK_NAME");
-                    getImportedKeysDWColumns.put(13, "PK_NAME");
-                    getImportedKeysDWColumns.put(14, "DEFERRABILITY");
+                    getImportedKeysDWColumns.put(1, PKTABLE_CAT);
+                    getImportedKeysDWColumns.put(2, PKTABLE_SCHEM);
+                    getImportedKeysDWColumns.put(3, PKTABLE_NAME);
+                    getImportedKeysDWColumns.put(4, PKCOLUMN_NAME);
+                    getImportedKeysDWColumns.put(5, FKTABLE_CAT);
+                    getImportedKeysDWColumns.put(6, FKTABLE_SCHEM);
+                    getImportedKeysDWColumns.put(7, FKTABLE_NAME);
+                    getImportedKeysDWColumns.put(8, FKCOLUMN_NAME);
+                    getImportedKeysDWColumns.put(9, KEY_SEQ);
+                    getImportedKeysDWColumns.put(10, UPDATE_RULE);
+                    getImportedKeysDWColumns.put(11, DELETE_RULE);
+                    getImportedKeysDWColumns.put(12, FK_NAME);
+                    getImportedKeysDWColumns.put(13, PK_NAME);
+                    getImportedKeysDWColumns.put(14, DEFERRABILITY);
                 }
             }
             azureDwSelectBuilder.append(generateAzureDWEmptyRS(getImportedKeysDWColumns));
@@ -1355,13 +1368,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values. Also for the precision
-        rs.getColumn(6).setFilter(new DataTypeFilter());
-        if (connection.isKatmaiOrLater()) {
-            rs.getColumn(8).setFilter(new ZeroFixupFilter());
-            rs.getColumn(9).setFilter(new ZeroFixupFilter());
-            rs.getColumn(17).setFilter(new ZeroFixupFilter());
+        if (null != rs) {
+            rs.getColumn(6).setFilter(new DataTypeFilter());
+            if (connection.isKatmaiOrLater()) {
+                rs.getColumn(8).setFilter(new ZeroFixupFilter());
+                rs.getColumn(9).setFilter(new ZeroFixupFilter());
+                rs.getColumn(17).setFilter(new ZeroFixupFilter());
+            }
         }
-
         return rs;
     }
 
@@ -1739,7 +1753,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // Hook in a filter on the DATA_TYPE column of the result set we're
         // going to return that converts the ODBC values from sp_columns
         // into JDBC values.
-        rs.getColumn(3).setFilter(new DataTypeFilter());
+        if (null != rs) {
+            rs.getColumn(3).setFilter(new DataTypeFilter());
+        }
         return rs;
     }
 
@@ -2149,8 +2165,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case Connection.TRANSACTION_SERIALIZABLE:
             case SQLServerConnection.TRANSACTION_SNAPSHOT:
                 return true;
+            default:
+                return false;
         }
-        return false;
     }
 
     @Override
@@ -2199,8 +2216,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY:
             case SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC:
                 return true;
+            default:
+                return false;
         }
-        return false;
     }
 
     @Override
@@ -2221,9 +2239,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 // synonym
             case SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY:
                 return (ResultSet.CONCUR_READ_ONLY == concurrency);
+            default:
+                // per spec if we do not know we do not support.
+                return false;
         }
-        // per spec if we do not know we do not support.
-        return false;
     }
 
     @Override
@@ -2307,11 +2326,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY:
             case SQLServerResultSet.TYPE_SS_SCROLL_DYNAMIC:
                 return;
+            default:
+                // if the value is outside of the valid values throw error.
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+                Object[] msgArgs = {type};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
         }
-        // if the value is outside of the valid values throw error.
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {type};
-        throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
     // Check the concurrency values and make sure the value is a supported
@@ -2325,11 +2345,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             case SQLServerResultSet.CONCUR_SS_SCROLL_LOCKS:
             case SQLServerResultSet.CONCUR_SS_OPTIMISTIC_CCVAL:
                 return;
+            default:
+                // if the value is outside of the valid values throw error.
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+                Object[] msgArgs = {type};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
         }
-        // if the value is outside of the valid values throw error.
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-        Object[] msgArgs = {type};
-        throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
     }
 
     @Override

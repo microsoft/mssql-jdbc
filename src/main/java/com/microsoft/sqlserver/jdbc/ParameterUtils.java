@@ -69,6 +69,20 @@ final class ParameterUtils {
 
         while (offset < len) {
             switch (chTmp = sql.charAt(offset++)) {
+                case '[':
+                    chTmp = ']';
+                case '\'':
+                case '"':
+                    chQuote = chTmp;
+                    while (offset < len) {
+                        if (sql.charAt(offset++) == chQuote) {
+                            if (len == offset || sql.charAt(offset) != chQuote)
+                                break;
+
+                            ++offset;
+                        }
+                    }
+                    break;
                 case '/':
                     if (offset == len)
                         break;
@@ -101,20 +115,6 @@ final class ParameterUtils {
                 default:
                     if (ch == chTmp)
                         return offset - 1;
-                    break;
-                case '[':
-                    chTmp = ']';
-                case '\'':
-                case '"':
-                    chQuote = chTmp;
-                    while (offset < len) {
-                        if (sql.charAt(offset++) == chQuote) {
-                            if (len == offset || sql.charAt(offset) != chQuote)
-                                break;
-
-                            ++offset;
-                        }
-                    }
                     break;
             }
         }

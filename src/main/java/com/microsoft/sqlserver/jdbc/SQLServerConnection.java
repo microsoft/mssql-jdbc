@@ -822,13 +822,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStorePrincipalId = null;
 
     /** server column encryption version */
-    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
+    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NOTSUPPORTED;
 
     /** Enclave type */
     private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
-        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NotSupported.value());
+        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NOTSUPPORTED.value());
     }
 
     ColumnEncryptionVersion getServerColumnEncryptionVersion() {
@@ -3767,7 +3767,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             } catch (InterruptedException e) {
                                 // re-interrupt thread
                                 Thread.currentThread().interrupt();
-                                
+
                                 // Keep compiler happy, something's probably seriously wrong if this line is run
                                 SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
                                         e.getMessage(), null, false);
@@ -5576,13 +5576,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v1;
+                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
 
                 if (null != enclaveAttestationUrl) {
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
-                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
+                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
 
@@ -6500,7 +6500,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void setNetworkTimeout(Executor executor, int timeout) throws SQLException {
-        loggerExternal.entering(loggingClassName, "setNetworkTimeout", timeout);
+        loggerExternal.entering(loggingClassName, SET_NETWORK_TIMEOUT_PERM, timeout);
 
         if (timeout < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));

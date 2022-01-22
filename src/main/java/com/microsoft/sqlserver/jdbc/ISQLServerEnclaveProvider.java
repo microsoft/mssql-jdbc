@@ -193,7 +193,7 @@ interface ISQLServerEnclaveProvider {
         }
 
         while (rs.next()) {
-            int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+            int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
             if (!cekList.containsKey(currentOrdinal)) {
                 cekEntry = new CekTableEntry(currentOrdinal);
                 cekList.put(cekEntry.ordinal, cekEntry);
@@ -201,28 +201,28 @@ interface ISQLServerEnclaveProvider {
                 cekEntry = cekList.get(currentOrdinal);
             }
 
-            String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value());
-            String algo = rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value());
-            String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value());
+            String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value());
+            String algo = rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value());
+            String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value());
 
-            int dbID = rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value());
-            byte[] mdVer = rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value());
-            int keyID = rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value());
-            byte[] encryptedKey = rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value());
+            int dbID = rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value());
+            byte[] mdVer = rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value());
+            int keyID = rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value());
+            byte[] encryptedKey = rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value());
 
-            cekEntry.add(encryptedKey, dbID, keyID, rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+            cekEntry.add(encryptedKey, dbID, keyID, rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
                     mdVer, keyPath, keyStoreName, algo);
 
             // servers supporting enclave computations should always return a boolean indicating whether the key
             // is
             // required by enclave or not.
-            if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion().value()) {
+            if (ColumnEncryptionVersion.AE_V2.value() <= connection.getServerColumnEncryptionVersion().value()) {
                 isRequestedByEnclave = rs
-                        .getBoolean(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value());
+                        .getBoolean(DescribeParameterEncryptionResultSet1.ISREQUESTEDBYENCLAVE.value());
             }
 
             if (isRequestedByEnclave) {
-                byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
+                byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.ENCLAVECMKSIGNATURE.value());
                 String serverName = connection.getTrustedServerNameAE();
                 SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath,
                         serverName, isRequestedByEnclave, keySignature);
@@ -248,9 +248,9 @@ interface ISQLServerEnclaveProvider {
 
         try (ResultSet rs2 = stmt.getResultSet()) {
             while (rs2.next() && null != params) {
-                String paramName = rs2.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                String paramName = rs2.getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
                 int paramIndex = parameterNames.indexOf(paramName);
-                int cekOrdinal = rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                int cekOrdinal = rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONKEYORDINAL.value());
                 cekEntry = cekList.get(cekOrdinal);
 
                 // cekEntry will be null if none of the parameters are encrypted.
@@ -261,12 +261,12 @@ interface ISQLServerEnclaveProvider {
                     throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
                 }
                 SQLServerEncryptionType encType = SQLServerEncryptionType
-                        .of((byte) rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                        .of((byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
                 if (SQLServerEncryptionType.PlainText != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                             null, encType.value,
-                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
                     // Decrypt the symmetric key.(This will also validate and throw if needed).
                     SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
                 } else {

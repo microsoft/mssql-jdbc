@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.lang.reflect.Array;
 import java.text.MessageFormat;
 import java.util.logging.Level;
 
@@ -25,12 +24,12 @@ class FedAuthDllInfo {
  * Encapsulation of the JNI native calls for trusted authentication.
  */
 final class AuthenticationJNI extends SSPIAuthentication {
-    private static final int maximumpointersize = 128; // we keep the SNI_Sec pointer
+    private static final int MAXPOINTERSIZE = 128; // we keep the SNI_Sec pointer
     private static boolean enabled = false;
     private static java.util.logging.Logger authLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.AuthenticationJNI");
     private static int sspiBlobMaxlen = 0;
-    private byte[] sniSec = new byte[maximumpointersize];
+    private byte[] sniSec = new byte[MAXPOINTERSIZE];
     private int[] sniSecLen = {0};
     private final String dnsName;
     private final int port;

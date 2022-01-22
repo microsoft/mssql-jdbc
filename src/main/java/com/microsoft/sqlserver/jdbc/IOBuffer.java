@@ -5645,15 +5645,6 @@ final class TDSWriter {
             collation = null;
         } else
             switch (jdbcType) {
-                case BINARY:
-                case VARBINARY:
-                case LONGVARBINARY:
-                case BLOB:
-                default:
-                    tdsType = (isShortValue || usePLP) ? TDSType.BIGVARBINARY : TDSType.IMAGE;
-                    collation = null;
-                    break;
-
                 case CHAR:
                 case VARCHAR:
                 case LONGVARCHAR:
@@ -5670,6 +5661,15 @@ final class TDSWriter {
                     tdsType = (isShortValue || usePLP) ? TDSType.NVARCHAR : TDSType.NTEXT;
                     if (null == collation)
                         collation = con.getDatabaseCollation();
+                    break;
+
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
+                case BLOB:
+                default:
+                    tdsType = (isShortValue || usePLP) ? TDSType.BIGVARBINARY : TDSType.IMAGE;
+                    collation = null;
                     break;
             }
 

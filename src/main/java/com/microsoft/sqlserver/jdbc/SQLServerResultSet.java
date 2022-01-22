@@ -5599,7 +5599,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
 
             // Put the scroll window back before the first row.
-            scrollWindow.reset();
+            if (null != scrollWindow)
+                scrollWindow.reset();
         }
     }
 
