@@ -3086,8 +3086,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Having a current row implies we have a fetch buffer in which that row exists.
         assert null != tdsReader;
 
-        return deletedCurrentRow
-                || (0 != serverCursorId && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
+        return deletedCurrentRow || (0 != serverCursorId
+                && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
     }
 
     /* ---------------- Column updates ---------------------- */
@@ -5388,7 +5388,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     // Response is completely processed, hence decrement unprocessed response count.
                     stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
                 }
-                
+
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
                 // another DONE token to follow.
@@ -5582,7 +5582,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (numRows < 0 || startRow < 0) {
             // Scroll past all the returned rows, caching in the scroll window as we go.
             try {
-                while (scrollWindow.next(this));
+                while (scrollWindow != null && scrollWindow.next(this));
             } catch (SQLException e) {
                 // If there is a row error in the results, don't throw an exception from here.
                 // Ignore it for now and defer the exception until the app encounters the
@@ -5599,7 +5599,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
 
             // Put the scroll window back before the first row.
-            scrollWindow.reset();
+            if (null != scrollWindow)
+                scrollWindow.reset();
         }
     }
 

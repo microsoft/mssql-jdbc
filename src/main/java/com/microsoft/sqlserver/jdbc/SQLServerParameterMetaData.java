@@ -25,9 +25,9 @@ import java.util.regex.Pattern;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  *
- * For SQL Servers versioned below SQL Server 2012, prepared statements are executed with SET FMT ONLY to
- * retrieve column meta data Callable statements :
- * sp_sp_sproc_columns is called to retrieve names and meta data for the procedures params.
+ * For SQL Servers versioned below SQL Server 2012, prepared statements are executed with SET FMT ONLY to retrieve
+ * column meta data Callable statements : sp_sp_sproc_columns is called to retrieve names and meta data for the
+ * procedures params.
  *
  * For SQL Server 2012 and above, sp_describe_undeclared_parameter is used to retrieve parameter metadata.
  */
@@ -35,6 +35,14 @@ import java.util.regex.Pattern;
 public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private final static int SQL_SERVER_2012_VERSION = 11;
+
+    private static final String DATA_TYPE = "DATA_TYPE";
+    private static final String COLUMN_TYPE = "COLUMN_TYPE";
+    private static final String TYPE_NAME = "TYPE_NAME";
+    private static final String PRECISION = "PRECISION";
+    private static final String SCALE = "SCALE";
+    private static final String NULLABLE = "NULLABLE";
+    private static final String SS_TYPE_SCHEMA_NAME = "SS_TYPE_SCHEMA_NAME";
 
     private final SQLServerPreparedStatement stmtParent;
     private SQLServerConnection con;
@@ -321,13 +329,13 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                     while (rsProcedureMeta.next()) {
                         procMetadata.add(new HashMap<String, Object>() {
                             {
-                                put("DATA_TYPE", rsProcedureMeta.getShort("DATA_TYPE"));
-                                put("COLUMN_TYPE", rsProcedureMeta.getInt("COLUMN_TYPE"));
-                                put("TYPE_NAME", rsProcedureMeta.getString("TYPE_NAME"));
-                                put("PRECISION", rsProcedureMeta.getInt("PRECISION"));
-                                put("SCALE", rsProcedureMeta.getInt("SCALE"));
-                                put("NULLABLE", rsProcedureMeta.getInt("NULLABLE"));
-                                put("SS_TYPE_SCHEMA_NAME", rsProcedureMeta.getString("SS_TYPE_SCHEMA_NAME"));
+                                put(DATA_TYPE, rsProcedureMeta.getShort(DATA_TYPE));
+                                put(COLUMN_TYPE, rsProcedureMeta.getInt(COLUMN_TYPE));
+                                put(TYPE_NAME, rsProcedureMeta.getString(TYPE_NAME));
+                                put(PRECISION, rsProcedureMeta.getInt(PRECISION));
+                                put(SCALE, rsProcedureMeta.getInt(SCALE));
+                                put(NULLABLE, rsProcedureMeta.getInt(NULLABLE));
+                                put(SS_TYPE_SCHEMA_NAME, rsProcedureMeta.getString(SS_TYPE_SCHEMA_NAME));
                             }
                         });
                     }
@@ -433,7 +441,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             if (null == procMetadata) {
                 return queryMetaMap.get(param).parameterClassName;
             } else {
-                return JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE")).className();
+                return JDBCType.of((short) getParameterInfo(param).get(DATA_TYPE)).className();
             }
         } catch (SQLServerException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
@@ -460,7 +468,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             // if it is not a stored procedure, the @param can only be input.
             return parameterModeIn;
         } else {
-            int n = (int) getParameterInfo(param).get("COLUMN_TYPE");
+            int n = (int) getParameterInfo(param).get(COLUMN_TYPE);
             if (n == 1)
                 return parameterModeIn;
             else if (n == 2)
@@ -478,7 +486,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (null == procMetadata) {
             parameterType = queryMetaMap.get(param).parameterType;
         } else {
-            parameterType = (short) getParameterInfo(param).get("DATA_TYPE");
+            parameterType = (short) getParameterInfo(param).get(DATA_TYPE);
         }
         if (0 != parameterType) {
             switch (parameterType) {
@@ -507,7 +515,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (null == procMetadata) {
             return queryMetaMap.get(param).parameterTypeName;
         } else {
-            return getParameterInfo(param).get("TYPE_NAME").toString();
+            return getParameterInfo(param).get(TYPE_NAME).toString();
         }
     }
 
@@ -518,7 +526,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (null == procMetadata) {
             return queryMetaMap.get(param).precision;
         } else {
-            return (int) getParameterInfo(param).get("PRECISION");
+            return (int) getParameterInfo(param).get(PRECISION);
         }
     }
 
@@ -529,7 +537,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (null == procMetadata) {
             return queryMetaMap.get(param).scale;
         } else {
-            return (int) getParameterInfo(param).get("SCALE");
+            return (int) getParameterInfo(param).get(SCALE);
         }
     }
 
@@ -540,7 +548,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         if (procMetadata == null) {
             return queryMetaMap.get(param).isNullable;
         } else {
-            return (int) getParameterInfo(param).get("NULLABLE");
+            return (int) getParameterInfo(param).get(NULLABLE);
         }
     }
 
@@ -561,7 +569,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             if (null == procMetadata) {
                 return queryMetaMap.get(param).isSigned;
             } else {
-                return JDBCType.of((short) getParameterInfo(param).get("DATA_TYPE")).isSigned();
+                return JDBCType.of((short) getParameterInfo(param).get(DATA_TYPE)).isSigned();
             }
         } catch (SQLException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
@@ -572,6 +580,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     String getTVPSchemaFromStoredProcedure(int param) throws SQLServerException {
         checkClosed();
         checkParam(param);
-        return (String) getParameterInfo(param).get("SS_TYPE_SCHEMA_NAME");
+        return (String) getParameterInfo(param).get(SS_TYPE_SCHEMA_NAME);
     }
 }

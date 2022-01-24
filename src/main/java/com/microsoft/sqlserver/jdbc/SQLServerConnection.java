@@ -543,7 +543,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     class ActiveDirectoryAuthentication {
         static final String JDBC_FEDAUTH_CLIENT_ID = "7f98cb04-cd1e-40df-9140-3bf7e2cea4db";
-        static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01";
+
+        /**
+         * Managed Identities endpoint URL
+         * https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token
+         */
+        static final String AZURE_REST_MSI_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01"; // NOSONAR
         static final String ACCESS_TOKEN_IDENTIFIER = "\"access_token\":\"";
         static final String ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER = "\"expires_in\":\"";
         static final String ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER = "\"expires_on\":\"";
@@ -817,13 +822,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String keyStorePrincipalId = null;
 
     /** server column encryption version */
-    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NotSupported;
+    private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NOTSUPPORTED;
 
     /** Enclave type */
     private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
-        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NotSupported.value());
+        return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NOTSUPPORTED.value());
     }
 
     ColumnEncryptionVersion getServerColumnEncryptionVersion() {
@@ -3184,7 +3189,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Java's NativeSeedGenerator can sometimes fail on getSeedBytes(). Exact reason is unknown but high system
             // load seems to contribute to likelihood. Retry once to mitigate.
             if (connectionlogger.isLoggable(Level.FINER)) {
-                connectionlogger.finer(toString() + " Generating a random UUID has failed due to : " + e.getMessage() + "Retrying once.");
+                connectionlogger.finer(toString() + " Generating a random UUID has failed due to : " + e.getMessage()
+                        + "Retrying once.");
             }
             clientConnectionId = UUID.randomUUID();
         }
@@ -3759,6 +3765,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             try {
                                 sessionRecovery.getReconnectThread().join();
                             } catch (InterruptedException e) {
+                                // re-interrupt thread
+                                Thread.currentThread().interrupt();
+
                                 // Keep compiler happy, something's probably seriously wrong if this line is run
                                 SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
                                         e.getMessage(), null, false);
@@ -5567,13 +5576,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidAEVersionNumber"), null);
                 }
 
-                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v1;
+                serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
 
                 if (null != enclaveAttestationUrl) {
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
-                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_v2;
+                        serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
 
@@ -6491,7 +6500,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void setNetworkTimeout(Executor executor, int timeout) throws SQLException {
-        loggerExternal.entering(loggingClassName, "setNetworkTimeout", timeout);
+        loggerExternal.entering(loggingClassName, SET_NETWORK_TIMEOUT_PERM, timeout);
 
         if (timeout < 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSocketTimeout"));

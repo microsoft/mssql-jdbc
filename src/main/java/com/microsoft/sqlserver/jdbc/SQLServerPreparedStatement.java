@@ -885,7 +885,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // pass registered custom provider to stmt
             if (this.hasColumnEncryptionKeyStoreProvidersRegistered()) {
-                ((SQLServerCallableStatement) stmt).registerColumnEncryptionKeyStoreProvidersOnStatement(this.statementColumnEncryptionKeyStoreProviders);
+                ((SQLServerCallableStatement) stmt).registerColumnEncryptionKeyStoreProvidersOnStatement(
+                        this.statementColumnEncryptionKeyStoreProviders);
             }
 
             ((SQLServerCallableStatement) stmt).isInternalEncryptionQuery = true;
@@ -901,21 +902,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 Map<Integer, CekTableEntry> cekList = new HashMap<>();
                 CekTableEntry cekEntry = null;
                 while (rs.next()) {
-                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
                     if (!cekList.containsKey(currentOrdinal)) {
                         cekEntry = new CekTableEntry(currentOrdinal);
                         cekList.put(cekEntry.ordinal, cekEntry);
                     } else {
                         cekEntry = cekList.get(currentOrdinal);
                     }
-                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                            rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value()));
                 }
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                     getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -933,10 +934,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     while (secondRs.next()) {
                         paramCount++;
                         String paramName = secondRs
-                                .getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                                .getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
                         int paramIndex = parameterNames.indexOf(paramName);
                         int cekOrdinal = secondRs
-                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                                .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONKEYORDINAL.value());
                         cekEntry = cekList.get(cekOrdinal);
 
                         // cekEntry will be null if none of the parameters are encrypted.
@@ -947,17 +948,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                         }
                         SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
-                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                                .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
                         if (SQLServerEncryptionType.PlainText != encType) {
                             params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                                     (byte) secondRs.getInt(
-                                            DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                                            DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                                     null, encType.value, (byte) secondRs.getInt(
-                                            DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                                            DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
 
                             SQLServerStatement statement = (SQLServerStatement) stmt;
                             // Decrypt the symmetric key.(This will also validate and throw if needed).
-                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
+                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection,
+                                    statement);
                         } else {
                             if (params[paramIndex].getForceEncryption()) {
                                 MessageFormat form = new MessageFormat(SQLServerException
@@ -2752,8 +2754,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
                     && !encryptionMetadataIsRetrieved) {
-                this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, batchParam,
-                        parameterNames);
+                this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions,
+                        batchParam, parameterNames);
                 encryptionMetadataIsRetrieved = true;
 
                 /*

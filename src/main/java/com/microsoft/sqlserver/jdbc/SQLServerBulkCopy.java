@@ -2273,14 +2273,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                             || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
                                         tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                     } else {
-                                        SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
-                                        if (null != destCollation) {
-                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
-                                                    false);
-                                        } else {
-                                            tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
-                                                    false);
-                                        }
+                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false);
                                     }
                                 }
                                 reader.close();
@@ -2296,9 +2289,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                             String colValueStr;
                             if (colValue instanceof LocalDateTime) {
-                                colValueStr = ((LocalDateTime)colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                                colValueStr = ((LocalDateTime) colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                             } else if (colValue instanceof LocalTime) {
-                                colValueStr = ((LocalTime)colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
+                                colValueStr = ((LocalTime) colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
                             } else {
                                 colValueStr = colValue.toString();
                             }
@@ -3095,8 +3088,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 // normalize the values before encrypting them
                 colValue = SQLServerSecurityUtility.encryptWithKey(normalizedValue(destJdbcType, colValue,
-                        baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale(), destName), destCryptoMeta,
-                        connection, null);
+                        baseSrcJdbcType, destTypeInfo.getPrecision(), destTypeInfo.getScale(), destName),
+                        destCryptoMeta, connection, null);
             }
         }
         writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
