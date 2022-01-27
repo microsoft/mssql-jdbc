@@ -824,27 +824,4 @@ public class ErrorMessageTest extends FedauthCommon {
                     e.getMessage().startsWith("The authentication value") && e.getMessage().endsWith("is not valid."));
         }
     }
-
-    @Test
-    public void testInteractiveAuthTimeout() throws SQLException {
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setServerName(azureServer);
-            ds.setUser(badUserName);
-            ds.setDatabaseName(azureDatabase);
-            ds.setAuthentication("ActiveDirectoryInteractive");
-            ds.setLoginTimeout(1);
-            ds.setEncrypt(false);
-            ds.setTrustServerCertificate(true);
-            try (Connection connection = ds.getConnection()) {}
-            fail(EXPECTED_EXCEPTION_NOT_THROWN);
-        } catch (Exception e) {
-            if (!(e instanceof SQLServerException)) {
-                fail(EXPECTED_EXCEPTION_NOT_THROWN);
-            }
-            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage() + "," + e.getCause(),
-                    e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
-                            + " in Active Directory (Authentication=ActiveDirectoryInteractive)."));
-        }
-    }
 }
