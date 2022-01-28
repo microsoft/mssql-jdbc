@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [10.2.0] Stable Release
+### Added
+- Support for datetimeoffset with sql_variant [1673](https://github.com/microsoft/mssql-jdbc/pull/1673)
+- Canonical host name resolution when realm is provided in connection string [1730](https://github.com/microsoft/mssql-jdbc/pull/1730)
+### Changed
+- Changed certificate validation behavior to validate when encryption is negotiated from either the client or the server side, not just the client side [1731](https://github.com/microsoft/mssql-jdbc/pull/1731)
+- Enclave Provider to use non blocking /dev/urandom [1734](https://github.com/microsoft/mssql-jdbc/pull/1734)
+
 ## [10.1.0] Preview Release
 ### Added
 - Fix for Idle Connection Resiliency for Azure AD Authentication [1706](https://github.com/microsoft/mssql-jdbc/pull/1706)
