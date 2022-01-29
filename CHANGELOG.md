@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Changed certificate validation behavior to validate when encryption is negotiated from either the client or the server side, not just the client side [1731](https://github.com/microsoft/mssql-jdbc/pull/1731)
 - Enclave Provider to use non blocking /dev/urandom [1734](https://github.com/microsoft/mssql-jdbc/pull/1734)
+- Updated azure dependancy versions to address vulnerability issues[1733](https://github.com/microsoft/mssql-jdbc/pull/1733)
+- Updated Bouncy Castle version [1735](https://github.com/microsoft/mssql-jdbc/pull/1735)
+### Fixed
+- Fixed issues detected by SonarQube [1739](https://github.com/microsoft/mssql-jdbc/pull/1739)
 
 ## [10.1.0] Preview Release
 ### Added
