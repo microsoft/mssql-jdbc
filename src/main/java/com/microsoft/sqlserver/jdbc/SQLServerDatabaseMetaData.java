@@ -271,8 +271,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
-    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
-    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
+    private static LinkedHashMap<Integer, String[]> getColumnsDWColumns = null;
+    private static LinkedHashMap<Integer, String[]> getImportedKeysDWColumns = null;
 
     /**
      * Returns the result from a simple query. This is to be used only for internal queries without any user input.
@@ -695,42 +695,42 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getColumnsDWColumns) {
                     getColumnsDWColumns = new LinkedHashMap<>();
-                    getColumnsDWColumns.put(1, TABLE_CAT);
-                    getColumnsDWColumns.put(2, TABLE_SCHEM);
-                    getColumnsDWColumns.put(3, TABLE_NAME);
-                    getColumnsDWColumns.put(4, COLUMN_NAME);
-                    getColumnsDWColumns.put(5, DATA_TYPE);
-                    getColumnsDWColumns.put(6, TYPE_NAME);
-                    getColumnsDWColumns.put(7, COLUMN_SIZE);
-                    getColumnsDWColumns.put(8, BUFFER_LENGTH);
-                    getColumnsDWColumns.put(9, DECIMAL_DIGITS);
-                    getColumnsDWColumns.put(10, NUM_PREC_RADIX);
-                    getColumnsDWColumns.put(11, NULLABLE);
-                    getColumnsDWColumns.put(12, REMARKS);
-                    getColumnsDWColumns.put(13, COLUMN_DEF);
-                    getColumnsDWColumns.put(14, SQL_DATA_TYPE);
-                    getColumnsDWColumns.put(15, SQL_DATETIME_SUB);
-                    getColumnsDWColumns.put(16, CHAR_OCTET_LENGTH);
-                    getColumnsDWColumns.put(17, ORDINAL_POSITION);
-                    getColumnsDWColumns.put(18, IS_NULLABLE);
+                    getColumnsDWColumns.put(1, new String[] {TABLE_CAT, "nvarchar(128)"});
+                    getColumnsDWColumns.put(2, new String[] {TABLE_SCHEM, "nvarchar(128)"});
+                    getColumnsDWColumns.put(3, new String[] {TABLE_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(4, new String[] {COLUMN_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(5, new String[] {DATA_TYPE, "int"});
+                    getColumnsDWColumns.put(6, new String[] {TYPE_NAME, "nvarhchar(128)"});
+                    getColumnsDWColumns.put(7, new String[] {COLUMN_SIZE, "int"});
+                    getColumnsDWColumns.put(8, new String[] {BUFFER_LENGTH, "int"});
+                    getColumnsDWColumns.put(9, new String[] {DECIMAL_DIGITS, "int"});
+                    getColumnsDWColumns.put(10, new String[] {NUM_PREC_RADIX, "int"});
+                    getColumnsDWColumns.put(11, new String[] {NULLABLE, "int"});
+                    getColumnsDWColumns.put(12, new String[] {REMARKS, "nvarchar(254)"});
+                    getColumnsDWColumns.put(13, new String[] {COLUMN_DEF, "nvarchar(4000)"});
+                    getColumnsDWColumns.put(14, new String[] {SQL_DATA_TYPE, "int"});
+                    getColumnsDWColumns.put(15, new String[] {SQL_DATETIME_SUB, "int"});
+                    getColumnsDWColumns.put(16, new String[] {CHAR_OCTET_LENGTH, "int"});
+                    getColumnsDWColumns.put(17, new String[] {ORDINAL_POSITION, "int"});
+                    getColumnsDWColumns.put(18, new String[] {IS_NULLABLE, "varchar(254)"});
                     /*
                      * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
                      * be queried as 'NULL'
                      */
-                    getColumnsDWColumns.put(-1, SCOPE_CATALOG);
-                    getColumnsDWColumns.put(-2, SCOPE_SCHEMA);
-                    getColumnsDWColumns.put(-3, SCOPE_TABLE);
-                    getColumnsDWColumns.put(29, SOURCE_DATA_TYPE);
-                    getColumnsDWColumns.put(22, IS_AUTOINCREMENT);
-                    getColumnsDWColumns.put(21, IS_GENERATEDCOLUMN);
-                    getColumnsDWColumns.put(19, SS_IS_SPARSE);
-                    getColumnsDWColumns.put(20, SS_IS_COLUMN_SET);
-                    getColumnsDWColumns.put(23, SS_UDT_CATALOG_NAME);
-                    getColumnsDWColumns.put(24, SS_UDT_SCHEMA_NAME);
-                    getColumnsDWColumns.put(25, SS_UDT_ASSEMBLY_TYPE_NAME);
-                    getColumnsDWColumns.put(26, SS_XML_SCHEMACOLLECTION_CATALOG_NAME);
-                    getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
-                    getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
+                    getColumnsDWColumns.put(-1, new String[] {SCOPE_CATALOG, "nvarchar"});
+                    getColumnsDWColumns.put(-2, new String[] {SCOPE_SCHEMA, "nvarchar"});
+                    getColumnsDWColumns.put(-3, new String[] {SCOPE_TABLE, "nvarchar"});
+                    getColumnsDWColumns.put(29, new String[] {SOURCE_DATA_TYPE, "tinyint"});
+                    getColumnsDWColumns.put(22, new String[] {IS_AUTOINCREMENT, "nvarchar"});
+                    getColumnsDWColumns.put(21, new String[] {IS_GENERATEDCOLUMN, "nvarchar"});
+                    getColumnsDWColumns.put(19, new String[] {SS_IS_SPARSE, "smallint"});
+                    getColumnsDWColumns.put(20, new String[] {SS_IS_COLUMN_SET, "smallint"});
+                    getColumnsDWColumns.put(23, new String[] {SS_UDT_CATALOG_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(24, new String[] {SS_UDT_SCHEMA_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(25, new String[] {SS_UDT_ASSEMBLY_TYPE_NAME, "nvarchar(4000)"});
+                    getColumnsDWColumns.put(26, new String[] {SS_XML_SCHEMACOLLECTION_CATALOG_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(27, new String[] {SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, "nvarchar(128)"});
+                    getColumnsDWColumns.put(28, new String[] {SS_XML_SCHEMACOLLECTION_NAME, "nvarchar(128)"});
                 }
             }
 
@@ -789,37 +789,46 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns) throws SQLException {
+    private static String typedNull(String sqlType) {
+        return typedLiteral(sqlType, "NULL");
+    }
+
+    private static String typedLiteral(String sqlType, String sqlLiteral) {
+        return (sqlType == null) ? sqlLiteral : String.format("convert(%s, %s)", sqlType, sqlLiteral);
+    }
+    
+    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String[]> columns) throws SQLException {
         StringBuilder sb = new StringBuilder("SELECT ");
-        for (Entry<Integer, String> p : columns.entrySet()) {
+        for (Entry<Integer, String[]> p : columns.entrySet()) {
             if (p.getKey() < 0) {
-                sb.append("NULL");
+                sb.append(typedNull(p.getValue()[1]));
             } else {
+                String systemTypeName = rs.getMetaData().getColumnTypeName(p.getKey());
                 Object o = rs.getObject(p.getKey());
                 if (null == o) {
-                    sb.append("NULL");
+                    sb.append(typedNull(p.getValue()[1]));
                 } else if (o instanceof Number) {
-                    if ("IS_AUTOINCREMENT".equalsIgnoreCase(p.getValue())
-                            || "IS_GENERATEDCOLUMN".equalsIgnoreCase(p.getValue())) {
+                    if ("IS_AUTOINCREMENT".equalsIgnoreCase(p.getValue()[0])
+                            || "IS_GENERATEDCOLUMN".equalsIgnoreCase(p.getValue()[0])) {
                         sb.append("'").append(Util.escapeSingleQuotes(Util.zeroOneToYesNo(((Number) o).intValue())))
                                 .append("'");
                     } else {
-                        sb.append(o.toString());
+                        sb.append(typedLiteral(p.getValue()[1], o.toString()));
                     }
                 } else {
                     sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("'");
                 }
             }
-            sb.append(" AS ").append(p.getValue()).append(",");
+            sb.append(" AS ").append(p.getValue()[0]).append(",");
         }
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
-    private String generateAzureDWEmptyRS(Map<Integer, String> columns) throws SQLException {
+    private String generateAzureDWEmptyRS(Map<Integer, String[]> columns) throws SQLException {
         StringBuilder sb = new StringBuilder("SELECT TOP 0 ");
-        for (Entry<Integer, String> p : columns.entrySet()) {
-            sb.append("NULL AS ").append(p.getValue()).append(",");
+        for (Entry<Integer, String[]> p : columns.entrySet()) {
+            sb.append(typedNull(p.getValue()[1])).append(" AS ").append(p.getValue()[0]).append(",");
         }
         sb.setLength(sb.length() - 1);
         return sb.toString();
@@ -1090,20 +1099,20 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             synchronized (SQLServerDatabaseMetaData.class) {
                 if (null == getImportedKeysDWColumns) {
                     getImportedKeysDWColumns = new LinkedHashMap<>();
-                    getImportedKeysDWColumns.put(1, PKTABLE_CAT);
-                    getImportedKeysDWColumns.put(2, PKTABLE_SCHEM);
-                    getImportedKeysDWColumns.put(3, PKTABLE_NAME);
-                    getImportedKeysDWColumns.put(4, PKCOLUMN_NAME);
-                    getImportedKeysDWColumns.put(5, FKTABLE_CAT);
-                    getImportedKeysDWColumns.put(6, FKTABLE_SCHEM);
-                    getImportedKeysDWColumns.put(7, FKTABLE_NAME);
-                    getImportedKeysDWColumns.put(8, FKCOLUMN_NAME);
-                    getImportedKeysDWColumns.put(9, KEY_SEQ);
-                    getImportedKeysDWColumns.put(10, UPDATE_RULE);
-                    getImportedKeysDWColumns.put(11, DELETE_RULE);
-                    getImportedKeysDWColumns.put(12, FK_NAME);
-                    getImportedKeysDWColumns.put(13, PK_NAME);
-                    getImportedKeysDWColumns.put(14, DEFERRABILITY);
+                    getImportedKeysDWColumns.put(1, new String[] {PKTABLE_CAT, "nvarchar"});
+                    getImportedKeysDWColumns.put(2, new String[] {PKTABLE_SCHEM, "nvarchar"});
+                    getImportedKeysDWColumns.put(3, new String[] {PKTABLE_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(4, new String[] {PKCOLUMN_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(5, new String[] {FKTABLE_CAT, "nvarchar"});
+                    getImportedKeysDWColumns.put(6, new String[] {FKTABLE_SCHEM, "nvarchar"});
+                    getImportedKeysDWColumns.put(7, new String[] {FKTABLE_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(8, new String[] {FKCOLUMN_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(9, new String[] {KEY_SEQ, "smallint"});
+                    getImportedKeysDWColumns.put(10, new String[] {UPDATE_RULE, "smallint"});
+                    getImportedKeysDWColumns.put(11, new String[] {DELETE_RULE, "smallint"});
+                    getImportedKeysDWColumns.put(12, new String[] {FK_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(13, new String[] {PK_NAME, "nvarchar"});
+                    getImportedKeysDWColumns.put(14, new String[] {DEFERRABILITY, "smallint"});
                 }
             }
             azureDwSelectBuilder.append(generateAzureDWEmptyRS(getImportedKeysDWColumns));
