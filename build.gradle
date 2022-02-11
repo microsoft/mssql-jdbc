@@ -1,3 +1,5 @@
+import java.util.jar.JarEntry
+
 /****************************************************************
  * Gradle Scipt for Building Microsoft JDBC Driver for SQL Server
  ****************************************************************
@@ -10,8 +12,8 @@
  ****************************************************************/
 
 apply plugin: 'java'
+apply plugin: 'maven-publish'
 
-version = '10.3.0-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -72,14 +74,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	}
 }
 
-jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
-jar {
-	manifest {
-        attributes 'Title': "Microsoft JDBC Driver ${archiveVersion} for SQL Server",
-        'Version': archiveVersion,
-        'Vendor': 'Microsoft Corporation'
-	}
-}
+
 sourceSets {
     main {
         java {
@@ -143,3 +138,36 @@ dependencies {
 			'com.microsoft.azure:adal4j:1.6.7',
 			'com.h2database:h2:1.4.200'
 }
+
+def driverArchive = task driverJar(type: Jar) {
+	archiveFileName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
+	manifest {
+        attributes 'Title': "Microsoft JDBC Driver ${archiveVersion} for SQL Server",
+        'Version': archiveVersion,
+        'Vendor': 'Microsoft Corporation'
+	}
+	from sourceSets.main.output
+}
+
+def srcArchive = task sourceJar(type: Jar) {
+	from sourceSets.main.allJava
+	archiveClassifier = "sources"
+}
+
+publishing {
+    publications {
+        mssqlJdbcDriver(MavenPublication) {
+           groupId = "com.microsoft.sqlserver" 
+           artifactId = 'mssql-jdbc'
+
+           if ( project.hasProperty('forkVersion') )
+              version = "${version}.${forkVersion}.${jreVersion}"
+           else
+              version = "${version}.${jreVersion}"
+
+           artifact driverArchive
+		   artifact srcArchive
+        }
+    } 
+}
+
