@@ -42,6 +42,7 @@ jobs:
       
     - uses: actions/setup-java@v2
       with:
+        distribution: microsoft
         java-version: '17'
 
     # Initializes the CodeQL tools for scanning.
