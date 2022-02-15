@@ -2201,7 +2201,10 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      * @throws IOException
      */
     @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {
+    public static void setupHere() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         geomTableName = RandomUtil.getIdentifier("geometryTestTable");
         geogTableName = RandomUtil.getIdentifier("geographyTestTable");
         spatialDatatypeTableName = RandomUtil.getIdentifier("spatialDatatypeTestTable");

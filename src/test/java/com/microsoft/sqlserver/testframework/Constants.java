@@ -16,6 +16,7 @@ public final class Constants {
      * <pre>
      * xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications
      * xGradle - - - - - - For tests not compatible with Gradle Script (e.g. Manifest File)
+     * xSQLv11 - - - - - - For tests not compatible with SQL Server 2012
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
      * xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017
      * xSQLv15 - - - - - - For tests not compatible with SQL Server 2019
@@ -30,6 +31,7 @@ public final class Constants {
      */
     public static final String xJDBC42 = "xJDBC42";
     public static final String xGradle = "xGradle";
+    public static final String xSQLv11 = "xSQLv11";
     public static final String xSQLv12 = "xSQLv12";
     public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
@@ -98,6 +100,7 @@ public final class Constants {
     public static final String AZURE_KEY_VAULT_NAME = "AZURE_KEY_VAULT";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
     public static final String CUSTOM_KEYSTORE_NAME = "CUSTOM_KEYSTORE";
+    public static final String DUMMY_KEYSTORE_NAME = "DUMMY_PROVIDER";
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";

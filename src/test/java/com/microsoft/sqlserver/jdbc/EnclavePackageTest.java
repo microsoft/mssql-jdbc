@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -189,6 +190,12 @@ public class EnclavePackageTest extends AbstractTest {
                         AbstractTest.enclaveAttestationProtocol[1]}};
     }
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
+
     /**
      * Setup environment for test.
      * 
@@ -329,7 +336,7 @@ public class EnclavePackageTest extends AbstractTest {
             trustedKeyPaths.put(serverName, paths);
             SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
 
-            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, "My_KEYSTORE", "UnTrustedKeyPath",
+            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, null, "My_KEYSTORE", "UnTrustedKeyPath",
                     serverName, true, null);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {

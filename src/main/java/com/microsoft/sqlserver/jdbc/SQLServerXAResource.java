@@ -484,7 +484,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                              */
                             String buildInfo = rs.getString(4);
                             // SQL Server Linux is x64-compatible only.
-                            if (null != buildInfo && buildInfo.contains("Linux")) {
+                            if (null != buildInfo && (buildInfo.contains("Linux") || buildInfo.contains("Microsoft SQL Azure"))) {
                                 architectureOS = 64;
                             } else if (null != buildInfo) {
                                 architectureOS = Integer.parseInt(buildInfo.substring(buildInfo.lastIndexOf('<') + 2,

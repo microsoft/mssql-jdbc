@@ -76,11 +76,8 @@ public class SQLServerDataSource
      */
     public SQLServerDataSource() {
         connectionProps = new Properties();
-        int dataSourceID = nextDataSourceID();
-        String nameL = getClass().getName();
-        traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + dataSourceID;
-        loggingClassName = "com.microsoft.sqlserver.jdbc." + nameL.substring(1 + nameL.lastIndexOf('.')) + ":"
-                + dataSourceID;
+        traceID = getClass().getSimpleName() + ':' + nextDataSourceID();
+        loggingClassName = "com.microsoft.sqlserver.jdbc." + traceID;
     }
 
     String getClassNameLogging() {
@@ -176,7 +173,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the the database to connect to.
-     * 
+     *
      * @param databaseName
      *        if not set, returns the default value of null.
      */
@@ -192,7 +189,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the the SQL Server instance name to connect to.
-     * 
+     *
      * @param instanceName
      *        if not set, returns the default value of null.
      */
@@ -390,7 +387,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the lock timeout value.
-     * 
+     *
      * @param lockTimeout
      *        the number of milliseconds to wait before the database reports a lock timeout. The default value of -1
      *        means wait forever. If specified, this value will be the default for all statements on the connection.
@@ -409,7 +406,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the password that will be used when connecting to SQL Server.
-     * 
+     *
      * @param password
      *        Note getPassword is deliberately declared non-public for security reasons. If the password is not set,
      *        getPassword returns the default value of null.
@@ -425,7 +422,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the TCP-IP port number used when opening a socket connection to SQL Server.
-     * 
+     *
      * @param portNumber
      *        if not set, getPortNumber returns the default of 1433. Note as mentioned above, setPortNumber does not do
      *        any range checking on the port value passed in,\ invalid port numbers like 99999 can be passed in without
@@ -444,7 +441,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the default cursor type used for the result set.
-     * 
+     *
      * @param selectMethod
      *        This(non-Javadoc) @see com.microsoft.sqlserver.jdbc.ISQLServerDataSource#setSelectMethod(java.lang.String)
      *        property is useful when you are dealing with large result sets and do not want to store the whole result
@@ -534,7 +531,7 @@ public class SQLServerDataSource
 
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
-     * 
+     *
      * @param sendStringParametersAsUnicode
      *        if true (default), string parameters are sent to the server in UNICODE format. if false, string parameters
      *        are sent to the server in the native TDS collation format of the database, not in UNICODE. if set, returns
@@ -567,7 +564,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the host name of the target SQL Server.
-     * 
+     *
      * @param serverName
      *        if not set, returns the default value of null is returned.
      */
@@ -583,7 +580,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the realm for Kerberos authentication.
-     * 
+     *
      * @param realm
      *        realm
      */
@@ -600,7 +597,7 @@ public class SQLServerDataSource
     /**
      * Sets the Service Principal Name (SPN) of the target SQL Server.
      * https://msdn.microsoft.com/en-us/library/cc280459.aspx
-     * 
+     *
      * @param serverSpn
      *        service principal name
      */
@@ -616,7 +613,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the fail over partner of the target SQL Server.
-     * 
+     *
      * @param serverName
      *        if not set, returns the default value of null.
      */
@@ -644,7 +641,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the user name that will be used when connecting to SQL Server.
-     * 
+     *
      * @param user
      *        if not set, returns the default value of null.
      */
@@ -660,7 +657,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the name of the client machine (or client workstation).
-     * 
+     *
      * @param workstationID
      *        host name of the client. if not set, the default value is constructed by calling
      *        InetAddress.getLocalHost().getHostName() or if getHostName() returns blank then
@@ -687,7 +684,7 @@ public class SQLServerDataSource
 
     /**
      * Sets whether the driver will convert SQL states to XOPEN compliant states.
-     * 
+     *
      * @param xopenStates
      *        if true, the driver will convert SQL states to XOPEN compliant states. The default is false which causes
      *        the driver to generate SQL 99 state codes. If not set, getXopenStates returns the default value of false.
@@ -775,7 +772,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the datasource URL.
-     * 
+     *
      * @param url
      *        The URL property is exposed for backwards compatibility reasons. Also, several Java Application servers
      *        expect a setURL function on the DataSource and set it by default (JBoss and WebLogic) Note for security
@@ -828,7 +825,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the packet size.
-     * 
+     *
      * @param packetSize
      *        the size (in bytes) to use for the TCP/IP send and receive buffer. It is also the value used for the TDS
      *        packet size (SQL Server Network Packet Size). Validity of the value is checked at connect time. If no
@@ -1061,24 +1058,21 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
     public String getAADSecurePrincipalId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
     }
 
     @Override
+    @Deprecated
     public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 AADSecurePrincipalId);
     }
 
     @Override
-    public String getAADSecurePrincipalSecret() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue());
-    }
-
-    @Override
+    @Deprecated
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                 AADSecurePrincipalSecret);
@@ -1133,7 +1127,7 @@ public class SQLServerDataSource
 
     /**
      * Sets a property string value.
-     * 
+     *
      * @param props
      * @param propKey
      * @param propValue
@@ -1153,7 +1147,7 @@ public class SQLServerDataSource
 
     /**
      * Returns a property value in String format.
-     * 
+     *
      * @param props
      * @param propKey
      * @param defaultValue
@@ -1174,7 +1168,7 @@ public class SQLServerDataSource
 
     /**
      * Sets an integer property value.
-     * 
+     *
      * @param props
      * @param propKey
      * @param propValue
@@ -1313,11 +1307,7 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
-        if (Util.use43Wrapper()) {
-            result = new SQLServerConnection43(toString());
-        } else {
-            result = new SQLServerConnection(toString());
-        }
+        result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());
@@ -1378,7 +1368,7 @@ public class SQLServerDataSource
 
     /**
      * Initializes the datasource from properties found inside the reference
-     * 
+     *
      * @param ref
      *        Called by SQLServerDataSourceObjectFactory to initialize new DataSource instance.
      */
@@ -1436,7 +1426,7 @@ public class SQLServerDataSource
 
     /**
      * writeReplace
-     * 
+     *
      * @return serialization proxy
      * @throws java.io.ObjectStreamException
      *         if error
@@ -1448,7 +1438,7 @@ public class SQLServerDataSource
     /**
      * For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource is to use a
      * SerializationProxy. Direct use of readObject() is not supported.
-     * 
+     *
      * @param stream
      *        input stream object
      * @throws java.io.InvalidObjectException

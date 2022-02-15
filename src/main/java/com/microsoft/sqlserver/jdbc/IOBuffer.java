@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -38,6 +39,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
@@ -71,7 +73,81 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
+
+/**
+ * ExtendedSocketOptions provides methods to keep track of keep alive and socket information.
+ *
+ */
+final class ExtendedSocketOptions {
+    private static class ExtSocketOption<T> implements SocketOption<T> {
+        private final String name;
+        private final Class<T> type;
+
+        ExtSocketOption(String name, Class<T> type) {
+            this.name = name;
+            this.type = type;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public Class<T> type() {
+            return type;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private ExtendedSocketOptions() {}
+
+    /**
+     * Keep-Alive idle time.
+     *
+     * <p>
+     * The value of this socket option is an {@code Integer} that is the number of seconds of idle time before
+     * keep-alive initiates a probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol.
+     * The exact semantics of this socket option are system dependent.
+     *
+     * <p>
+     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
+     * connection that has been idle for some amount of time. The default value for this idle period is system
+     * dependent, but is typically 2 hours. The {@code TCP_KEEPIDLE} option can be used to affect this value for a given
+     * socket.
+     *
+     * @since 11
+     */
+    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<Integer>("TCP_KEEPIDLE",
+            Integer.class);
+
+    /**
+     * Keep-Alive retransmission interval time.
+     *
+     * <p>
+     * The value of this socket option is an {@code Integer} that is the number of seconds to wait before retransmitting
+     * a keep-alive probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol. The exact
+     * semantics of this socket option are system dependent.
+     *
+     * <p>
+     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
+     * connection that has been idle for some amount of time. If the remote system does not respond to a keep-alive
+     * probe, TCP retransmits the probe after some amount of time. The default value for this retransmission interval is
+     * system dependent, but is typically 75 seconds. The {@code TCP_KEEPINTERVAL} option can be used to affect this
+     * value for a given socket.
+     *
+     * @since 11
+     */
+    public static final SocketOption<Integer> TCP_KEEPINTERVAL = new ExtSocketOption<Integer>("TCP_KEEPINTERVAL",
+            Integer.class);
+}
 
 
 final class TDS {
@@ -94,6 +170,7 @@ final class TDS {
     static final int TDS_ROW = 0xD1;
     static final int TDS_NBCROW = 0xD2;
     static final int TDS_ENV_CHG = 0xE3;
+    static final int TDS_SESSION_STATE = 0xE4;
     static final int TDS_SSPI = 0xED;
     static final int TDS_DONE = 0xFD;
     static final int TDS_DONEPROC = 0xFE;
@@ -138,6 +215,7 @@ final class TDS {
 
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
+    static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -187,6 +265,8 @@ final class TDS {
                 return "TDS_NBCROW (0xD2)";
             case TDS_ENV_CHG:
                 return "TDS_ENV_CHG (0xE3)";
+            case TDS_SESSION_STATE:
+                return "TDS_SESSION_STATE (0xE4)";
             case TDS_SSPI:
                 return "TDS_SSPI (0xED)";
             case TDS_DONE:
@@ -203,6 +283,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_UTF8SUPPORT (0x0A)";
             case TDS_FEATURE_EXT_AZURESQLDNSCACHING:
                 return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
+            case TDS_FEATURE_EXT_SESSIONRECOVERY:
+                return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -454,6 +536,9 @@ final class TDS {
     final static int BASE_YEAR_1970 = 1970;
     final static String BASE_DATE_1970 = "1970-01-01";
 
+    final static LocalDate BASE_LOCAL_DATE = LocalDate.of(1, 1, 1);
+    final static LocalDate BASE_LOCAL_DATE_1900 = LocalDate.of(1900, 1, 1);
+
     static int timeValueLength(int scale) {
         return nanosSinceMidnightLength(scale);
     }
@@ -611,14 +696,14 @@ final class TDSChannel implements Serializable {
     ProxySocket proxySocket = null;
 
     // I/O streams for raw TCP/IP communications with SQL Server
-    private InputStream tcpInputStream;
+    private ProxyInputStream tcpInputStream;
     private OutputStream tcpOutputStream;
 
     // I/O streams providing the communications interface to the driver.
     // For SSL-encrypted connections, these are streams obtained from
     // the SSL socket above. They wrap the underlying TCP streams.
     // For unencrypted connections, they are just the TCP streams themselves.
-    private InputStream inputStream;
+    private ProxyInputStream inputStream;
     private OutputStream outputStream;
 
     /** TDS packet payload logger */
@@ -680,12 +765,13 @@ final class TDSChannel implements Serializable {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
+            DriverJDBCVersion.setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
             int socketTimeout = con.getSocketTimeoutMilliseconds();
             tcpSocket.setSoTimeout(socketTimeout);
 
-            inputStream = tcpInputStream = tcpSocket.getInputStream();
+            inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
@@ -696,9 +782,16 @@ final class TDSChannel implements Serializable {
     /**
      * Disables SSL on this TDS channel.
      */
-    void disableSSL() {
+    synchronized void disableSSL() {
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Disabling SSL...");
+
+        // Guard in case of disableSSL being called before enableSSL
+        if (proxySocket == null) {
+            if (logger.isLoggable(Level.INFO))
+                logger.finer(toString() + " proxySocket is null, exit early");
+            return;
+        }
 
         /*
          * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
@@ -963,6 +1056,16 @@ final class TDSChannel implements Serializable {
     private final class ProxyInputStream extends InputStream {
         private InputStream filteredStream;
 
+        /**
+         * Bytes that have been read by a poll(s).
+         */
+        private int[] cachedBytes = new int[10];;
+
+        /**
+         * How many bytes have been cached.
+         */
+        private int cachedLength = 0;
+
         ProxyInputStream(InputStream is) {
             filteredStream = is;
         }
@@ -971,22 +1074,85 @@ final class TDSChannel implements Serializable {
             filteredStream = is;
         }
 
+        /**
+         * Poll the stream to verify connectivity.
+         * 
+         * @return true if the stream is readable.
+         * @throws IOException
+         *         If an I/O exception occurs.
+         */
+        public synchronized boolean poll() {
+            synchronized (this) {
+                int b;
+                try {
+                    b = filteredStream.read();
+                } catch (SocketTimeoutException e) {
+                    // Not a disconnected socket, so we're good to go
+                    return true;
+                } catch (IOException e) {
+                    return false;
+                }
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(toString() + "poll() - read() returned " + b);
+                }
+
+                if (b == -1) // end-of-stream
+                    return false;
+
+                // if we got here, a byte was read and we need to save it
+                // Increase the size of the cache, if needed (should be very rare).
+                if (cachedBytes.length <= cachedLength) {
+                    int[] temp = new int[cachedBytes.length + 10];
+                    for (int i = 0; i < cachedBytes.length; i++) {
+                        temp[i] = cachedBytes[i];
+                    }
+
+                    cachedBytes = temp;
+                }
+
+                cachedBytes[cachedLength] = b;
+                cachedLength++;
+
+                return true;
+            }
+        }
+
+        private int getOneFromCache() {
+            int result = cachedBytes[0];
+            for (int i = 0; i < cachedLength; i++) {
+                cachedBytes[i] = cachedBytes[i + 1];
+            }
+            cachedLength--;
+
+            return result;
+        }
+
         public long skip(long n) throws IOException {
-            long bytesSkipped;
+            synchronized (this) {
+                long bytesSkipped = 0;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Skipping " + n + " bytes");
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Skipping " + n + " bytes");
 
-            bytesSkipped = filteredStream.skip(n);
+                while (cachedLength > 0 && bytesSkipped < n) {
+                    bytesSkipped++;
+                    getOneFromCache();
+                }
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Skipped " + n + " bytes");
+                if (bytesSkipped < n) {
+                    bytesSkipped += filteredStream.skip(n - bytesSkipped);
+                }
 
-            return bytesSkipped;
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Skipped " + n + " bytes");
+
+                return bytesSkipped;
+            }
         }
 
         public int available() throws IOException {
-            int bytesAvailable = filteredStream.available();
+            int bytesAvailable = filteredStream.available() + cachedLength;
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " " + bytesAvailable + " bytes available");
@@ -1009,30 +1175,59 @@ final class TDSChannel implements Serializable {
             return readInternal(b, 0, b.length);
         }
 
-        public int read(byte b[], int offset, int maxBytes) throws IOException {
+        public int read(byte[] b, int offset, int maxBytes) throws IOException {
             return readInternal(b, offset, maxBytes);
         }
 
-        private int readInternal(byte b[], int offset, int maxBytes) throws IOException {
-            int bytesRead;
+        private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
+            synchronized (this) {
+                int bytesRead;
 
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Reading " + maxBytes + " bytes");
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Reading " + maxBytes + " bytes");
 
-            try {
-                bytesRead = filteredStream.read(b, offset, maxBytes);
-            } catch (IOException e) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " " + e.getMessage());
+                // Optimize for nothing cached
+                if (cachedLength == 0) {
+                    try {
+                        bytesRead = filteredStream.read(b, offset, maxBytes);
+                    } catch (IOException e) {
+                        if (logger.isLoggable(Level.FINER))
+                            logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                        throw e;
+                    }
+                } else {
+                    int offsetBytesToSkipInCache = Math.min(offset, cachedLength);
+                    for (int i = 0; i < offsetBytesToSkipInCache; i++) {
+                        getOneFromCache();
+                    }
 
-                logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
-                throw e;
+                    byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
+                    for (int i = 0; i < bytesFromCache.length; i++) {
+                        bytesFromCache[i] = (byte) getOneFromCache();
+                    }
+
+                    try {
+                        byte[] bytesFromStream = new byte[maxBytes - bytesFromCache.length];
+                        int bytesReadFromStream = filteredStream.read(bytesFromStream,
+                                offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
+                        bytesRead = bytesFromCache.length + bytesReadFromStream;
+                        System.arraycopy(bytesFromCache, 0, b, 0, bytesFromCache.length);
+                        if (bytesReadFromStream >= 0)
+                            System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
+                    } catch (IOException e) {
+                        if (logger.isLoggable(Level.FINER))
+                            logger.finer(toString() + " " + e.getMessage());
+
+                        logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                        throw e;
+                    }
+                }
+
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Read " + bytesRead + " bytes");
+
+                return bytesRead;
             }
-
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Read " + bytesRead + " bytes");
-
-            return bytesRead;
         }
 
         public boolean markSupported() {
@@ -1045,17 +1240,21 @@ final class TDSChannel implements Serializable {
         }
 
         public void mark(int readLimit) {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Marking next " + readLimit + " bytes");
+            synchronized (this) {
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Marking next " + readLimit + " bytes");
 
-            filteredStream.mark(readLimit);
+                filteredStream.mark(readLimit);
+            }
         }
 
         public void reset() throws IOException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Resetting to previous mark");
+            synchronized (this) {
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Resetting to previous mark");
 
-            filteredStream.reset();
+                filteredStream.reset();
+            }
         }
 
         public void close() throws IOException {
@@ -1303,13 +1502,11 @@ final class TDSChannel implements Serializable {
         }
 
         public void setSoTimeout(int timeout) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setSoTimeout");
+            tdsChannel.tcpSocket.setSoTimeout(timeout);
         }
 
         public void setTcpNoDelay(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setTcpNoDelay");
+            tdsChannel.tcpSocket.setTcpNoDelay(on);
         }
 
         public void setTrafficClass(int tc) throws SocketException {
@@ -1333,8 +1530,7 @@ final class TDSChannel implements Serializable {
         }
 
         public void setKeepAlive(boolean on) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setKeepAlive");
+            tdsChannel.tcpSocket.setKeepAlive(on);
         }
 
         public void setOOBInline(boolean on) throws SocketException {
@@ -1522,6 +1718,7 @@ final class TDSChannel implements Serializable {
             }
 
             boolean isServerNameValidated;
+            String dnsNameInSANCert = "";
 
             // the name in cert is in RFC2253 format parse it to get the actual subject name
             String subjectCN = parseCommonName(nameInCertDN);
@@ -1562,7 +1759,7 @@ final class TDSChannel implements Serializable {
                                 // Java docs guarantee that the second entry in the list
                                 // will be a string for dnsName
                                 if (value != null && value instanceof String) {
-                                    String dnsNameInSANCert = (String) value;
+                                    dnsNameInSANCert = (String) value;
 
                                     // Use English locale to avoid Turkish i issues.
                                     // Note that, this conversion was not necessary for
@@ -1599,8 +1796,9 @@ final class TDSChannel implements Serializable {
             }
 
             if (!isServerNameValidated) {
-                String msg = SQLServerException.getErrString("R_certNameFailed");
-                throw new CertificateException(msg);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_certNameFailed"));
+                Object[] msgArgs = {hostName, dnsNameInSANCert};
+                throw new CertificateException(form.format(msgArgs));
             }
         }
 
@@ -1679,18 +1877,17 @@ final class TDSChannel implements Serializable {
                     TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
                     TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel(); // Full SSL
 
-            // If we requested login only SSL or full SSL without server certificate validation,
+            // If encryption wasn't negotiated or trust server certificate is specified,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
             // everything it sees.
             TrustManager[] tm = null;
-            if (TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel()
-                    || (TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel() && con.trustServerCertificate())) {
+            if (TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || con.trustServerCertificate()) {
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " SSL handshake will trust any certificate");
 
                 tm = new TrustManager[] {new PermissiveX509TrustManager(this)};
             }
-            // Otherwise, we'll check if a specific TrustManager implemenation has been requested and
+            // Otherwise, we'll check if a specific TrustManager implementation has been requested and
             // if so instantiate it, optionally specifying a constructor argument to customize it.
             else if (con.getTrustManagerClass() != null) {
                 Object[] msgArgs = {"trustManagerClass", "javax.net.ssl.TrustManager"};
@@ -1834,7 +2031,7 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL InputStream");
 
-            inputStream = sslSocket.getInputStream();
+            inputStream = new ProxyInputStream(sslSocket.getInputStream());
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL OutputStream");
@@ -2053,9 +2250,62 @@ final class TDSChannel implements Serializable {
         return is;
     }
 
+    /**
+     * Attempts to poll the input stream to see if the network socket is still connected.
+     * 
+     * @return
+     */
+    final Boolean networkSocketStillConnected() {
+        int origSoTimeout;
+        synchronized (inputStream) {
+            synchronized (outputStream) {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(toString() + "(networkSocketStillConnected) Checking for socket disconnect.");
+                }
+
+                try {
+                    origSoTimeout = channelSocket.getSoTimeout();
+                } catch (SocketException e) {
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine(toString()
+                                + "(networkSocketStillConnected) channelSocket.getSoTimeout() failed. Unable to poll connection:"
+                                + e.getMessage());
+                    }
+                    return false;
+                }
+
+                try {
+                    channelSocket.setSoTimeout(1);
+                    boolean pollResult = inputStream.poll();
+                    channelSocket.setSoTimeout(origSoTimeout);
+                    if (logger.isLoggable(Level.FINEST)) {
+                        if (pollResult) {
+                            logger.finest(toString() + "(networkSocketStillConnected) Network still connected.");
+                        } else {
+                            logger.finest(toString() + "(networkSocketStillConnected) Network disconnected:");
+                        }
+                    }
+
+                    return pollResult;
+
+                } catch (SocketException se) {
+                    // Should never get here since the first one would have failed.
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine(
+                                toString() + "(networkSocketStillConnected) getSoTimeout failed:" + se.getMessage());
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            return inputStream.read(data, offset, length);
+            synchronized (inputStream) {
+                con.idleNetworkTracker.markNetworkActivity();
+                return inputStream.read(data, offset, length);
+            }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
@@ -2072,7 +2322,10 @@ final class TDSChannel implements Serializable {
 
     final void write(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            outputStream.write(data, offset, length);
+            synchronized (outputStream) {
+                con.idleNetworkTracker.markNetworkActivity();
+                outputStream.write(data, offset, length);
+            }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " write failed:" + e.getMessage());
@@ -2083,6 +2336,7 @@ final class TDSChannel implements Serializable {
 
     final void flush() throws SQLServerException {
         try {
+            con.idleNetworkTracker.markNetworkActivity();
             outputStream.flush();
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
@@ -4016,9 +4270,7 @@ final class TDSWriter {
      * efficiency. As this method will only be used in bulk copy, it needs to be efficient. Note: Any changes in
      * algorithm/logic should propagate to both writeReader() and writeNonUnicodeReader().
      */
-
-    void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary,
-            Charset charSet) throws SQLServerException {
+    void writeNonUnicodeReader(Reader reader, long advertisedLength, boolean isDestBinary) throws SQLServerException {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
@@ -4055,18 +4307,30 @@ final class TDSWriter {
                 // The Do-While loop goes on one more time as charsToWrite is greater than 0 for the last chunk, and
                 // in this last round the only thing that is written is an int value of 0, which is the PLP Terminator
                 // token(0x00000000).
-                writeInt(charsToWrite);
 
-                for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
-                    if (null == charSet) {
+                // collation from database is the collation used
+                Charset charSet = con.getDatabaseCollation().getCharset();
+
+                if (null == charSet) {
+                    writeInt(charsToWrite);
+
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
                         streamByteBuffer[charsCopied] = (byte) (streamCharBuffer[charsCopied] & 0xFF);
-                    } else {
-                        // encoding as per collation
-                        streamByteBuffer[charsCopied] = new String(streamCharBuffer[charsCopied] + "")
-                                .getBytes(charSet)[0];
                     }
+
+                    writeBytes(streamByteBuffer, 0, charsToWrite);
+                } else {
+                    bytesToWrite = 0;
+                    byte[] charBytes;
+                    for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
+                        charBytes = new String(streamCharBuffer[charsCopied] + "").getBytes(charSet);
+                        System.arraycopy(charBytes, 0, streamByteBuffer, bytesToWrite, charBytes.length);
+                        bytesToWrite += charBytes.length;
+                    }
+
+                    writeInt(bytesToWrite);
+                    writeBytes(streamByteBuffer, 0, bytesToWrite);
                 }
-                writeBytes(streamByteBuffer, 0, charsToWrite);
             } else {
                 bytesToWrite = charsToWrite;
                 if (0 != charsToWrite)
@@ -4980,7 +5244,7 @@ final class TDSWriter {
                         // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
                         writeLong(0xFFFFFFFFFFFFFFFFL);
                     } else if (isSqlVariant) {
-                        // for now we send as bigger type, but is sendStringParameterAsUnicoe is set to false we can't
+                        // for now we send as bigger type, but is sendStringParameterAsUnicode is set to false we can't
                         // send nvarchar
                         // since we are writing as nvarchar we need to write as tdstype.bigvarchar value because if we
                         // want to supprot varchar(8000) it becomes as nvarchar, 8000*2 therefore we should send as
@@ -5381,15 +5645,6 @@ final class TDSWriter {
             collation = null;
         } else
             switch (jdbcType) {
-                case BINARY:
-                case VARBINARY:
-                case LONGVARBINARY:
-                case BLOB:
-                default:
-                    tdsType = (isShortValue || usePLP) ? TDSType.BIGVARBINARY : TDSType.IMAGE;
-                    collation = null;
-                    break;
-
                 case CHAR:
                 case VARCHAR:
                 case LONGVARCHAR:
@@ -5406,6 +5661,15 @@ final class TDSWriter {
                     tdsType = (isShortValue || usePLP) ? TDSType.NVARCHAR : TDSType.NTEXT;
                     if (null == collation)
                         collation = con.getDatabaseCollation();
+                    break;
+
+                case BINARY:
+                case VARBINARY:
+                case LONGVARBINARY:
+                case BLOB:
+                default:
+                    tdsType = (isShortValue || usePLP) ? TDSType.BIGVARBINARY : TDSType.IMAGE;
+                    collation = null;
                     break;
             }
 
@@ -5569,7 +5833,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCTime(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-            boolean bOut) throws SQLServerException {
+            boolean bOut, SQLServerStatement statement) throws SQLServerException {
         if (con.getSendTimeAsDatetime()) {
             throw new SQLServerException(SQLServerException.getErrString("R_sendTimeAsDateTimeForAE"), null);
         }
@@ -5578,15 +5842,16 @@ final class TDSWriter {
         if (null == localCalendar)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME, (short) 0));
+            writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.TIME,
+                    (short) 0, statement));
 
         writeByte(TDSType.TIMEN.byteValue());
         writeByte((byte) scale);
         writeCryptoMetaData();
     }
 
-    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut) throws SQLServerException {
+    void writeEncryptedRPCDate(String sName, GregorianCalendar localCalendar, boolean bOut,
+            SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
@@ -5595,14 +5860,14 @@ final class TDSWriter {
             writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, 0, // subsecond nanos (none for a
                                                                                       // date value)
                     0, // scale (dates are not scaled)
-                    SSType.DATE, (short) 0));
+                    SSType.DATE, (short) 0, statement));
 
         writeByte(TDSType.DATEN.byteValue());
         writeCryptoMetaData();
     }
 
     void writeEncryptedRPCDateTime(String sName, GregorianCalendar cal, int subSecondNanos, boolean bOut,
-            JDBCType jdbcType) throws SQLServerException {
+            JDBCType jdbcType, SQLServerStatement statement) throws SQLServerException {
         assert (subSecondNanos >= 0) && (subSecondNanos < Nanos.PER_SECOND) : "Invalid subNanoSeconds value: "
                 + subSecondNanos;
         assert (cal != null) || (subSecondNanos == 0) : "Invalid subNanoSeconds value when calendar is null: "
@@ -5613,7 +5878,7 @@ final class TDSWriter {
         if (null == cal)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(getEncryptedDateTimeAsBytes(cal, subSecondNanos, jdbcType));
+            writeEncryptedRPCByteArray(getEncryptedDateTimeAsBytes(cal, subSecondNanos, jdbcType, statement));
 
         if (JDBCType.SMALLDATETIME == jdbcType) {
             writeByte(TDSType.DATETIMEN.byteValue());
@@ -5626,8 +5891,8 @@ final class TDSWriter {
     }
 
     // getEncryptedDateTimeAsBytes is called if jdbcType/ssType is SMALLDATETIME or DATETIME
-    byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos,
-            JDBCType jdbcType) throws SQLServerException {
+    byte[] getEncryptedDateTimeAsBytes(GregorianCalendar cal, int subSecondNanos, JDBCType jdbcType,
+            SQLServerStatement statement) throws SQLServerException {
         int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR),
                 TDS.BASE_YEAR_1900);
 
@@ -5681,7 +5946,7 @@ final class TDSWriter {
             byte[] value = new byte[4];
             System.arraycopy(days.array(), 0, value, 0, 2);
             System.arraycopy(seconds.array(), 0, value, 2, 2);
-            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con);
+            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
         } else if (JDBCType.DATETIME == jdbcType) {
             // Last-ditch verification that the value is in the valid range for the
             // DATETIMEN TDS data type (1/1/1753 to 12/31/9999). If it's not, then
@@ -5707,7 +5972,7 @@ final class TDSWriter {
             byte[] value = new byte[8];
             System.arraycopy(days.array(), 0, value, 0, 4);
             System.arraycopy(seconds.array(), 0, value, 4, 4);
-            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con);
+            return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
         }
 
         assert false : "Unexpected JDBCType type " + jdbcType;
@@ -5715,14 +5980,14 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTime2(String sName, GregorianCalendar localCalendar, int subSecondNanos, int scale,
-            boolean bOut) throws SQLServerException {
+            boolean bOut, SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == localCalendar)
             writeEncryptedRPCByteArray(null);
         else
-            writeEncryptedRPCByteArray(
-                    writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale, SSType.DATETIME2, (short) 0));
+            writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(localCalendar, subSecondNanos, scale,
+                    SSType.DATETIME2, (short) 0, statement));
 
         writeByte(TDSType.DATETIME2N.byteValue());
         writeByte((byte) (scale));
@@ -5730,7 +5995,7 @@ final class TDSWriter {
     }
 
     void writeEncryptedRPCDateTimeOffset(String sName, GregorianCalendar utcCalendar, int minutesOffset,
-            int subSecondNanos, int scale, boolean bOut) throws SQLServerException {
+            int subSecondNanos, int scale, boolean bOut, SQLServerStatement statement) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.BIGVARBINARY);
 
         if (null == utcCalendar)
@@ -5738,7 +6003,7 @@ final class TDSWriter {
         else {
             assert 0 == utcCalendar.get(Calendar.ZONE_OFFSET);
             writeEncryptedRPCByteArray(writeEncryptedScaledTemporal(utcCalendar, subSecondNanos, scale,
-                    SSType.DATETIMEOFFSET, (short) minutesOffset));
+                    SSType.DATETIMEOFFSET, (short) minutesOffset, statement));
         }
 
         writeByte(TDSType.DATETIMEOFFSETN.byteValue());
@@ -5939,11 +6204,13 @@ final class TDSWriter {
      *        the SQL Server data type (DATE, TIME, DATETIME2, or DATETIMEOFFSET)
      * @param minutesOffset
      *        the offset value for DATETIMEOFFSET
+     * @param statement
+     *        the SQLServerStatement used for encryption
      * @throws SQLServerException
      *         if an I/O error occurs or if the value is not in the valid range
      */
     byte[] writeEncryptedScaledTemporal(GregorianCalendar cal, int subSecondNanos, int scale, SSType ssType,
-            short minutesOffset) throws SQLServerException {
+            short minutesOffset, SQLServerStatement statement) throws SQLServerException {
         assert con.isKatmaiOrLater();
 
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
@@ -6025,7 +6292,7 @@ final class TDSWriter {
             byte[] encodedBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
             if (SSType.TIME == ssType) {
-                byte[] cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con);
+                byte[] cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
                 return cipherText;
             } else if (SSType.DATETIME2 == ssType) {
                 // for DATETIME2 sends both date and time part together for encryption
@@ -6082,7 +6349,7 @@ final class TDSWriter {
 
             byte[] cipherText;
             if (SSType.DATE == ssType) {
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
             } else if (SSType.DATETIME2 == ssType) {
                 // for Max value, does not round up, do casting instead.
                 if (3652058 == daysIntoCE) { // 9999-12-31
@@ -6099,10 +6366,18 @@ final class TDSWriter {
                         System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                     }
                 }
+
+                if (encodedBytesForEncryption == null) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+                    Object[] msgArgs1 = {"encodedBytesForEncryption"};
+                    throw new SQLServerException(form.format(msgArgs1), null);
+                }
+
                 // Copy the 3 byte date value
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 3), 3);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con,
+                        statement);
             } else {
                 // for Max value, does not round up, do casting instead.
                 if (3652058 == daysIntoCE) { // 9999-12-31
@@ -6120,6 +6395,12 @@ final class TDSWriter {
                     }
                 }
 
+                if (encodedBytesForEncryption == null) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
+                    Object[] msgArgs1 = {"encodedBytesForEncryption"};
+                    throw new SQLServerException(form.format(msgArgs1), null);
+                }
+
                 // Copy the 3 byte date value
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 5), 3);
                 // Copy the 2 byte minutesOffset value
@@ -6128,7 +6409,8 @@ final class TDSWriter {
                                 .putShort(minutesOffset).array(),
                         0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 2), 2);
 
-                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con);
+                cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytesForEncryption, cryptoMeta, con,
+                        statement);
             }
             return cipherText;
         }
@@ -6680,7 +6962,7 @@ final class TDSReader implements Serializable {
         lastPacket = newPacket;
 
         // When logging, append the payload to the log buffer and write out the whole thing.
-        if (tdsChannel.isLoggingPackets()) {
+        if (tdsChannel.isLoggingPackets() && logBuffer != null) {
             System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
             tdsChannel.logPacket(logBuffer, 0, packetLength,
                     this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
@@ -6863,6 +7145,30 @@ final class TDSReader implements Serializable {
             System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
+        }
+    }
+
+    /**
+     * This function reads valueLength no. of bytes from input buffer without storing them in any array
+     *
+     * @param valueLength
+     * @throws SQLServerException
+     */
+    final void readSkipBytes(long valueLength) throws SQLServerException {
+        for (long bytesSkipped = 0; bytesSkipped < valueLength;) {
+            // Ensure that we have a packet to read from.
+            if (!ensurePayload())
+                throwInvalidTDS();
+
+            long bytesToSkip = valueLength - bytesSkipped;
+            if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
+                bytesToSkip = currentPacket.payloadLength - payloadOffset;
+
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
+
+            bytesSkipped += bytesToSkip;
+            payloadOffset += bytesToSkip;
         }
     }
 
@@ -7226,6 +7532,43 @@ final class TDSReader implements Serializable {
 
 
 /**
+ * The tds default implementation of a timeout command
+ */
+class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
+    protected TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
+        super(timeout, command, sqlServerConnection);
+    }
+
+    protected void interrupt() throws Exception {
+        TDSCommand command = getCommand();
+        SQLServerConnection sqlServerConnection = getSqlServerConnection();
+        try {
+            // If TCP Connection to server is silently dropped, exceeding the query timeout
+            // on the same connection does
+            // not throw SQLTimeoutException
+            // The application stops responding instead until SocketTimeoutException is
+            // thrown. In this case, we must
+            // manually terminate the connection.
+            if (null == command && null != sqlServerConnection) {
+                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+                        SQLServerException.getErrString("R_connectionIsClosed"));
+            } else {
+                // If the timer wasn't canceled before it ran out of
+                // time then interrupt the registered command.
+                if (null != command)
+                    command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
+            }
+        } catch (SQLServerException e) {
+            // Request failed to time out and SQLServerConnection does not exist
+            if (null != command)
+                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
+            throw new SQLServerException(SQLServerException.getErrString("R_crCommandCannotTimeOut"), e);
+        }
+    }
+}
+
+
+/**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
  * A conversation may consist of one or more TDS request and response messages. A command may be interrupted at any
@@ -7352,6 +7695,14 @@ abstract class TDSCommand implements Serializable {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private ScheduledFuture<?> timeout;
+    private TdsTimeoutCommand timeoutCommand;
+
+    /*
+     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
+     * if it was actually executed.
+     */
+    private boolean isRegisteredInPoller = false;
+    private boolean isExecuted = false;
 
     protected int getQueryTimeoutSeconds() {
         return this.queryTimeoutSeconds;
@@ -7384,6 +7735,22 @@ abstract class TDSCommand implements Serializable {
         }
     }
 
+    synchronized void addToPoller() {
+        if (!isRegisteredInPoller) {
+            // If command execution is subject to timeout then start timing until
+            // the server returns the first response packet.
+            if (queryTimeoutSeconds > 0) {
+                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
+                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
+                isRegisteredInPoller = true;
+            }
+        }
+    }
+
+    boolean wasExecuted() {
+        return isExecuted;
+    }
+
     /**
      * Creates this command with an optional timeout.
      *
@@ -7410,6 +7777,7 @@ abstract class TDSCommand implements Serializable {
      */
 
     boolean execute(TDSWriter tdsWriter, TDSReader tdsReader) throws SQLServerException {
+        isExecuted = true;
         this.tdsWriter = tdsWriter;
         this.tdsReader = tdsReader;
         assert null != tdsReader;
@@ -7567,12 +7935,16 @@ abstract class TDSCommand implements Serializable {
                 interruptReason = reason;
                 if (requestComplete)
                     attentionPending = tdsWriter.sendAttention();
-
+                if (correspondingThread != null) {
+                    this.correspondingThread.interrupt();
+                    this.correspondingThread = null;
+                }
             }
         }
     }
 
     private boolean interruptChecked = false;
+    private Thread correspondingThread = null;
 
     /**
      * Checks once whether an interrupt has occurred, and, if it has, throws an exception indicating that fact.
@@ -7790,6 +8162,7 @@ abstract class TDSCommand implements Serializable {
             SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
             this.timeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
         }
+        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
@@ -7816,8 +8189,20 @@ abstract class TDSCommand implements Serializable {
                 this.timeout = null;
             }
         }
-
+        // A new response is received hence increment unprocessed response count.
+        // but do not increment when sending fedauth tokens as that is an extra request
+        if (!(this instanceof FedAuthTokenCommand)) {
+            tdsReader.getConnection().getSessionRecovery().incrementUnprocessedResponseCount();
+        }
         return tdsReader;
+    }
+
+    /*
+     * Currently only used in Connection Resiliency scenarios. This thread reference allows the current command to
+     * interrupt the thread if it's sleeping. This is useful in timeout cases.
+     */
+    void attachThread(Thread reconnectThread) {
+        this.correspondingThread = reconnectThread;
     }
 }
 

@@ -10,6 +10,7 @@ import java.sql.ShardingKey;
 
 import javax.sql.ConnectionPoolDataSource;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -29,6 +30,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class JDBC43Test extends AbstractTest {
     ShardingKey superShardingKey = null;
     ShardingKey shardingKey = null;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests that we are throwing the unsupported exception for connectionBuilder()

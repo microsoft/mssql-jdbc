@@ -163,6 +163,14 @@ public class ActivityIDTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
+        try {
+            setConnection();
+        } catch (SQLServerException e) {
+            // this times out a lot retry one more time
+            setConnection();
+        }
+        
         String activityIDTraceOn = Util.ACTIVITY_ID_TRACE_PROPERTY + "=on";
         try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
             LogManager lm = LogManager.getLogManager();

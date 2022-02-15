@@ -44,8 +44,8 @@ final class SQLServerDriverPropertyInfo {
     }
 
     DriverPropertyInfo build(Properties connProperties) {
-        String propValue = name.equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties
-                .getProperty(name);
+        String propValue = name
+                .equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties.getProperty(name);
 
         if (null == propValue)
             propValue = defaultValue;
@@ -376,7 +376,9 @@ enum SQLServerDriverStringProperty {
     CLIENT_CERTIFICATE("clientCertificate", ""),
     CLIENT_KEY("clientKey", ""),
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
+    @Deprecated
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
+    @Deprecated
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1");
 
@@ -446,7 +448,7 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty {
     DISABLE_STATEMENT_POOLING("disableStatementPooling", true),
-    ENCRYPT("encrypt", false),
+    ENCRYPT("encrypt", true),
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),
@@ -903,19 +905,34 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
+    private final static String[] systemPropertiesToLog = new String[] { "java.specification.vendor",
+            "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
+            "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
+            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch" };
+
     @Override
     public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
+        if (loggerExternal.isLoggable(Level.FINE)) {
+            loggerExternal.log(Level.FINE, "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor +
+                    "." + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt + " for SQL Server");
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                for (String propertyKeyName : systemPropertiesToLog) {
+                    String propertyValue = System.getProperty(propertyKeyName);
+                    if (propertyValue != null && !propertyValue.isEmpty()) {
+                        loggerExternal.log(Level.FINER, "System Property: " + propertyKeyName + " Value: "
+                                + System.getProperty(propertyKeyName.toString()));
+                    }
+                }
+            }
+        }
+
         // Merge connectProperties (from URL) and supplied properties from user.
         Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
         if (connectProperties != null) {
-            if (Util.use43Wrapper()) {
-                result = new SQLServerConnection43(toString());
-            } else {
-                result = new SQLServerConnection(toString());
-            }
+            result = DriverJDBCVersion.getSQLServerConnection(toString());
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);

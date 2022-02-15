@@ -83,6 +83,9 @@ final class TDSParser {
                 case TDS.TDS_ENV_CHG:
                     parsing = tdsTokenHandler.onEnvChange(tdsReader);
                     break;
+                case TDS.TDS_SESSION_STATE:
+                    parsing = tdsTokenHandler.onSessionState(tdsReader);
+                    break;
                 case TDS.TDS_RET_STAT:
                     parsing = tdsTokenHandler.onRetStatus(tdsReader);
                     break;
@@ -213,6 +216,11 @@ class TDSTokenHandler {
         return true;
     }
 
+    boolean onSessionState(TDSReader tdsReader) throws SQLServerException {
+        tdsReader.getConnection().processSessionState(tdsReader);
+        return true;
+    }
+
     boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
         (new StreamRetStatus()).setFromTDS(tdsReader);
         return true;
@@ -226,6 +234,10 @@ class TDSTokenHandler {
     boolean onDone(TDSReader tdsReader) throws SQLServerException {
         StreamDone doneToken = new StreamDone();
         doneToken.setFromTDS(tdsReader);
+        if (doneToken.isFinal()) {
+            // Response is completely processed hence decrement unprocessed response count.
+            tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
+        }
         return true;
     }
 
@@ -251,10 +263,14 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        // SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
-        if (logger.isLoggable(Level.SEVERE))
-            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
-                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
+        /*
+         * SHOWPLAN or something else that produces extra metadata might be ON. instead of throwing an exception, warn
+         * and discard the column meta data
+         */
+        if (logger.isLoggable(Level.WARNING))
+            logger.warning(tdsReader.toString() + ": " + logContext + ": Discarding unexpected "
+                    + TDS.getTokenName(tdsReader.peekTokenType()));
+        (new StreamColumns(false)).setFromTDS(tdsReader);
         return false;
     }
 

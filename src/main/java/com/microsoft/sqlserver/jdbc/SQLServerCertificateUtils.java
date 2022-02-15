@@ -96,7 +96,7 @@ final class SQLServerCertificateUtils {
     private static KeyManager[] readPKCS8Certificate(String certPath, String keyPath,
             String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
         Certificate clientCertificate = loadCertificate(certPath);
-        ((X509Certificate)clientCertificate).checkValidity();
+        ((X509Certificate) clientCertificate).checkValidity();
         PrivateKey privateKey = loadPrivateKey(keyPath, keyPassword);
 
         KeyStore keyStore = KeyStore.getInstance(JAVA_KEY_STORE);
@@ -130,9 +130,7 @@ final class SQLServerCertificateUtils {
     private static PrivateKey loadPrivateKeyFromPKCS1(String key,
             String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         SQLServerBouncyCastleLoader.loadBouncyCastle();
-        PEMParser pemParser = null;
-        try {
-            pemParser = new PEMParser(new StringReader(key));
+        try (PEMParser pemParser = new PEMParser(new StringReader(key))) {
             Object object = pemParser.readObject();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
             KeyPair kp;
@@ -143,10 +141,6 @@ final class SQLServerCertificateUtils {
                 kp = converter.getKeyPair((PEMKeyPair) object);
             }
             return kp.getPrivate();
-        } finally {
-            if (null != pemParser) {
-                pemParser.close();
-            }
         }
     }
 

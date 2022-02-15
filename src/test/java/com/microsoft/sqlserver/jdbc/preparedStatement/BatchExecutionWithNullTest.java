@@ -15,6 +15,7 @@ import java.sql.Types;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -94,6 +95,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testAddbatch2AEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
@@ -119,6 +121,7 @@ public class BatchExecutionWithNullTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testClearBatchAEOnConnection() throws SQLException {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
@@ -179,7 +182,14 @@ public class BatchExecutionWithNullTest extends AbstractTest {
         }
     }
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
+
     @BeforeEach
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testSetup() throws TestAbortedException, Exception {
         try (Statement stmt = connection.createStatement()) {

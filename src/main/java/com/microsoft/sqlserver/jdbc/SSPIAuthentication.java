@@ -33,7 +33,7 @@ abstract class SSPIAuthentication {
      */
     private static final Pattern SPN_PATTERN = Pattern.compile("MSSQLSvc/(.*):([^:@]+)(@.+)?",
             Pattern.CASE_INSENSITIVE);
-    
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SSPIAuthentication");
 
     /**
@@ -141,30 +141,53 @@ abstract class SSPIAuthentication {
             // Realm is already present, no need to enrich, the job has already been done
             return spn;
         }
+
+        // Try to derive realm if not specified in the connection. This might take some time if DNS lookup is slow
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer("Deriving realm");
+        }
+
         String dnsName = m.group(1);
         String portOrInstance = m.group(2);
-        // If realm is not specified in the connection, try to derive it.
-        if (null == realm || realm.trim().isEmpty()) {
-            RealmValidator realmValidator = getRealmValidator();
-            realm = findRealmFromHostname(realmValidator, dnsName);
-            if (null == realm && allowHostnameCanonicalization) {
-                // We failed, try with canonical host name to find a better match
-                try {
+        try {
+            if (null == realm || realm.trim().isEmpty()) {
+                RealmValidator realmValidator = getRealmValidator();
+                realm = findRealmFromHostname(realmValidator, dnsName);
+                if (null == realm && allowHostnameCanonicalization) {
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.finer("Attempt to derive realm using canonical host name with InetAddress");
+                    }
+                    // We failed, try with canonical host name to find a better match
                     String canonicalHostName = InetAddress.getByName(dnsName).getCanonicalHostName();
                     realm = findRealmFromHostname(realmValidator, canonicalHostName);
-                    // match means hostname is correct (for instance if server name was an IP) so override dnsName as well
+                    // Match means hostname is correct (eg if server name was an IP) so override dnsName as well
                     dnsName = canonicalHostName;
-                } catch (UnknownHostException e) {
-                    // ignored, cannot canonicalize
+                }
+            } else {
+                if (allowHostnameCanonicalization) {
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("Could not canonicalize host name. " + e.toString());
+                        logger.finer("Since realm is provided, try to resolve canonical host name to host name with InetAddress");
                     }
+                    // Realm was provided, try to resolve cname to hostname
+                    dnsName = InetAddress.getByName(dnsName).getCanonicalHostName();
                 }
             }
+        } catch (UnknownHostException e) {
+            // Ignored, cannot canonicalize
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Could not canonicalize host name. " + e.toString());
+            }
         }
+
         if (null == realm) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Could not derive realm.");
+            }
             return spn;
         } else {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Derived realm: " + realm);
+            }
             StringBuilder sb = new StringBuilder("MSSQLSvc/");
             sb.append(dnsName).append(":").append(portOrInstance).append("@").append(realm.toUpperCase(Locale.ENGLISH));
             return sb.toString();

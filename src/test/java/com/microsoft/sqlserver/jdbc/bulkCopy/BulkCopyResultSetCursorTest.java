@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -49,6 +50,12 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static String srcTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_SourceTable");
     private static String desTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create Bulk Copy and result

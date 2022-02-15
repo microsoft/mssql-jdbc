@@ -11,7 +11,6 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 
-import javax.activation.DataSource;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.XADataSource;
 

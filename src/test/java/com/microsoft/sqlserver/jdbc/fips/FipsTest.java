@@ -10,7 +10,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -28,6 +30,13 @@ import com.microsoft.sqlserver.testframework.PrepUtil;;
  */
 @RunWith(JUnitPlatform.class)
 public class FipsTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        //Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        setConnection();
+    }
 
     /**
      * Test after setting TrustServerCertificate as true.
@@ -74,6 +83,8 @@ public class FipsTest extends AbstractTest {
         props.remove(Constants.FIPS);
         props.remove(Constants.TRUST_STORE_TYPE);
         props.remove(Constants.ENCRYPT);
+        props.remove(Constants.TRUST_SERVER_CERTIFICATE);
+
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
         } catch (Exception e) {

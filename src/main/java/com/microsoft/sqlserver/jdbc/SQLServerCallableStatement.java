@@ -255,6 +255,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // If this is a non-final batch-terminating DONE token,
                 // then stop parsing the response now and set up for
@@ -436,11 +440,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader(), this);
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader(), this);
     }
 
     private Object getStream(int parameterIndex, StreamType streamType) throws SQLServerException {
@@ -448,7 +452,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         activeStream = (Closeable) value;
         return value;
@@ -459,7 +464,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         if (null != value)
             activeStream = value.getStream();

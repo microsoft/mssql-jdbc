@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import java.sql.SQLException;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.platform.runner.JUnitPlatform;
@@ -32,7 +33,10 @@ public class BulkCopyTestSetUp extends AbstractTest {
      * @throws SQLException
      */
     @BeforeAll
-    public static void setUpSourceTable() throws SQLException {
+    public static void setUpSourceTable() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement();
                 DBPreparedStatement pstmt = new DBPreparedStatement(con);) {
             sourceTable = new DBTable(true);

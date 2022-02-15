@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -29,6 +31,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xAzureSQLDW)
 public class ClientProcessIdTest extends AbstractTest {
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
+
     private static int pid = 0;
 
     static {
@@ -42,6 +50,7 @@ public class ClientProcessIdTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xJDBC42)
     public void testClientProcessId() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -50,7 +59,7 @@ public class ClientProcessIdTest extends AbstractTest {
         try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
             try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
                 if (rs.next()) {
-                    assertEquals(rs.getInt(1), pid);
+                    assertEquals(pid, rs.getInt(1));
                 } else {
                     assertTrue(false, "Expected row of data was not found.");
                 }

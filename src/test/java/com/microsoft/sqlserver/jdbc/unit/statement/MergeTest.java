@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -34,6 +35,12 @@ import com.microsoft.sqlserver.testframework.DBStatement;
 public class MergeTest extends AbstractTest {
     static String cricketTeams = RandomUtil.getIdentifier("CricketTeams");
     static String cricketTeamsUpdated = RandomUtil.getIdentifier("cricketTeamsUpdated");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     private static final String setupTables = "IF OBJECT_ID (N'" + TestUtils.escapeSingleQuotes(cricketTeams)
             + "', N'U') IS NOT NULL DROP TABLE " + AbstractSQLGenerator.escapeIdentifier(cricketTeams)

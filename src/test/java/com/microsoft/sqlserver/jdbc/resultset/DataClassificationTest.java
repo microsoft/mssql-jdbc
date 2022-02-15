@@ -11,6 +11,7 @@ import java.sql.Statement;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -41,6 +42,12 @@ public class DataClassificationTest extends AbstractTest {
     private static final String addSensitivitySql = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='%s', INFORMATION_TYPE_ID='%s'%s)";
     private static final String sensitivityRankSql = ", RANK=%s";
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
+
     /**
      * Tests data classification metadata information from SQL Server
      * 
@@ -48,6 +55,7 @@ public class DataClassificationTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xAzureSQLDW)

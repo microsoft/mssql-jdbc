@@ -48,6 +48,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -66,6 +67,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth with msiClientId
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -85,6 +87,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth using datasource
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -106,6 +109,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth with msiClientId using datasource
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -260,6 +264,9 @@ public class MSITest extends AESetup {
      */
     @Test
     public void testNumericAkvWithBadCred() throws SQLException {
+        // unregister the custom providers registered in AESetup
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+
         // add credentials to connection string
         String connStr = AETestConnectionString;
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.KEYSTORE_AUTHENTICATION, "KeyVaultClientSecret");
@@ -269,8 +276,7 @@ public class MSITest extends AESetup {
             testNumericAKV(connStr);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            // https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-aadsts-error-codes
-            assertTrue(e.getMessage().contains("AADSTS700016"), e.getMessage());
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_failedToDecrypt")), e.getMessage());
         }
     }
 
@@ -363,13 +369,13 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
                 try (OutputStream os = new FileOutputStream(file);) {
                     Properties props = new Properties();
-                    // Append to the list of hardcoded endpoints.
+                    // Append to the list of hardcoded endpoints
                     props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }

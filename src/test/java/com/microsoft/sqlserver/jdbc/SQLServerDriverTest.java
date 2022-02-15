@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -31,6 +32,12 @@ public class SQLServerDriverTest extends AbstractTest {
 
     String randomServer = RandomUtil.getIdentifier("Server");
     static final Logger logger = Logger.getLogger("SQLServerDriverTest");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Tests the stream<Driver> drivers() methods in java.sql.DriverManager

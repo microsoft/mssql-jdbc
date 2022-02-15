@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -47,6 +48,12 @@ public class SQLServerConnectionTest extends AbstractTest {
     static int loginTimeOutInSeconds = 10;
 
     String randomServer = RandomUtil.getIdentifier("Server");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        setConnection();
+    }
 
     /**
      * Test connection properties with SQLServerDataSource
@@ -591,8 +598,13 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongDB"));
+            assertTrue(
+                    (e.getMessage().indexOf("ClientConnectionId") != -1)
+                            || ((isSqlAzure() || isSqlAzureDW())
+                                                                 ? e.getMessage().contains(
+                                                                         TestResource.getResource("R_connectTimedOut"))
+                                                                 : false),
+                    TestResource.getResource("R_unexpectedWrongDB") + ": " + e.getMessage());
         }
 
         // Non-existent host, ClientConnectionId should not be available in error message
@@ -601,8 +613,13 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongHost"));
+            assertTrue(
+                    (!(e.getMessage().indexOf("ClientConnectionId") != -1))
+                            || ((isSqlAzure() || isSqlAzureDW())
+                                                                 ? e.getMessage().contains(
+                                                                         TestResource.getResource("R_connectTimedOut"))
+                                                                 : false),
+                    TestResource.getResource("R_unexpectedWrongHost") + ": " + e.getMessage());
         }
     }
 
