@@ -3905,7 +3905,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return true;
             }
         }
-        executeCommand(new ConnectionCommand(sql, logContext));
 
         if (sessionRecovery.getReconnectThread().isAlive()) {
             executeReconnectCommand(new ConnectionCommand(sql, logContext));
