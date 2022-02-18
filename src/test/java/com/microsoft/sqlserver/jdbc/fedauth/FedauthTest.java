@@ -255,13 +255,10 @@ public class FedauthTest extends FedauthCommon {
      */
     @Test
     public void testAADPasswordApplicationName() throws Exception {
-        String url = "jdbc:sqlserver://" + kustoServer
-                + ";database=" + azureDatabase
-                + ";user=" + azureUserName
-                + ";password=" + azurePassword
-                + ";Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString()
-                + ";hostNameInCertificate=" + hostNameInCertificate
-                + ";applicationName=" + applicationName
+        String url = "jdbc:sqlserver://" + kustoServer + ";database=" + azureDatabase + ";user=" + azureUserName
+                + ";password=" + azurePassword + ";Authentication="
+                + SqlAuthentication.ActiveDirectoryPassword.toString() + ";hostNameInCertificate="
+                + hostNameInCertificate + ";applicationName=" + applicationName
                 + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(url);
