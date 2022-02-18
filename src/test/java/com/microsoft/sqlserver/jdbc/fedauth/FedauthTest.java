@@ -247,6 +247,32 @@ public class FedauthTest extends FedauthCommon {
     }
 
     /**
+     * Test AAD Password Authentication using username/password in connection string, data source and SSL
+     * encryption, in addition to application name in order to use different authorities.
+     *
+     * @throws Exception
+     *          if an exception occurs
+     */
+    @Test
+    public void testAADPasswordApplicationName() throws Exception {
+        String url = "jdbc:sqlserver://" + kustoServer
+                + ";database=" + azureDatabase
+                + ";user=" + azureUserName
+                + ";password=" + azurePassword
+                + ";Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString()
+                + ";hostNameInCertificate=" + hostNameInCertificate
+                + ";applicationName=" + applicationName
+                + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(url);
+
+        try (Connection con = ds.getConnection()) {
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
      * Test AAD Service Principal Authentication using AADSecurePrincipalId/AADSecurePrincipalSecret in connection
      * string, data source and SSL encryption.
      * 
