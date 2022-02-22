@@ -47,6 +47,9 @@ public class FedauthCommon extends AbstractTest {
 
     static boolean enableADIntegrated = false;
 
+    static String hostNameInCertificate = null;
+    static String applicationName = null;
+    static String kustoServer = null;
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -140,6 +143,9 @@ public class FedauthCommon extends AbstractTest {
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases", "").split(Constants.SEMI_COLON);
 
+        hostNameInCertificate = getConfiguredProperty("hostNameInCertificate");
+        applicationName = getConfiguredProperty("applicationName");
+        kustoServer = getConfiguredProperty("kustoServer");
         spn = getConfiguredProperty("spn");
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");

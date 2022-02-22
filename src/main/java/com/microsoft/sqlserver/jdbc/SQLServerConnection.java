@@ -172,11 +172,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKeyPassword = "";
 
     /** AAD principal id */
-    @Deprecated
     private String aadPrincipalID = "";
 
     /** AAD principal secret */
-    @Deprecated
     private String aadPrincipalSecret = "";
 
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
