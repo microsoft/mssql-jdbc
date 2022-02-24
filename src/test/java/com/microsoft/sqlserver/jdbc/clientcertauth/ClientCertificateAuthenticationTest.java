@@ -26,8 +26,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
- * Tests client certificate authentication feature
- * The feature is only supported against SQL Server Linux CU2 or higher.
+ * Tests client certificate authentication feature The feature is only supported against SQL Server Linux CU2 or higher.
  * 
  */
 @RunWith(JUnitPlatform.class)
@@ -52,8 +51,8 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        //Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        // Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
         setConnection();
     }
 
@@ -209,7 +208,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void testEncryptTrusted() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=true;";
+                + clientKey + PKCS8_KEY_SUFFIX;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt
                     .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
@@ -226,8 +225,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void testEncryptUntrusted() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=false;trustStore="
-                + trustStorePath;
+                + clientKey + PKCS8_KEY_SUFFIX;
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
             ResultSet rs = stmt
                     .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");

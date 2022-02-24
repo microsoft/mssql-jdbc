@@ -51,7 +51,6 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
     }
 
@@ -63,6 +62,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         String stringPropValue = "stringPropValue";
         boolean booleanPropValue = true;
+        String booleanStringValue = "true";
         int intPropValue = 1;
 
         ds.setInstanceName(stringPropValue);
@@ -159,8 +159,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setEncrypt(booleanPropValue);
-        assertEquals(booleanPropValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(booleanStringValue);
+        assertEquals(booleanStringValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -278,8 +278,12 @@ public class SQLServerConnectionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setApplicationName("User");
         ds.setURL(connectionString);
-        ds.setEncrypt(true);
-        ds.setTrustServerCertificate(true);
+        if (encrypt == null) {
+            ds.setEncrypt(Constants.TRUE);
+        }
+        if (trustServerCertificate == null) {
+            ds.setTrustServerCertificate(true);
+        }
         ds.setPacketSize(8192);
         try (Connection con = ds.getConnection()) {}
     }

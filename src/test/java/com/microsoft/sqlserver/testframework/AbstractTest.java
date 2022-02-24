@@ -69,7 +69,11 @@ public abstract class AbstractTest {
     protected static String clientKey = null;
     protected static String clientKeyPassword = "";
 
-    protected static String trustStorePath = "";
+    protected static String trustStore = "";
+    protected static String trustStorePassword = "";
+
+    protected static String encrypt = "";
+    protected static String trustServerCertificate = "";
 
     protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
@@ -134,6 +138,13 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
 
+        encrypt = getConfiguredProperty("encrypt", "false");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
+
+        trustServerCertificate = getConfiguredProperty("trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate",
+                trustServerCertificate);
+
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
@@ -163,7 +174,16 @@ public abstract class AbstractTest {
 
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
-        trustStorePath = getConfiguredProperty("trustStore", "");
+        trustStore = getConfiguredProperty("trustStore", "");
+        if (!(trustStore.isBlank() || trustStore.isEmpty())) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStore", trustStore);
+        }
+
+        trustStorePassword = getConfiguredProperty("trustStorePassword", "");
+        if (!(trustStorePassword.isBlank() || trustStorePassword.isEmpty())) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStorePassword",
+                    trustStorePassword);
+        }
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
@@ -318,10 +338,19 @@ public abstract class AbstractTest {
                             ds.setCancelQueryTimeout(Integer.parseInt(value));
                             break;
                         case Constants.ENCRYPT:
-                            ds.setEncrypt(Boolean.parseBoolean(value));
+                            ds.setEncrypt(value);
                             break;
                         case Constants.TRUST_SERVER_CERTIFICATE:
                             ds.setTrustServerCertificate(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.TRUST_STORE:
+                            ds.setTrustStore(value);
+                            break;
+                        case Constants.TRUST_STORE_SECRET_PROPERTY:
+                            ds.setTrustStorePassword(value);
+                            break;
+                        case Constants.TRUST_STORE_TYPE:
+                            ds.setTrustStoreType(value);
                             break;
                         case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);

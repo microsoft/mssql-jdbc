@@ -79,7 +79,6 @@ public class LobsTest extends AbstractTest {
 
     @BeforeAll
     public static void init() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         tableName = RandomUtil.getIdentifier("LOBS");

@@ -107,7 +107,6 @@ public class UTF8SupportTest extends AbstractTest {
 
     @BeforeAll
     public static void setUp() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         assert (TestUtils.serverSupportsUTF8(connection));

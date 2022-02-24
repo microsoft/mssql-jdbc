@@ -34,7 +34,6 @@ public class BulkCopyTestSetUp extends AbstractTest {
      */
     @BeforeAll
     public static void setUpSourceTable() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (DBConnection con = new DBConnection(connectionString); DBStatement stmt = con.createStatement();
