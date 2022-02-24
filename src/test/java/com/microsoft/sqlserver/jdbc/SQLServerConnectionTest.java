@@ -162,6 +162,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setEncrypt(booleanPropValue);
         assertEquals(booleanPropValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setPrepareMethod(stringPropValue);
+        assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -310,7 +313,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     /**
      * Attach the Event listener and listen for connection events, fatal errors should not close the pooled connection
      * objects
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -784,7 +787,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     /**
      * Test thread's interrupt status is not cleared.
-     * 
+     *
      * @throws InterruptedException
      */
     @Test

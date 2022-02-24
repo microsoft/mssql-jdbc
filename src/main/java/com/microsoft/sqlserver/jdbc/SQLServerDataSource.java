@@ -1125,6 +1125,17 @@ public class SQLServerDataSource
                 SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
     }
 
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.PREPARE_METHOD.toString(), prepareMethod);
+    }
+
+    @Override
+    public String getPrepareMethod() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
+                SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
      *

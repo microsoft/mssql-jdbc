@@ -75,6 +75,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
 
+    /** True if sp_prepare was called **/
+    private boolean isSpPrepareExecuted = false;
+
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private PreparedStatementHandle cachedPreparedStatementHandle;
 
@@ -608,7 +611,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
 
-                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, command);
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
@@ -758,6 +761,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, 0, true);
+    }
+
+    private void buildPrepParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling sp_prepare: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+
+        expectPrepStmtHandle = true;
+        executedSqlDirectly = false;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 4;
+
+        tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
+        tdsWriter.writeShort(TDS.PROCID_SP_PREPARE);
+        tdsWriter.writeByte((byte) 0);
+        tdsWriter.writeByte((byte) 0);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
+
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
+        resetPrepStmtHandle(false);
+
+        tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
+
+        tdsWriter.writeRPCStringUnicode(preparedSQL);
+        tdsWriter.writeRPCInt(null, 1, false);
     }
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
@@ -1050,34 +1078,60 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
-            boolean hasExistingTypeDefinitions) throws SQLServerException {
+            boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
+        boolean isPrepExecEnabled = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
-
             if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
         } else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
-            // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
+            // First execution, use sp_executesql, optimizing for assumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
-            }
-            // Second execution, use prepared statements since we seem to be re-using it.
-            else if (needsPrepare)
-                buildPrepExecParams(tdsWriter);
-            else
+            } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
+                if (isPrepExecEnabled) { // If true, we're using sp_prepexec.
+                    buildPrepExecParams(tdsWriter);
+                } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
+                    isSpPrepareExecuted = true;
+                    // If we're preparing for a statement in a batch we just need to call sp_prepare b/c in the
+                    // "batching" code it will start another tds request to execute the statement after preparing.
+                    if (executeMethod == EXECUTE_BATCH) {
+                        buildPrepParams(tdsWriter);
+                        return needsPrepare;
+                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute the statement.
+                        isSpPrepareExecuted = false;
+                        doPrep(tdsWriter, command);
+                        command.startRequest(TDS.PKT_RPC);
+                        buildExecParams(tdsWriter);
+                    }
+                }
+            } else {
                 buildExecParams(tdsWriter);
+            }
         }
 
         sendParamsByRPC(tdsWriter, params);
 
         return needsPrepare;
+    }
+
+    /**
+     * Executes sp_prepare to prepare a parameterized statement and sets the prepared statement handle
+     *
+     * @param tdsWriter TDS writer to write sp_prepare params to
+     * @throws SQLServerException
+     */
+    private void doPrep(TDSWriter tdsWriter, TDSCommand command) throws SQLServerException {
+        buildPrepParams(tdsWriter);
+        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+        command.processResponse(resultsReader());
     }
 
     @Override
@@ -2718,7 +2772,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     final void doExecutePreparedStatementBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
         executeMethod = EXECUTE_BATCH;
-
         batchCommand.batchException = null;
         final int numBatches = batchParamValues.size();
         batchCommand.updateCounts = new long[numBatches];
@@ -2826,7 +2879,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
-                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, batchCommand);
                     if (needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
@@ -2844,6 +2897,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // the update count array.
                                 if (!getNextResult(true))
                                     return;
+
+                                if (isSpPrepareExecuted) {
+                                    isSpPrepareExecuted = false;
+                                    resetForReexecute();
+                                    tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                                    buildExecParams(tdsWriter);
+                                    sendParamsByRPC(tdsWriter, batchParam);
+                                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                    startResults();
+                                    if (!getNextResult(true))
+                                        return;
+                                }
 
                                 // If the result is a ResultSet (rather than an update count) then throw an
                                 // exception for this result. The exception gets caught immediately below and

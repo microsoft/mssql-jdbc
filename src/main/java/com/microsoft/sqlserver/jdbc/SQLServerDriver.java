@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -334,10 +335,47 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+enum PrepareMethod {
+    PREPEXEC("prepexec"), //sp_prepexec, default prepare method
+    PREPARE("prepare");
+
+    private final String value;
+
+    private static final Map<String, PrepareMethod> PREPARE_METHODS = Map.of(
+            "prepexec", PREPEXEC,
+            "prepare", PREPARE
+    );
+
+    private PrepareMethod(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    static PrepareMethod valueOfString(String value) throws SQLServerException {
+        assert value != null;
+
+        if (!isValidPrepareMethod(value)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+            Object[] msgArgs = {SQLServerDriverStringProperty.PREPARE_METHOD.toString(), value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+
+        return PREPARE_METHODS.get(value);
+    }
+
+    static boolean isValidPrepareMethod(String value) {
+        return PREPARE_METHODS.containsKey(value);
+    }
+}
 
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
+    PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
     HOSTNAME_IN_CERTIFICATE("hostNameInCertificate", ""),
@@ -517,6 +555,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()), false,
                     new String[] {"true"}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
+                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(),false,
+                    new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENCRYPT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),

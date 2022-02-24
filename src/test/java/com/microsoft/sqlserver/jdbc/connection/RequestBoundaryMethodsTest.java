@@ -496,6 +496,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setUseFmtOnly");
         verifiedMethodNames.add("setDelayLoadingLobs");
         verifiedMethodNames.add("registerColumnEncryptionKeyStoreProvidersOnConnection");
+        verifiedMethodNames.add("getPrepareMethod");
+        verifiedMethodNames.add("setPrepareMethod");
 
         return verifiedMethodNames;
     }

@@ -49,6 +49,7 @@ public class CallableStatementTest extends AbstractTest {
     private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
     private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
     private static String getObjectOffsetDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP");
+    private static String procName = RandomUtil.getIdentifier("SPFO");
 
     /**
      * Setup before test
@@ -74,6 +75,28 @@ public class CallableStatementTest extends AbstractTest {
             createInputParamsProcedure(stmt);
             createGetObjectLocalDateTimeProcedure(stmt);
             createGetObjectOffsetDateTimeProcedure(stmt);
+        }
+    }
+
+    @Test
+    public void testCallableStatementSpPrepare() throws SQLException {
+        connection.setPrepareMethod("prepare");
+
+        try (Statement statement = connection.createStatement();) {
+            statement.executeUpdate("create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " as select 1 --");
+
+            try (CallableStatement callableStatement = connection.prepareCall(
+                    "{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
         }
     }
 
