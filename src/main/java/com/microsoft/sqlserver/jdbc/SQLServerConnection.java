@@ -172,11 +172,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private String clientKeyPassword = "";
 
     /** AAD principal id */
-    @Deprecated
     private String aadPrincipalID = "";
 
     /** AAD principal secret */
-    @Deprecated
     private String aadPrincipalSecret = "";
 
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
@@ -3905,7 +3903,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return true;
             }
         }
-        executeCommand(new ConnectionCommand(sql, logContext));
 
         if (sessionRecovery.getReconnectThread().isAlive()) {
             executeReconnectCommand(new ConnectionCommand(sql, logContext));
