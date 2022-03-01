@@ -230,21 +230,21 @@ final class Util {
     }
 
     /**
-     * Checks to see if a long value can be converted to another, smaller, type.
+     * Checks to see if a long value can be converted to another type.
      * 
-     * @param  convert
-     *         the short value to convert
-     * @param  convertTo
+     * @param  valueToConvert
+     *         the value to convert
+     * @param  typeToConvertTo
      *         the type to convert to
-     * @return true if the type can be converted
+     * @return true if the type can be converted safely
      */
-    static boolean isSafeToConvert(long convert, String convertTo) {
+    static boolean isSafeToConvert(long valueToConvert, String typeToConvertTo) {
         boolean safeConversion = false;
 
-        switch (convertTo) {
+        switch (typeToConvertTo) {
             // Add more cases as necessary
             case "int":
-                if (convert <= Integer.MAX_VALUE && convert >= Integer.MIN_VALUE) {
+                if (valueToConvert <= Integer.MAX_VALUE && valueToConvert >= Integer.MIN_VALUE) {
                     safeConversion = true;
                 }
                 break;
