@@ -112,7 +112,7 @@ final class Util {
 
     /**
      * Read an unsigned short int (16 bits) from a byte stream
-     *
+     * 
      * @param data
      *        the databytes
      * @param nOffset
@@ -139,7 +139,7 @@ final class Util {
 
     /**
      * Read an int from a byte stream
-     *
+     * 
      * @param data
      *        the databytes
      * @param nOffset
@@ -194,7 +194,7 @@ final class Util {
 
     /**
      * Reads a long value from byte array.
-     *
+     * 
      * @param data
      *        the byte array.
      * @param nOffset
@@ -231,7 +231,7 @@ final class Util {
 
     /**
      * Checks to see if a long value can be converted to another, smaller, type.
-     *
+     * 
      * @param  convert
      *         the short value to convert
      * @param  convertTo
@@ -256,7 +256,7 @@ final class Util {
 
     /**
      * Parse a JDBC URL into a set of properties.
-     *
+     * 
      * @param url
      *        the JDBC URL
      * @param logger
@@ -550,7 +550,7 @@ final class Util {
     /**
      * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier using SQL Server
      * bracket escaping rules. Assumes that the incoming identifier is unescaped.
-     *
+     * 
      * @inID input identifier to escape.
      * @return the escaped value.
      */
@@ -581,7 +581,7 @@ final class Util {
 
     /**
      * Checks if duplicate columns exists, in O(n) time.
-     *
+     * 
      * @param columnName
      *        the name of the column
      * @throws SQLServerException
@@ -598,7 +598,7 @@ final class Util {
 
     /**
      * Reads a UNICODE string from byte buffer at offset (up to byteLength).
-     *
+     * 
      * @param b
      *        the buffer containing UNICODE bytes.
      * @param offset
@@ -627,7 +627,7 @@ final class Util {
     // NOTE: This is for display purposes ONLY. NOT TO BE USED for data conversion.
     /**
      * Converts byte array to a string representation of hex bytes for display purposes.
-     *
+     * 
      * @param b
      *        the source buffer.
      * @return "hexized" string representation of bytes.
@@ -648,7 +648,7 @@ final class Util {
 
     /**
      * Converts byte array to a string representation of hex bytes.
-     *
+     * 
      * @param b
      *        the source buffer.
      * @return "hexized" string representation of bytes.
@@ -665,7 +665,7 @@ final class Util {
 
     /**
      * Looks up local hostname of client machine.
-     *
+     * 
      * @exception UnknownHostException
      *            if local hostname is not found.
      * @return hostname string or ip of host if hostname cannot be resolved. If neither hostname or ip found returns ""
@@ -807,7 +807,7 @@ final class Util {
     /**
      * Determines if a column value should be transparently decrypted (based on SQLServerStatement and the connection
      * string settings).
-     *
+     * 
      * @return true if the value should be transparently decrypted, false otherwise.
      */
     static boolean shouldHonorAEForRead(SQLServerStatementColumnEncryptionSetting stmtColumnEncryptionSetting,
@@ -829,7 +829,7 @@ final class Util {
     /**
      * Determines if parameters should be transparently encrypted (based on SQLServerStatement and the connection string
      * settings).
-     *
+     * 
      * @return true if the value should be transparently encrypted, false otherwise.
      */
     static boolean shouldHonorAEForParameters(SQLServerStatementColumnEncryptionSetting stmtColumnEncryptionSetting,
@@ -1009,7 +1009,7 @@ final class Util {
 
     /**
      * Escapes single quotes (') in object name to convert and pass it as String safely.
-     *
+     * 
      * @param name
      *        Object name to be passed as String
      * @return Converted object name
