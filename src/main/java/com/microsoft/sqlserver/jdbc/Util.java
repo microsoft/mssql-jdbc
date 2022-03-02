@@ -230,31 +230,6 @@ final class Util {
     }
 
     /**
-     * Checks to see if a long value can be converted to another type.
-     * 
-     * @param  valueToConvert
-     *         the value to convert
-     * @param  typeToConvertTo
-     *         the type to convert to
-     * @return true if the type can be converted safely
-     */
-    static boolean isSafeToConvert(long valueToConvert, String typeToConvertTo) {
-        boolean safeConversion = false;
-
-        switch (typeToConvertTo) {
-            // Add more cases as necessary
-            case "int":
-                if (valueToConvert <= Integer.MAX_VALUE && valueToConvert >= Integer.MIN_VALUE) {
-                    safeConversion = true;
-                }
-                break;
-            default:
-                break;
-        }
-        return safeConversion;
-    }
-
-    /**
      * Parse a JDBC URL into a set of properties.
      * 
      * @param url

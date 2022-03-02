@@ -7154,13 +7154,13 @@ final class TDSReader implements Serializable {
      * @param valueLength
      * @throws SQLServerException
      */
-    final void readSkipBytes(long valueLength) throws SQLServerException {
-        for (long bytesSkipped = 0; bytesSkipped < valueLength;) {
+    final void readSkipBytes(int valueLength) throws SQLServerException {
+        for (int bytesSkipped = 0; bytesSkipped < valueLength;) {
             // Ensure that we have a packet to read from.
             if (!ensurePayload())
                 throwInvalidTDS();
 
-            long bytesToSkip = valueLength - bytesSkipped;
+            int bytesToSkip = valueLength - bytesSkipped;
             if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
                 bytesToSkip = currentPacket.payloadLength - payloadOffset;
 
@@ -7168,11 +7168,7 @@ final class TDSReader implements Serializable {
                 logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
 
             bytesSkipped += bytesToSkip;
-            if (Util.isSafeToConvert(bytesToSkip, "int")) {
-                payloadOffset += bytesToSkip;
-            } else {
-                throw new ArithmeticException("Argument too large for 'int' conversion.");
-            }
+            payloadOffset += bytesToSkip;
         }
     }
 
