@@ -1081,7 +1081,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
-        boolean isPrepExecEnabled = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
+        boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -1096,11 +1096,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
-                if (isPrepExecEnabled) { // If true, we're using sp_prepexec.
+                if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);
                 } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
                     isSpPrepareExecuted = true;
-                    // If we're preparing for a statement in a batch we just need to call sp_prepare b/c in the
+                    // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
                     // "batching" code it will start another tds request to execute the statement after preparing.
                     if (executeMethod == EXECUTE_BATCH) {
                         buildPrepParams(tdsWriter);

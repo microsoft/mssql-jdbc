@@ -45,9 +45,9 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest {
 
-    final String tableName = RandomUtil.getIdentifier("test1");
-    final String tableName2 = RandomUtil.getIdentifier("test2");
-    final String tableName3 = RandomUtil.getIdentifier("test3");
+    final String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
+    final String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
+    final String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -74,13 +74,15 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testSpPrepareConfigurationConnectionPropValues() {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(connectionString);
-        assertEquals(ds.getPrepareMethod(), "prepexec"); // default is prepexec
+    public void testSpPrepareConfigurationConnectionPropValues() throws SQLException {
+        String connectionStringPrepare = connectionString + ";prepareMethod=prepare;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringPrepare)) {
+            assertEquals("prepare", conn.getPrepareMethod());
+        }
 
-        ds.setPrepareMethod("prepare");
-        assertEquals(ds.getPrepareMethod(), "prepare");
+        try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
+            assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
+        }
     }
 
     @Test
@@ -94,12 +96,13 @@ public class PreparedStatementTest extends AbstractTest {
             executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName3)
                     + " (c1_nchar nchar(512), c2_int integer)");
 
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, "test");
-            ps.setInt(2, 0);
-            ps.executeUpdate();
-            ps.executeUpdate(); // Takes sp_prepare path
-            ps.executeUpdate();
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test");
+                ps.setInt(2, 0);
+                ps.executeUpdate();
+                ps.executeUpdate(); // Takes sp_prepare path
+                ps.executeUpdate();
+            }
         }
     }
 

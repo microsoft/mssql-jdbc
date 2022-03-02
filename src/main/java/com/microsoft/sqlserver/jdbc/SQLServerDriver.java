@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -341,11 +340,6 @@ enum PrepareMethod {
 
     private final String value;
 
-    private static final Map<String, PrepareMethod> PREPARE_METHODS = Map.of(
-            "prepexec", PREPEXEC,
-            "prepare", PREPARE
-    );
-
     private PrepareMethod(String value) {
         this.value = value;
     }
@@ -358,17 +352,15 @@ enum PrepareMethod {
     static PrepareMethod valueOfString(String value) throws SQLServerException {
         assert value != null;
 
-        if (!isValidPrepareMethod(value)) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
-            Object[] msgArgs = {SQLServerDriverStringProperty.PREPARE_METHOD.toString(), value};
-            throw new SQLServerException(form.format(msgArgs), null);
+        for (PrepareMethod prepareMethod : PrepareMethod.values()) {
+            if (prepareMethod.toString().equals(value)) {
+                return prepareMethod;
+            }
         }
 
-        return PREPARE_METHODS.get(value);
-    }
-
-    static boolean isValidPrepareMethod(String value) {
-        return PREPARE_METHODS.containsKey(value);
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+        Object[] msgArgs = {SQLServerDriverStringProperty.PREPARE_METHOD.toString(), value};
+        throw new SQLServerException(form.format(msgArgs), null);
     }
 }
 

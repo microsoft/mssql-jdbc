@@ -49,7 +49,7 @@ public class CallableStatementTest extends AbstractTest {
     private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
     private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
     private static String getObjectOffsetDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP");
-    private static String procName = RandomUtil.getIdentifier("SPFO");
+    private static String procName = RandomUtil.getIdentifier("procedureTestCallableStatementSpPrepare");
 
     /**
      * Setup before test

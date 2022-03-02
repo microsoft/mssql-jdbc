@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -22,6 +23,7 @@ import java.util.LinkedList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
@@ -89,6 +91,8 @@ public class CallableStatementTest extends AESetup {
             .escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure3"));
     private static String mixedProcedureNumericPrecisionScale = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("mixedProcedureNumericPrecisionScale"));
+    private static String prepareMethodProcedure = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("prepareMethodProcedure"));
 
     private static String table1 = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table1")));
@@ -306,6 +310,28 @@ public class CallableStatementTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testOutputProcedure4(String serverName, String url, String protocol) throws Exception {
         createOutputProcedure4();
+    }
+
+    @Test
+    public void testCallableStatementSpPrepareAE() throws SQLException {
+        AETestConnectionString += "prepareMethod=prepare;";
+
+        try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
+
+            try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
+                    .prepareCall("{call " + prepareMethodProcedure + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
+        }
     }
 
     private static void dropProcedures() throws SQLException {

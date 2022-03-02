@@ -1128,9 +1128,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getConnectRetryInterval();
 
     /**
-     * Sets the behavior for the prepare method. Only the following string values are permitted:
-     * 1. prepexec, for use of sp_prepexec (default behavior)
-     * 2. prepare, for use of sp_prepare
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
      *
      * @param prepareMethod
      *        Changes the setting as per description
@@ -1138,9 +1136,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setPrepareMethod(String prepareMethod);
 
     /**
-     * Returns the value indicating the prepare method. One of the following will be returned:
-     * 1. prepexec, for sp_prepexec (default)
-     * 2. prepare, for sp_prepare
+     * Returns the value indicating the prepare method. {@link PrepareMethod}
      *
      * @return prepare method
      */
