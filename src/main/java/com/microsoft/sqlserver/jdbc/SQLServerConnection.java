@@ -3177,9 +3177,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
+        String IPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString());
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
-                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, IPAddressPreference);
 
         setState(State.Connected);
 

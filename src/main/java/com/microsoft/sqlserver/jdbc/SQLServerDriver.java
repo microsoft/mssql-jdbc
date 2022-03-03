@@ -44,8 +44,8 @@ final class SQLServerDriverPropertyInfo {
     }
 
     DriverPropertyInfo build(Properties connProperties) {
-        String propValue = name
-                .equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties.getProperty(name);
+        String propValue = name.equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties
+                .getProperty(name);
 
         if (null == propValue)
             propValue = defaultValue;
@@ -348,6 +348,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
+    IPADDRESSPREFERENCE("IPAddressPreference", "IPv4"),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -570,6 +571,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.DOMAIN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_NAME.toString(),
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(),
+                    SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
@@ -596,8 +599,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false,
-                    TRUE_FALSE),
+                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
@@ -905,10 +907,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
-    private final static String[] systemPropertiesToLog = new String[] { "java.specification.vendor",
+    private final static String[] systemPropertiesToLog = new String[] {"java.specification.vendor",
             "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
             "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
-            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch" };
+            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
 
     @Override
     public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
@@ -916,8 +918,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         SQLServerConnection result = null;
 
         if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.log(Level.FINE, "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor +
-                    "." + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt + " for SQL Server");
+            loggerExternal.log(Level.FINE,
+                    "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
+                            + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt
+                            + " for SQL Server");
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);

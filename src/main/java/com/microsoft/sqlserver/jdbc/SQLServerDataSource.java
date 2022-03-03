@@ -577,6 +577,14 @@ public class SQLServerDataSource
     public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
+    
+    public void setIPAddressPreference(String IPAddressPreference) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(), IPAddressPreference);
+    }
+    
+    public String getIPAddressPreference() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue());
+    }
 
     /**
      * Sets the realm for Kerberos authentication.

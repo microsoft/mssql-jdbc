@@ -749,17 +749,18 @@ final class TDSChannel implements Serializable {
 
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
+     * @param IPAddressPreference 
      *
      * @return InetSocketAddress of the connection socket.
      */
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout, String IPAddressPreference) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
-                isTnirFirstAttempt, timeoutMillisForFullTimeout);
+                isTnirFirstAttempt, timeoutMillisForFullTimeout, IPAddressPreference);
         try {
 
             // Set socket options
@@ -2595,11 +2596,12 @@ final class SocketFinder {
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
+     * @param IPAddressPreference 
      * @return connected socket
      * @throws IOException
      */
     Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout, String IPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2916,6 +2918,18 @@ final class SocketFinder {
         // Note that Socket(host, port) throws an UnknownHostException if the host name
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
+        
+//        if (IPAddressPreference == IPv6First) {
+            // Try to connect to IPv6 Addresses
+            // No IPv6 Addresses can be connected to, try IPv4 addresses now
+//        } else if (IPAddressPreference == IPv4First) {
+            // Try to connect to IPv4 Addresses
+            // No IPv4 Addresses can be connected to, try IPv6 addresses now
+//        } else if (IPAddressPreference == UsePlatformDefault) {
+//            
+//        } else {
+//            throw Exception
+//        }
         InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
         if (addr.isUnresolved()) {
             if (logger.isLoggable(Level.FINER)) {
