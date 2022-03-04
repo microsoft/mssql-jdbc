@@ -123,6 +123,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
+    private String prepareMethod = null;
+
     /** Handle the actual queue of discarded prepared statements. */
     private ConcurrentLinkedQueue<PreparedStatementHandle> discardedPreparedStatementHandles = new ConcurrentLinkedQueue<>();
 
@@ -2042,6 +2044,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 transparentNetworkIPResolution = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.PREPARE_METHOD.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setPrepareMethod(PrepareMethod.valueOfString(sPropValue).toString());
 
                 sPropKey = SQLServerDriverBooleanProperty.ENCRYPT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -7221,6 +7231,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
         this.enablePrepareOnFirstPreparedStatementCall = value;
+    }
+
+    @Override
+    public String getPrepareMethod() {
+        if (null == this.prepareMethod) {
+            return SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue();
+        }
+
+        return this.prepareMethod;
+    }
+
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        this.prepareMethod = prepareMethod;
     }
 
     @Override

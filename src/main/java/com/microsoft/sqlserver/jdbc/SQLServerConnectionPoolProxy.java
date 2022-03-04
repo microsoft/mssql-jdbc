@@ -551,6 +551,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public String getPrepareMethod() {
+        return wrappedConnection.getPrepareMethod();
+    }
+
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        wrappedConnection.setPrepareMethod(prepareMethod);
+    }
+
+    @Override
     public int getServerPreparedStatementDiscardThreshold() {
         return wrappedConnection.getServerPreparedStatementDiscardThreshold();
     }
