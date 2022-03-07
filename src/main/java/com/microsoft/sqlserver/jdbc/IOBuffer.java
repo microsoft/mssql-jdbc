@@ -769,10 +769,9 @@ final class TDSChannel implements Serializable {
             tcpSocket.setKeepAlive(true);
             DriverJDBCVersion.setSocketOptions(tcpSocket, this);
 
-            // socket timeout should not be > loginTimeout
-            int loginTimeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue() * 1000;
+            // set SO_TIMEOUT
             int socketTimeout = con.getSocketTimeoutMilliseconds();
-            tcpSocket.setSoTimeout(socketTimeout > 0 && socketTimeout < loginTimeout ? socketTimeout : loginTimeout);
+            tcpSocket.setSoTimeout(socketTimeout);
 
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
