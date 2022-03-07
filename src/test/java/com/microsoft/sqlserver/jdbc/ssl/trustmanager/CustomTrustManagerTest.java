@@ -32,8 +32,7 @@ public class CustomTrustManagerTest extends AbstractTest {
      */
     @Test
     public void testWithPermissiveX509TrustManager() throws Exception {
-        String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName()
-                + ";encrypt=true;";
+        String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName();
         try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
@@ -47,7 +46,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     @Test
     public void testWithTrustManagerConstructorArg() throws Exception {
         String url = connectionString + ";trustManagerClass=" + TrustManagerWithConstructorArg.class.getName()
-                + ";trustManagerConstructorArg=dummyString;" + ";encrypt=true;";
+                + ";trustManagerConstructorArg=dummyString;";
         try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
@@ -61,7 +60,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     @Test
     public void testWithInvalidTrustManager() throws Exception {
         String url = TestUtils.removeProperty(connectionString, Constants.TRUST_SERVER_CERTIFICATE);
-        url = url + ";trustManagerClass=" + InvalidTrustManager.class.getName() + ";encrypt=true;";
+        url = url + ";trustManagerClass=" + InvalidTrustManager.class.getName();
         try (Connection con = PrepUtil.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {

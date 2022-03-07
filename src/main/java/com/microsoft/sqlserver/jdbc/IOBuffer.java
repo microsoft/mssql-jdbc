@@ -69,7 +69,6 @@ import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -654,6 +653,9 @@ final class TDSChannel implements Serializable {
      */
     private static final long serialVersionUID = -866497813437384090L;
 
+    /** socket timeout waiting for SSL handshake */
+    private static final int SSL_HANDSHAKE_SOCKET_TIMEOUT = 15000;
+
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
     final Logger getLogger() {
@@ -754,27 +756,23 @@ final class TDSChannel implements Serializable {
      * @return InetSocketAddress of the connection socket.
      */
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout, boolean isTDSS) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
-        if (isTDSS) {
-            channelSocket = tcpSocket = sslSocket;
-        } else {
-            SocketFinder socketFinder = new SocketFinder(traceID, con);
-            channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
-                    isTnirFirstAttempt, timeoutMillisForFullTimeout);
-        }
+        SocketFinder socketFinder = new SocketFinder(traceID, con);
+        channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
+                isTnirFirstAttempt, timeoutMillisForFullTimeout);
         try {
-
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
             DriverJDBCVersion.setSocketOptions(tcpSocket, this);
 
-            // set SO_TIMEOUT
+            // socket timeout should not be > loginTimeout
+            int loginTimeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue() * 1000;
             int socketTimeout = con.getSocketTimeoutMilliseconds();
-            tcpSocket.setSoTimeout(socketTimeout);
+            tcpSocket.setSoTimeout(socketTimeout > 0 && socketTimeout < loginTimeout ? socketTimeout : loginTimeout);
 
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
@@ -2005,51 +2003,46 @@ final class TDSChannel implements Serializable {
 
             sslContext.init(km, tm, null);
 
+            // Got the SSL context. Now create an SSL socket over our own proxy socket
+            // which we can toggle between TDS-encapsulated and raw communications.
+            // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Creating SSL socket");
+            proxySocket = new ProxySocket(this);
+
+            // don't close proxy when SSL socket is closed
             if (isTDSS) {
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
-
-                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
-                sslSocket.startHandshake();
-                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
             } else {
-                // Got the SSL context. Now create an SSL socket over our own proxy socket
-                // which we can toggle between TDS-encapsulated and raw communications.
-                // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
-                proxySocket = new ProxySocket(this);
-
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Creating SSL socket");
-
-                // don't close proxy when SSL socket is closed
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
-
-                // At long last, start the SSL handshake ...
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " Starting SSL handshake");
-
-                // TLS 1.2 intermittent exception happens here.
-                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
-                sslSocket.startHandshake();
-                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
-
-                // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Rewiring proxy streams after handshake");
-
-                proxySocket.setStreams(inputStream, outputStream);
-
-                // ... and rewire TDSChannel to use SSL streams.
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Getting SSL InputStream");
-
-                inputStream = new ProxyInputStream(sslSocket.getInputStream());
-
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Getting SSL OutputStream");
-
-                outputStream = sslSocket.getOutputStream();
             }
-            
+
+            // At long last, start the SSL handshake ...
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " Starting SSL handshake");
+
+            // TLS 1.2 intermittent exception happens here.
+            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
+            sslSocket.startHandshake();
+            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+
+            // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Rewiring proxy streams after handshake");
+
+            proxySocket.setStreams(inputStream, outputStream);
+
+            // ... and rewire TDSChannel to use SSL streams.
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Getting SSL InputStream");
+
+            inputStream = new ProxyInputStream(sslSocket.getInputStream());
+
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Getting SSL OutputStream");
+
+            outputStream = sslSocket.getOutputStream();
+
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
 

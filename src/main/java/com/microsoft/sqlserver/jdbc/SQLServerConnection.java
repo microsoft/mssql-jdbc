@@ -3203,15 +3203,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
 
-        if (isTDSS) {
-            tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
-                    clientKey, clientKeyPassword, isTDSS);
-            clientKeyPassword = "";
-        }
-
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
-                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, isTDSS);
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
 
         setState(State.Connected);
 
@@ -3227,6 +3221,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             clientConnectionId = UUID.randomUUID();
         }
         assert null != clientConnectionId;
+
+        if (isTDSS) {
+            tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
+                    clientKey, clientKeyPassword, isTDSS);
+            clientKeyPassword = "";
+        }
 
         prelogin(serverInfo.getServerName(), serverInfo.getPortNumber());
 
