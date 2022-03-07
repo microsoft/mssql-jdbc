@@ -406,6 +406,9 @@ public abstract class AbstractTest {
                         case Constants.CONNECT_RETRY_INTERVAL:
                             ds.setConnectRetryInterval(Integer.parseInt(value));
                             break;
+                        case Constants.PREPARE_METHOD:
+                            ds.setPrepareMethod(value);
+                            break;
                         default:
                             break;
                     }

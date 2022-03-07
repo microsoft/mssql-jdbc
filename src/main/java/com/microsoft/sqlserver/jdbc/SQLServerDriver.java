@@ -159,6 +159,7 @@ enum EncryptOption {
     }
 }
 
+
 enum AttestationProtocol {
     HGS("HGS"),
     AAS("AAS");
@@ -376,9 +377,41 @@ enum SQLServerDriverObjectProperty {
 }
 
 
+enum PrepareMethod {
+    PREPEXEC("prepexec"), // sp_prepexec, default prepare method
+    PREPARE("prepare");
+
+    private final String value;
+
+    private PrepareMethod(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    static PrepareMethod valueOfString(String value) throws SQLServerException {
+        assert value != null;
+
+        for (PrepareMethod prepareMethod : PrepareMethod.values()) {
+            if (prepareMethod.toString().equals(value)) {
+                return prepareMethod;
+            }
+        }
+
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+        Object[] msgArgs = {SQLServerDriverStringProperty.PREPARE_METHOD.toString(), value};
+        throw new SQLServerException(form.format(msgArgs), null);
+    }
+}
+
+
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
+    PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
     HOSTNAME_IN_CERTIFICATE("hostNameInCertificate", ""),
@@ -562,6 +595,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
                             EncryptOption.Optional.toString(), EncryptOption.True.toString(),
                             EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
+                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
+                    new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),

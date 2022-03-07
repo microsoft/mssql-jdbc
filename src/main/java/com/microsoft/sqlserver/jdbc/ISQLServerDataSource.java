@@ -1039,7 +1039,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
-     * 
+     *
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
@@ -1127,4 +1127,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return interval in seconds
      */
     int getConnectRetryInterval();
+
+    /**
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
+     *
+     * @param prepareMethod
+     *        Changes the setting as per description
+     */
+    void setPrepareMethod(String prepareMethod);
+
+    /**
+     * Returns the value indicating the prepare method. {@link PrepareMethod}
+     *
+     * @return prepare method
+     */
+    String getPrepareMethod();
 }
