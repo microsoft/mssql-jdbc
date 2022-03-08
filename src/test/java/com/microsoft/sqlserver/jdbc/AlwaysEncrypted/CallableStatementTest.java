@@ -314,7 +314,7 @@ public class CallableStatementTest extends AESetup {
 
     @Test
     public void testCallableStatementSpPrepareAE() throws SQLException {
-        AETestConnectionString += "prepareMethod=prepare;";
+        AETestConnectionString += ";prepareMethod=prepare;";
 
         try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
