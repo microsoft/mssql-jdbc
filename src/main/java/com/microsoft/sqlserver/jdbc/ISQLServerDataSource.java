@@ -104,9 +104,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the option whether TLS encryption is used.
      * 
      * @param encryptOption
-     *        TLS encrypt option. Default is true
+     *        TLS encrypt option. Default is "true"
      */
     void setEncrypt(String encryptOption);
+
+    /**
+     * Sets the option whether TLS encryption is used.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt()} instead
+     * @param encryptOption
+     *        TLS encrypt option. Default is true
+     */
+    @Deprecated
+    void setEncrypt(boolean encryptOption);
 
     /**
      * Returns the TLS encryption option.
@@ -116,7 +126,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getEncrypt();
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address

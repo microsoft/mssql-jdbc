@@ -311,6 +311,13 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
+    public void setEncrypt(boolean encryptOption) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
+                Boolean.toString(encryptOption));
+    }
+
+    @Override
     public String getEncrypt() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
                 SQLServerDriverStringProperty.ENCRYPT.getDefaultValue());

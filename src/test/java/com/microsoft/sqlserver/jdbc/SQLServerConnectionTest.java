@@ -162,6 +162,10 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setEncrypt(booleanStringValue);
         assertEquals(booleanStringValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setEncrypt(booleanPropValue);
+        assertEquals(Boolean.toString(booleanPropValue), ds.getEncrypt(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setPrepareMethod(stringPropValue);
         assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
 

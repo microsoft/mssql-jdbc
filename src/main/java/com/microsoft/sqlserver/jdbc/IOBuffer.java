@@ -653,9 +653,6 @@ final class TDSChannel implements Serializable {
      */
     private static final long serialVersionUID = -866497813437384090L;
 
-    /** socket timeout waiting for SSL handshake */
-    private static final int SSL_HANDSHAKE_SOCKET_TIMEOUT = 15000;
-
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
     final Logger getLogger() {
