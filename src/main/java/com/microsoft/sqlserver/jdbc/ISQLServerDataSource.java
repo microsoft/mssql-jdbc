@@ -111,7 +111,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets the option whether TLS encryption is used.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setEncrypt()} instead
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
      * @param encryptOption
      *        TLS encrypt option. Default is true
      */
