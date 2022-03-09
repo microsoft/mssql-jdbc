@@ -2084,6 +2084,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else if (encryptOption.compareToIgnoreCase(EncryptOption.True.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_ON;
                 } else if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+                    // this is necessary so we don't encrypt again
                     requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
 
                     if (trustServerCertificate) {
@@ -2740,9 +2741,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
-        } finally
-
-        {
+        } finally {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
             if (!state.equals(State.Opened)) {
@@ -2750,6 +2749,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!state.equals(State.Closed))
                     this.close();
             }
+
+            activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
         return this;
     }

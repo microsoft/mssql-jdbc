@@ -2004,12 +2004,13 @@ final class TDSChannel implements Serializable {
             // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Creating SSL socket");
+
             proxySocket = new ProxySocket(this);
 
-            // don't close proxy when SSL socket is closed
             if (isTDSS) {
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
             } else {
+                // don't close proxy when SSL socket is closed
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
             }
 
