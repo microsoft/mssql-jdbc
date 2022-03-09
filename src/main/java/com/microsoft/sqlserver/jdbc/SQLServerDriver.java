@@ -348,7 +348,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
-    IPADDRESSPREFERENCE("IPAddressPreference", "IPv4"),
+    IPADDRESSPREFERENCE("IPAddressPreference", "IPv4First"),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),

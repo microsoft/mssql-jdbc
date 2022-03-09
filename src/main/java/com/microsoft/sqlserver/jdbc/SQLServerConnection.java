@@ -1923,6 +1923,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValuePort) {
                     trustedServerNameAE += ":" + sPropValuePort;
                 }
+                
+                sPropKey = SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
