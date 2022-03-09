@@ -396,7 +396,7 @@ enum PrepareMethod {
         assert value != null;
 
         for (PrepareMethod prepareMethod : PrepareMethod.values()) {
-            if (prepareMethod.toString().equals(value)) {
+            if (prepareMethod.toString().equalsIgnoreCase(value)) {
                 return prepareMethod;
             }
         }

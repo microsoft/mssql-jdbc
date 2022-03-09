@@ -62,7 +62,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testBatchSpPrepare() throws Exception {
-        connectionString += "prepareMethod=prepare;";
+        connectionString += ";prepareMethod=prepare;";
         testAddBatch1();
         testExecuteBatch1();
         testAddBatch1UseBulkCopyAPI();
