@@ -2617,11 +2617,12 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getSocketByIPvPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs, IPAddressPreference);
-                    //return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                    return getSocketByIPvPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
+                            IPAddressPreference);
+                    // return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
                 } else if (!useTnir) {
                     return getSocketByIPvPreference(hostName, portNumber, timeoutInMilliSeconds, IPAddressPreference);
-                    //return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                    // return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2915,46 +2916,27 @@ final class SocketFinder {
         return socketFactory;
     }
 
-    // This method contains the old logic of connecting to
-    // a socket of one of the IPs corresponding to a given host name.
-    // In the old code below, the logic around 0 timeout has been removed as
-    // 0 timeout is not allowed. The code has been re-factored so that the logic
-    // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
-        // Open the socket, with or without a timeout, throwing an UnknownHostException
-        // if there is a failure to resolve the host name to an InetSocketAddress.
-        //
-        // Note that Socket(host, port) throws an UnknownHostException if the host name
-        // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
-        // the returned InetSocketAddress as unresolved.
-
-        // if (IPAddressPreference == IPv6First) {
-        // Try to connect to IPv6 Addresses
-        // No IPv6 Addresses can be connected to, try IPv4 addresses now
-        // } else if (IPAddressPreference == IPv4First) {
-        // Try to connect to IPv4 Addresses
-        // No IPv4 Addresses can be connected to, try IPv6 addresses now
-        // } else if (IPAddressPreference == UsePlatformDefault) {
-        //
-        // } else {
-        // throw Exception
-        // }
-        InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
-        if (addr.isUnresolved()) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(this.toString() + "Failed to resolve host name: " + hostName
-                        + ". Using IP address from DNS cache.");
-            }
-            InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
-            addr = (null != cacheEntry) ? cacheEntry : addr;
-        }
-        return getConnectedSocket(addr, timeoutInMilliSeconds);
-    }
-
-    private Socket getSocketByIPvPreference(String hostName, int portNumber, int timeoutInMilliSeconds, String IPAddressPreference) throws IOException {
+    /**
+     * This method makes a connected socket given a hostname or IP address.
+     * 
+     * @param hostName
+     *        Hostname or IP Address
+     * @param portNumber
+     *        Port number
+     * @param timeoutInMilliSeconds
+     *        Timeout
+     * @param IPAddressPreference
+     *        IPv4First (default), IPv6First or UsePlatformDefault
+     * @return Connected Socket
+     * @throws IOException
+     * @throws SQLServerException
+     */
+    private Socket getSocketByIPvPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
+            String IPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
         Queue<InetAddress> addrq = null;
+
         if (IPAddressPreference.equals("IPv6First")) {
             // Try to connect to IPv6 Addresses
             addrq = getIPv6Addresses(addresses);
@@ -2992,12 +2974,25 @@ final class SocketFinder {
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
             }
         } else {
-            // coffee new jdbc exception?
+            // Invalid input for IPAddressPreference
+            throw new SQLServerException(SQLServerException.getErrString("R_InvalidIPAddressPreference"), null);
         }
-        
+
+        // Note that Socket(host, port) throws an UnknownHostException if the host name
+        // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
+        // the returned InetSocketAddress as unresolved.
+        if (addr.isUnresolved()) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(this.toString() + "Failed to resolve host name: " + hostName
+                        + ". Using IP address from DNS cache.");
+            }
+            InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
+            addr = (null != cacheEntry) ? cacheEntry : addr;
+        }
+
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
-    
+
     private Queue<InetAddress> getIPv6Addresses(InetAddress[] addresses) {
         Queue<InetAddress> addrq = new LinkedList<>();
         for (InetAddress addr : addresses) {
@@ -3007,7 +3002,7 @@ final class SocketFinder {
         }
         return addrq;
     }
-    
+
     private Queue<InetAddress> getIPv4Addresses(InetAddress[] addresses) {
         Queue<InetAddress> addrq = new LinkedList<>();
         for (InetAddress addr : addresses) {

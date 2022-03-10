@@ -43,4 +43,32 @@ public class ConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {
         }
     }
+    
+    @Test
+    public void testConnectWithIPAddressPreference () throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setIPAddressPreference("IPv4First");
+        
+        try (Connection con = ds.getConnection()) {
+        }
+        
+        ds.setIPAddressPreference("IPv6First");
+        
+        try (Connection con = ds.getConnection()) {
+        }
+        
+        ds.setIPAddressPreference("UsePlatformDefault");
+        
+        try (Connection con = ds.getConnection()) {
+        }
+        
+        ds.setIPAddressPreference("Bogus");
+        
+        try (Connection con = ds.getConnection()) {
+        }
+        catch (Exception e){
+            assert e.getMessage().equals("Invalid option for connection string option IPAddressPreference, the available options are: IPv4First, IPv6First and UsePlatformDefault");
+        }
+    }
 }
