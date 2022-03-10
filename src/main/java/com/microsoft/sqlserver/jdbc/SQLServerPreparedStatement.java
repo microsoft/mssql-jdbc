@@ -2103,23 +2103,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
                     }
 
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    option.setBulkCopyTimeout(queryTimeout);
-                    bcOperation.setBulkCopyOptions(option);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer(batchRecord);
-                    bcOperation.close();
-                    updateCounts = new int[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
+                    try {
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer(batchRecord);
+                        bcOperation.close();
+                        updateCounts = new int[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
 
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts;
+                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        return updateCounts;
+                    } finally {
+                        batchParamValues = null;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -2260,23 +2263,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
                     }
 
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    option.setBulkCopyTimeout(queryTimeout);
-                    bcOperation.setBulkCopyOptions(option);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer(batchRecord);
-                    bcOperation.close();
-                    updateCounts = new long[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
+                    try {
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer(batchRecord);
+                        bcOperation.close();
+                        updateCounts = new long[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
 
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                    return updateCounts;
+                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                        return updateCounts;
+                    } finally {
+                        batchParamValues = null;
+                    }
                 }
             }
         } catch (SQLException e) {
