@@ -60,6 +60,15 @@ public class BatchExecutionTest extends AbstractTest {
         testExecuteBatch1UseBulkCopyAPI();
     }
 
+    @Test
+    public void testBatchSpPrepare() throws Exception {
+        connectionString += ";prepareMethod=prepare;";
+        testAddBatch1();
+        testExecuteBatch1();
+        testAddBatch1UseBulkCopyAPI();
+        testExecuteBatch1UseBulkCopyAPI();
+    }
+
     /**
      * Get a PreparedStatement object and call the addBatch() method with 3 SQL statements and call the executeBatch()
      * method and it should return array of Integer values of length 3
