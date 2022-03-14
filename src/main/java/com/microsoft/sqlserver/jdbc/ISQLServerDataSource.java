@@ -152,7 +152,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a value that indicates if the trustServerCertificate property is enabled.
+     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the

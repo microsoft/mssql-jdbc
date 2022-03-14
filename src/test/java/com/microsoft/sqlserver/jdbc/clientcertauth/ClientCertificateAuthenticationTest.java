@@ -26,7 +26,8 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
- * Tests client certificate authentication feature The feature is only supported against SQL Server Linux CU2 or higher.
+ * Tests client certificate authentication feature. The feature is only supported against SQL Server Linux CU2 or
+ * higher.
  * 
  */
 @RunWith(JUnitPlatform.class)
@@ -209,9 +210,9 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void testEncryptTrusted() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS8_KEY_SUFFIX;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt
-                    .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
             rs.next();
             assertTrue(rs.getBoolean(1));
         }
@@ -226,9 +227,9 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     public void testEncryptUntrusted() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS8_KEY_SUFFIX;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt
-                    .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
             rs.next();
             assertTrue(rs.getBoolean(1));
         }
