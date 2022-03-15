@@ -152,7 +152,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
@@ -162,7 +162,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
      *         certificate location
