@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
@@ -35,8 +36,14 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -54,12 +61,242 @@ import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 
 final class SQLServerCertificateUtils {
 
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerCertificateUtils");
+    private static final String logContext = Thread.currentThread().getStackTrace()[1].getClassName() + ": ";
+
     static KeyManager[] getKeyManagerFromFile(String certPath, String keyPath,
             String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
         if (keyPath != null && keyPath.length() > 0) {
             return readPKCS8Certificate(certPath, keyPath, keyPassword);
         } else {
             return readPKCS12Certificate(certPath, keyPassword);
+        }
+    }
+
+    /**
+     * Parse name in RFC 2253 format Returns the common name if successful, null if failed to find the common name. The
+     * parser tuned to be safe than sorry so if it sees something it can't parse correctly it returns null
+     */
+    static String parseCommonName(String distinguishedName) {
+        int index;
+        // canonical name converts entire name to lowercase
+        index = distinguishedName.indexOf("cn=");
+        if (index == -1) {
+            return null;
+        }
+        distinguishedName = distinguishedName.substring(index + 3);
+        // Parse until a comma or end is reached
+        // Note the parser will handle gracefully (essentially will return empty string) , inside the quotes (e.g
+        // cn="Foo, bar") however
+        // RFC 952 says that the hostName cant have commas however the parser should not (and will not) crash if it
+        // sees a , within quotes.
+        for (index = 0; index < distinguishedName.length(); index++) {
+            if (distinguishedName.charAt(index) == ',') {
+                break;
+            }
+        }
+        String commonName = distinguishedName.substring(0, index);
+        // strip any quotes
+        if (commonName.length() > 1 && ('\"' == commonName.charAt(0))) {
+            if ('\"' == commonName.charAt(commonName.length() - 1))
+                commonName = commonName.substring(1, commonName.length() - 1);
+            else {
+                // Be safe the name is not ended in " return null so the common Name wont match
+                commonName = null;
+            }
+        }
+        return commonName;
+    }
+
+    /**
+     * Validate server name in certificate matches hostname
+     * 
+     * @param nameInCert
+     *        server name in certificate
+     * @param hostName
+     *        * hostname
+     * @return
+     */
+    static boolean validateServerName(String nameInCert, String hostName) {
+        // Failed to get the common name from DN or empty CN
+        if (null == nameInCert) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
+            }
+            return false;
+        }
+        // We do not allow wildcards in IDNs (xn--).
+        if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
+            int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
+            while (hostIndex < hostName.length()) {
+                if ('.' == hostName.charAt(hostIndex)) {
+                    periodCount++;
+                }
+                if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
+                    hostIndex++;
+                    certIndex++;
+                } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
+                    startIndex = certIndex;
+                    match = hostIndex;
+                    certIndex++;
+                } else if (startIndex != -1 && 0 == periodCount) {
+                    certIndex = startIndex + 1;
+                    match++;
+                    hostIndex = match;
+                } else {
+                    logFailMessage(nameInCert, hostName);
+                    return false;
+                }
+            }
+            if (nameInCert.length() == certIndex && periodCount > 1) {
+                logSuccessMessage(nameInCert, hostName);
+                return true;
+            } else {
+                logFailMessage(nameInCert, hostName);
+                return false;
+            }
+        }
+        // Verify that the name in certificate matches exactly with the host name
+        if (!nameInCert.equals(hostName)) {
+            logFailMessage(nameInCert, hostName);
+            return false;
+        }
+        logSuccessMessage(nameInCert, hostName);
+        return true;
+    }
+
+    /**
+     * Validate server name in certificate
+     * 
+     * @param cert
+     *        X509 certificate
+     * @param hostName
+     *        hostname
+     * @throws CertificateException
+     */
+    static void validateServerNameInCertificate(X509Certificate cert, String hostName) throws CertificateException {
+        String nameInCertDN = cert.getSubjectX500Principal().getName("canonical");
+
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(logContext + " Validating the server name:" + hostName);
+            logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
+        }
+
+        boolean isServerNameValidated;
+        String dnsNameInSANCert = "";
+
+        // the name in cert is in RFC2253 format parse it to get the actual subject name
+        String subjectCN = parseCommonName(nameInCertDN);
+
+        isServerNameValidated = validateServerName(subjectCN, hostName);
+
+        if (!isServerNameValidated) {
+            Collection<List<?>> sanCollection = cert.getSubjectAlternativeNames();
+
+            if (sanCollection != null) {
+                // find a subjectAlternateName entry corresponding to DNS Name
+                for (List<?> sanEntry : sanCollection) {
+
+                    if (sanEntry != null && sanEntry.size() >= 2) {
+                        Object key = sanEntry.get(0);
+                        Object value = sanEntry.get(1);
+
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.finer(logContext + "Key: " + key + "; KeyClass:"
+                                    + (key != null ? key.getClass() : null) + ";value: " + value + "; valueClass:"
+                                    + (value != null ? value.getClass() : null));
+                        }
+
+                        // From
+                        // Documentation(http://download.oracle.com/javase/6/docs/api/java/security/cert/X509Certificate.html):
+                        // "Note that the Collection returned may contain
+                        // more than one name of the same type."
+                        // So, more than one entry of dnsNameType can be present.
+                        // Java docs guarantee that the first entry in the list will be an integer.
+                        // 2 is the sequence no of a dnsName
+                        if ((key != null) && (key instanceof Integer) && ((Integer) key == 2)) {
+                            // As per RFC2459, the DNSName will be in the
+                            // "preferred name syntax" as specified by RFC
+                            // 1034 and the name can be in upper or lower case.
+                            // And no significance is attached to case.
+                            // Java docs guarantee that the second entry in the list
+                            // will be a string for dnsName
+                            if (value != null && value instanceof String) {
+                                dnsNameInSANCert = (String) value;
+
+                                // Use English locale to avoid Turkish i issues.
+                                // Note that, this conversion was not necessary for
+                                // cert.getSubjectX500Principal().getName("canonical");
+                                // as the above API already does this by default as per documentation.
+                                dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
+
+                                isServerNameValidated = validateServerName(dnsNameInSANCert, hostName);
+                                if (isServerNameValidated) {
+                                    if (logger.isLoggable(Level.FINER)) {
+                                        logger.finer(
+                                                logContext + " found a valid name in certificate: " + dnsNameInSANCert);
+                                    }
+                                    break;
+                                }
+                            }
+
+                            if (logger.isLoggable(Level.FINER)) {
+                                logger.finer(logContext
+                                        + " the following name in certificate does not match the serverName: " + value);
+                            }
+                        }
+
+                    } else {
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.finer(logContext + " found an invalid san entry: " + sanEntry);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!isServerNameValidated) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_certNameFailed"));
+            Object[] msgArgs = {hostName, dnsNameInSANCert};
+            throw new CertificateException(form.format(msgArgs));
+        }
+    }
+
+    /**
+     * Validate certificate provided in path against server X509 certificate
+     * 
+     * @param cert
+     *        X509 certificate
+     * @param certFile
+     *        path to certificate file to validate
+     * @throws CertificateException
+     */
+    static void validateServerCerticate(X509Certificate cert, String certFile) throws CertificateException {
+        try (InputStream is = fileToStream(certFile)) {
+            if (!CertificateFactory.getInstance("X509").generateCertificate(is).getPublicKey()
+                    .equals(cert.getPublicKey())) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertInvalid"));
+                Object[] msgArgs = {certFile};
+                throw new CertificateException(form.format(msgArgs));
+            }
+        } catch (Exception e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
+            Object[] msgArgs = {certFile, e.getMessage()};
+            throw new CertificateException(form.format(msgArgs));
+        }
+    }
+
+    private static void logFailMessage(String nameInCert, String hostName) {
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(logContext + " The name in certificate " + nameInCert + " does not match with the server name "
+                    + hostName + ".");
+        }
+    }
+
+    private static void logSuccessMessage(String nameInCert, String hostName) {
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
+                    + hostName + ".");
         }
     }
 
@@ -148,8 +385,8 @@ final class SQLServerCertificateUtils {
             String keyPass) throws IOException, GeneralSecurityException, SQLServerException {
         File f = new File(keyPath);
         ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
-        try (FileInputStream in = new FileInputStream(f)) {
-            in.getChannel().read(buffer);
+
+        try (FileInputStream in = new FileInputStream(f); FileChannel channel = in.getChannel()) {
             ((Buffer) buffer.order(ByteOrder.LITTLE_ENDIAN)).rewind();
 
             long magic = buffer.getInt() & 0xFFFFFFFFL;

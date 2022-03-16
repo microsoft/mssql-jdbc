@@ -453,7 +453,8 @@ enum SQLServerDriverStringProperty {
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
-    ENCRYPT("encrypt", EncryptOption.True.toString());
+    ENCRYPT("encrypt", EncryptOption.True.toString()),
+    SERVER_CERTIFICATE("serverCertificate", "");
 
     private final String name;
     private final String defaultValue;
@@ -595,6 +596,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
                             EncryptOption.Optional.toString(), EncryptOption.True.toString(),
                             EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(),
+                    SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
                     new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
@@ -698,7 +701,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                             SqlAuthentication.ActiveDirectoryMSI.toString(),
                             SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
                             SqlAuthentication.ActiveDirectoryInteractive.toString()}),
-
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
