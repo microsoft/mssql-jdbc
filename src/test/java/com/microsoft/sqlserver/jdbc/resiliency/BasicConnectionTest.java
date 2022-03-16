@@ -35,8 +35,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        // Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
         setConnection();
     }
 
@@ -59,7 +57,7 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     public void testBasicEncryptedConnection() throws SQLException {
-        basicReconnect(connectionString + ";encrypt=true;trustServerCertificate=true;");
+        basicReconnect(connectionString);
     }
 
     @Test

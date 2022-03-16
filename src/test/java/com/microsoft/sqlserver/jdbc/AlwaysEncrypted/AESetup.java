@@ -192,7 +192,6 @@ public class AESetup extends AbstractTest {
 
     @BeforeAll
     public static void setupAETest() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
@@ -220,16 +219,19 @@ public class AESetup extends AbstractTest {
 
             setAEConnectionString(serverName, url, protocol);
 
-            createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, Constants.CMK_SIGNATURE);
+            createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
+                    Constants.CMK_SIGNATURE);
             createCEK(AETestConnectionString, cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
-                createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], Constants.CMK_SIGNATURE_AKV);
+                createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0],
+                        Constants.CMK_SIGNATURE_AKV);
                 createCEK(AETestConnectionString, cmkAkv, cekAkv, akvProvider);
             }
 
             if (null != windowsKeyPath) {
-                createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, Constants.CMK_SIGNATURE);
+                createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath,
+                        Constants.CMK_SIGNATURE);
                 createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
         }
@@ -1945,7 +1947,7 @@ public class AESetup extends AbstractTest {
     protected static void dropObject(String connString, String objectType, String objectName) {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            switch(objectType) {
+            switch (objectType) {
                 case "TABLE":
                     TestUtils.dropTableIfExists(objectName, stmt);
                     break;
@@ -1958,7 +1960,7 @@ public class AESetup extends AbstractTest {
                 default:
                     break;
             }
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             fail(ex.getMessage());
         }
     }

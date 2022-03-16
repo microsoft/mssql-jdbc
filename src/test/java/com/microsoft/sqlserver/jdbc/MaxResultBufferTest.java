@@ -69,7 +69,6 @@ public class MaxResultBufferTest extends AbstractTest {
         // reset logging to avoid severe logs triggered from tests
         LogManager.getLogManager().reset();
 
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
 
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME) + " VALUES (?)";

@@ -2202,7 +2202,6 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupHere() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         geomTableName = RandomUtil.getIdentifier("geometryTestTable");

@@ -55,7 +55,6 @@ public class ConnectionWrapper43Test extends AbstractTest {
 
     @BeforeAll
     public static void setupConnection() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         connection = getConnection();

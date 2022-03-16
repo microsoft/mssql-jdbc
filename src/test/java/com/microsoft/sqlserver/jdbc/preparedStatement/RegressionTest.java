@@ -51,7 +51,6 @@ public class RegressionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Statement stmt = connection.createStatement()) {

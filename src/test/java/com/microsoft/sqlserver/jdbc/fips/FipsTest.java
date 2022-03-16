@@ -33,15 +33,14 @@ public class FipsTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        //Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
         setConnection();
     }
 
     /**
      * Test after setting TrustServerCertificate as true.
      * 
-     * @throws Exception when an error occurs
+     * @throws Exception
+     *         when an error occurs
      */
     @Test
     public void fipsTrustServerCertificateTest() throws Exception {
@@ -58,7 +57,8 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after passing encrypt as false.
      * 
-     * @throws Exception when an error occurs
+     * @throws Exception
+     *         when an error occurs
      */
     @Test
     public void fipsEncryptTest() throws Exception {
@@ -75,7 +75,8 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after removing fips, encrypt & trustStore it should work appropriately.
      * 
-     * @throws Exception when an error occurs
+     * @throws Exception
+     *         when an error occurs
      */
     @Test
     public void fipsPropertyTest() throws Exception {
@@ -95,14 +96,15 @@ public class FipsTest extends AbstractTest {
     /**
      * Tests after removing all FIPS related properties.
      * 
-     * @throws Exception when an error occurs
+     * @throws Exception
+     *         when an error occurs
      */
     @Test
     public void fipsDataSourcePropertyTest() throws Exception {
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
         ds.setFIPS(false);
-        ds.setEncrypt(false);
+        ds.setEncrypt(Constants.FALSE);
         ds.setTrustStoreType(Constants.JKS);
         try (Connection con = ds.getConnection()) {
             Assertions.assertTrue(!StringUtils.isEmpty(con.getSchema()));
@@ -118,7 +120,7 @@ public class FipsTest extends AbstractTest {
     public void fipsDatSourceEncrypt() {
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
-        ds.setEncrypt(false);
+        ds.setEncrypt(Constants.FALSE);
 
         try (Connection con = ds.getConnection()) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -131,7 +133,8 @@ public class FipsTest extends AbstractTest {
     /**
      * Test after setting TrustServerCertificate as true.
      * 
-     * @throws Exception when an error occurs
+     * @throws Exception
+     *         when an error occurs
      */
     @Test
     public void fipsDataSourceTrustServerCertificateTest() throws Exception {
@@ -157,7 +160,7 @@ public class FipsTest extends AbstractTest {
 
         // Set all properties for FIPS
         ds.setFIPS(true);
-        ds.setEncrypt(true);
+        ds.setEncrypt(Constants.TRUE);
         ds.setTrustServerCertificate(false);
         ds.setIntegratedSecurity(false);
         ds.setTrustStoreType(Constants.PKCS12);
@@ -174,11 +177,12 @@ public class FipsTest extends AbstractTest {
         connectionProps.setProperty(Constants.ENCRYPT, Boolean.TRUE.toString());
         connectionProps.setProperty(Constants.INTEGRATED_SECURITY, Boolean.FALSE.toString());
 
-        // In case of false we need to pass keystore etc. which is not passing by default.
         connectionProps.setProperty(Constants.TRUST_SERVER_CERTIFICATE, Boolean.FALSE.toString());
 
-        // For New Code
         connectionProps.setProperty(Constants.TRUST_STORE_TYPE, Constants.PKCS12);
+        connectionProps.setProperty(Constants.TRUST_STORE, trustStore);
+        connectionProps.setProperty(Constants.TRUST_STORE_SECRET_PROPERTY, trustStorePassword);
+
         connectionProps.setProperty(Constants.FIPS, Boolean.TRUE.toString());
 
         return connectionProps;

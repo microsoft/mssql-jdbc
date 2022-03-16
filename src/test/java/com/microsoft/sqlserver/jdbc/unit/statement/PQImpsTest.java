@@ -67,7 +67,6 @@ public class PQImpsTest extends AbstractTest {
      */
     @BeforeAll
     public static void BeforeTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         connection = getConnection();

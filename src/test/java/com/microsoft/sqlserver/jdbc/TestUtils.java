@@ -75,18 +75,20 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
     private TestUtils() {}
-    
+
     /**
      * Checks if the connection session recovery object has negotiated reflection.
+     * 
      * @param con
      * @return
      */
     public static boolean isConnectionRecoveryNegotiated(Connection con) {
         return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
     }
-    
+
     /**
      * Checks if connection is dead.
+     * 
      * @param con
      * @return
      * @throws SQLServerException
@@ -868,7 +870,7 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.indexOf(property);
+        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");

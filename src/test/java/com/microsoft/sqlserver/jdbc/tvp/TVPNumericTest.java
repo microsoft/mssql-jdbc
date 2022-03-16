@@ -95,7 +95,6 @@ public class TVPNumericTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         tvpName = RandomUtil.getIdentifier("numericTVP");

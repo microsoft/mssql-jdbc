@@ -196,13 +196,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Engine Edition 11 = Azure Synapse serverless SQL pool */
     private final int ENGINE_EDITION_SQL_AZURE_SYNAPSE_SERVERLESS_SQL_POOL = 11;
 
-    /** flag indicated whether server is Azure */
+    /** flag indicating whether server is Azure */
     private Boolean isAzure = null;
 
-    /** flag indicated whether server is Azure DW */
+    /** flag indicating whether server is Azure DW */
     private Boolean isAzureDW = null;
 
-    /** flag indicated whether server is Azure MI */
+    /** flag indicating whether server is Azure MI */
     private Boolean isAzureMI = null;
 
     /** shared timer */
@@ -213,6 +213,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** connect retry interval */
     private int connectRetryInterval = 0;
+
+    /** flag indicating whether prelogin TLS handshake is required */
+    private boolean isTDSS = false;
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -743,9 +746,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return requestedEncryptionLevel;
     }
 
-    /** trust server certificate */
+    /** flag indicating whether to trust server certificate */
     private boolean trustServerCertificate;
 
+    /** return whether to trust server certificate */
     final boolean trustServerCertificate() {
         return trustServerCertificate;
     }
@@ -754,7 +758,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte negotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
     final byte getNegotiatedEncryptionLevel() {
-        assert TDS.ENCRYPT_INVALID != negotiatedEncryptionLevel;
+        assert (!isTDSS ? TDS.ENCRYPT_INVALID != negotiatedEncryptionLevel : true);
         return negotiatedEncryptionLevel;
     }
 
@@ -794,6 +798,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** column encryption setting */
     String columnEncryptionSetting = null;
+
+    /** encrypt option */
+    String encryptOption = null;
 
     boolean isColumnEncryptionSettingEnabled() {
         return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
@@ -2045,6 +2052,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 transparentNetworkIPResolution = isBooleanPropertyOn(sPropKey, sPropValue);
 
+                sPropKey = SQLServerDriverStringProperty.ENCRYPT.toString();
                 sPropKey = SQLServerDriverStringProperty.PREPARE_METHOD.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -2053,20 +2061,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 setPrepareMethod(PrepareMethod.valueOfString(sPropValue).toString());
 
-                sPropKey = SQLServerDriverBooleanProperty.ENCRYPT.toString();
+                sPropKey = SQLServerDriverStringProperty.ENCRYPT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
+                    sPropValue = SQLServerDriverStringProperty.ENCRYPT.getDefaultValue();
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
-
-                socketFactoryClass = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
-                socketFactoryConstructorArg = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
-
-                // Set requestedEncryptionLevel according to the value of the encrypt connection property
-                requestedEncryptionLevel = isBooleanPropertyOn(sPropKey, sPropValue) ? TDS.ENCRYPT_ON : TDS.ENCRYPT_OFF;
+                encryptOption = EncryptOption.valueOfString(sPropValue).toString();
 
                 sPropKey = SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2075,8 +2076,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             .toString(SQLServerDriverBooleanProperty.TRUST_SERVER_CERTIFICATE.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
-
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                // Set requestedEncryptionLevel according to the value of the encrypt connection property
+                if (encryptOption.compareToIgnoreCase(EncryptOption.False.toString()) == 0) {
+                    requestedEncryptionLevel = TDS.ENCRYPT_OFF;
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.True.toString()) == 0) {
+                    requestedEncryptionLevel = TDS.ENCRYPT_ON;
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+                    // this is necessary so we don't encrypt again
+                    requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
+
+                    if (trustServerCertificate) {
+                        if (loggerExternal.isLoggable(Level.FINER))
+                            loggerExternal.finer(toString() + " ignore trustServerCertificate for strict");
+                    }
+                    // do not trust server cert for strict
+                    trustServerCertificate = false;
+
+                    // prelogin TLS handshake is required
+                    isTDSS = true;
+                } else {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_InvalidConnectionSetting"));
+                    Object[] msgArgs = {"encrypt", encryptOption};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+
                 trustManagerClass = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.toString());
                 trustManagerConstructorArg = activeConnectionProperties
@@ -2087,6 +2113,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null == sPropValue) {
                     sPropValue = SQLServerDriverStringProperty.SELECT_METHOD.getDefaultValue();
                 }
+
+                socketFactoryClass = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CLASS.toString());
+                socketFactoryConstructorArg = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.SOCKET_FACTORY_CONSTRUCTOR_ARG.toString());
 
                 if ("cursor".equalsIgnoreCase(sPropValue) || "direct".equalsIgnoreCase(sPropValue)) {
                     sPropValue = sPropValue.toLowerCase(Locale.ENGLISH);
@@ -2721,9 +2752,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
-
         return this;
-
     }
 
     /**
@@ -3185,6 +3214,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
+
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
                 useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
@@ -3202,15 +3232,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             clientConnectionId = UUID.randomUUID();
         }
-
         assert null != clientConnectionId;
 
-        Prelogin(serverInfo.getServerName(), serverInfo.getPortNumber());
-
-        // If prelogin negotiated SSL encryption then, enable it on the TDS channel.
-        if (TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
+        if (isTDSS) {
             tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
-                    clientKey, clientKeyPassword);
+                    clientKey, clientKeyPassword, isTDSS);
+            clientKeyPassword = "";
+        }
+
+        prelogin(serverInfo.getServerName(), serverInfo.getPortNumber());
+
+        // If not enabled already and prelogin negotiated SSL encryption then, enable it on the TDS channel.
+        if (!isTDSS && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
+            tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
+                    clientKey, clientKeyPassword, false);
             clientKeyPassword = "";
         }
 
@@ -3251,7 +3286,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Negotiates prelogin information with the server.
      */
-    void Prelogin(String serverName, int portNumber) throws SQLServerException {
+    void prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
         if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
                 || (null != accessTokenInByte)) {
@@ -3317,7 +3352,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Build (Little Endian), 2 bytes
                 (byte) (SQLJdbcVersion.build & 0xff), (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
 
-                // - Encryption -
+                // Encryption
+                // turn encryption off for TDSS since it's already enabled
                 (null == clientCertificate) ? requestedEncryptionLevel
                                             : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
