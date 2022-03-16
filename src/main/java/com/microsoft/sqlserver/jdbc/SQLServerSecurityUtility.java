@@ -363,7 +363,7 @@ class SQLServerSecurityUtility {
             maxRetry = 20;
             // Simplified variant of Exponential BackOff
             for (int x = 0; x < maxRetry; x++) {
-                retrySlots.add(INTERNAL_SERVER_ERROR * ((2 << 1) - 1) / 1000);
+                retrySlots.add(INTERNAL_SERVER_ERROR * ((2 << x) - 1) / 1000);
             }
         }
 
