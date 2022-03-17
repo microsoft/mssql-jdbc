@@ -753,19 +753,20 @@ final class TDSChannel implements Serializable {
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      * 
-     * @param IPAddressPreference
+     * @param iPAddressPreference
+     *        Preferred type of IP address to use first; valid options are IPv4First, IPv6First and UsePlatformDefault
      *
      * @return InetSocketAddress of the connection socket.
      */
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout,
-            String IPAddressPreference) throws SQLServerException {
+            String iPAddressPreference) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
-                isTnirFirstAttempt, timeoutMillisForFullTimeout, IPAddressPreference);
+                isTnirFirstAttempt, timeoutMillisForFullTimeout, iPAddressPreference);
         try {
 
             // Set socket options
@@ -2619,10 +2620,8 @@ final class SocketFinder {
                 if (useTnir && isTnirFirstAttempt) {
                     return getSocketByIPvPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
                             IPAddressPreference);
-                    // return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
                 } else if (!useTnir) {
                     return getSocketByIPvPreference(hostName, portNumber, timeoutInMilliSeconds, IPAddressPreference);
-                    // return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
                 }
             }
 
@@ -2630,7 +2629,6 @@ final class SocketFinder {
             // case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
-                // coffee add new function here
                 inetAddrs = InetAddress.getAllByName(hostName);
 
                 if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
@@ -2917,6 +2915,26 @@ final class SocketFinder {
     }
 
     /**
+     * Helper function which traverses through queue of InetAddresses to find a resolved one
+     * 
+     * @param addrq
+     *        Address queue
+     * @param portNumber
+     *        Port Number
+     * @return First resolved queue or unresolved queue if none found
+     * @throws IOException
+     */
+    private InetSocketAddress traverseAddressQueue(Queue<InetAddress> addrq, int portNumber) throws IOException {
+        InetSocketAddress addr = new InetSocketAddress(portNumber);
+        while (addrq.peek() != null) {
+            addr = new InetSocketAddress(addrq.poll(), portNumber);
+            if (!addr.isUnresolved())
+                return addr;
+        }
+        return addr;
+    }
+
+    /**
      * This method makes a connected socket given a hostname or IP address.
      * 
      * @param hostName
@@ -2937,45 +2955,40 @@ final class SocketFinder {
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
         Queue<InetAddress> addrq = null;
 
-        if (IPAddressPreference.equals("IPv6First")) {
-            // Try to connect to IPv6 Addresses
-            addrq = getIPv6Addresses(addresses);
-            while (addrq.peek() != null) {
-                addr = new InetSocketAddress(addrq.poll(), portNumber);
+        IPvAddressPreferenceEnum IPvPref = IPvAddressPreferenceEnum.valueOfString(IPAddressPreference);
+
+        switch (IPvPref) {
+            case IPv6First:
+                // Try to connect to IPv6 Addresses
+                addrq = getIPv6AddressQueue(addresses);
+                addr = traverseAddressQueue(addrq, portNumber);
+                if (addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No IPv6 Addresses can be connected to, try IPv4 addresses now
+                addrq = getIPv4AddressQueue(addresses);
+                addr = traverseAddressQueue(addrq, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
-            }
-            // No IPv6 Addresses can be connected to, try IPv4 addresses now
-            addrq = getIPv4Addresses(addresses);
-            while (addrq.peek() != null) {
-                addr = new InetSocketAddress(addrq.poll(), portNumber);
+                break;
+            case IPv4First:
+                // Try to connect to IPv4 Addresses
+                addrq = getIPv4AddressQueue(addresses);
+                addr = traverseAddressQueue(addrq, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
-            }
-        } else if (IPAddressPreference.equals("IPv4First")) {
-            // Try to connect to IPv4 Addresses
-            addrq = getIPv4Addresses(addresses);
-            while (addrq.peek() != null) {
-                addr = new InetSocketAddress(addrq.poll(), portNumber);
+                // No IPv4 Addresses can be connected to, try IPv6 addresses now
+                addrq = getIPv6AddressQueue(addresses);
+                addr = traverseAddressQueue(addrq, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
-            }
-            // No IPv4 Addresses can be connected to, try IPv6 addresses now
-            addrq = getIPv6Addresses(addresses);
-            while (addrq.peek() != null) {
-                addr = new InetSocketAddress(addrq.poll(), portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-            }
-        } else if (IPAddressPreference.equals("UsePlatformDefault")) {
-            for (InetAddress address : addresses) {
-                addr = new InetSocketAddress(address, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-            }
-        } else {
-            // Invalid input for IPAddressPreference
-            throw new SQLServerException(SQLServerException.getErrString("R_InvalidIPAddressPreference"), null);
+                break;
+            case UsePlatformDefault:
+                for (InetAddress address : addresses) {
+                    addr = new InetSocketAddress(address, portNumber);
+                    if (!addr.isUnresolved())
+                        return getConnectedSocket(addr, timeoutInMilliSeconds);
+                }
+                break;
         }
 
         // Note that Socket(host, port) throws an UnknownHostException if the host name
@@ -2993,7 +3006,7 @@ final class SocketFinder {
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
-    private Queue<InetAddress> getIPv6Addresses(InetAddress[] addresses) {
+    private Queue<InetAddress> getIPv6AddressQueue(InetAddress[] addresses) {
         Queue<InetAddress> addrq = new LinkedList<>();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet6Address) {
@@ -3003,7 +3016,7 @@ final class SocketFinder {
         return addrq;
     }
 
-    private Queue<InetAddress> getIPv4Addresses(InetAddress[] addresses) {
+    private Queue<InetAddress> getIPv4AddressQueue(InetAddress[] addresses) {
         Queue<InetAddress> addrq = new LinkedList<>();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet4Address) {

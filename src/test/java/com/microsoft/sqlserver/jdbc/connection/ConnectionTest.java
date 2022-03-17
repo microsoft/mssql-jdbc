@@ -6,14 +6,18 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 /*
@@ -49,26 +53,22 @@ public class ConnectionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setIPAddressPreference("IPv4First");
-        
         try (Connection con = ds.getConnection()) {
         }
-        
         ds.setIPAddressPreference("IPv6First");
-        
         try (Connection con = ds.getConnection()) {
         }
-        
         ds.setIPAddressPreference("UsePlatformDefault");
-        
         try (Connection con = ds.getConnection()) {
         }
-        
         ds.setIPAddressPreference("Bogus");
-        
         try (Connection con = ds.getConnection()) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e){
-            assert e.getMessage().equals("Invalid option for connection string option IPAddressPreference, the available options are: IPv4First, IPv6First and UsePlatformDefault");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_InvalidIPAddressPreference"));
+            Object[] msgArgs1 = {"Bogus"};
+            assertTrue (e.getMessage().equals(form.format(msgArgs1)), e.getMessage());
         }
     }
 }

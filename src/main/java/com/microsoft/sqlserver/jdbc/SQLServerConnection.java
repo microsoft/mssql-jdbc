@@ -1924,11 +1924,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     trustedServerNameAE += ":" + sPropValuePort;
                 }
                 
-                sPropKey = SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString();
+                sPropKey = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue();
+                    sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                } else {
+                    IPvAddressPreferenceEnum.valueOfString(sPropValue).toString();
                 }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
@@ -3192,7 +3194,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        String IPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString());
+        String IPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
                 useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, IPAddressPreference);

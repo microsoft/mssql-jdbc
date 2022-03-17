@@ -215,6 +215,43 @@ enum SSLProtocol {
 }
 
 
+enum IPvAddressPreferenceEnum {
+    IPv4First("IPv4First"),
+    IPv6First("IPv6First"),
+    UsePlatformDefault("UsePlatformDefault"),;
+
+    private final String name;
+
+    IPvAddressPreferenceEnum(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    static IPvAddressPreferenceEnum valueOfString(String value) throws SQLServerException {
+        IPvAddressPreferenceEnum iptype = null;
+
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPvAddressPreferenceEnum.IPv4First.toString())) {
+            iptype = IPvAddressPreferenceEnum.IPv4First;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPvAddressPreferenceEnum.IPv6First.toString())) {
+            iptype = IPvAddressPreferenceEnum.IPv6First;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(IPvAddressPreferenceEnum.UsePlatformDefault.toString())) {
+            iptype = IPvAddressPreferenceEnum.UsePlatformDefault;
+
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidIPAddressPreference"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return iptype;
+    }
+}
+
+
 enum KeyStoreAuthentication {
     JavaKeyStorePassword,
     KeyVaultClientSecret,
@@ -334,8 +371,9 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+
 enum PrepareMethod {
-    PREPEXEC("prepexec"), //sp_prepexec, default prepare method
+    PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare");
 
     private final String value;
@@ -364,6 +402,7 @@ enum PrepareMethod {
     }
 }
 
+
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
@@ -378,7 +417,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
-    IPADDRESSPREFERENCE("IPAddressPreference", "IPv4First"),
+    IPADDRESS_PREFERENCE("IPAddressPreference", IPvAddressPreferenceEnum.IPv4First.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -547,7 +586,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()), false,
                     new String[] {"true"}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
-                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(),false,
+                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
                     new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENCRYPT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue()), false, TRUE_FALSE),
@@ -602,8 +641,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.DOMAIN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_NAME.toString(),
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(),
-                    SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                    SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
+                    new String[] {IPvAddressPreferenceEnum.IPv4First.toString(),
+                            IPvAddressPreferenceEnum.IPv6First.toString(),
+                            IPvAddressPreferenceEnum.UsePlatformDefault.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),

@@ -503,7 +503,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
-        {"R_InvalidIPAddressPreference", "Invalid option for connection string option IPAddressPreference, the available options are: IPv4First, IPv6First and UsePlatformDefault"},
+        {"R_InvalidIPAddressPreference", "Invalid option for connection string option IPAddressPreference: {0}"},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
     };
 }

@@ -578,12 +578,20 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
     
+    /**
+     * Set the preferred type of IP Address
+     * 
+     * @param IPAddressPreference Preferred IP Address type
+     */
     public void setIPAddressPreference(String IPAddressPreference) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(), IPAddressPreference);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), IPAddressPreference);
     }
     
+    /**
+     * Gets the preferred type of IP Address
+     */
     public String getIPAddressPreference() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESSPREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESSPREFERENCE.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
     }
 
     /**
