@@ -306,14 +306,21 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setEncrypt(boolean encrypt) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), encrypt);
+    public void setEncrypt(String encryptOption) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(), encryptOption);
     }
 
     @Override
-    public boolean getEncrypt() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(),
-                SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
+    @Deprecated
+    public void setEncrypt(boolean encryptOption) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
+                Boolean.toString(encryptOption));
+    }
+
+    @Override
+    public String getEncrypt() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
+                SQLServerDriverStringProperty.ENCRYPT.getDefaultValue());
     }
 
     @Override

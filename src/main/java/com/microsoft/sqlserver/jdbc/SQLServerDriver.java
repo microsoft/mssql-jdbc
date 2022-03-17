@@ -121,6 +121,45 @@ enum ColumnEncryptionSetting {
 }
 
 
+enum EncryptOption {
+    False,
+    No,
+    Optional,
+    True,
+    Mandatory,
+    Strict;
+
+    static EncryptOption valueOfString(String value) throws SQLServerException {
+        EncryptOption option = null;
+
+        String val = value.toLowerCase(Locale.US);
+        if (val.equalsIgnoreCase(EncryptOption.False.toString()) || val.equalsIgnoreCase(EncryptOption.No.toString())
+                || val.equalsIgnoreCase(EncryptOption.Optional.toString())) {
+            option = EncryptOption.False;
+        } else if (val.equalsIgnoreCase(EncryptOption.True.toString())
+                || val.equalsIgnoreCase(EncryptOption.Mandatory.toString())) {
+            option = EncryptOption.True;
+        } else if (val.equalsIgnoreCase(EncryptOption.Strict.toString())) {
+            option = EncryptOption.Strict;
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+            Object[] msgArgs = {"EncryptOption", value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return option;
+    }
+
+    static boolean isValidEncryptOption(String option) {
+        for (EncryptOption t : EncryptOption.values()) {
+            if (option.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
 enum AttestationProtocol {
     HGS("HGS"),
     AAS("AAS");
@@ -181,7 +220,8 @@ enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),
     TLS_V11("TLSv1.1"),
-    TLS_V12("TLSv1.2"),;
+    TLS_V12("TLSv1.2"),
+    TLS_V13("TLSv1.3"),;
 
     private final String name;
 
@@ -205,6 +245,8 @@ enum SSLProtocol {
             protocol = SSLProtocol.TLS_V11;
         } else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V12.toString())) {
             protocol = SSLProtocol.TLS_V12;
+        } else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V13.toString())) {
+            protocol = SSLProtocol.TLS_V13;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSSLProtocol"));
             Object[] msgArgs = {value};
@@ -448,7 +490,8 @@ enum SQLServerDriverStringProperty {
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
-    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
+    ENCRYPT("encrypt", EncryptOption.True.toString());
 
     private final String name;
     private final String defaultValue;
@@ -516,7 +559,6 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty {
     DISABLE_STATEMENT_POOLING("disableStatementPooling", true),
-    ENCRYPT("encrypt", true),
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),
@@ -564,6 +606,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};
+
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
             // default required available choices
             // property name value property (if appropriate)
@@ -585,11 +628,14 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()), false,
                     new String[] {"true"}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCRYPT.toString(),
+                    SQLServerDriverStringProperty.ENCRYPT.getDefaultValue(), false,
+                    new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
+                            EncryptOption.Optional.toString(), EncryptOption.True.toString(),
+                            EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
                     new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENCRYPT.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
@@ -778,7 +824,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
-                                                                      // logging).
+                                                                      // logging
+
     final private int instanceID; // Unique id for this instance.
     final private String traceID;
 

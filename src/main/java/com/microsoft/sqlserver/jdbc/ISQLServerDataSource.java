@@ -101,23 +101,32 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getLastUpdateCount();
 
     /**
-     * Sets a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @param encrypt
-     *        true if the Secure Sockets Layer (SSL) encryption is enabled between the client and the SQL Server.
-     *        Otherwise, false.
+     * @param encryptOption
+     *        TLS encrypt option. Default is "true"
      */
-    void setEncrypt(boolean encrypt);
+    void setEncrypt(String encryptOption);
 
     /**
-     * Returns a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @return true if encrypt is enabled. Otherwise, false.
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
+     * @param encryptOption
+     *        TLS encrypt option. Default is true
      */
-    boolean getEncrypt();
+    @Deprecated
+    void setEncrypt(boolean encryptOption);
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
+     * Returns the TLS encryption option.
+     * 
+     * @return the TLS encrypt option
+     */
+    String getEncrypt();
+
+    /**
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address
@@ -143,18 +152,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
-     *        communication layer is encrypted using SSL. Otherwise, false.
+     *        communication layer is encrypted using SSL. false, if server SLL certificate should not be trusted
+     *        certificate location, if encrypt=strict
      */
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
-     * @return true if trustServerCertificate is enabled. Otherwise, false.
+     * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
+     *         certificate location
      */
     boolean getTrustServerCertificate();
 

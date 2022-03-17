@@ -54,7 +54,6 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupVariation() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         cleanup();

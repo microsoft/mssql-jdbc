@@ -33,7 +33,6 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
     }
 
@@ -75,7 +74,9 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         System.setProperty("java.net.preferIPv6Addresses", Boolean.TRUE.toString());
         ds.setURL(connectionString);
         ds.setTrustStorePassword("wrong_password");
-        try (Connection conn = ds.getConnection()) {}
+        try (Connection conn = ds.getConnection()) {} catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_keystorePassword")));
+        }
         ds = testSerial(ds);
         try (Connection conn = ds.getConnection()) {} catch (SQLException e) {
             assertEquals(TestResource.getResource("R_trustStorePasswordNotSet"), e.getMessage());
@@ -117,8 +118,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     @Test
     public void testDSReference() {
         SQLServerDataSource ds = new SQLServerDataSource();
-        assertTrue(ds.getReference().getClassName()
-                .equals("com.microsoft.sqlserver.jdbc.SQLServerDataSource"));
+        assertTrue(ds.getReference().getClassName().equals("com.microsoft.sqlserver.jdbc.SQLServerDataSource"));
     }
 
     private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {

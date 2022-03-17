@@ -893,7 +893,6 @@ public class LimitEscapeTest extends AbstractTest {
      */
     @BeforeAll
     public static void beforeAll() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try {

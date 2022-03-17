@@ -31,7 +31,6 @@ public class ParameterMetaDataTest extends AbstractTest {
 
     @BeforeEach
     public void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Connection c = getConnection(); Statement s = c.createStatement()) {

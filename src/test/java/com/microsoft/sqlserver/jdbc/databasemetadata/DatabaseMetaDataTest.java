@@ -797,7 +797,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTable() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Statement stmt = connection.createStatement()) {

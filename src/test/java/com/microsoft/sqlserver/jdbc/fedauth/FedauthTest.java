@@ -42,7 +42,7 @@ public class FedauthTest extends FedauthCommon {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
     }
 
@@ -168,56 +168,56 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidNotSpecified() throws SQLException {
-        testNotValid(SqlAuthentication.NotSpecified.toString(), false, false);
-        testNotValid(SqlAuthentication.NotSpecified.toString(), false, true);
-        testNotValid(SqlAuthentication.NotSpecified.toString(), true, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, false);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidSqlPassword() throws SQLException {
-        testNotValid(SqlAuthentication.SqlPassword.toString(), false, true);
-        testNotValid(SqlAuthentication.SqlPassword.toString(), true, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryPassword() throws SQLException {
-        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
-        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidNotSpecified() throws SQLException {
-        testValid(SqlAuthentication.NotSpecified.toString(), false, false);
-        testValid(SqlAuthentication.NotSpecified.toString(), false, true);
-        testValid(SqlAuthentication.NotSpecified.toString(), true, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, false);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidSqlPassword() throws SQLException {
-        testValid(SqlAuthentication.SqlPassword.toString(), false, true);
-        testValid(SqlAuthentication.SqlPassword.toString(), true, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidActiveDirectoryPassword() throws SQLException {
-        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
-        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
@@ -360,7 +360,7 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
+    private void testValid(String authentication, String encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
@@ -391,7 +391,7 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    private void testNotValid(String authentication, boolean encrypt,
+    private void testNotValid(String authentication, String encrypt,
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
