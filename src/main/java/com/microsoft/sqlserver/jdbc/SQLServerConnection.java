@@ -391,7 +391,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private Instant lastNetworkActivity = Instant.now();
 
         /**
-         * An â€œidleâ€� connection will only ever get its socket disconnected by a keepalive packet after a connection has
+         * An "idle" connection will only ever get its socket disconnected by a keepalive packet after a connection has
          * been severed. KeepAlive packets are only sent on idle sockets. Default setting by the driver (on platforms
          * that have Java support for setting it) and the recommended setting is 30s (and OS default for those that
          * don't set it is 2 hrs).
