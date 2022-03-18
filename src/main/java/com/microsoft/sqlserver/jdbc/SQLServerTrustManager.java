@@ -25,16 +25,19 @@ final class PermissiveX509TrustManager implements X509TrustManager {
         this.logContext = tdsChannel.toString() + " (PermissiveX509TrustManager):";
     }
 
+    @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(logContext + " Trusting client certificate (!)");
     }
 
+    @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(logContext + " Trusting server certificate");
     }
 
+    @Override
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
     }
@@ -61,6 +64,7 @@ final class HostNameOverrideX509TrustManager implements X509TrustManager {
         this.hostName = hostName.toLowerCase(Locale.ENGLISH);
     }
 
+    @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         if (logger.isLoggable(Level.FINEST)) {
             logger.finest(logContext + " Forwarding ClientTrusted.");
@@ -74,6 +78,7 @@ final class HostNameOverrideX509TrustManager implements X509TrustManager {
         }
     }
 
+    @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         if (logger.isLoggable(Level.FINEST)) {
             logger.finest(logContext + " Forwarding Trusting server certificate");
@@ -101,7 +106,7 @@ final class HostNameOverrideX509TrustManager implements X509TrustManager {
 
 /**
  * This class implements an X509TrustManager that validates the server certificate provided. This is applicable when
- * encrypt=strict
+ * encrypt connection property is set to "strict"
  *
  */
 final class ServerCertificateX509TrustManager implements X509TrustManager {

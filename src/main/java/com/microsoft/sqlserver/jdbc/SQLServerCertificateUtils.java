@@ -275,7 +275,7 @@ final class SQLServerCertificateUtils {
         try (InputStream is = fileToStream(certFile)) {
             if (!CertificateFactory.getInstance("X509").generateCertificate(is).getPublicKey()
                     .equals(cert.getPublicKey())) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertInvalid"));
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
                 Object[] msgArgs = {certFile};
                 throw new CertificateException(form.format(msgArgs));
             }

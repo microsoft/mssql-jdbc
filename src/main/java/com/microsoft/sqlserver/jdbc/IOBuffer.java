@@ -35,8 +35,6 @@ import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
@@ -45,11 +43,9 @@ import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -770,8 +766,10 @@ final class TDSChannel implements Serializable {
             int socketTimeout = con.getSocketTimeoutMilliseconds();
             tcpSocket.setSoTimeout(socketTimeout);
 
-            inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
-            outputStream = tcpOutputStream = tcpSocket.getOutputStream();
+            try (InputStream is = tcpSocket.getInputStream()) {
+                inputStream = tcpInputStream = new ProxyInputStream(is);
+                outputStream = tcpOutputStream = tcpSocket.getOutputStream();
+            }
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
@@ -1635,8 +1633,6 @@ final class TDSChannel implements Serializable {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Verify server certificate for TDSS");
 
-                    TrustManagerFactory tmf = null;
-
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Locating X.509 trust manager factory");
 
@@ -1792,12 +1788,17 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL InputStream");
 
-            inputStream = new ProxyInputStream(sslSocket.getInputStream());
+            // try (InputStream is = sslSocket.getInputStream()) {
+            InputStream is = sslSocket.getInputStream();
+            inputStream = new ProxyInputStream(is);
+            outputStream = sslSocket.getOutputStream();
+
+            // inputStream = new ProxyInputStream(sslSocket.getInputStream());
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL OutputStream");
 
-            outputStream = sslSocket.getOutputStream();
+            // outputStream = sslSocket.getOutputStream();
 
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
