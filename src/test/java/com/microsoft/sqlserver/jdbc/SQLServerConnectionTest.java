@@ -925,7 +925,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError")), e.getMessage());
         }
     }
 }
