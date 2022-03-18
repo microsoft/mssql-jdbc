@@ -766,10 +766,8 @@ final class TDSChannel implements Serializable {
             int socketTimeout = con.getSocketTimeoutMilliseconds();
             tcpSocket.setSoTimeout(socketTimeout);
 
-            try (InputStream is = tcpSocket.getInputStream()) {
-                inputStream = tcpInputStream = new ProxyInputStream(is);
-                outputStream = tcpOutputStream = tcpSocket.getOutputStream();
-            }
+            inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
+            outputStream = tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
@@ -1628,7 +1626,6 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-
                 if (isTDSS) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Verify server certificate for TDSS");
@@ -1788,17 +1785,12 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL InputStream");
 
-            // try (InputStream is = sslSocket.getInputStream()) {
-            InputStream is = sslSocket.getInputStream();
-            inputStream = new ProxyInputStream(is);
-            outputStream = sslSocket.getOutputStream();
-
-            // inputStream = new ProxyInputStream(sslSocket.getInputStream());
+            inputStream = new ProxyInputStream(sslSocket.getInputStream());
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL OutputStream");
 
-            // outputStream = sslSocket.getOutputStream();
+            outputStream = sslSocket.getOutputStream();
 
             // SSL is now enabled; switch over the channel socket
             channelSocket = sslSocket;
