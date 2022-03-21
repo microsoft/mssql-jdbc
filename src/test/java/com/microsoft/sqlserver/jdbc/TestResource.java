@@ -201,5 +201,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_objectNullOrEmpty", "The {0} is null or empty."},
             {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
             {"R_connectTimedOut", "connect timed out"},
-            {"R_InvalidIPAddressPreference", "Invalid option for connection string option IPAddressPreference: {0}"}};
+            {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."}};
 }

@@ -1937,7 +1937,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 } else {
-                    IPvAddressPreferenceEnum.valueOfString(sPropValue).toString();
+                    IPAddressPreference.valueOfString(sPropValue).toString();
                 }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
@@ -3223,11 +3223,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        String IPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
+        String iPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
 
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
-                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, IPAddressPreference);
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, iPAddressPreference);
 
         setState(State.Connected);
 

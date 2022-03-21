@@ -588,10 +588,10 @@ public class SQLServerDataSource
     /**
      * Set the preferred type of IP Address
      * 
-     * @param IPAddressPreference Preferred IP Address type
+     * @param iPAddressPreference Preferred IP Address type
      */
-    public void setIPAddressPreference(String IPAddressPreference) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), IPAddressPreference);
+    public void setIPAddressPreference(String iPAddressPreference) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
     }
     
     /**

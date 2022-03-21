@@ -257,14 +257,14 @@ enum SSLProtocol {
 }
 
 
-enum IPvAddressPreferenceEnum {
+enum IPAddressPreference {
     IPv4First("IPv4First"),
     IPv6First("IPv6First"),
     UsePlatformDefault("UsePlatformDefault"),;
 
     private final String name;
 
-    IPvAddressPreferenceEnum(String name) {
+    IPAddressPreference(String name) {
         this.name = name;
     }
 
@@ -273,16 +273,16 @@ enum IPvAddressPreferenceEnum {
         return name;
     }
 
-    static IPvAddressPreferenceEnum valueOfString(String value) throws SQLServerException {
-        IPvAddressPreferenceEnum iptype = null;
+    static IPAddressPreference valueOfString(String value) throws SQLServerException {
+        IPAddressPreference iptype = null;
 
-        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPvAddressPreferenceEnum.IPv4First.toString())) {
-            iptype = IPvAddressPreferenceEnum.IPv4First;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPvAddressPreferenceEnum.IPv6First.toString())) {
-            iptype = IPvAddressPreferenceEnum.IPv6First;
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv4First.toString())) {
+            iptype = IPAddressPreference.IPv4First;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv6First.toString())) {
+            iptype = IPAddressPreference.IPv6First;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(IPvAddressPreferenceEnum.UsePlatformDefault.toString())) {
-            iptype = IPvAddressPreferenceEnum.UsePlatformDefault;
+                .equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
+            iptype = IPAddressPreference.UsePlatformDefault;
 
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidIPAddressPreference"));
@@ -459,7 +459,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
-    IPADDRESS_PREFERENCE("IPAddressPreference", IPvAddressPreferenceEnum.IPv4First.toString()),
+    IPADDRESS_PREFERENCE("IPAddressPreference", IPAddressPreference.IPv4First.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -689,9 +689,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
                     SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
-                    new String[] {IPvAddressPreferenceEnum.IPv4First.toString(),
-                            IPvAddressPreferenceEnum.IPv6First.toString(),
-                            IPvAddressPreferenceEnum.UsePlatformDefault.toString()}),
+                    new String[] {IPAddressPreference.IPv4First.toString(),
+                            IPAddressPreference.IPv6First.toString(),
+                            IPAddressPreference.UsePlatformDefault.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),

@@ -754,7 +754,7 @@ final class TDSChannel implements Serializable {
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
      * 
      * @param iPAddressPreference
-     *        Preferred type of IP address to use first; valid options are IPv4First, IPv6First and UsePlatformDefault
+     *        Preferred type of IP address to use first
      *
      * @return InetSocketAddress of the connection socket.
      */
@@ -2605,13 +2605,13 @@ final class SocketFinder {
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
-     * @param IPAddressPreference
+     * @param iPAddressPreference
      * @return connected socket
      * @throws IOException
      */
     Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
-            String IPAddressPreference) throws SQLServerException {
+            String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2622,9 +2622,9 @@ final class SocketFinder {
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
                     return getSocketByIPvPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
-                            IPAddressPreference);
+                            iPAddressPreference);
                 } else if (!useTnir) {
-                    return getSocketByIPvPreference(hostName, portNumber, timeoutInMilliSeconds, IPAddressPreference);
+                    return getSocketByIPvPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
                 }
             }
 
@@ -2946,21 +2946,19 @@ final class SocketFinder {
      *        Port number
      * @param timeoutInMilliSeconds
      *        Timeout
-     * @param IPAddressPreference
-     *        IPv4First (default), IPv6First or UsePlatformDefault
+     * @param iPAddressPreference
+     *        Preferred IP address type
      * @return Connected Socket
      * @throws IOException
      * @throws SQLServerException
      */
     private Socket getSocketByIPvPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
-            String IPAddressPreference) throws IOException, SQLServerException {
+            String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
         Queue<InetAddress> addrq = null;
 
-        IPvAddressPreferenceEnum IPvPref = IPvAddressPreferenceEnum.valueOfString(IPAddressPreference);
-
-        switch (IPvPref) {
+        switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
             case IPv6First:
                 // Try to connect to IPv6 Addresses
                 addrq = getIPv6AddressQueue(addresses);
@@ -2991,6 +2989,8 @@ final class SocketFinder {
                     if (!addr.isUnresolved())
                         return getConnectedSocket(addr, timeoutInMilliSeconds);
                 }
+                break;
+            default:
                 break;
         }
 

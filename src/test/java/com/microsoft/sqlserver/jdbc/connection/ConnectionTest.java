@@ -20,6 +20,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
+
 /*
  * This test is for testing various connection options
  */
@@ -40,13 +41,11 @@ public class ConnectionTest extends AbstractTest {
         ds.setKeyStoreSecret("placeholder");
 
         // Multiple, successive connections should not fail
-        try (Connection con = ds.getConnection()) {
-        }
+        try (Connection con = ds.getConnection()) {}
 
-        try (Connection con = ds.getConnection()) {
-        }
+        try (Connection con = ds.getConnection()) {}
     }
-    
+
     @Test
     public void testConnectWithIPAddressPreference () throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -59,6 +58,9 @@ public class ConnectionTest extends AbstractTest {
         }
         ds.setIPAddressPreference("UsePlatformDefault");
         try (Connection con = ds.getConnection()) {
+        }
+        catch (Exception e){
+            fail(e.getMessage());
         }
         ds.setIPAddressPreference("Bogus");
         try (Connection con = ds.getConnection()) {
