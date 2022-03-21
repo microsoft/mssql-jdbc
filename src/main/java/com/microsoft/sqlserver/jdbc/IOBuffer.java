@@ -2621,10 +2621,10 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getSocketByIPvPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
+                    return getSocketByIPPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
                             iPAddressPreference);
                 } else if (!useTnir) {
-                    return getSocketByIPvPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
+                    return getSocketByIPPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
                 }
             }
 
@@ -2978,7 +2978,7 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private Socket getSocketByIPvPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
+    private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
