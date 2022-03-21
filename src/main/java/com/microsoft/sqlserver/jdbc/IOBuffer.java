@@ -2924,10 +2924,36 @@ final class SocketFinder {
      *        Address queue
      * @param portNumber
      *        Port Number
+     * @param addresses
+     *        Array of InetAddress
+     * @param firstAttempt
+     *        Boolean switch for using first of second choice of IP address preference
      * @return First resolved queue or unresolved queue if none found
      * @throws IOException
+     * @throws SQLServerException
      */
-    private InetSocketAddress traverseAddressQueue(Queue<InetAddress> addrq, int portNumber) throws IOException {
+    private InetSocketAddress traverseAddressQueue(String iPAddressPreference, int portNumber, InetAddress addresses[],
+            boolean firstAttempt) throws IOException, SQLServerException {
+        Queue<InetAddress> addrq = null;
+        switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
+            case IPv6First:
+                if (firstAttempt)
+                    addrq = getIPv6AddressQueue(addresses);
+                else
+                    addrq = getIPv4AddressQueue(addresses);
+                break;
+            case IPv4First:
+                if (firstAttempt)
+                    addrq = getIPv4AddressQueue(addresses);
+                else
+                    addrq = getIPv6AddressQueue(addresses);
+                break;
+            case UsePlatformDefault:
+                break;
+            default:
+                break;
+        }
+
         InetSocketAddress addr = new InetSocketAddress(portNumber);
         while (addrq.peek() != null) {
             addr = new InetSocketAddress(addrq.poll(), portNumber);
@@ -2956,30 +2982,16 @@ final class SocketFinder {
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
-        Queue<InetAddress> addrq = null;
 
         switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
             case IPv6First:
-                // Try to connect to IPv6 Addresses
-                addrq = getIPv6AddressQueue(addresses);
-                addr = traverseAddressQueue(addrq, portNumber);
+            case IPv4First:
+                // Try to connect to first choice of IP address type
+                addr = traverseAddressQueue(iPAddressPreference, portNumber, addresses, true);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No IPv6 Addresses can be connected to, try IPv4 addresses now
-                addrq = getIPv4AddressQueue(addresses);
-                addr = traverseAddressQueue(addrq, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                break;
-            case IPv4First:
-                // Try to connect to IPv4 Addresses
-                addrq = getIPv4AddressQueue(addresses);
-                addr = traverseAddressQueue(addrq, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No IPv4 Addresses can be connected to, try IPv6 addresses now
-                addrq = getIPv6AddressQueue(addresses);
-                addr = traverseAddressQueue(addrq, portNumber);
+                // No unresolved addresses of preferred type, try the other
+                addr = traverseAddressQueue(iPAddressPreference, portNumber, addresses, false);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
