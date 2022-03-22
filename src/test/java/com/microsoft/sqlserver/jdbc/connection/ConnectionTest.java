@@ -59,17 +59,19 @@ public class ConnectionTest extends AbstractTest {
         ds.setIPAddressPreference("UsePlatformDefault");
         try (Connection con = ds.getConnection()) {
         }
-        catch (Exception e){
-            fail(e.getMessage());
-        }
+    }
+    
+    @Test
+    public void testInvalidConnectWithIPAddressPreference () throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
         ds.setIPAddressPreference("Bogus");
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         }
         catch (Exception e){
-            MessageFormat form = new MessageFormat(TestResource.getResource("R_InvalidIPAddressPreference"));
-            Object[] msgArgs1 = {"Bogus"};
-            assertTrue (e.getMessage().equals(form.format(msgArgs1)), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidIPAddressPreference")));
         }
     }
+    
 }
