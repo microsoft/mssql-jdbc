@@ -2932,10 +2932,10 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(String iPAddressPreference, int portNumber, InetAddress addresses[],
+    private InetSocketAddress getInetAddressByIPPreference(IPAddressPreference iPAddressPreference, int portNumber, InetAddress addresses[],
             boolean firstAttempt) throws IOException, SQLServerException {
         ArrayList<InetAddress> addrq = null;
-        switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
+        switch (iPAddressPreference) {
             case IPv6First:
                 if (firstAttempt)
                     addrq = getIPv6AddressList(addresses);
@@ -2983,16 +2983,16 @@ final class SocketFinder {
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
-
-        switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
+        IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
+        switch (pref) {
             case IPv6First:
             case IPv4First:
                 // Try to connect to first choice of IP address type
-                addr = getInetAddressByIPPreference(iPAddressPreference, portNumber, addresses, true);
+                addr = getInetAddressByIPPreference(pref, portNumber, addresses, true);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
-                addr = getInetAddressByIPPreference(iPAddressPreference, portNumber, addresses, false);
+                addr = getInetAddressByIPPreference(pref, portNumber, addresses, false);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
