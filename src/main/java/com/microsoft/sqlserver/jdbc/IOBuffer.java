@@ -2586,6 +2586,9 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
+    // list of addresses for ip selection by type preference
+    private static ArrayList<InetAddress> addressList = new ArrayList<>();
+
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2918,49 +2921,21 @@ final class SocketFinder {
     }
 
     /**
-     * Helper function which traverses through queue of InetAddresses to find a resolved one
+     * Helper function which traverses through list of InetAddresses to find a resolved one
      * 
-     * @param addrq
-     *        Address queue
      * @param portNumber
      *        Port Number
-     * @param addresses
-     *        Array of InetAddress
-     * @param firstAttempt
-     *        Boolean switch for using first of second choice of IP address preference
-     * @return First resolved queue or unresolved queue if none found
+     * @return First resolved address or unresolved address if none found
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(IPAddressPreference iPAddressPreference, int portNumber, InetAddress addresses[],
-            boolean firstAttempt) throws IOException, SQLServerException {
-        ArrayList<InetAddress> addrq = null;
-        switch (iPAddressPreference) {
-            case IPv6First:
-                if (firstAttempt)
-                    addrq = getIPv6AddressList(addresses);
-                else
-                    addrq = getIPv4AddressList(addresses);
-                break;
-            case IPv4First:
-                if (firstAttempt)
-                    addrq = getIPv4AddressList(addresses);
-                else
-                    addrq = getIPv6AddressList(addresses);
-                break;
-            case UsePlatformDefault:
-                break;
-            default:
-                break;
-        }
-
+    private InetSocketAddress getInetAddressByIPPreference(int portNumber) throws IOException, SQLServerException {
         InetSocketAddress addr = new InetSocketAddress(portNumber);
-        for (int i = 0; i< addrq.size(); i++) {
-            addr = new InetSocketAddress(addrq.get(i), portNumber);
+        for (int i = 0; i < addressList.size(); i++) {
+            addr = new InetSocketAddress(addressList.get(i), portNumber);
             if (!addr.isUnresolved())
                 return addr;
         }
-
         return addr;
     }
 
@@ -2986,13 +2961,26 @@ final class SocketFinder {
         IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
         switch (pref) {
             case IPv6First:
-            case IPv4First:
                 // Try to connect to first choice of IP address type
-                addr = getInetAddressByIPPreference(pref, portNumber, addresses, true);
+                fillAddressListIPv6(addresses);
+                addr = getInetAddressByIPPreference(portNumber);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
-                addr = getInetAddressByIPPreference(pref, portNumber, addresses, false);
+                fillAddressListIPv4(addresses);
+                addr = getInetAddressByIPPreference(portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                break;
+            case IPv4First:
+                // Try to connect to first choice of IP address type
+                fillAddressListIPv4(addresses);
+                addr = getInetAddressByIPPreference(portNumber);
+                if (addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No unresolved addresses of preferred type, try the other
+                fillAddressListIPv6(addresses);
+                addr = getInetAddressByIPPreference(portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
@@ -3021,25 +3009,23 @@ final class SocketFinder {
 
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
-    
-    private ArrayList<InetAddress> getIPv6AddressList(InetAddress[] addresses) {
-        ArrayList<InetAddress> addrq = new ArrayList<>();
+
+    private void fillAddressListIPv6(InetAddress[] addresses) {
+        addressList.clear();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet6Address) {
-                addrq.add(addr);
+                addressList.add(addr);
             }
         }
-        return addrq;
     }
-    
-    private ArrayList<InetAddress> getIPv4AddressList(InetAddress[] addresses) {
-        ArrayList<InetAddress> addrq = new ArrayList<>();
+
+    private void fillAddressListIPv4(InetAddress[] addresses) {
+        addressList.clear();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet4Address) {
-                addrq.add(addr);
+                addressList.add(addr);
             }
         }
-        return addrq;
     }
 
     private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,

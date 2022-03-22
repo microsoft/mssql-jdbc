@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.MessageFormat;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,31 +46,27 @@ public class ConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testConnectWithIPAddressPreference () throws SQLException {
+    public void testConnectWithIPAddressPreference() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setIPAddressPreference("IPv4First");
-        try (Connection con = ds.getConnection()) {
-        }
+        try (Connection con = ds.getConnection()) {}
         ds.setIPAddressPreference("IPv6First");
-        try (Connection con = ds.getConnection()) {
-        }
+        try (Connection con = ds.getConnection()) {}
         ds.setIPAddressPreference("UsePlatformDefault");
-        try (Connection con = ds.getConnection()) {
-        }
+        try (Connection con = ds.getConnection()) {}
     }
-    
+
     @Test
-    public void testInvalidConnectWithIPAddressPreference () throws SQLException {
+    public void testInvalidConnectWithIPAddressPreference() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setIPAddressPreference("Bogus");
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidIPAddressPreference")));
         }
     }
-    
+
 }
