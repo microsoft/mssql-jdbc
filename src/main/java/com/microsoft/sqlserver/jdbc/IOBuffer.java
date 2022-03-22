@@ -2932,21 +2932,21 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress traverseAddressQueue(String iPAddressPreference, int portNumber, InetAddress addresses[],
+    private InetSocketAddress getInetAddressByIPPreference(String iPAddressPreference, int portNumber, InetAddress addresses[],
             boolean firstAttempt) throws IOException, SQLServerException {
-        Queue<InetAddress> addrq = null;
+        ArrayList<InetAddress> addrq = null;
         switch (IPAddressPreference.valueOfString(iPAddressPreference)) {
             case IPv6First:
                 if (firstAttempt)
-                    addrq = getIPv6AddressQueue(addresses);
+                    addrq = getIPv6AddressList(addresses);
                 else
-                    addrq = getIPv4AddressQueue(addresses);
+                    addrq = getIPv4AddressList(addresses);
                 break;
             case IPv4First:
                 if (firstAttempt)
-                    addrq = getIPv4AddressQueue(addresses);
+                    addrq = getIPv4AddressList(addresses);
                 else
-                    addrq = getIPv6AddressQueue(addresses);
+                    addrq = getIPv6AddressList(addresses);
                 break;
             case UsePlatformDefault:
                 break;
@@ -2955,11 +2955,12 @@ final class SocketFinder {
         }
 
         InetSocketAddress addr = new InetSocketAddress(portNumber);
-        while (addrq.peek() != null) {
-            addr = new InetSocketAddress(addrq.poll(), portNumber);
+        for (int i = 0; i< addrq.size(); i++) {
+            addr = new InetSocketAddress(addrq.get(i), portNumber);
             if (!addr.isUnresolved())
                 return addr;
         }
+
         return addr;
     }
 
@@ -2987,11 +2988,11 @@ final class SocketFinder {
             case IPv6First:
             case IPv4First:
                 // Try to connect to first choice of IP address type
-                addr = traverseAddressQueue(iPAddressPreference, portNumber, addresses, true);
+                addr = getInetAddressByIPPreference(iPAddressPreference, portNumber, addresses, true);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
-                addr = traverseAddressQueue(iPAddressPreference, portNumber, addresses, false);
+                addr = getInetAddressByIPPreference(iPAddressPreference, portNumber, addresses, false);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
@@ -3020,9 +3021,9 @@ final class SocketFinder {
 
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
-
-    private Queue<InetAddress> getIPv6AddressQueue(InetAddress[] addresses) {
-        Queue<InetAddress> addrq = new LinkedList<>();
+    
+    private ArrayList<InetAddress> getIPv6AddressList(InetAddress[] addresses) {
+        ArrayList<InetAddress> addrq = new ArrayList<>();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet6Address) {
                 addrq.add(addr);
@@ -3030,9 +3031,9 @@ final class SocketFinder {
         }
         return addrq;
     }
-
-    private Queue<InetAddress> getIPv4AddressQueue(InetAddress[] addresses) {
-        Queue<InetAddress> addrq = new LinkedList<>();
+    
+    private ArrayList<InetAddress> getIPv4AddressList(InetAddress[] addresses) {
+        ArrayList<InetAddress> addrq = new ArrayList<>();
         for (InetAddress addr : addresses) {
             if (addr instanceof Inet4Address) {
                 addrq.add(addr);
