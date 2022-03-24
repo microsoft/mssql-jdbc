@@ -459,7 +459,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
-    IPADDRESS_PREFERENCE("IPAddressPreference", IPAddressPreference.IPv4First.toString()),
+    IPADDRESS_PREFERENCE("iPAddressPreference", IPAddressPreference.IPv4First.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
