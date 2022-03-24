@@ -376,10 +376,10 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets the name of the preferred type of IP Address.
      * 
-     * @param IPAddressPreference
+     * @param iPAddressPreference
      *        A String that contains the preferred type of IP Address.
      */
-    void setIPAddressPreference(String IPAddressPreference);
+    void setIPAddressPreference(String iPAddressPreference);
     
     /**
      * Gets the name of the preferred type of IP Address.

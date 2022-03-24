@@ -2961,24 +2961,24 @@ final class SocketFinder {
         switch (pref) {
             case IPv6First:
                 // Try to connect to first choice of IP address type
-                fillAddressListIPv6(addresses);
+                fillAddressList(addresses, true);
                 addr = getInetAddressByIPPreference(portNumber);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
-                fillAddressListIPv4(addresses);
+                fillAddressList(addresses, false);
                 addr = getInetAddressByIPPreference(portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
             case IPv4First:
                 // Try to connect to first choice of IP address type
-                fillAddressListIPv4(addresses);
+                fillAddressList(addresses, false);
                 addr = getInetAddressByIPPreference(portNumber);
                 if (addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
-                fillAddressListIPv6(addresses);
+                fillAddressList(addresses, true);
                 addr = getInetAddressByIPPreference(portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
@@ -3009,20 +3009,24 @@ final class SocketFinder {
         return getConnectedSocket(addr, timeoutInMilliSeconds);
     }
 
-    private void fillAddressListIPv6(InetAddress[] addresses) {
+    /**
+     * Fills static array of IP Addresses with addresses of the preferred protocol version.
+     * @param addresses Array of all addresses
+     * @param ipv6first Boolean switch for IPv6 first
+     */
+    private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
         addressList.clear();
-        for (InetAddress addr : addresses) {
-            if (addr instanceof Inet6Address) {
-                addressList.add(addr);
+        if (ipv6first) {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet6Address) {
+                    addressList.add(addr);
+                }
             }
-        }
-    }
-
-    private void fillAddressListIPv4(InetAddress[] addresses) {
-        addressList.clear();
-        for (InetAddress addr : addresses) {
-            if (addr instanceof Inet4Address) {
-                addressList.add(addr);
+        } else {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet4Address) {
+                    addressList.add(addr);
+                }
             }
         }
     }
