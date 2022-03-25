@@ -1630,14 +1630,6 @@ final class TDSChannel implements Serializable {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Verify server certificate for TDSS");
 
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Locating X.509 trust manager factory");
-
-                    // Tell the TrustManagerFactory to give us TrustManagers that we can use to
-                    // validate the server certificate using the trust material in the KeyStore.
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Getting trust manager");
-
                     if (null != hostNameInCertificate) {
                         tm = new TrustManager[] {
                                 new ServerCertificateX509TrustManager(this, serverCert, hostNameInCertificate)};

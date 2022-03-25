@@ -911,18 +911,30 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     /**
-     * test connection properties
+     * test bad serverCertificate property
      * 
      * @throws SQLException
      */
     @Test
-    public void testServerCert() throws SQLException {
+    public void testBadServerCert() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setServerCertificate("badCert");
         ds.setEncrypt(Constants.STRICT);
         ds.setTrustServerCertificate(false);
+
+        // test using datasource
         try (Connection con = ds.getConnection()) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // available
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+        }
+
+        // test connection string
+        try (Connection con = PrepUtil.getConnection(connectionString + ";serverCertificate=badCert")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server

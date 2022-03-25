@@ -92,7 +92,7 @@ final class HostNameOverrideX509TrustManager implements X509TrustManager {
         }
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(logContext + " default serverTrusted succeeded proceeding with server name validation");
+            logger.finest(logContext + " Default serverTrusted succeeded proceeding with server name validation");
         }
 
         SQLServerCertificateUtils.validateServerNameInCertificate(chain[0], hostName);

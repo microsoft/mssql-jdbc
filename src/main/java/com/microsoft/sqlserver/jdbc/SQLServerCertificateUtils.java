@@ -76,6 +76,10 @@ final class SQLServerCertificateUtils {
     /**
      * Parse name in RFC 2253 format Returns the common name if successful, null if failed to find the common name. The
      * parser tuned to be safe than sorry so if it sees something it can't parse correctly it returns null
+     * 
+     * @param distinguishedName
+     *        server name to parse
+     * @return subject name
      */
     static String parseCommonName(String distinguishedName) {
         int index;
@@ -114,8 +118,8 @@ final class SQLServerCertificateUtils {
      * @param nameInCert
      *        server name in certificate
      * @param hostName
-     *        * hostname
-     * @return
+     *        hostname
+     * @return if the server name is valid and matches hostname
      */
     static boolean validateServerName(String nameInCert, String hostName) {
         // Failed to get the common name from DN or empty CN
