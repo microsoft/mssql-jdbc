@@ -497,6 +497,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("registerColumnEncryptionKeyStoreProvidersOnConnection");
         verifiedMethodNames.add("getPrepareMethod");
         verifiedMethodNames.add("setPrepareMethod");
+        verifiedMethodNames.add("getIPAddressPreference");
+        verifiedMethodNames.add("setIPAddressPreference");
 
         return verifiedMethodNames;
     }
