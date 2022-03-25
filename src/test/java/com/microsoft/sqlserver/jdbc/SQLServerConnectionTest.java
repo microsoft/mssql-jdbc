@@ -934,7 +934,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
 
         // test connection string
-        try (Connection con = PrepUtil.getConnection(connectionString + ";serverCertificate=badCert")) {
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
