@@ -178,6 +178,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** AAD principal secret */
     private String aadPrincipalSecret = "";
+    
+    private String iPAddressPreference = null;
 
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
@@ -1937,7 +1939,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 } else {
-                    IPAddressPreference.valueOfString(sPropValue).toString();
+                    activeConnectionProperties.setProperty(sPropKey, IPAddressPreference.valueOfString(sPropValue).toString());
                 }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
@@ -7618,6 +7620,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     String getServerName() {
         return this.trustedServerNameAE;
+    }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+        
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
     }
 }
 

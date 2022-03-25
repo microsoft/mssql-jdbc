@@ -590,6 +590,7 @@ public class SQLServerDataSource
      * 
      * @param iPAddressPreference Preferred IP Address type
      */
+    @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
     }
@@ -597,6 +598,7 @@ public class SQLServerDataSource
     /**
      * Gets the preferred type of IP Address
      */
+    @Override
     public String getIPAddressPreference() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
     }

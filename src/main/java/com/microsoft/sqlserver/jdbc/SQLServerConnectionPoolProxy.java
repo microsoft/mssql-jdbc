@@ -619,4 +619,15 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setDelayLoadingLobs(boolean delayLoadingLobs) {
         wrappedConnection.setDelayLoadingLobs(delayLoadingLobs);
     }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        wrappedConnection.setIPAddressPreference(iPAddressPreference);
+        
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return wrappedConnection.getIPAddressPreference();
+    }
 }
