@@ -2002,6 +2002,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             boolean isStreaming) throws SQLServerException {
 
         switch (srcJdbcType) {
+            case microsoft.sql.Types.GUID:
             case java.sql.Types.CHAR:
             case java.sql.Types.NCHAR:
             case java.sql.Types.VARCHAR:
