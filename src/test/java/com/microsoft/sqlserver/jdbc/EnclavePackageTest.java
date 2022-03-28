@@ -192,7 +192,7 @@ public class EnclavePackageTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
     }
 
@@ -209,8 +209,9 @@ public class EnclavePackageTest extends AbstractTest {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != url) ? url : "http://blah");
 
+        // NONE protocol does not need a URL and will not work properly with tests (false negative)
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
-                (null != url) ? protocol : "HGS");
+                (null != url && !protocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())) ? protocol : "HGS");
     }
 
     /**
@@ -483,7 +484,10 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                if (String.valueOf(AttestationProtocol.HGS).equals(protocol)) {
+
+                // HGS/NONE use only VBS, AAS can use either VBS or SGX
+                if (String.valueOf(AttestationProtocol.HGS).equals(protocol)
+                        || String.valueOf(AttestationProtocol.NONE).equals(protocol)) {
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
                     assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
