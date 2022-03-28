@@ -178,8 +178,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** AAD principal secret */
     private String aadPrincipalSecret = "";
-    
-    private String iPAddressPreference = null;
 
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
