@@ -44,8 +44,8 @@ final class SQLServerDriverPropertyInfo {
     }
 
     DriverPropertyInfo build(Properties connProperties) {
-        String propValue = name
-                .equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties.getProperty(name);
+        String propValue = name.equals(SQLServerDriverStringProperty.PASSWORD.toString()) ? "" : connProperties
+                .getProperty(name);
 
         if (null == propValue)
             propValue = defaultValue;
@@ -121,6 +121,45 @@ enum ColumnEncryptionSetting {
 }
 
 
+enum EncryptOption {
+    False,
+    No,
+    Optional,
+    True,
+    Mandatory,
+    Strict;
+
+    static EncryptOption valueOfString(String value) throws SQLServerException {
+        EncryptOption option = null;
+
+        String val = value.toLowerCase(Locale.US);
+        if (val.equalsIgnoreCase(EncryptOption.False.toString()) || val.equalsIgnoreCase(EncryptOption.No.toString())
+                || val.equalsIgnoreCase(EncryptOption.Optional.toString())) {
+            option = EncryptOption.False;
+        } else if (val.equalsIgnoreCase(EncryptOption.True.toString())
+                || val.equalsIgnoreCase(EncryptOption.Mandatory.toString())) {
+            option = EncryptOption.True;
+        } else if (val.equalsIgnoreCase(EncryptOption.Strict.toString())) {
+            option = EncryptOption.Strict;
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+            Object[] msgArgs = {"EncryptOption", value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return option;
+    }
+
+    static boolean isValidEncryptOption(String option) {
+        for (EncryptOption t : EncryptOption.values()) {
+            if (option.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
 enum AttestationProtocol {
     HGS("HGS"),
     AAS("AAS"),
@@ -182,7 +221,8 @@ enum SSLProtocol {
     TLS("TLS"),
     TLS_V10("TLSv1"),
     TLS_V11("TLSv1.1"),
-    TLS_V12("TLSv1.2"),;
+    TLS_V12("TLSv1.2"),
+    TLS_V13("TLSv1.3"),;
 
     private final String name;
 
@@ -206,6 +246,8 @@ enum SSLProtocol {
             protocol = SSLProtocol.TLS_V11;
         } else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V12.toString())) {
             protocol = SSLProtocol.TLS_V12;
+        } else if (value.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(SSLProtocol.TLS_V13.toString())) {
+            protocol = SSLProtocol.TLS_V13;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSSLProtocol"));
             Object[] msgArgs = {value};
@@ -335,8 +377,9 @@ enum SQLServerDriverObjectProperty {
     }
 }
 
+
 enum PrepareMethod {
-    PREPEXEC("prepexec"), //sp_prepexec, default prepare method
+    PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare");
 
     private final String value;
@@ -364,6 +407,7 @@ enum PrepareMethod {
         throw new SQLServerException(form.format(msgArgs), null);
     }
 }
+
 
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
@@ -409,7 +453,8 @@ enum SQLServerDriverStringProperty {
     CLIENT_KEY_PASSWORD("clientKeyPassword", ""),
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
-    MAX_RESULT_BUFFER("maxResultBuffer", "-1");
+    MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
+    ENCRYPT("encrypt", EncryptOption.True.toString());
 
     private final String name;
     private final String defaultValue;
@@ -477,7 +522,6 @@ enum SQLServerDriverIntProperty {
 
 enum SQLServerDriverBooleanProperty {
     DISABLE_STATEMENT_POOLING("disableStatementPooling", true),
-    ENCRYPT("encrypt", true),
     INTEGRATED_SECURITY("integratedSecurity", false),
     LAST_UPDATE_COUNT("lastUpdateCount", true),
     MULTI_SUBNET_FAILOVER("multiSubnetFailover", false),
@@ -525,6 +569,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};
+
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
             // default required available choices
             // property name value property (if appropriate)
@@ -546,11 +591,14 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()), false,
                     new String[] {"true"}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCRYPT.toString(),
+                    SQLServerDriverStringProperty.ENCRYPT.getDefaultValue(), false,
+                    new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
+                            EncryptOption.Optional.toString(), EncryptOption.True.toString(),
+                            EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
-                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(),false,
+                    SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
                     new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENCRYPT.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
@@ -628,8 +676,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false,
-                    TRUE_FALSE),
+                    Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
@@ -735,7 +782,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
-                                                                      // logging).
+                                                                      // logging
+
     final private int instanceID; // Unique id for this instance.
     final private String traceID;
 
@@ -937,10 +985,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         return null;
     }
 
-    private final static String[] systemPropertiesToLog = new String[] { "java.specification.vendor",
+    private final static String[] systemPropertiesToLog = new String[] {"java.specification.vendor",
             "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
             "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
-            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch" };
+            "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
 
     @Override
     public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
@@ -948,8 +996,10 @@ public final class SQLServerDriver implements java.sql.Driver {
         SQLServerConnection result = null;
 
         if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.log(Level.FINE, "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor +
-                    "." + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt + " for SQL Server");
+            loggerExternal.log(Level.FINE,
+                    "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
+                            + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt
+                            + " for SQL Server");
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);

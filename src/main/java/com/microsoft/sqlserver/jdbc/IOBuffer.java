@@ -761,7 +761,6 @@ final class TDSChannel implements Serializable {
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout);
         try {
-
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
@@ -1828,8 +1827,8 @@ final class TDSChannel implements Serializable {
      *        Private key file's password
      * @throws SQLServerException
      */
-    void enableSSL(String host, int port, String clientCertificate, String clientKey,
-            String clientKeyPassword) throws SQLServerException {
+    void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword,
+            boolean isTDSS) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1870,12 +1869,11 @@ final class TDSChannel implements Serializable {
                 validateFips(trustStoreType, trustStoreFileName);
             }
 
-            assert TDS.ENCRYPT_OFF == con.getRequestedEncryptionLevel() || // Login only SSL
-                    TDS.ENCRYPT_ON == con.getRequestedEncryptionLevel(); // Full SSL
-
-            assert TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || // Login only SSL
-                    TDS.ENCRYPT_ON == con.getNegotiatedEncryptionLevel() || // Full SSL
-                    TDS.ENCRYPT_REQ == con.getNegotiatedEncryptionLevel(); // Full SSL
+            byte requestedEncryptLevel = con.getRequestedEncryptionLevel();
+            assert TDS.ENCRYPT_OFF == requestedEncryptLevel || // Login only SSL
+                    TDS.ENCRYPT_ON == requestedEncryptLevel || // Full SSL
+                    TDS.ENCRYPT_REQ == requestedEncryptLevel || // Full SSL
+                    (isTDSS && TDS.ENCRYPT_NOT_SUP == requestedEncryptLevel); // TDSS
 
             // If encryption wasn't negotiated or trust server certificate is specified,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
@@ -2004,13 +2002,17 @@ final class TDSChannel implements Serializable {
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
             // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
-            proxySocket = new ProxySocket(this);
-
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Creating SSL socket");
 
-            // don't close proxy when SSL socket is closed
-            sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
+            proxySocket = new ProxySocket(this);
+
+            if (isTDSS) {
+                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
+            } else {
+                // don't close proxy when SSL socket is closed
+                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
+            }
 
             // At long last, start the SSL handshake ...
             if (logger.isLoggable(Level.FINER))
@@ -2053,6 +2055,7 @@ final class TDSChannel implements Serializable {
 
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
+
         } catch (Exception e) {
             // Log the original exception and its source at FINER level
             if (logger.isLoggable(Level.FINER))

@@ -163,7 +163,6 @@ public class ActivityIDTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         try {
             setConnection();
         } catch (SQLServerException e) {

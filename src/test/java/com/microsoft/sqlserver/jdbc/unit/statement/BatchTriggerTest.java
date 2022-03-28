@@ -107,7 +107,6 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         tableName = RandomUtil.getIdentifier("triggerTable");

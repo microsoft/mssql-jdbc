@@ -440,7 +440,6 @@ public class BvtTest extends AbstractTest {
 
     @BeforeAll
     public static void init() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (DBConnection conn = new DBConnection(connectionString); DBStatement stmt = conn.createStatement()) {

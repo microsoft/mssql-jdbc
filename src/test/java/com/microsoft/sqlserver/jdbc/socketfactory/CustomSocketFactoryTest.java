@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.SocketFactory;
-
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +31,6 @@ public class CustomSocketFactoryTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
     }
 
