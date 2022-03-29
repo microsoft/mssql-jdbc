@@ -192,6 +192,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_failoverPartnerPropertyDescription", "The name of the failover server used in a database mirroring configuration."},
         {"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
         {"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
+        {"R_serverCertificatePropertyDescription", "The path to the server certificate file."},
         {"R_prepareMethodPropertyDescription", "Determines the prepare method used in the driver."},
         {"R_socketFactoryClassPropertyDescription", "The class to instantiate as the SocketFactory for connections"},
         {"R_socketFactoryConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by socketFactoryClass"},
@@ -285,8 +286,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_PlainTextNullAE", "Internal error. Plaintext value cannot be null."},
         {"R_StreamingDataTypeAE", "Data of length greater than {0} is not supported in encrypted {1} column."},
         {"R_AE_NotSupportedByServer", "SQL Server in use does not support column encryption."},
-        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From
-                                                                                                       // Server
+        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From server
         {"R_NullEncryptedColumnEncryptionKey", "Internal error. Encrypted column encryption key cannot be null."},
         {"R_EmptyEncryptedColumnEncryptionKey", "Internal error. Empty encrypted column encryption key specified."},
         {"R_InvalidMasterKeyDetails", "Invalid master key details specified."},
@@ -503,6 +503,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
+        {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
+        {"R_serverCertError", "Error validating Server Certificate: {0}."},
     };
 }
 // @formatter:on

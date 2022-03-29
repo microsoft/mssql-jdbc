@@ -126,6 +126,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getEncrypt();
 
     /**
+     * Returns the path to the server certificate.
+     *
+     * @return serverCertificate property value
+     */
+    String getServerCertificate();
+
+    /**
+     * Sets the connection property 'serverCertificate' on the connection.
+     *
+     * @param cert
+     *        The path to the server certificate.
+     */
+    void setServerCertificate(String cert);
+
+    /**
      * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses

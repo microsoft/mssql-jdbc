@@ -754,6 +754,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return trustServerCertificate;
     }
 
+    /** server certificate for encrypt=strict */
+    private String serverCertificate = null;
+
+    final String getServerCertificate() {
+        return serverCertificate;
+    }
+
     /** negotiated encryption level */
     private byte negotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
@@ -2093,6 +2100,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     // do not trust server cert for strict
                     trustServerCertificate = false;
+
+                    sPropKey = SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null == sPropValue) {
+                        sPropValue = SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue();
+                    }
+                    serverCertificate = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
 
                     // prelogin TLS handshake is required
                     isTDSS = true;

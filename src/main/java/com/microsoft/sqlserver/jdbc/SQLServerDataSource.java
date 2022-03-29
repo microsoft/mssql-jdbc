@@ -324,6 +324,16 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setServerCertificate(String cert) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), cert);
+    }
+
+    @Override
+    public String getServerCertificate() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), null);
+    }
+
+    @Override
     public void setTransparentNetworkIPResolution(boolean tnir) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
                 tnir);
