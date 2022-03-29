@@ -655,7 +655,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }

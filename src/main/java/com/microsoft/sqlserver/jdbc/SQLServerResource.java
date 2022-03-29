@@ -266,8 +266,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCipherTextSize", "Specified ciphertext has an invalid size of {0} bytes, which is below the minimum {1} bytes required for decryption."},
         {"R_InvalidAlgorithmVersion", "The specified ciphertext''s encryption algorithm version {0} does not match the expected encryption algorithm version {1} ."},
         {"R_InvalidAuthenticationTag", "Specified ciphertext has an invalid authentication tag. "},
-        {"R_EncryptionFailed", "Internal error while encryption:  {0} "},
-        {"R_DecryptionFailed", "Internal error while decryption:  {0} "},
+        {"R_EncryptionFailed", "Internal error during encryption:  {0} "},
+        {"R_DecryptionFailed", "Internal error during decryption:  {0} "},
         {"R_InvalidKeySize", "The column encryption key has been successfully decrypted but it''s length: {0} does not match the length: {1} for algorithm \"{2}\". Verify the encrypted value of the column encryption key in the database."},
         {"R_InvalidEncryptionType", "Encryption type {0} specified for the column in the database is either invalid or corrupted. Valid encryption types for algorithm {1} are: {2}."},
         {"R_UnknownColumnEncryptionAlgorithm", "The Algorithm {0} does not exist. Algorithms registered in the factory are {1}."},
@@ -503,6 +503,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
+        {"R_SecureStringInitFailed", "Failed to initialize utitily to store secure strings"},
     };
 }
 // @formatter:on
