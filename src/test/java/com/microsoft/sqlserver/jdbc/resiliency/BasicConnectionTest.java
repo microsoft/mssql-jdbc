@@ -43,7 +43,7 @@ public class BasicConnectionTest extends AbstractTest {
         basicReconnect(connectionString);
     }
 
-   @Test
+    @Test
     public void testBasicConnectionAAD() throws SQLException {
         String azureServer = getConfiguredProperty("azureServer");
         String azureDatabase = getConfiguredProperty("azureDatabase");
