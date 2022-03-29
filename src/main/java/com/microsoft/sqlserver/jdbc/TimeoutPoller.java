@@ -61,7 +61,12 @@ final class TimeoutPoller implements Runnable {
                     while (timeoutCommandIterator.hasNext()) {
                         TimeoutCommand<TDSCommand> timeoutCommand = timeoutCommandIterator.next();
                         try {
-                            if (timeoutCommand.canTimeout()) {
+                            // Remove complete command from the poller
+                            if (timeoutCommand.getCommand().getRequestComplete()) {
+                                timeoutCommandIterator.remove();
+                            }
+                            // If not complete, then check for timeout
+                            else if (timeoutCommand.canTimeout()) {
                                 try {
                                     timeoutCommand.interrupt();
                                 } finally {
