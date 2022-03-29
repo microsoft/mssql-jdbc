@@ -260,7 +260,7 @@ enum SSLProtocol {
 enum IPAddressPreference {
     IPv4First("IPv4First"),
     IPv6First("IPv6First"),
-    UsePlatformDefault("UsePlatformDefault"),;
+    UsePlatformDefault("UsePlatformDefault");
 
     private final String name;
 
