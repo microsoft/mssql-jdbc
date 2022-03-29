@@ -12,7 +12,8 @@ import javax.crypto.spec.IvParameterSpec;
 
 /**
  * 
- * This is an utility class to encrypt and decrypt strings so it won't be visible as plaintext
+ * This is an utility class to encrypt/decrypt strings. This is used to obfuscate passwords so they won't be visible as
+ * plaintext.
  */
 final class SecureStringUtil {
     /* cipher transformation in the form of algorithm/mode/padding */
