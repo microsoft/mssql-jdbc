@@ -43,7 +43,7 @@ public class BasicConnectionTest extends AbstractTest {
         basicReconnect(connectionString);
     }
 
-   // @Test
+   @Test
     public void testBasicConnectionAAD() throws SQLException {
         String azureServer = getConfiguredProperty("azureServer");
         String azureDatabase = getConfiguredProperty("azureDatabase");
@@ -60,7 +60,7 @@ public class BasicConnectionTest extends AbstractTest {
         basicReconnect(connectionString);
     }
 
-   // @Test
+    @Test
     public void testGracefulClose() throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
@@ -146,7 +146,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
- //   @Test
+    @Test
     public void testOpenTransaction() throws SQLException {
         String tableName = RandomUtil.getIdentifier("resTable");
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
@@ -166,7 +166,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-  //  @Test
+    @Test
     public void testOpenResultSetShouldBeCleanedUp() throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
@@ -180,7 +180,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-  //  @Test
+    @Test
     public void testPooledConnection() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -198,7 +198,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-  //  @Test
+    @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
@@ -236,7 +236,7 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
- //   @Test
+    @Test
     public void testPooledConnectionLang() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
