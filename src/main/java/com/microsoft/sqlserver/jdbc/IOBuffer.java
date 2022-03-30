@@ -18,6 +18,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -745,17 +747,21 @@ final class TDSChannel implements Serializable {
 
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
+     * 
+     * @param iPAddressPreference
+     *        Preferred type of IP address to use first
      *
      * @return InetSocketAddress of the connection socket.
      */
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout,
+            String iPAddressPreference) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
-                isTnirFirstAttempt, timeoutMillisForFullTimeout);
+                isTnirFirstAttempt, timeoutMillisForFullTimeout, iPAddressPreference);
         try {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
@@ -2323,6 +2329,9 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
+    // list of addresses for ip selection by type preference
+    private static ArrayList<InetAddress> addressList = new ArrayList<>();
+
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2342,11 +2351,13 @@ final class SocketFinder {
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
+     * @param iPAddressPreference
      * @return connected socket
      * @throws IOException
      */
     Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
+            String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2356,9 +2367,10 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                    return getSocketByIPPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
+                            iPAddressPreference);
                 } else if (!useTnir) {
-                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                    return getSocketByIPPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
                 }
             }
 
@@ -2651,19 +2663,85 @@ final class SocketFinder {
         return socketFactory;
     }
 
-    // This method contains the old logic of connecting to
-    // a socket of one of the IPs corresponding to a given host name.
-    // In the old code below, the logic around 0 timeout has been removed as
-    // 0 timeout is not allowed. The code has been re-factored so that the logic
-    // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
-        // Open the socket, with or without a timeout, throwing an UnknownHostException
-        // if there is a failure to resolve the host name to an InetSocketAddress.
-        //
+    /**
+     * Helper function which traverses through list of InetAddresses to find a resolved one
+     * @param hostName 
+     * 
+     * @param portNumber
+     *        Port Number
+     * @return First resolved address or unresolved address if none found
+     * @throws IOException
+     * @throws SQLServerException
+     */
+    private InetSocketAddress getInetAddressByIPPreference(String hostName, int portNumber) throws IOException, SQLServerException {
+        InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
+        for (int i = 0; i < addressList.size(); i++) {
+            addr = new InetSocketAddress(addressList.get(i), portNumber);
+            if (!addr.isUnresolved())
+                return addr;
+        }
+        return addr;
+    }
+
+    /**
+     * This method makes a connected socket given a hostname or IP address.
+     * 
+     * @param hostName
+     *        Hostname or IP Address
+     * @param portNumber
+     *        Port number
+     * @param timeoutInMilliSeconds
+     *        Timeout
+     * @param iPAddressPreference
+     *        Preferred IP address type
+     * @return Connected Socket
+     * @throws IOException
+     * @throws SQLServerException
+     */
+    private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
+            String iPAddressPreference) throws IOException, SQLServerException {
+        InetSocketAddress addr = null;
+        InetAddress addresses[] = InetAddress.getAllByName(hostName);
+        IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
+        switch (pref) {
+            case IPv6First:
+                // Try to connect to first choice of IP address type
+                fillAddressList(addresses, true);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No unresolved addresses of preferred type, try the other
+                fillAddressList(addresses, false);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                break;
+            case IPv4First:
+                // Try to connect to first choice of IP address type
+                fillAddressList(addresses, false);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No unresolved addresses of preferred type, try the other
+                fillAddressList(addresses, true);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                break;
+            case UsePlatformDefault:
+                for (InetAddress address : addresses) {
+                    addr = new InetSocketAddress(address, portNumber);
+                    if (!addr.isUnresolved())
+                        return getConnectedSocket(addr, timeoutInMilliSeconds);
+                }
+                break;
+            default:
+                break;
+        }
+
         // Note that Socket(host, port) throws an UnknownHostException if the host name
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
-        InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
         if (addr.isUnresolved()) {
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(this.toString() + "Failed to resolve host name: " + hostName
@@ -2672,7 +2750,30 @@ final class SocketFinder {
             InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
             addr = (null != cacheEntry) ? cacheEntry : addr;
         }
+
         return getConnectedSocket(addr, timeoutInMilliSeconds);
+    }
+
+    /**
+     * Fills static array of IP Addresses with addresses of the preferred protocol version.
+     * @param addresses Array of all addresses
+     * @param ipv6first Boolean switch for IPv6 first
+     */
+    private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
+        addressList.clear();
+        if (ipv6first) {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet6Address) {
+                    addressList.add(addr);
+                }
+            }
+        } else {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet4Address) {
+                    addressList.add(addr);
+                }
+            }
+        }
     }
 
     private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,

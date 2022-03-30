@@ -391,7 +391,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private Instant lastNetworkActivity = Instant.now();
 
         /**
-         * An “idle” connection will only ever get its socket disconnected by a keepalive packet after a connection has
+         * An "idle" connection will only ever get its socket disconnected by a keepalive packet after a connection has
          * been severed. KeepAlive packets are only sent on idle sockets. Default setting by the driver (on platforms
          * that have Java support for setting it) and the recommended setting is 30s (and OS default for those that
          * don't set it is 2 hrs).
@@ -1937,6 +1937,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValuePort) {
                     trustedServerNameAE += ":" + sPropValuePort;
                 }
+                
+                sPropKey = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                } else {
+                    activeConnectionProperties.setProperty(sPropKey, IPAddressPreference.valueOfString(sPropValue).toString());
+                }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -3229,10 +3238,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
+        String iPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
 
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
-                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, iPAddressPreference);
 
         setState(State.Connected);
 
@@ -7623,6 +7633,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     String getServerName() {
         return this.trustedServerNameAE;
+    }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+        
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
     }
 }
 

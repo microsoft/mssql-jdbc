@@ -387,6 +387,22 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return A String that contains the server name or null if no value is set.
      */
     String getServerName();
+    
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+    
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
 
     /**
      * Sets the name of the failover server that is used in a database mirroring configuration.

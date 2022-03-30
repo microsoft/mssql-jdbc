@@ -391,4 +391,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
+    
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+    
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
 }

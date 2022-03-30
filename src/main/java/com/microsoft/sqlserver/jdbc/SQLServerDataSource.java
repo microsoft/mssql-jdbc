@@ -594,6 +594,24 @@ public class SQLServerDataSource
     public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
+    
+    /**
+     * Set the preferred type of IP Address
+     * 
+     * @param iPAddressPreference Preferred IP Address type
+     */
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+    }
+    
+    /**
+     * Gets the preferred type of IP Address
+     */
+    @Override
+    public String getIPAddressPreference() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
+    }
 
     /**
      * Sets the realm for Kerberos authentication.

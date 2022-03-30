@@ -257,6 +257,43 @@ enum SSLProtocol {
 }
 
 
+enum IPAddressPreference {
+    IPv4First("IPv4First"),
+    IPv6First("IPv6First"),
+    UsePlatformDefault("UsePlatformDefault");
+
+    private final String name;
+
+    IPAddressPreference(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    static IPAddressPreference valueOfString(String value) throws SQLServerException {
+        IPAddressPreference iptype = null;
+
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv4First.toString())) {
+            iptype = IPAddressPreference.IPv4First;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv6First.toString())) {
+            iptype = IPAddressPreference.IPv6First;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
+            iptype = IPAddressPreference.UsePlatformDefault;
+
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidIPAddressPreference"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return iptype;
+    }
+}
+
+
 enum KeyStoreAuthentication {
     JavaKeyStorePassword,
     KeyVaultClientSecret,
@@ -422,6 +459,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
+    IPADDRESS_PREFERENCE("iPAddressPreference", IPAddressPreference.IPv4First.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -652,6 +690,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.DOMAIN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_NAME.toString(),
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                    SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
+                    new String[] {IPAddressPreference.IPv4First.toString(),
+                            IPAddressPreference.IPv6First.toString(),
+                            IPAddressPreference.UsePlatformDefault.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
