@@ -2963,7 +2963,7 @@ final class SocketFinder {
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, true);
                 addr = getInetAddressByIPPreference(portNumber);
-                if (addr.isUnresolved())
+                if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
                 fillAddressList(addresses, false);
@@ -2975,7 +2975,7 @@ final class SocketFinder {
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, false);
                 addr = getInetAddressByIPPreference(portNumber);
-                if (addr.isUnresolved())
+                if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
                 fillAddressList(addresses, true);
