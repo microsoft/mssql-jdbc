@@ -2921,6 +2921,7 @@ final class SocketFinder {
 
     /**
      * Helper function which traverses through list of InetAddresses to find a resolved one
+     * @param hostName 
      * 
      * @param portNumber
      *        Port Number
@@ -2928,8 +2929,8 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(int portNumber) throws IOException, SQLServerException {
-        InetSocketAddress addr = new InetSocketAddress(portNumber);
+    private InetSocketAddress getInetAddressByIPPreference(String hostName, int portNumber) throws IOException, SQLServerException {
+        InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
         for (int i = 0; i < addressList.size(); i++) {
             addr = new InetSocketAddress(addressList.get(i), portNumber);
             if (!addr.isUnresolved())
@@ -2962,24 +2963,24 @@ final class SocketFinder {
             case IPv6First:
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(portNumber);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
                 fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(portNumber);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
             case IPv4First:
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(portNumber);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 // No unresolved addresses of preferred type, try the other
                 fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(portNumber);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
