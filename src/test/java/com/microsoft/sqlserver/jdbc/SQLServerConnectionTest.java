@@ -166,6 +166,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(Boolean.toString(booleanPropValue), ds.getEncrypt(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setServerCertificate(stringPropValue);
+        assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setPrepareMethod(stringPropValue);
         assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -905,5 +908,40 @@ public class SQLServerConnectionTest extends AbstractTest {
         persistentTokenAspect.afterCacheAccess(tokenCacheAccessContext);
         persistentTokenAspect.beforeCacheAccess(tokenCacheAccessContext);
         PersistentTokenCacheAccessAspect.clearUserTokenCache();
+    }
+
+    /**
+     * test bad serverCertificate property
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testBadServerCert() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setServerCertificate("badCert");
+        ds.setEncrypt(Constants.STRICT);
+        ds.setTrustServerCertificate(false);
+
+        // test using datasource
+        try (Connection con = ds.getConnection()) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // available
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+        }
+
+        // test connection string
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // available
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+        }
     }
 }
