@@ -6,8 +6,8 @@ import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 
 /**
@@ -17,22 +17,25 @@ import javax.crypto.spec.IvParameterSpec;
  */
 final class SecureStringUtil {
     /* cipher transformation in the form of algorithm/mode/padding */
-    static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
+    static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
 
     /* key generator algorithm */
     static final String KEYGEN_ALGORITHEM = "AES";
 
     /* length of initialization vector buffer */
-    static final int IV_LENGTH = 16;
+    static final int IV_LENGTH = 12;
 
     /* key size */
-    static final int KEY_SIZE = 128;
+    static final int KEY_SIZE = 256;
 
-    /* initialization vector params */
-    private IvParameterSpec ivParamSpec;
+    /* authentication tag length in bits */
+    static final int TAG_LENGTH = 16;
+
+    /* initialization vector */
+    byte[] iv;
 
     /** secret key for encryption/decryption */
-    private SecretKey key;
+    SecretKeySpec secretKey;
 
     /* cryptographic cipher for encryption */
     private Cipher encryptCipher;
@@ -65,21 +68,16 @@ final class SecureStringUtil {
      *         if error
      */
     private SecureStringUtil() throws SQLServerException {
-        byte[] iv = new byte[IV_LENGTH];
-        new SecureRandom().nextBytes(iv);
-        ivParamSpec = new IvParameterSpec(iv);
-
+        iv = new byte[IV_LENGTH];
         try {
-            // init key */
-            KeyGenerator keyGenerator = KeyGenerator.getInstance(KEYGEN_ALGORITHEM);
-            keyGenerator.init(KEY_SIZE);
-            key = keyGenerator.generateKey();
+            // generate key */
+            KeyGenerator keygen = KeyGenerator.getInstance(KEYGEN_ALGORITHEM);
+            keygen.init(KEY_SIZE);
+            secretKey = new SecretKeySpec(keygen.generateKey().getEncoded(), "AES");
 
+            // get ciphers for encryption/decryption
             encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-            encryptCipher.init(Cipher.ENCRYPT_MODE, key, ivParamSpec);
             decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-            decryptCipher.init(Cipher.DECRYPT_MODE, key, ivParamSpec);
-
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SecureStringInitFailed"));
             Object[] msgArgs = {e.getMessage()};
@@ -99,7 +97,13 @@ final class SecureStringUtil {
      *         if error
      */
     String getEncryptedString(String str) throws SQLServerException {
+        SecureRandom random = new SecureRandom();
+        random.nextBytes(iv);
+        GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
+
         try {
+            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
+
             byte[] cipherText = encryptCipher.doFinal(str.getBytes());
             return Base64.getEncoder().encodeToString(cipherText);
         } catch (Exception e) {
@@ -119,7 +123,11 @@ final class SecureStringUtil {
      * @throws SQLServerException
      */
     String getDecryptedString(String str) throws SQLServerException {
+        GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
+
         try {
+            decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
+
             byte[] plainText = decryptCipher.doFinal(Base64.getDecoder().decode(str));
             return new String(plainText);
         } catch (Exception e) {
