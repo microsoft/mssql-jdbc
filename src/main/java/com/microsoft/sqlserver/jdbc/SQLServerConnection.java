@@ -1749,39 +1749,51 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
                 case JavaKeyStorePassword:
-                    // both secret and location must be set for JKS.
-                    if ((null == keyStoreSecret) || (null == keyStoreLocation)) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
-                    } else {
-                        SQLServerColumnEncryptionJavaKeyStoreProvider provider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
-                                keyStoreLocation, keyStoreSecret.toCharArray());
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
-                    }
+                    setKeyStoreSecretAndLocation(keyStoreSecret, keyStoreLocation);
                     break;
                 case KeyVaultClientSecret:
-                    // need a secret to use the secret method
-                    if (null == keyStoreSecret) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
-                    } else {
-                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyStorePrincipalId, keyStoreSecret);
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
-                    }
+                    this.setKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
-                    SQLServerColumnEncryptionAzureKeyVaultProvider provider;
-                    if (null != keyStorePrincipalId) {
-                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
-                    } else {
-                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-                    }
-                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    setKeyVaultProvider(keyStorePrincipalId);
                     break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
             }
+        }
+    }
+
+    private void setKeyStoreSecretAndLocation(String keyStoreSecret, String keyStoreLocation) throws SQLServerException {
+        // both secret and location must be set for JKS.
+        if ((null == keyStoreSecret) || (null == keyStoreLocation)) {
+            throw new SQLServerException(
+                    SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
+        } else {
+            SQLServerColumnEncryptionJavaKeyStoreProvider provider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
+                     keyStoreLocation, keyStoreSecret.toCharArray());
+            systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+        }
+    }
+
+    private void setKeyVaultProvider(String keyStorePrincipalId) throws SQLServerException {
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider;
+        if (null != keyStorePrincipalId) {
+            provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
+        } else {
+            provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+        }
+        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+    }
+
+    private void setKeyVaultProvider(String keyStorePrincipalId, String keyStoreSecret) throws SQLServerException {
+        // need a secret to use the secret method
+        if (null == keyStoreSecret) {
+            throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+        } else {
+            SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    keyStorePrincipalId, keyStoreSecret);
+            systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
         }
     }
 
@@ -2053,9 +2065,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
                     }
                     String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-                    SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                            keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
-                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    setKeyVaultProvider(keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
