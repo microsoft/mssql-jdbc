@@ -217,6 +217,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether prelogin TLS handshake is required */
     private boolean isTDSS = false;
 
+    String encryptedTrustStorePassword = null;
+
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
      *
@@ -1825,6 +1827,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties = (Properties) propsIn.clone();
 
                 pooledConnectionParent = pooledConnection;
+
+                String trustStorePassword = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+                if (trustStorePassword != null) {
+                    encryptedTrustStorePassword = SecureStringUtil.getInstance().getEncryptedString(trustStorePassword);
+                    activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+                }
 
                 String hostNameInCertificate = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());

@@ -1582,8 +1582,12 @@ final class TDSChannel implements Serializable {
 
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
-            String trustStorePassword = con.activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+
+            String trustStorePassword = null;
+            if (con.encryptedTrustStorePassword != null) {
+                trustStorePassword = SecureStringUtil.getInstance().getDecryptedString(con.encryptedTrustStorePassword);
+            }
+
             String hostNameInCertificate = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
