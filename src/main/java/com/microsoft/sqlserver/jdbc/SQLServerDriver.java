@@ -162,7 +162,8 @@ enum EncryptOption {
 
 enum AttestationProtocol {
     HGS("HGS"),
-    AAS("AAS");
+    AAS("AAS"),
+    NONE("NONE");
 
     private final String protocol;
 
