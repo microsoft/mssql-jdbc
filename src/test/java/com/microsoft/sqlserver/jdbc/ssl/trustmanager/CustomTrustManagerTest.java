@@ -5,8 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc.ssl.trustmanager;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -16,7 +16,9 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -30,8 +32,7 @@ public class CustomTrustManagerTest extends AbstractTest {
      */
     @Test
     public void testWithPermissiveX509TrustManager() throws Exception {
-        String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName()
-                + ";encrypt=true;";
+        String url = connectionString + ";trustManagerClass=" + PermissiveTrustManager.class.getName();
         try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
@@ -45,7 +46,7 @@ public class CustomTrustManagerTest extends AbstractTest {
     @Test
     public void testWithTrustManagerConstructorArg() throws Exception {
         String url = connectionString + ";trustManagerClass=" + TrustManagerWithConstructorArg.class.getName()
-                + ";trustManagerConstructorArg=dummyString;" + ";encrypt=true;";
+                + ";trustManagerConstructorArg=dummyString;";
         try (Connection con = PrepUtil.getConnection(url)) {
             assertTrue(con != null);
         }
@@ -58,12 +59,14 @@ public class CustomTrustManagerTest extends AbstractTest {
      */
     @Test
     public void testWithInvalidTrustManager() throws Exception {
-        String url = connectionString + ";trustManagerClass=" + InvalidTrustManager.class.getName() + ";encrypt=true;";
+        String url = TestUtils.removeProperty(connectionString, Constants.TRUST_SERVER_CERTIFICATE);
+        url = url + "encrypt=true;trustManagerClass=" + InvalidTrustManager.class.getName();
         try (Connection con = PrepUtil.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(
-                    "The class specified by the trustManagerClass property must be assignable to javax.net.ssl.TrustManager."));
+                    "The class specified by the trustManagerClass property must be assignable to javax.net.ssl.TrustManager."),
+                    e.getMessage());
         }
     }
 }

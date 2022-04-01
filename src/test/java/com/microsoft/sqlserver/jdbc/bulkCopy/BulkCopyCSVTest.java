@@ -77,7 +77,6 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @BeforeAll
     public static void setUpConnection() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         con = new DBConnection(connectionString);

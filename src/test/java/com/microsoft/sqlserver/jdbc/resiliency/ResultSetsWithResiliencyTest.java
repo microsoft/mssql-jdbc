@@ -35,7 +35,6 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {

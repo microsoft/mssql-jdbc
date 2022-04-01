@@ -28,7 +28,6 @@ public class APITest extends AbstractTest {
 
     @BeforeAll
     private static void setupTest() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Statement s = connection.createStatement()) {
