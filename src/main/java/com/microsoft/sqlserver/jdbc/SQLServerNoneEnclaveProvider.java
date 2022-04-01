@@ -98,7 +98,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     private void validateAttestationResponse() throws SQLServerException {
         if (null != noneResponse) {
             try {
-                noneResponse.validateDHPublicKey(noneParams.getNonce());
+                noneResponse.validateDHPublicKey();
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
             }
@@ -242,14 +242,5 @@ class NoneAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_EnclaveResponseLengthError"), "0", false);
         }
-    }
-
-    void validateDHPublicKey(byte[] nonce) throws SQLServerException, GeneralSecurityException {
-        if (this.enclaveType == EnclaveType.SGX.getValue()) {
-            for (int i = 0; i < enclavePK.length; i++) {
-                enclavePK[i] = (byte) (enclavePK[i] ^ nonce[i % nonce.length]);
-            }
-        }
-        validateDHPublicKey();
     }
 }
