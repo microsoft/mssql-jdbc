@@ -105,6 +105,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
         }
     }
 
+    @SuppressWarnings("resource")
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
