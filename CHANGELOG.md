@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.1.0] Preview Release
+### Added
+- Added new connection string property prepareMethod to toggle use of sp_prepare [1719](https://github.com/microsoft/mssql-jdbc/pull/1719)
+- Added Azure Active Directory tests for Azure Data Explorer using user/password/applicationName [1755](https://github.com/microsoft/mssql-jdbc/pull/1755)
+- Added check for MSAL library when attempting ActiveDirectoryServicePrincipal authentication [1759](https://github.com/microsoft/mssql-jdbc/pull/1759)
+- Added new encrypt options for TDSS support [1757](https://github.com/microsoft/mssql-jdbc/pull/1757)
+- Added Configurable IPv6 Support [1766](https://github.com/microsoft/mssql-jdbc/pull/1766)
+- Added serverCertificate connection property for encrypt=strict [1773](https://github.com/microsoft/mssql-jdbc/pull/1773)
+- Added encrypt utility to obfuscate password strings [1780](https://github.com/microsoft/mssql-jdbc/pull/1780)
+- Added option for NONE attestation protocol [1779](https://github.com/microsoft/mssql-jdbc/pull/1779)
+
+### Changed
+- Simplified traceID creation in DataSource and PooledConnection [1747](https://github.com/microsoft/mssql-jdbc/pull/1747)
+- Refactored SQLServerColumnEncryptionAzureKeyVaultProvider usage in SQLServerConnection [1774](https://github.com/microsoft/mssql-jdbc/pull/1774)
+### Fixed issues
+- Removed extra call to executeCommand() within connectionCommand() [1754](https://github.com/microsoft/mssql-jdbc/pull/1754)
+- Fixed warnings for Implicit narrowing conversion in compound assignment [1758](https://github.com/microsoft/mssql-jdbc/pull/1758)
+- Added check for MSAL library when attempting ActiveDirectoryServicePrincipal authentication [1759](https://github.com/microsoft/mssql-jdbc/pull/1759)
+- Fixed Managed Identity retry interval to exponential backoff properly [1770](https://github.com/microsoft/mssql-jdbc/pull/1770)
+
+
 ## [10.2.0] Stable Release
 ### Added
 - Support for datetimeoffset with sql_variant [1673](https://github.com/microsoft/mssql-jdbc/pull/1673)
