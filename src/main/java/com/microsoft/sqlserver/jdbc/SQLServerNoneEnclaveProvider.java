@@ -17,7 +17,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 
 /**
@@ -147,6 +146,12 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 }
 
 
+/**
+ * 
+ * Represents the serialization of the request the client sends to the 
+ * SQL Server while setting up a session.
+ *
+ */
 class NoneAttestationParameters extends BaseAttestationRequest {
 
     // Type 2 is NONE, sent as Little Endian 0x20000000
@@ -188,15 +193,16 @@ class NoneAttestationParameters extends BaseAttestationRequest {
 }
 
 
-@SuppressWarnings("unused")
+/**
+ * 
+ * Represents the deserialization of the byte payload the client receives from the
+ * SQL Server while setting up a session.
+ *
+ */
 class NoneAttestationResponse extends BaseAttestationResponse {
-
-    private static final Hashtable<String, JWTCertificateEntry> certificateCache = new Hashtable<>();
-
+    
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
-         * A model class representing the deserialization of the byte payload the client
-         * receives from SQL Server while setting up a session.
          * Protocol format:
          * 1. Total Size of the attestation blob as UINT
          * 2. Size of Enclave RSA public key as UINT
@@ -239,7 +245,7 @@ class NoneAttestationResponse extends BaseAttestationResponse {
     }
 
     void validateDHPublicKey(byte[] nonce) throws SQLServerException, GeneralSecurityException {
-        if (this.enclaveType == 2) {
+        if (this.enclaveType == EnclaveType.SGX.getValue()) {
             for (int i = 0; i < enclavePK.length; i++) {
                 enclavePK[i] = (byte) (enclavePK[i] ^ nonce[i % nonce.length]);
             }

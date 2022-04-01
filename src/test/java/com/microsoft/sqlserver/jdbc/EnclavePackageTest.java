@@ -211,7 +211,7 @@ public class EnclavePackageTest extends AbstractTest {
 
         // NONE protocol does not need a URL and will not work properly with tests (false negative)
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
-                (null != url && !protocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())) ? protocol : "HGS");
+                (null != url) ? protocol : "HGS");
     }
 
     /**

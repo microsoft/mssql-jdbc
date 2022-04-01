@@ -1956,18 +1956,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     enclaveAttestationProtocol = sPropValue;
-                    if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"), null);
-                    }
 
                     if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
                         this.enclaveProvider = new SQLServerVSMEnclaveProvider();
                     } else if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())) {
                         this.enclaveProvider = new SQLServerNoneEnclaveProvider();
-                    }else {
-                        // If it's a valid Provider & not HGS (or NONE), then it has to be AAS
+                    } else if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.AAS.toString())) {
                         this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                    } else {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"), null);
                     }
                 }
 
