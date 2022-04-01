@@ -123,6 +123,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
+    /** Used for toggling use of sp_prepare */
     private String prepareMethod = null;
 
     /** Handle the actual queue of discarded prepared statements. */
