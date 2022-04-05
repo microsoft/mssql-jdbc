@@ -3763,6 +3763,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     boolean executeCommand(TDSCommand newCommand) throws SQLServerException {
         synchronized (schedulerLock) {
+            if (connectionlogger.isLoggable(Level.FINER))
+                connectionlogger.finer(toString() + " executeCommand: " + newCommand.toString());
             ICounter previousCounter = null;
             /*
              * Detach (buffer) the response from any previously executing command so that we can execute the new
