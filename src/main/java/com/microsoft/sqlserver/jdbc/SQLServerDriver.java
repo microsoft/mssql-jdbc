@@ -162,7 +162,8 @@ enum EncryptOption {
 
 enum AttestationProtocol {
     HGS("HGS"),
-    AAS("AAS");
+    AAS("AAS"),
+    NONE("NONE");
 
     private final String protocol;
 
@@ -253,6 +254,43 @@ enum SSLProtocol {
             throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
         return protocol;
+    }
+}
+
+
+enum IPAddressPreference {
+    IPv4First("IPv4First"),
+    IPv6First("IPv6First"),
+    UsePlatformDefault("UsePlatformDefault");
+
+    private final String name;
+
+    IPAddressPreference(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+    static IPAddressPreference valueOfString(String value) throws SQLServerException {
+        IPAddressPreference iptype = null;
+
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv4First.toString())) {
+            iptype = IPAddressPreference.IPv4First;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv6First.toString())) {
+            iptype = IPAddressPreference.IPv6First;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
+            iptype = IPAddressPreference.UsePlatformDefault;
+
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidIPAddressPreference"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return iptype;
     }
 }
 
@@ -422,6 +460,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
+    IPADDRESS_PREFERENCE("iPAddressPreference", IPAddressPreference.IPv4First.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -453,7 +492,8 @@ enum SQLServerDriverStringProperty {
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
-    ENCRYPT("encrypt", EncryptOption.True.toString());
+    ENCRYPT("encrypt", EncryptOption.True.toString()),
+    SERVER_CERTIFICATE("serverCertificate", "");
 
     private final String name;
     private final String defaultValue;
@@ -595,6 +635,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
                             EncryptOption.Optional.toString(), EncryptOption.True.toString(),
                             EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(),
+                    SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
                     new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
@@ -649,6 +691,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.DOMAIN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_NAME.toString(),
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                    SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
+                    new String[] {IPAddressPreference.IPv4First.toString(),
+                            IPAddressPreference.IPv6First.toString(),
+                            IPAddressPreference.UsePlatformDefault.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
@@ -698,7 +745,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                             SqlAuthentication.ActiveDirectoryMSI.toString(),
                             SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
                             SqlAuthentication.ActiveDirectoryInteractive.toString()}),
-
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),

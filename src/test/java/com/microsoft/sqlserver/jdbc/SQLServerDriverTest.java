@@ -15,10 +15,8 @@ import java.sql.Statement;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -35,7 +33,7 @@ public class SQLServerDriverTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
     }
 

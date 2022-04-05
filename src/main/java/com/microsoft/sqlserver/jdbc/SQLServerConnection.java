@@ -123,6 +123,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
+    /** Used for toggling use of sp_prepare */
     private String prepareMethod = null;
 
     /** Handle the actual queue of discarded prepared statements. */
@@ -216,6 +217,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** flag indicating whether prelogin TLS handshake is required */
     private boolean isTDSS = false;
+
+    String encryptedTrustStorePassword = null;
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -391,7 +394,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         private Instant lastNetworkActivity = Instant.now();
 
         /**
-         * An “idle” connection will only ever get its socket disconnected by a keepalive packet after a connection has
+         * An "idle" connection will only ever get its socket disconnected by a keepalive packet after a connection has
          * been severed. KeepAlive packets are only sent on idle sockets. Default setting by the driver (on platforms
          * that have Java support for setting it) and the recommended setting is 30s (and OS default for those that
          * don't set it is 2 hrs).
@@ -752,6 +755,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** return whether to trust server certificate */
     final boolean trustServerCertificate() {
         return trustServerCertificate;
+    }
+
+    /** server certificate for encrypt=strict */
+    private String serverCertificate = null;
+
+    final String getServerCertificate() {
+        return serverCertificate;
     }
 
     /** negotiated encryption level */
@@ -1740,39 +1750,51 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
                 case JavaKeyStorePassword:
-                    // both secret and location must be set for JKS.
-                    if ((null == keyStoreSecret) || (null == keyStoreLocation)) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
-                    } else {
-                        SQLServerColumnEncryptionJavaKeyStoreProvider provider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
-                                keyStoreLocation, keyStoreSecret.toCharArray());
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
-                    }
+                    setKeyStoreSecretAndLocation(keyStoreSecret, keyStoreLocation);
                     break;
                 case KeyVaultClientSecret:
-                    // need a secret to use the secret method
-                    if (null == keyStoreSecret) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
-                    } else {
-                        SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                                keyStorePrincipalId, keyStoreSecret);
-                        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
-                    }
+                    this.setKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
                 case KeyVaultManagedIdentity:
-                    SQLServerColumnEncryptionAzureKeyVaultProvider provider;
-                    if (null != keyStorePrincipalId) {
-                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
-                    } else {
-                        provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
-                    }
-                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    setKeyVaultProvider(keyStorePrincipalId);
                     break;
                 default:
                     // valueOfString would throw an exception if the keyStoreAuthentication is not valid.
                     break;
             }
+        }
+    }
+
+    private void setKeyStoreSecretAndLocation(String keyStoreSecret, String keyStoreLocation) throws SQLServerException {
+        // both secret and location must be set for JKS.
+        if ((null == keyStoreSecret) || (null == keyStoreLocation)) {
+            throw new SQLServerException(
+                    SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
+        } else {
+            SQLServerColumnEncryptionJavaKeyStoreProvider provider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
+                     keyStoreLocation, keyStoreSecret.toCharArray());
+            systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+        }
+    }
+
+    private void setKeyVaultProvider(String keyStorePrincipalId) throws SQLServerException {
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider;
+        if (null != keyStorePrincipalId) {
+            provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(keyStorePrincipalId);
+        } else {
+            provider = new SQLServerColumnEncryptionAzureKeyVaultProvider();
+        }
+        systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+    }
+
+    private void setKeyVaultProvider(String keyStorePrincipalId, String keyStoreSecret) throws SQLServerException {
+        // need a secret to use the secret method
+        if (null == keyStoreSecret) {
+            throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretNotSet"), null);
+        } else {
+            SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    keyStorePrincipalId, keyStoreSecret);
+            systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
         }
     }
 
@@ -1818,6 +1840,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties = (Properties) propsIn.clone();
 
                 pooledConnectionParent = pooledConnection;
+
+                String trustStorePassword = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+                if (trustStorePassword != null) {
+                    encryptedTrustStorePassword = SecureStringUtil.getInstance().getEncryptedString(trustStorePassword);
+                    activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+                }
 
                 String hostNameInCertificate = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
@@ -1930,6 +1959,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValuePort) {
                     trustedServerNameAE += ":" + sPropValuePort;
                 }
+                
+                sPropKey = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                } else {
+                    activeConnectionProperties.setProperty(sPropKey, IPAddressPreference.valueOfString(sPropValue).toString());
+                }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -1963,24 +2001,31 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     enclaveAttestationProtocol = sPropValue;
-                    if (!AttestationProtocol.isValidAttestationProtocol(enclaveAttestationProtocol)) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"), null);
-                    }
 
                     if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.HGS.toString())) {
                         this.enclaveProvider = new SQLServerVSMEnclaveProvider();
-                    } else {
-                        // If it's a valid Provider & not HGS, then it has to be AAS
+                    } else if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())) {
+                        this.enclaveProvider = new SQLServerNoneEnclaveProvider();
+                    } else if (enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.AAS.toString())) {
                         this.enclaveProvider = new SQLServerAASEnclaveProvider();
+                    } else {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_enclaveInvalidAttestationProtocol"), null);
                     }
                 }
 
                 // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
-                if ((null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                if (
+                        // An attestation URL requires a protocol
+                        (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                         && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
+
+                        // An attestation protocol that is not NONE requires a URL
                         || (null != enclaveAttestationProtocol && !enclaveAttestationProtocol.isEmpty()
+                                && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())
                                 && (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()))
+
+                        // An attestation protocol also requires column encryption
                         || (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                                 && (null != enclaveAttestationProtocol || !enclaveAttestationProtocol.isEmpty())
                                 && (null == columnEncryptionSetting || !isColumnEncryptionSettingEnabled()))) {
@@ -2028,9 +2073,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
                     }
                     String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-                    SQLServerColumnEncryptionAzureKeyVaultProvider provider = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                            keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
-                    systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
+                    setKeyVaultProvider(keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
@@ -2093,6 +2136,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     // do not trust server cert for strict
                     trustServerCertificate = false;
+
+                    sPropKey = SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null == sPropValue) {
+                        sPropValue = SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue();
+                    }
+                    serverCertificate = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
 
                     // prelogin TLS handshake is required
                     isTDSS = true;
@@ -3214,10 +3265,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
+        String iPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
 
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
-                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout);
+                useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, iPAddressPreference);
 
         setState(State.Connected);
 
@@ -4506,7 +4558,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
             tdsWriter.writeInt(1); // length of version
-            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) {
+            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty() || (enclaveAttestationProtocol != null 
+               && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
@@ -5625,7 +5678,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
 
-                if (null != enclaveAttestationUrl) {
+                if (null != enclaveAttestationUrl || (enclaveAttestationProtocol != null 
+                && enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
@@ -7608,6 +7662,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     String getServerName() {
         return this.trustedServerNameAE;
+    }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+        
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
     }
 }
 

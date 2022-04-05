@@ -324,6 +324,16 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setServerCertificate(String cert) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), cert);
+    }
+
+    @Override
+    public String getServerCertificate() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), null);
+    }
+
+    @Override
     public void setTransparentNetworkIPResolution(boolean tnir) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.TRANSPARENT_NETWORK_IP_RESOLUTION.toString(),
                 tnir);
@@ -583,6 +593,24 @@ public class SQLServerDataSource
     @Override
     public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
+    }
+    
+    /**
+     * Set the preferred type of IP Address
+     * 
+     * @param iPAddressPreference Preferred IP Address type
+     */
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+    }
+    
+    /**
+     * Gets the preferred type of IP Address
+     */
+    @Override
+    public String getIPAddressPreference() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
     }
 
     /**

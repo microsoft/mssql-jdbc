@@ -18,6 +18,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -35,8 +37,6 @@ import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
@@ -45,11 +45,9 @@ import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -749,17 +747,21 @@ final class TDSChannel implements Serializable {
 
     /**
      * Opens the physical communications channel (TCP/IP socket and I/O streams) to the SQL Server.
+     * 
+     * @param iPAddressPreference
+     *        Preferred type of IP address to use first
      *
      * @return InetSocketAddress of the connection socket.
      */
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout,
+            String iPAddressPreference) throws SQLServerException {
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
-                isTnirFirstAttempt, timeoutMillisForFullTimeout);
+                isTnirFirstAttempt, timeoutMillisForFullTimeout, iPAddressPreference);
         try {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
@@ -1538,274 +1540,6 @@ final class TDSChannel implements Serializable {
         }
     }
 
-    /**
-     * This class implements an X509TrustManager that always accepts the X509Certificate chain offered to it.
-     *
-     * A PermissiveX509TrustManager is used to "verify" the authenticity of the server when the trustServerCertificate
-     * connection property is set to true.
-     */
-    private final class PermissiveX509TrustManager implements X509TrustManager {
-        private final TDSChannel tdsChannel;
-        private final Logger logger;
-        private final String logContext;
-
-        PermissiveX509TrustManager(TDSChannel tdsChannel) {
-            this.tdsChannel = tdsChannel;
-            this.logger = tdsChannel.getLogger();
-            this.logContext = tdsChannel.toString() + " (PermissiveX509TrustManager):";
-        }
-
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Trusting client certificate (!)");
-        }
-
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Trusting server certificate");
-        }
-
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }
-
-    /**
-     * This class implements an X509TrustManager that hostname for validation.
-     *
-     * This validates the subject name in the certificate with the host name
-     */
-    private final class HostNameOverrideX509TrustManager implements X509TrustManager {
-        private final Logger logger;
-        private final String logContext;
-        private final X509TrustManager defaultTrustManager;
-        private String hostName;
-
-        HostNameOverrideX509TrustManager(TDSChannel tdsChannel, X509TrustManager tm, String hostName) {
-            this.logger = tdsChannel.getLogger();
-            this.logContext = tdsChannel.toString() + " (HostNameOverrideX509TrustManager):";
-            defaultTrustManager = tm;
-            // canonical name is in lower case so convert this to lowercase too.
-            this.hostName = hostName.toLowerCase(Locale.ENGLISH);
-        }
-
-        // Parse name in RFC 2253 format
-        // Returns the common name if successful, null if failed to find the common name.
-        // The parser tuned to be safe than sorry so if it sees something it cant parse correctly it returns null
-        private String parseCommonName(String distinguishedName) {
-            int index;
-            // canonical name converts entire name to lowercase
-            index = distinguishedName.indexOf("cn=");
-            if (index == -1) {
-                return null;
-            }
-            distinguishedName = distinguishedName.substring(index + 3);
-            // Parse until a comma or end is reached
-            // Note the parser will handle gracefully (essentially will return empty string) , inside the quotes (e.g
-            // cn="Foo, bar") however
-            // RFC 952 says that the hostName cant have commas however the parser should not (and will not) crash if it
-            // sees a , within quotes.
-            for (index = 0; index < distinguishedName.length(); index++) {
-                if (distinguishedName.charAt(index) == ',') {
-                    break;
-                }
-            }
-            String commonName = distinguishedName.substring(0, index);
-            // strip any quotes
-            if (commonName.length() > 1 && ('\"' == commonName.charAt(0))) {
-                if ('\"' == commonName.charAt(commonName.length() - 1))
-                    commonName = commonName.substring(1, commonName.length() - 1);
-                else {
-                    // Be safe the name is not ended in " return null so the common Name wont match
-                    commonName = null;
-                }
-            }
-            return commonName;
-        }
-
-        private boolean validateServerName(String nameInCert) {
-            // Failed to get the common name from DN or empty CN
-            if (null == nameInCert) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(logContext + " Failed to parse the name from the certificate or name is empty.");
-                }
-                return false;
-            }
-            // We do not allow wildcards in IDNs (xn--).
-            if (!nameInCert.startsWith("xn--") && nameInCert.contains("*")) {
-                int hostIndex = 0, certIndex = 0, match = 0, startIndex = -1, periodCount = 0;
-                while (hostIndex < hostName.length()) {
-                    if ('.' == hostName.charAt(hostIndex)) {
-                        periodCount++;
-                    }
-                    if (certIndex < nameInCert.length() && hostName.charAt(hostIndex) == nameInCert.charAt(certIndex)) {
-                        hostIndex++;
-                        certIndex++;
-                    } else if (certIndex < nameInCert.length() && '*' == nameInCert.charAt(certIndex)) {
-                        startIndex = certIndex;
-                        match = hostIndex;
-                        certIndex++;
-                    } else if (startIndex != -1 && 0 == periodCount) {
-                        certIndex = startIndex + 1;
-                        match++;
-                        hostIndex = match;
-                    } else {
-                        logFailMessage(nameInCert);
-                        return false;
-                    }
-                }
-                if (nameInCert.length() == certIndex && periodCount > 1) {
-                    logSuccessMessage(nameInCert);
-                    return true;
-                } else {
-                    logFailMessage(nameInCert);
-                    return false;
-                }
-            }
-            // Verify that the name in certificate matches exactly with the host name
-            if (!nameInCert.equals(hostName)) {
-                logFailMessage(nameInCert);
-                return false;
-            }
-            logSuccessMessage(nameInCert);
-            return true;
-        }
-
-        private void logFailMessage(String nameInCert) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(logContext + " The name in certificate " + nameInCert
-                        + " does not match with the server name " + hostName + ".");
-            }
-        }
-
-        private void logSuccessMessage(String nameInCert) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(logContext + " The name in certificate:" + nameInCert + " validated against server name "
-                        + hostName + ".");
-            }
-        }
-
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Forwarding ClientTrusted.");
-            defaultTrustManager.checkClientTrusted(chain, authType);
-            // Explicitly validate the expiry dates
-            for (X509Certificate cert : chain) {
-                cert.checkValidity();
-            }
-        }
-
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " Forwarding Trusting server certificate");
-            defaultTrustManager.checkServerTrusted(chain, authType);
-            // Explicitly validate the expiry dates
-            for (X509Certificate cert : chain) {
-                cert.checkValidity();
-            }
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(logContext + " default serverTrusted succeeded proceeding with server name validation");
-
-            validateServerNameInCertificate(chain[0]);
-        }
-
-        private void validateServerNameInCertificate(X509Certificate cert) throws CertificateException {
-            String nameInCertDN = cert.getSubjectX500Principal().getName("canonical");
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(logContext + " Validating the server name:" + hostName);
-                logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
-            }
-
-            boolean isServerNameValidated;
-            String dnsNameInSANCert = "";
-
-            // the name in cert is in RFC2253 format parse it to get the actual subject name
-            String subjectCN = parseCommonName(nameInCertDN);
-
-            isServerNameValidated = validateServerName(subjectCN);
-
-            if (!isServerNameValidated) {
-
-                Collection<List<?>> sanCollection = cert.getSubjectAlternativeNames();
-
-                if (sanCollection != null) {
-                    // find a subjectAlternateName entry corresponding to DNS Name
-                    for (List<?> sanEntry : sanCollection) {
-
-                        if (sanEntry != null && sanEntry.size() >= 2) {
-                            Object key = sanEntry.get(0);
-                            Object value = sanEntry.get(1);
-
-                            if (logger.isLoggable(Level.FINER)) {
-                                logger.finer(logContext + "Key: " + key + "; KeyClass:"
-                                        + (key != null ? key.getClass() : null) + ";value: " + value + "; valueClass:"
-                                        + (value != null ? value.getClass() : null));
-
-                            }
-
-                            // From
-                            // Documentation(http://download.oracle.com/javase/6/docs/api/java/security/cert/X509Certificate.html):
-                            // "Note that the Collection returned may contain
-                            // more than one name of the same type."
-                            // So, more than one entry of dnsNameType can be present.
-                            // Java docs guarantee that the first entry in the list will be an integer.
-                            // 2 is the sequence no of a dnsName
-                            if ((key != null) && (key instanceof Integer) && ((Integer) key == 2)) {
-                                // As per RFC2459, the DNSName will be in the
-                                // "preferred name syntax" as specified by RFC
-                                // 1034 and the name can be in upper or lower case.
-                                // And no significance is attached to case.
-                                // Java docs guarantee that the second entry in the list
-                                // will be a string for dnsName
-                                if (value != null && value instanceof String) {
-                                    dnsNameInSANCert = (String) value;
-
-                                    // Use English locale to avoid Turkish i issues.
-                                    // Note that, this conversion was not necessary for
-                                    // cert.getSubjectX500Principal().getName("canonical");
-                                    // as the above API already does this by default as per documentation.
-                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
-
-                                    isServerNameValidated = validateServerName(dnsNameInSANCert);
-
-                                    if (isServerNameValidated) {
-                                        if (logger.isLoggable(Level.FINER)) {
-                                            logger.finer(logContext + " found a valid name in certificate: "
-                                                    + dnsNameInSANCert);
-                                        }
-                                        break;
-                                    }
-                                }
-
-                                if (logger.isLoggable(Level.FINER)) {
-                                    logger.finer(logContext
-                                            + " the following name in certificate does not match the serverName: "
-                                            + value);
-                                }
-                            }
-
-                        } else {
-                            if (logger.isLoggable(Level.FINER)) {
-                                logger.finer(logContext + " found an invalid san entry: " + sanEntry);
-                            }
-                        }
-                    }
-
-                }
-            }
-
-            if (!isServerNameValidated) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_certNameFailed"));
-                Object[] msgArgs = {hostName, dnsNameInSANCert};
-                throw new CertificateException(form.format(msgArgs));
-            }
-        }
-
-        public X509Certificate[] getAcceptedIssuers() {
-            return defaultTrustManager.getAcceptedIssuers();
-        }
-    }
-
     enum SSLHandhsakeState {
         SSL_HANDHSAKE_NOT_STARTED,
         SSL_HANDHSAKE_STARTED,
@@ -1848,8 +1582,12 @@ final class TDSChannel implements Serializable {
 
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
-            String trustStorePassword = con.activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+
+            String trustStorePassword = null;
+            if (con.encryptedTrustStorePassword != null) {
+                trustStorePassword = SecureStringUtil.getInstance().getDecryptedString(con.encryptedTrustStorePassword);
+            }
+
             String hostNameInCertificate = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
@@ -1860,14 +1598,17 @@ final class TDSChannel implements Serializable {
                 trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
             }
 
+            String serverCert = con.activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
+
             isFips = Boolean.valueOf(
                     con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
-            sslProtocol = con.activeConnectionProperties
-                    .getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
-
             if (isFips) {
                 validateFips(trustStoreType, trustStoreFileName);
             }
+
+            sslProtocol = con.activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.SSL_PROTOCOL.toString());
 
             byte requestedEncryptLevel = con.getRequestedEncryptionLevel();
             assert TDS.ENCRYPT_OFF == requestedEncryptLevel || // Login only SSL
@@ -1895,88 +1636,101 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " SSL handshake will validate server certificate");
+                if (isTDSS) {
+                    if (logger.isLoggable(Level.FINEST))
+                        logger.finest(toString() + " Verify server certificate for TDSS");
 
-                KeyStore ks = null;
-
-                // If we are using the system default trustStore and trustStorePassword
-                // then we can skip all of the KeyStore loading logic below.
-                // The security provider's implementation takes care of everything for us.
-                if (null == trustStoreFileName && null == trustStorePassword) {
+                    if (null != hostNameInCertificate) {
+                        tm = new TrustManager[] {
+                                new ServerCertificateX509TrustManager(this, serverCert, hostNameInCertificate)};
+                    } else {
+                        tm = new TrustManager[] {new ServerCertificateX509TrustManager(this, serverCert, host)};
+                    }
+                } else {
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + " Using system default trust store and password");
-                }
+                        logger.finer(toString() + " SSL handshake will validate server certificate");
 
-                // Otherwise either the trustStore, trustStorePassword, or both was specified.
-                // In that case, we need to load up a KeyStore ourselves.
-                else {
-                    // First, obtain an interface to a KeyStore that can load trust material
-                    // stored in Java Key Store (JKS) format.
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Finding key store interface");
+                    KeyStore ks = null;
 
-                    ks = KeyStore.getInstance(trustStoreType);
-                    ksProvider = ks.getProvider();
+                    // If we are using the system default trustStore and trustStorePassword
+                    // then we can skip all of the KeyStore loading logic below.
+                    // The security provider's implementation takes care of everything for us.
+                    if (null == trustStoreFileName && null == trustStorePassword && !isTDSS) {
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.finer(toString() + " Using system default trust store and password");
+                        }
+                    } else {
+                        // Otherwise either the trustStore, trustStorePassword, or both was specified.
+                        // In that case, we need to load up a KeyStore ourselves.
 
-                    // Next, load up the trust store file from the specified location.
-                    // Note: This function returns a null InputStream if the trust store cannot
-                    // be loaded. This is by design. See the method comment and documentation
-                    // for KeyStore.load for details.
-                    InputStream is = loadTrustStore(trustStoreFileName);
+                        // First, obtain an interface to a KeyStore that can load trust material
+                        // stored in Java Key Store (JKS) format.
+                        if (logger.isLoggable(Level.FINEST))
+                            logger.finest(toString() + " Finding key store interface");
 
-                    // Finally, load the KeyStore with the trust material (if any) from the
-                    // InputStream and close the stream.
-                    if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Loading key store");
+                        ks = KeyStore.getInstance(trustStoreType);
+                        ksProvider = ks.getProvider();
 
-                    try {
-                        ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
-                    } finally {
-                        // We are also done with the trust store input stream.
-                        if (null != is) {
-                            try {
-                                is.close();
-                            } catch (IOException e) {
-                                if (logger.isLoggable(Level.FINE))
-                                    logger.fine(toString() + " Ignoring error closing trust material InputStream...");
+                        // Next, load up the trust store file from the specified location.
+                        // Note: This function returns a null InputStream if the trust store cannot
+                        // be loaded. This is by design. See the method comment and documentation
+                        // for KeyStore.load for details.
+                        InputStream is = loadTrustStore(trustStoreFileName);
+
+                        // Finally, load the KeyStore with the trust material (if any) from the
+                        // InputStream and close the stream.
+                        if (logger.isLoggable(Level.FINEST))
+                            logger.finest(toString() + " Loading key store");
+
+                        try {
+                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
+                        } finally {
+                            // We are also done with the trust store input stream.
+                            if (null != is) {
+                                try {
+                                    is.close();
+                                } catch (IOException e) {
+                                    if (logger.isLoggable(Level.FINE))
+                                        logger.fine(
+                                                toString() + " Ignoring error closing trust material InputStream...");
+                                }
                             }
                         }
                     }
-                }
 
-                // Either we now have a KeyStore populated with trust material or we are using the
-                // default source of trust material (cacerts). Either way, we are now ready to
-                // use a TrustManagerFactory to create a TrustManager that uses the trust material
-                // to validate the server certificate.
+                    // Either we now have a KeyStore populated with trust material or we are using the
+                    // default source of trust material (cacerts). Either way, we are now ready to
+                    // use a TrustManagerFactory to create a TrustManager that uses the trust material
+                    // to validate the server certificate.
 
-                // Next step is to get a TrustManagerFactory that can produce TrustManagers
-                // that understands X.509 certificates.
-                TrustManagerFactory tmf = null;
+                    // Next step is to get a TrustManagerFactory that can produce TrustManagers
+                    // that understands X.509 certificates.
+                    TrustManagerFactory tmf = null;
 
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Locating X.509 trust manager factory");
+                    if (logger.isLoggable(Level.FINEST))
+                        logger.finest(toString() + " Locating X.509 trust manager factory");
 
-                tmfDefaultAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-                tmf = TrustManagerFactory.getInstance(tmfDefaultAlgorithm);
-                tmfProvider = tmf.getProvider();
+                    tmfDefaultAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+                    tmf = TrustManagerFactory.getInstance(tmfDefaultAlgorithm);
+                    tmfProvider = tmf.getProvider();
 
-                // Tell the TrustManagerFactory to give us TrustManagers that we can use to
-                // validate the server certificate using the trust material in the KeyStore.
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Getting trust manager");
+                    // Tell the TrustManagerFactory to give us TrustManagers that we can use to
+                    // validate the server certificate using the trust material in the KeyStore.
+                    if (logger.isLoggable(Level.FINEST))
+                        logger.finest(toString() + " Getting trust manager");
 
-                tmf.init(ks);
-                tm = tmf.getTrustManagers();
+                    tmf.init(ks);
+                    tm = tmf.getTrustManagers();
 
-                // if the host name in cert provided use it or use the host name Only if it is not FIPS
-                if (!isFips) {
-                    if (null != hostNameInCertificate) {
-                        tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0],
-                                hostNameInCertificate)};
-                    } else {
-                        tm = new TrustManager[] {
-                                new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host)};
+                    // if the host name in cert provided use it or use the host name Only if it is not FIPS
+                    if (!isFips) {
+                        if (null != hostNameInCertificate) {
+                            tm = new TrustManager[] {new HostNameOverrideX509TrustManager(this,
+                                    (X509TrustManager) tm[0], hostNameInCertificate)};
+                        } else {
+                            tm = new TrustManager[] {
+                                    new HostNameOverrideX509TrustManager(this, (X509TrustManager) tm[0], host)};
+                        }
                     }
                 }
             } // end if (!con.trustServerCertificate())
@@ -2579,6 +2333,9 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
+    // list of addresses for ip selection by type preference
+    private static ArrayList<InetAddress> addressList = new ArrayList<>();
+
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2598,11 +2355,13 @@ final class SocketFinder {
      * @param hostName
      * @param portNumber
      * @param timeoutInMilliSeconds
+     * @param iPAddressPreference
      * @return connected socket
      * @throws IOException
      */
     Socket findSocket(String hostName, int portNumber, int timeoutInMilliSeconds, boolean useParallel, boolean useTnir,
-            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout) throws SQLServerException {
+            boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
+            String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
         try {
@@ -2612,9 +2371,10 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getDefaultSocket(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs);
+                    return getSocketByIPPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
+                            iPAddressPreference);
                 } else if (!useTnir) {
-                    return getDefaultSocket(hostName, portNumber, timeoutInMilliSeconds);
+                    return getSocketByIPPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
                 }
             }
 
@@ -2907,19 +2667,85 @@ final class SocketFinder {
         return socketFactory;
     }
 
-    // This method contains the old logic of connecting to
-    // a socket of one of the IPs corresponding to a given host name.
-    // In the old code below, the logic around 0 timeout has been removed as
-    // 0 timeout is not allowed. The code has been re-factored so that the logic
-    // is common for hostName or InetAddress.
-    private Socket getDefaultSocket(String hostName, int portNumber, int timeoutInMilliSeconds) throws IOException {
-        // Open the socket, with or without a timeout, throwing an UnknownHostException
-        // if there is a failure to resolve the host name to an InetSocketAddress.
-        //
+    /**
+     * Helper function which traverses through list of InetAddresses to find a resolved one
+     * @param hostName 
+     * 
+     * @param portNumber
+     *        Port Number
+     * @return First resolved address or unresolved address if none found
+     * @throws IOException
+     * @throws SQLServerException
+     */
+    private InetSocketAddress getInetAddressByIPPreference(String hostName, int portNumber) throws IOException, SQLServerException {
+        InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
+        for (int i = 0; i < addressList.size(); i++) {
+            addr = new InetSocketAddress(addressList.get(i), portNumber);
+            if (!addr.isUnresolved())
+                return addr;
+        }
+        return addr;
+    }
+
+    /**
+     * This method makes a connected socket given a hostname or IP address.
+     * 
+     * @param hostName
+     *        Hostname or IP Address
+     * @param portNumber
+     *        Port number
+     * @param timeoutInMilliSeconds
+     *        Timeout
+     * @param iPAddressPreference
+     *        Preferred IP address type
+     * @return Connected Socket
+     * @throws IOException
+     * @throws SQLServerException
+     */
+    private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
+            String iPAddressPreference) throws IOException, SQLServerException {
+        InetSocketAddress addr = null;
+        InetAddress addresses[] = InetAddress.getAllByName(hostName);
+        IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
+        switch (pref) {
+            case IPv6First:
+                // Try to connect to first choice of IP address type
+                fillAddressList(addresses, true);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No unresolved addresses of preferred type, try the other
+                fillAddressList(addresses, false);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                break;
+            case IPv4First:
+                // Try to connect to first choice of IP address type
+                fillAddressList(addresses, false);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                // No unresolved addresses of preferred type, try the other
+                fillAddressList(addresses, true);
+                addr = getInetAddressByIPPreference(hostName, portNumber);
+                if (!addr.isUnresolved())
+                    return getConnectedSocket(addr, timeoutInMilliSeconds);
+                break;
+            case UsePlatformDefault:
+                for (InetAddress address : addresses) {
+                    addr = new InetSocketAddress(address, portNumber);
+                    if (!addr.isUnresolved())
+                        return getConnectedSocket(addr, timeoutInMilliSeconds);
+                }
+                break;
+            default:
+                break;
+        }
+
         // Note that Socket(host, port) throws an UnknownHostException if the host name
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
-        InetSocketAddress addr = new InetSocketAddress(hostName, portNumber);
         if (addr.isUnresolved()) {
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(this.toString() + "Failed to resolve host name: " + hostName
@@ -2928,7 +2754,30 @@ final class SocketFinder {
             InetSocketAddress cacheEntry = SQLServerConnection.getDNSEntry(hostName);
             addr = (null != cacheEntry) ? cacheEntry : addr;
         }
+
         return getConnectedSocket(addr, timeoutInMilliSeconds);
+    }
+
+    /**
+     * Fills static array of IP Addresses with addresses of the preferred protocol version.
+     * @param addresses Array of all addresses
+     * @param ipv6first Boolean switch for IPv6 first
+     */
+    private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
+        addressList.clear();
+        if (ipv6first) {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet6Address) {
+                    addressList.add(addr);
+                }
+            }
+        } else {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet4Address) {
+                    addressList.add(addr);
+                }
+            }
+        }
     }
 
     private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,

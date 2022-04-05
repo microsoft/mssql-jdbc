@@ -165,6 +165,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_databaseNamePropertyDescription", "The name of the database to connect to."},
         {"R_domainPropertyDescription", "The Windows domain to authenticate in using NTLM."},
         {"R_serverNamePropertyDescription", "The computer running SQL Server."},
+        {"R_iPAddressPreferencePropertyDescription", "The preferred type of IP address."},
         {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
         {"R_realmPropertyDescription", "The realm for Kerberos authentication."},
         {"R_serverSpnPropertyDescription", "SQL Server SPN."},
@@ -192,6 +193,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_failoverPartnerPropertyDescription", "The name of the failover server used in a database mirroring configuration."},
         {"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
         {"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
+        {"R_serverCertificatePropertyDescription", "The path to the server certificate file."},
         {"R_prepareMethodPropertyDescription", "Determines the prepare method used in the driver."},
         {"R_socketFactoryClassPropertyDescription", "The class to instantiate as the SocketFactory for connections"},
         {"R_socketFactoryConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by socketFactoryClass"},
@@ -266,8 +268,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCipherTextSize", "Specified ciphertext has an invalid size of {0} bytes, which is below the minimum {1} bytes required for decryption."},
         {"R_InvalidAlgorithmVersion", "The specified ciphertext''s encryption algorithm version {0} does not match the expected encryption algorithm version {1} ."},
         {"R_InvalidAuthenticationTag", "Specified ciphertext has an invalid authentication tag. "},
-        {"R_EncryptionFailed", "Internal error while encryption:  {0} "},
-        {"R_DecryptionFailed", "Internal error while decryption:  {0} "},
+        {"R_EncryptionFailed", "Internal error during encryption:  {0} "},
+        {"R_DecryptionFailed", "Internal error during decryption:  {0} "},
         {"R_InvalidKeySize", "The column encryption key has been successfully decrypted but it''s length: {0} does not match the length: {1} for algorithm \"{2}\". Verify the encrypted value of the column encryption key in the database."},
         {"R_InvalidEncryptionType", "Encryption type {0} specified for the column in the database is either invalid or corrupted. Valid encryption types for algorithm {1} are: {2}."},
         {"R_UnknownColumnEncryptionAlgorithm", "The Algorithm {0} does not exist. Algorithms registered in the factory are {1}."},
@@ -285,8 +287,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_PlainTextNullAE", "Internal error. Plaintext value cannot be null."},
         {"R_StreamingDataTypeAE", "Data of length greater than {0} is not supported in encrypted {1} column."},
         {"R_AE_NotSupportedByServer", "SQL Server in use does not support column encryption."},
-        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From
-                                                                                                       // Server
+        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From server
         {"R_NullEncryptedColumnEncryptionKey", "Internal error. Encrypted column encryption key cannot be null."},
         {"R_EmptyEncryptedColumnEncryptionKey", "Internal error. Empty encrypted column encryption key specified."},
         {"R_InvalidMasterKeyDetails", "Invalid master key details specified."},
@@ -502,7 +503,11 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
+        {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
+        {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
+        {"R_serverCertError", "Error validating Server Certificate: {0}."},
+        {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
     };
 }
 // @formatter:on
