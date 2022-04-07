@@ -3094,6 +3094,10 @@ final class TDSWriter {
         dataIsLoggable = value;
     }
 
+    SharedTimer getSharedTimer() throws SQLServerException {
+        return con.getSharedTimer();
+    }
+
     private TDSCommand command = null;
 
     // TDS message type (Query, RPC, DTC, etc.) sent at the beginning
@@ -7434,19 +7438,13 @@ abstract class TDSCommand implements Serializable {
         }
     }
 
-    synchronized void startTimeoutTimer() {
+    synchronized void startTimeoutTimer() throws SQLServerException {
         // If command execution is subject to timeout then start timing until the server returns the first response
         // packet. We check for a null queryTimeout because this could be started from an Idle Connection Resiliency
         // recovery session, or from TDSCommand.startResponse
         if (queryTimeoutSeconds > 0 && queryTimeout == null) {
             SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
-            try {
-                this.queryTimeout = conn.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
-            } catch (SQLServerException e) {
-                // If getSharedTimer throws, it's because the connection is closed.
-                // We don't want this method to throw so that it can be easily called from
-                // IdleConnectionResiliency's ReconnectThread.run().
-            }
+            this.queryTimeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
         }
     }
 

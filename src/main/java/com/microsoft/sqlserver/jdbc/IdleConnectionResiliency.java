@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -428,7 +429,14 @@ final class ReconnectThread extends Thread {
          */
         command.setInterruptsEnabled(true);
         command.attachThread(this);
-        command.startTimeoutTimer();
+        try {
+            command.startTimeoutTimer();
+        } catch (SQLException e) {
+            if (loggerExternal.isLoggable(Level.FINE))
+                loggerExternal.fine("Error starting Timeout Timer for ICR reconnect. Cancelling ICR. command: "
+                        + command.toString() + "; Error: " + e.getMessage());
+            return;
+        }
         boolean keepRetrying = true;
 
         while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
