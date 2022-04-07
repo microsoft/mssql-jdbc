@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -392,6 +393,7 @@ final class ReconnectThread extends Thread {
 
     private volatile boolean stopRequested = false;
     private int connectRetryCount = 0;
+    private ScheduledFuture<?> reconnectTimeout;
 
     /*
      * This class is only meant to be used by a Connection object to reconnect in the background. Don't allow default
@@ -429,14 +431,19 @@ final class ReconnectThread extends Thread {
          */
         command.setInterruptsEnabled(true);
         command.attachThread(this);
-        try {
-            command.startTimeoutTimer();
-        } catch (SQLException e) {
-            if (loggerExternal.isLoggable(Level.FINE))
-                loggerExternal.fine("Error starting Timeout Timer for ICR reconnect. Cancelling ICR. command: "
-                        + command.toString() + "; Error: " + e.getMessage());
-            return;
+
+        if (command.getQueryTimeoutSeconds() > 0) {
+            try {
+                this.reconnectTimeout = con.getSharedTimer().schedule(new TDSTimeoutTask(null, con),
+                        command.getQueryTimeoutSeconds());
+            } catch (SQLException e) {
+                if (loggerExternal.isLoggable(Level.FINE))
+                    loggerExternal.fine("Error starting Timeout Timer for ICR reconnect. Cancelling ICR. command: "
+                            + command.toString() + "; Error: " + e.getMessage());
+                return;
+            }
         }
+
         boolean keepRetrying = true;
 
         while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
@@ -489,6 +496,11 @@ final class ReconnectThread extends Thread {
 
         if (loggerExternal.isLoggable(Level.FINE)) {
             loggerExternal.fine("ICR reconnect thread exiting for command: " + command.toString());
+        }
+
+        if (this.reconnectTimeout != null) {
+            this.reconnectTimeout.cancel(false);
+            this.reconnectTimeout = null;
         }
     }
 

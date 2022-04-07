@@ -7438,16 +7438,6 @@ abstract class TDSCommand implements Serializable {
         }
     }
 
-    synchronized void startTimeoutTimer() throws SQLServerException {
-        // If command execution is subject to timeout then start timing until the server returns the first response
-        // packet. We check for a null queryTimeout because this could be started from an Idle Connection Resiliency
-        // recovery session, or from TDSCommand.startResponse
-        if (queryTimeoutSeconds > 0 && queryTimeout == null) {
-            SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
-            this.queryTimeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
-        }
-    }
-
     boolean wasExecuted() {
         return isExecuted;
     }
@@ -7857,7 +7847,13 @@ abstract class TDSCommand implements Serializable {
             throw e;
         }
 
-        startTimeoutTimer();
+        // If command execution is subject to timeout then start timing until
+        // the server returns the first response packet.
+        if (queryTimeoutSeconds > 0) {
+            SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
+            this.queryTimeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn),
+                    queryTimeoutSeconds);
+        }
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
