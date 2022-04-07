@@ -506,7 +506,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
         {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
-        {"R_serverCertError", "Error validating Server Certificate: {0}."},
+        {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
     };
 }
