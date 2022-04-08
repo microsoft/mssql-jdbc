@@ -175,12 +175,12 @@ public abstract class AbstractTest {
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
         trustStore = getConfiguredProperty("trustStore", "");
-        if (!(trustStore.isBlank() || trustStore.isEmpty())) {
+        if (!trustStore.trim().isEmpty()) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStore", trustStore);
         }
 
         trustStorePassword = getConfiguredProperty("trustStorePassword", "");
-        if (!(trustStorePassword.isBlank() || trustStorePassword.isEmpty())) {
+        if (!trustStorePassword.trim().isEmpty()) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStorePassword",
                     trustStorePassword);
         }
