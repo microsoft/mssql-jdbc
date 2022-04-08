@@ -165,6 +165,7 @@ class IdleConnectionResiliency {
     }
 
     void reconnect(TDSCommand cmd) throws InterruptedException {
+        reconnectErrorReceived = null;
         reconnectThread = new ReconnectThread(this.connection, cmd);
         reconnectThread.start();
         reconnectThread.join();
