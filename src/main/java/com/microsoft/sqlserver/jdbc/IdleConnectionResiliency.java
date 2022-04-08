@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.Thread.State;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -31,7 +32,6 @@ class IdleConnectionResiliency {
 
     IdleConnectionResiliency(SQLServerConnection connection) {
         this.connection = connection;
-        reconnectThread = new ReconnectThread(connection);
     }
 
     boolean isConnectionRecoveryNegotiated() {
@@ -58,8 +58,13 @@ class IdleConnectionResiliency {
         this.connection = connection;
     }
 
-    ReconnectThread getReconnectThread() {
-        return reconnectThread;
+    boolean isReconnectRunning() {
+        return reconnectThread != null && (reconnectThread.getState() != State.TERMINATED);
+    }
+
+    void join() throws InterruptedException {
+        if (reconnectThread != null)
+            reconnectThread.join();
     }
 
     SessionStateTable getSessionStateTable() {
@@ -109,14 +114,14 @@ class IdleConnectionResiliency {
     }
 
     void incrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !getReconnectThread().isAlive()) {
+        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
             if (unprocessedResponseCount.incrementAndGet() < 0) {
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the
                  * connection.
                  */
-                if (loggerExternal.isLoggable(Level.FINE)) {
-                    loggerExternal.fine("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
+                if (loggerExternal.isLoggable(Level.FINER)) {
+                    loggerExternal.finer("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
                 }
 
                 setConnectionRecoveryPossible(false);
@@ -125,14 +130,14 @@ class IdleConnectionResiliency {
     }
 
     void decrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !getReconnectThread().isAlive()) {
+        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
             if (unprocessedResponseCount.decrementAndGet() < 0) {
                 /*
                  * When this number rolls over, connection recovery is disabled for the rest of the life of the
                  * connection.
                  */
-                if (loggerExternal.isLoggable(Level.FINE)) {
-                    loggerExternal.fine("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
+                if (loggerExternal.isLoggable(Level.FINER)) {
+                    loggerExternal.finer("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
                 }
 
                 setConnectionRecoveryPossible(false);
@@ -161,6 +166,17 @@ class IdleConnectionResiliency {
 
     int getLoginTimeoutSeconds() {
         return loginLoginTimeoutSeconds;
+    }
+
+    void startReconnect(TDSCommand cmd) {
+        reconnectThread = new ReconnectThread(this.connection, cmd);
+        reconnectThread.start();
+    }
+
+    SQLServerException getReconnectException() {
+        if (reconnectThread != null)
+            return reconnectThread.getException();
+        return null;
     }
 }
 
@@ -400,26 +416,22 @@ final class ReconnectThread extends Thread {
     @SuppressWarnings("unused")
     private ReconnectThread() {};
 
-    ReconnectThread(SQLServerConnection sqlC) {
+    ReconnectThread(SQLServerConnection sqlC, TDSCommand cmd) {
         this.con = sqlC;
-    }
-
-    // Resets the thread
-    void init(TDSCommand cmd) {
         this.command = cmd;
         connectRetryCount = con.getRetryCount();
         eReceived = null;
         stopRequested = false;
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.fine("ICR reconnect thread initialized. Connection retry count = " + connectRetryCount
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("ICR reconnect thread initialized. Connection retry count = " + connectRetryCount
                     + "; Command = " + cmd.toString());
         }
 
     }
 
     public void run() {
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.fine("Running ICR thread for command: " + command.toString());
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("Running ICR thread for command: " + command.toString());
         }
         boolean interruptsEnabled = command.getInterruptsEnabled();
         /*
@@ -490,8 +502,8 @@ final class ReconnectThread extends Thread {
 
         command.setInterruptsEnabled(interruptsEnabled);
 
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.fine("ICR reconnect thread exiting for command: " + command.toString());
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("ICR reconnect thread exiting for command: " + command.toString());
         }
 
         if (timeout != null) {
@@ -506,8 +518,8 @@ final class ReconnectThread extends Thread {
     }
 
     void stop(boolean blocking) {
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.fine("ICR reconnect thread stop requested for command: " + command.toString());
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("ICR reconnect thread stop requested for command: " + command.toString());
         }
         stopRequested = true;
         if (blocking && this.isAlive()) {
