@@ -82,6 +82,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setPortNumber(intPropValue);
         assertEquals(intPropValue, ds.getPortNumber(), TestResource.getResource("R_valuesAreDifferent"));
+        
+        ds.setIPAddressPreference(stringPropValue);
+        assertEquals(stringPropValue, ds.getIPAddressPreference(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setURL(stringPropValue);
         assertEquals(stringPropValue, ds.getURL(), TestResource.getResource("R_valuesAreDifferent"));
@@ -658,7 +661,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }
