@@ -21,6 +21,7 @@ class IdleConnectionResiliency {
     private ReconnectThread reconnectThread;
     private AtomicInteger unprocessedResponseCount = new AtomicInteger();
     private boolean connectionRecoveryPossible;
+    private SQLServerException reconnectErrorReceived = null;
 
     /*
      * Variables needed to perform a reconnect, these are not necessarily determined from just the connection string
@@ -60,11 +61,6 @@ class IdleConnectionResiliency {
 
     boolean isReconnectRunning() {
         return reconnectThread != null && (reconnectThread.getState() != State.TERMINATED);
-    }
-
-    void join() throws InterruptedException {
-        if (reconnectThread != null)
-            reconnectThread.join();
     }
 
     SessionStateTable getSessionStateTable() {
@@ -168,15 +164,17 @@ class IdleConnectionResiliency {
         return loginLoginTimeoutSeconds;
     }
 
-    void startReconnect(TDSCommand cmd) {
+    void reconnect(TDSCommand cmd) throws InterruptedException {
         reconnectThread = new ReconnectThread(this.connection, cmd);
         reconnectThread.start();
+        reconnectThread.join();
+        reconnectErrorReceived = reconnectThread.getException();
+        // Remove reference so GC can clean it up
+        reconnectThread = null;
     }
 
     SQLServerException getReconnectException() {
-        if (reconnectThread != null)
-            return reconnectThread.getException();
-        return null;
+        return reconnectErrorReceived;
     }
 }
 

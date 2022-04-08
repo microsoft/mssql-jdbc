@@ -3851,14 +3851,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"), null,
                                         false);
                             }
-                            sessionRecovery.startReconnect(newCommand);
-                            /*
-                             * Join only blocks the thread that started the reconnect. Currently can't think of a good
-                             * reason to leave the original thread running, no work can be done while we're not
-                             * connected anyways. Can be easily changed to non-blocking if necessary.
-                             */
                             try {
-                                sessionRecovery.join();
+                                sessionRecovery.reconnect(newCommand);
                             } catch (InterruptedException e) {
                                 // re-interrupt thread
                                 Thread.currentThread().interrupt();
