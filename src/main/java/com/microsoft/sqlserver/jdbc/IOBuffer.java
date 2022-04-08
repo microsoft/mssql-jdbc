@@ -66,6 +66,7 @@ import java.util.logging.Logger;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -1763,6 +1764,11 @@ final class TDSChannel implements Serializable {
 
             if (isTDSS) {
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
+
+                // set ALPN values
+                SSLParameters sslParam = sslSocket.getSSLParameters();
+                sslParam.setApplicationProtocols(new String[] {"tds", "/", "8.0"});
+                sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
@@ -1772,18 +1778,26 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
 
-            // TLS 1.2 intermittent exception happens here.
+            // TLS 1.2 intermittent exception may happen here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
             sslSocket.startHandshake();
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
+            if (isTDSS) {
+                if (logger.isLoggable(Level.FINEST)) {
+                    String negotiatedProtocol = sslSocket.getApplicationProtocol();
+                    logger.finest(toString() + " Application Protocol negotiated: "
+                            + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
+                }
+            }
+            
+            // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");
 
             proxySocket.setStreams(inputStream, outputStream);
 
-            // ... and rewire TDSChannel to use SSL streams.
+            // ... and re-wire TDSChannel to use SSL streams.
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL InputStream");
 
@@ -2669,7 +2683,8 @@ final class SocketFinder {
 
     /**
      * Helper function which traverses through list of InetAddresses to find a resolved one
-     * @param hostName 
+     * 
+     * @param hostName
      * 
      * @param portNumber
      *        Port Number
@@ -2677,7 +2692,8 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(String hostName, int portNumber) throws IOException, SQLServerException {
+    private InetSocketAddress getInetAddressByIPPreference(String hostName,
+            int portNumber) throws IOException, SQLServerException {
         InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
         for (int i = 0; i < addressList.size(); i++) {
             addr = new InetSocketAddress(addressList.get(i), portNumber);
@@ -2760,8 +2776,11 @@ final class SocketFinder {
 
     /**
      * Fills static array of IP Addresses with addresses of the preferred protocol version.
-     * @param addresses Array of all addresses
-     * @param ipv6first Boolean switch for IPv6 first
+     * 
+     * @param addresses
+     *        Array of all addresses
+     * @param ipv6first
+     *        Boolean switch for IPv6 first
      */
     private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
         addressList.clear();
