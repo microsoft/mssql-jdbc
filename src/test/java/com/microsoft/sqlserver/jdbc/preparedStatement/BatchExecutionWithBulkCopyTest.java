@@ -327,6 +327,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             }
         }
     }
+    
+    @Test
+    public void testNullGuid () throws Exception {
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1) values (?)";
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+        pstmt.setNull(1, microsoft.sql.Types.GUID);
+        pstmt.executeBatch();
+        }
+    }
 
     @Test
     public void testNullOrEmptyColumns() throws Exception {
