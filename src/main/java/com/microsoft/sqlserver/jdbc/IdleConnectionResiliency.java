@@ -422,7 +422,7 @@ final class ReconnectThread extends Thread {
         eReceived = null;
         stopRequested = false;
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.finer("ICR reconnect thread initialized. Connection retry count = " + connectRetryCount
+            loggerExternal.finer("ReconnectThread initialized. Connection retry count = " + connectRetryCount
                     + "; Command = " + cmd.toString());
         }
 
@@ -430,7 +430,7 @@ final class ReconnectThread extends Thread {
 
     public void run() {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.finer("Running ICR thread for command: " + command.toString());
+            loggerExternal.finer("Starting ReconnectThread for command: " + command.toString());
         }
         boolean interruptsEnabled = command.getInterruptsEnabled();
         /*
@@ -455,8 +455,8 @@ final class ReconnectThread extends Thread {
 
         while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
             if (loggerExternal.isLoggable(Level.FINER)) {
-                loggerExternal.finer("Running ICR reconnect for command: " + command.toString());
-                loggerExternal.finer("ConnectRetryCount = " + connectRetryCount);
+                loggerExternal.finer("Running reconnect for command: " + command.toString() + " ; ConnectRetryCount = "
+                        + connectRetryCount);
             }
             try {
                 eReceived = null;
@@ -502,7 +502,7 @@ final class ReconnectThread extends Thread {
         command.setInterruptsEnabled(interruptsEnabled);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.finer("ICR reconnect thread exiting for command: " + command.toString());
+            loggerExternal.finer("ReconnectThread exiting for command: " + command.toString());
         }
 
         if (timeout != null) {
@@ -518,7 +518,7 @@ final class ReconnectThread extends Thread {
 
     void stop(boolean blocking) {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.finer("ICR reconnect thread stop requested for command: " + command.toString());
+            loggerExternal.finer("ReconnectThread stop requested for command: " + command.toString());
         }
         stopRequested = true;
         if (blocking && this.isAlive()) {
