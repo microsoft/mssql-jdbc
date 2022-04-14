@@ -238,6 +238,19 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setUsePlatformGSSCredentials(boolean usePlatformGSS) {
+        setObjectProperty(connectionProps, SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString(),
+                usePlatformGSS);
+    }
+
+    @Override
+    public boolean getUsePlatformGSSCredentials() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString(),
+                SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.getDefaultValue());
+    }
+
+    @Override
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
