@@ -5679,7 +5679,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
 
                 if (null != enclaveAttestationUrl || (enclaveAttestationProtocol != null 
-                && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
+                && enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
