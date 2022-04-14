@@ -1,7 +1,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.Locale;
@@ -154,8 +153,8 @@ final class ServerCertificateX509TrustManager implements X509TrustManager {
             }
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
-            Object[] msgArgs = {serverCert, e.getMessage()};
-            throw new CertificateExpiredException(form.format(msgArgs));
+            Object[] msgArgs = {serverCert != null ? serverCert : hostName, e.getMessage()};
+            throw new CertificateException(form.format(msgArgs));
         }
     }
 

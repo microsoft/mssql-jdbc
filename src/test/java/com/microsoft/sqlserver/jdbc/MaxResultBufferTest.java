@@ -38,8 +38,8 @@ import static org.junit.Assert.fail;
 @DisplayName("maxResultBuffer Tests")
 public class MaxResultBufferTest extends AbstractTest {
 
-    @SuppressWarnings("SqlResolve")
-    private static final String TEST_TABLE_NAME = "maxResultBufferTestTable";
+    private static final String TEST_TABLE_NAME = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("maxResultBufferTestTable"));
     private static String localConnectionString;
 
     /**
@@ -71,7 +71,7 @@ public class MaxResultBufferTest extends AbstractTest {
 
         setConnection();
 
-        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME) + " VALUES (?)";
+        String insertSQL = "INSERT INTO " + TEST_TABLE_NAME + " VALUES (?)";
         int numberOfRows = 800;
         int precision = 10;
 
@@ -80,9 +80,8 @@ public class MaxResultBufferTest extends AbstractTest {
                 PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
 
             // drop Table if exists and then create new one
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME), statement);
-            statement.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME)
-                    + " ( col1 nchar(" + precision + "))");
+            TestUtils.dropTableIfExists(TEST_TABLE_NAME, statement);
+            statement.execute("CREATE TABLE " + TEST_TABLE_NAME + " ( col1 nchar(" + precision + "))");
 
             // insert into Table
             for (int i = 0; i < numberOfRows; i++) {
@@ -96,7 +95,7 @@ public class MaxResultBufferTest extends AbstractTest {
     @AfterAll
     static void teardownTestTable() throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(TEST_TABLE_NAME), statement);
+            TestUtils.dropTableIfExists(TEST_TABLE_NAME, statement);
         }
     }
 

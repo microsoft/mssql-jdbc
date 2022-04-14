@@ -1765,14 +1765,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private void setKeyStoreSecretAndLocation(String keyStoreSecret, String keyStoreLocation) throws SQLServerException {
+    private void setKeyStoreSecretAndLocation(String keyStoreSecret,
+            String keyStoreLocation) throws SQLServerException {
         // both secret and location must be set for JKS.
         if ((null == keyStoreSecret) || (null == keyStoreLocation)) {
-            throw new SQLServerException(
-                    SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_keyStoreSecretOrLocationNotSet"), null);
         } else {
             SQLServerColumnEncryptionJavaKeyStoreProvider provider = new SQLServerColumnEncryptionJavaKeyStoreProvider(
-                     keyStoreLocation, keyStoreSecret.toCharArray());
+                    keyStoreLocation, keyStoreSecret.toCharArray());
             systemColumnEncryptionKeyStoreProvider.put(provider.getName(), provider);
         }
     }
@@ -1959,14 +1959,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValuePort) {
                     trustedServerNameAE += ":" + sPropValuePort;
                 }
-                
+
                 sPropKey = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
                     sPropValue = SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue();
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 } else {
-                    activeConnectionProperties.setProperty(sPropKey, IPAddressPreference.valueOfString(sPropValue).toString());
+                    activeConnectionProperties.setProperty(sPropKey,
+                            IPAddressPreference.valueOfString(sPropValue).toString());
                 }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
@@ -2016,8 +2017,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // enclave requires columnEncryption=enabled, enclaveAttestationUrl and enclaveAttestationProtocol
                 if (
-                        // An attestation URL requires a protocol
-                        (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
+                // An attestation URL requires a protocol
+                (null != enclaveAttestationUrl && !enclaveAttestationUrl.isEmpty()
                         && (null == enclaveAttestationProtocol || enclaveAttestationProtocol.isEmpty()))
 
                         // An attestation protocol that is not NONE requires a URL
@@ -2073,7 +2074,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 SQLServerException.getErrString("R_keyVaultProviderClientKeyNotSet"), null);
                     }
                     String keyVaultColumnEncryptionProviderClientKey = sPropValue;
-                    setKeyVaultProvider(keyVaultColumnEncryptionProviderClientId, keyVaultColumnEncryptionProviderClientKey);
+                    setKeyVaultProvider(keyVaultColumnEncryptionProviderClientId,
+                            keyVaultColumnEncryptionProviderClientKey);
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.MULTI_SUBNET_FAILOVER.toString();
@@ -3265,7 +3267,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // if the timeout is infinite slices are infinite too.
         tdsChannel = new TDSChannel(this);
-        String iPAddressPreference = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
+        String iPAddressPreference = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
 
         InetSocketAddress inetSocketAddress = tdsChannel.open(serverInfo.getParsedServerName(),
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
@@ -3688,7 +3691,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // If we say we don't support SSL and the server doesn't accept unencrypted connections,
                     // then terminate the connection.
                     if (TDS.ENCRYPT_NOT_SUP == requestedEncryptionLevel
-                            && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
+                            && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel && !isTDSS) {
                         // If the server required an encrypted connection then terminate with an appropriate error.
                         if (TDS.ENCRYPT_REQ == negotiatedEncryptionLevel)
                             terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED,
@@ -4558,7 +4561,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
             tdsWriter.writeInt(1); // length of version
-            if (null == enclaveAttestationProtocol || ((null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) 
+        if (null == enclaveAttestationProtocol || ((null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) 
               && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
@@ -5678,8 +5681,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
 
-                if (null != enclaveAttestationUrl || (enclaveAttestationProtocol != null 
-                && enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
+                if (null != enclaveAttestationUrl || (enclaveAttestationProtocol != null
+                        && enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
@@ -7666,8 +7669,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void setIPAddressPreference(String iPAddressPreference) {
-        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
-        
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                iPAddressPreference);
+
     }
 
     @Override
