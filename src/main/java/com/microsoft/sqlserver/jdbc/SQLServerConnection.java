@@ -4558,8 +4558,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
             tdsWriter.writeInt(1); // length of version
-            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty() || (enclaveAttestationProtocol != null 
-               && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
+            if (null == enclaveAttestationProtocol || (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) 
+              && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString())) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
