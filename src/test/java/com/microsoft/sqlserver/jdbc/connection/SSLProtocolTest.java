@@ -12,6 +12,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.text.MessageFormat;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -29,6 +31,11 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class SSLProtocolTest extends AbstractTest {
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
+
     /**
      * Connect with supported protocol
      * 
@@ -45,7 +52,16 @@ public class SSLProtocolTest extends AbstractTest {
             // Some older versions of SQLServer might not have all the TLS protocol versions enabled.
             // Example, if the highest TLS version enabled in the server is TLSv1.1,
             // the connection will fail if we enable only TLSv1.2
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_noProtocolVersion")));
+            String errorMsg = e.getMessage();
+            Throwable cause = e.getCause();
+            assertTrue(
+                    errorMsg.contains(TestResource.getResource("R_protocolNotSupported"))
+                            || errorMsg.contains(TestResource.getResource("R_protocolInappropriate"))
+                            || null != cause && null != cause.getMessage()
+                                    && cause.getMessage().contains(TestResource.getResource("R_connectionClosed"))
+                            || null != cause.getCause() && null != cause.getCause().getMessage() && cause.getCause()
+                                    .getMessage().contains(TestResource.getResource("R_connectionClosed")),
+                    e.getMessage());
         }
     }
 

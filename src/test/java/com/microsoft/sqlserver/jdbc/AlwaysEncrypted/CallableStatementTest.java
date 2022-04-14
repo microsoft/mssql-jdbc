@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -22,6 +23,7 @@ import java.util.LinkedList;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
@@ -47,6 +49,7 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(Parameterized.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
@@ -88,6 +91,8 @@ public class CallableStatementTest extends AESetup {
             .escapeIdentifier(RandomUtil.getIdentifier("mixedProcedure3"));
     private static String mixedProcedureNumericPrecisionScale = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("mixedProcedureNumericPrecisionScale"));
+    private static String prepareMethodProcedure = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("prepareMethodProcedure"));
 
     private static String table1 = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StoredProcedure_table1")));
@@ -127,15 +132,11 @@ public class CallableStatementTest extends AESetup {
      */
     @BeforeAll
     public static void initValues() throws Exception {
-        dropAll();
-
         numericValues = createNumericValues(nullable);
         byteValues = createBinaryValues(nullable);
         dateValues = createTemporalTypesCallableStatement(nullable);
         charValues = createCharValues(nullable);
-    }
 
-    void initCallableStatementTest() throws Exception {
         dropAll();
 
         createSPTables(cekJks);
@@ -165,9 +166,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testMultiInsertionSelection(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createMultiInsertionSelection();
         MultiInsertionSelection();
     }
@@ -175,9 +173,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testInputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createInputProcedure();
         testInputProcedure("{call " + inputProcedure + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}", numericValues);
     }
@@ -185,9 +180,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testInputProcedureChar(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createInputProcedure2();
         testInputProcedure2("{call " + inputProcedure2 + "(?,?,?,?,?,?,?,?)}");
     }
@@ -195,9 +187,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testEncryptedOutputNumericParams(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedure();
         testOutputProcedureRandomOrder("{call " + outputProcedure + "(?,?,?,?,?,?,?)}", numericValues);
         testOutputProcedureInorder("{call " + outputProcedure + "(?,?,?,?,?,?,?)}", numericValues);
@@ -209,9 +198,6 @@ public class CallableStatementTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testUnencryptedAndEncryptedNumericOutputParams(String serverName, String url,
             String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedure2();
         testOutputProcedure2RandomOrder("{call " + outputProcedure2 + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
         testOutputProcedure2Inorder("{call " + outputProcedure2 + "(?,?,?,?,?,?,?,?,?,?)}", numericValues);
@@ -222,9 +208,6 @@ public class CallableStatementTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testEncryptedOutputParamsFromDifferentTables(String serverName, String url,
             String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedure3();
         testOutputProcedure3RandomOrder("{call " + outputProcedure3 + "(?,?)}");
         testOutputProcedure3Inorder("{call " + outputProcedure3 + "(?,?)}");
@@ -234,9 +217,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testInOutProcedure(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createInOutProcedure();
         testInOutProcedure("{call " + inoutProcedure + "(?)}");
         testInOutProcedure("exec " + inoutProcedure + " ?");
@@ -245,9 +225,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testMixedProcedure(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createMixedProcedure();
         testMixedProcedure("{ ? = call " + mixedProcedure + "(?,?,?)}");
     }
@@ -255,9 +232,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testUnencryptedAndEncryptedIOParams(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         // unencrypted input and output parameter
         // encrypted input and output parameter
         createMixedProcedure2();
@@ -268,9 +242,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testUnencryptedIOParams(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createMixedProcedure3();
         testMixedProcedure3RandomOrder("{call " + mixedProcedure3 + "(?,?,?,?)}");
         testMixedProcedure3Inorder("{call " + mixedProcedure3 + "(?,?,?,?)}");
@@ -280,9 +251,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testVariousIOParams(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createmixedProcedureNumericPrecisionScale();
         testmixedProcedureNumericPrecisionScaleInorder("{call " + mixedProcedureNumericPrecisionScale + "(?,?,?,?)}");
         testmixedProcedureNumericPrecisionScaleParameterName(
@@ -292,9 +260,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedureChar(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedureChar();
         testOutputProcedureCharInorder("{call " + outputProcedureChar + "(?,?,?,?,?,?,?,?,?)}");
         testOutputProcedureCharInorderObject("{call " + outputProcedureChar + "(?,?,?,?,?,?,?,?,?)}");
@@ -303,9 +268,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedureNumeric(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedureNumeric();
         testOutputProcedureNumericInorder("{call " + outputProcedureNumeric + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
         testcoerctionsOutputProcedureNumericInorder(
@@ -315,9 +277,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedureBinary(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedureBinary();
         testOutputProcedureBinaryInorder("{call " + outputProcedureBinary + "(?,?,?,?,?)}");
         testOutputProcedureBinaryInorderObject("{call " + outputProcedureBinary + "(?,?,?,?,?)}");
@@ -327,9 +286,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedureDate(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedureDate();
         testOutputProcedureDateInorder("{call " + outputProcedureDate + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
         testOutputProcedureDateInorderObject("{call " + outputProcedureDate + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}");
@@ -338,9 +294,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testMixedProcedureDateScale(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createMixedProcedureDateScale();
         testMixedProcedureDateScaleInorder("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
         testMixedProcedureDateScaleWithParameterName("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
@@ -349,9 +302,6 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedureBatch(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedureBatch();
         testOutputProcedureBatchInorder("{call " + outputProcedureBatch + "(?,?,?,?)}");
     }
@@ -359,10 +309,29 @@ public class CallableStatementTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testOutputProcedure4(String serverName, String url, String protocol) throws Exception {
-        checkAESetup(serverName, url, protocol);
-        initCallableStatementTest();
-
         createOutputProcedure4();
+    }
+
+    @Test
+    public void testCallableStatementSpPrepareAE() throws SQLException {
+        AETestConnectionString += ";prepareMethod=prepare;";
+
+        try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
+
+            try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
+                    .prepareCall("{call " + prepareMethodProcedure + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
+        }
     }
 
     private static void dropProcedures() throws SQLException {

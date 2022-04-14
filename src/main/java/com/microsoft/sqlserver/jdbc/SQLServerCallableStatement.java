@@ -24,6 +24,7 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.TreeMap;
@@ -41,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public class SQLServerCallableStatement extends SQLServerPreparedStatement implements ISQLServerCallableStatement {
 
     /**
@@ -51,6 +51,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** the call param names */
     private HashMap<String, Integer> parameterNames;
+
+    /** insensitive param names */
     private TreeMap<String, Integer> insensitiveParameterNames;
 
     /** Number of registered OUT parameters */
@@ -58,10 +60,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** number of out params assigned already */
     int nOutParamsAssigned = 0;
+
     /** The index of the out params indexed - internal index */
     private int outParamIndex = -1;
 
-    // The last out param accessed.
+    /** The last out param accessed. */
     private Parameter lastParamAccessed;
 
     /** Currently active Stream Note only one stream can be active at a time */
@@ -72,7 +75,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return "SQLServerCallableStatement";
     }
 
+    /** map */
     Map<String, Integer> map = new ConcurrentHashMap<>();
+    
+    /** atomic integer */
     AtomicInteger ai = new AtomicInteger(0);
 
     /**
@@ -249,6 +255,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // If this is a non-final batch-terminating DONE token,
                 // then stop parsing the response now and set up for
@@ -430,11 +440,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader(), this);
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader(), this);
     }
 
     private Object getStream(int parameterIndex, StreamType streamType) throws SQLServerException {
@@ -442,7 +452,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         activeStream = (Closeable) value;
         return value;
@@ -453,7 +464,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(),
+                this);
 
         if (null != value)
             activeStream = value.getStream();
@@ -740,6 +752,34 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             returnValue = getTime(index);
         } else if (type == java.sql.Timestamp.class) {
             returnValue = getTimestamp(index);
+        } else if (type == java.time.LocalDateTime.class || type == java.time.LocalDate.class
+                || type == java.time.LocalTime.class) {
+            java.time.LocalDateTime ldt = getLocalDateTime(index);
+            if (null == ldt) {
+                returnValue = null;
+            } else {
+                if (type == java.time.LocalDateTime.class) {
+                    returnValue = ldt;
+                } else if (type == java.time.LocalDate.class) {
+                    returnValue = ldt.toLocalDate();
+                } else {
+                    returnValue = ldt.toLocalTime();
+                }
+            }
+        } else if (type == java.time.OffsetDateTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime();
+            }
+        } else if (type == java.time.OffsetTime.class) {
+            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
+            if (dateTimeOffset == null) {
+                returnValue = null;
+            } else {
+                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
+            }
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(index);
         } else if (type == UUID.class) {
@@ -890,6 +930,14 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(name), JDBCType.TIMESTAMP, cal);
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        return value;
+    }
+
+    LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
+        checkClosed();
+        LocalDateTime value = (LocalDateTime) getValue(columnIndex, JDBCType.LOCALDATETIME);
+        loggerExternal.exiting(getClassNameLogging(), "getLocalDateTime", value);
         return value;
     }
 
@@ -1547,7 +1595,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {parameterName, value, sqlType});
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == sqlType) {
-            tvpName = getTVPNameIfNull(findColumn(parameterName), null);
+            tvpName = getTVPNameFromObject(findColumn(parameterName), value);
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
         } else

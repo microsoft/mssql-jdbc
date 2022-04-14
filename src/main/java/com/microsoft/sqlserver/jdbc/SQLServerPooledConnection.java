@@ -29,12 +29,25 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
      */
     private static final long serialVersionUID = 3492921646187451164L;
 
+    /** listeners */
     private final Vector<ConnectionEventListener> listeners;
+
+    /** factory datasource */
     private SQLServerDataSource factoryDataSource;
+
+    /** physical connection */
     private SQLServerConnection physicalConnection;
+
+    /** last proxy connection */
     private SQLServerConnectionPoolProxy lastProxyConnection;
+
+    /** factory password */
     private String factoryUser, factoryPassword;
+
+    /** logger */
     private java.util.logging.Logger pcLogger;
+
+    /** trace ID */
     private final String traceID;
 
     // Unique id generator for each PooledConnection instance (used for logging).
@@ -42,6 +55,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {
         listeners = new Vector<>();
+        traceID = getClass().getSimpleName() + ':' + nextPooledConnectionID();
         // Piggyback SQLServerDataSource logger for now.
         pcLogger = SQLServerDataSource.dsLogger;
 
@@ -54,8 +68,6 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
             pcLogger.finer(toString() + " Start create new connection for pool.");
 
         physicalConnection = createNewConnection();
-        String nameL = getClass().getName();
-        traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + nextPooledConnectionID();
         if (pcLogger.isLoggable(Level.FINE))
             pcLogger.fine(toString() + " created by (" + ds.toString() + ")" + " Physical connection " + safeCID()
                     + ", End create new connection for pool");
@@ -63,7 +75,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Provides a helper function to provide an ID string suitable for tracing.
-     * 
+     *
      * @return traceID String
      */
     @Override
@@ -73,7 +85,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Helper function to create a new connection for the pool.
-     * 
+     *
      * @return SQLServerConnection instance
      * @throws SQLException
      */
@@ -83,7 +95,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Returns an object handle for the physical connection that this PooledConnection object represents.
-     * 
+     *
      * @throws SQLException
      *         when an error occurs
      * @return a Connection object that is a handle to this PooledConnection object

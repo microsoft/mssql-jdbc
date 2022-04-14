@@ -31,13 +31,15 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.xAzureSQLDW)
 public class BulkCopyRowSetTest extends AbstractTest {
 
     private static String tableName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest"));
+    private static String tableName2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("BulkCopyFloatTest2"));
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testBulkCopyFloatRowSet() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = connection.createStatement()) {
             RowSetFactory rsf = RowSetProvider.newFactory();
@@ -71,11 +73,44 @@ public class BulkCopyRowSetTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testBulkCopyJapaneseCollation() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = connection.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);) {
+            RowSetFactory rsf = RowSetProvider.newFactory();
+            CachedRowSet crs = rsf.createCachedRowSet();
+            RowSetMetaData rsmd = new RowSetMetaDataImpl();
+            String unicodeData =  "ああ";
+            rsmd.setColumnCount(1);
+            rsmd.setColumnName(1, "c1");
+            rsmd.setColumnType(1, java.sql.Types.VARCHAR);
+            rsmd.setTableName(1, tableName2);
+
+            crs.setMetaData(rsmd);
+            crs.moveToInsertRow();
+            crs.updateString("c1", unicodeData);
+            crs.insertRow();
+            crs.moveToCurrentRow();
+
+            bulkCopy.setDestinationTableName(tableName2);
+            bulkCopy.writeToServer(crs);
+            
+            try (ResultSet rs = stmt.executeQuery("select * from " + tableName2)) {
+                rs.next();
+                assertEquals(unicodeData, (String) rs.getString(1));
+            }
+        }
+    }
+
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             String sql1 = "create table " + tableName + " (c1 float, c2 real)";
             stmt.execute(sql1);
+            String sql2 = "create table " + tableName2 + " (c1 varchar(10) COLLATE Japanese_CS_AS_KS_WS NOT NULL)";
+            stmt.execute(sql2);
         }
     }
 
@@ -83,6 +118,7 @@ public class BulkCopyRowSetTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(tableName2, stmt);
         }
     }
 }

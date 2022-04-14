@@ -13,6 +13,14 @@ public class Figure {
     private byte figuresAttribute;
     private int pointOffset;
 
+    /**
+     * Creates a Figure object
+     * 
+     * @param figuresAttribute
+     *        figures attribute
+     * @param pointOffset
+     *        points offset
+     */
     public Figure(byte figuresAttribute, int pointOffset) {
         this.figuresAttribute = figuresAttribute;
         this.pointOffset = pointOffset;

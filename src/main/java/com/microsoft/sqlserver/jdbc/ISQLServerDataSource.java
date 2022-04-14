@@ -101,23 +101,47 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getLastUpdateCount();
 
     /**
-     * Sets a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @param encrypt
-     *        true if the Secure Sockets Layer (SSL) encryption is enabled between the client and the SQL Server.
-     *        Otherwise, false.
+     * @param encryptOption
+     *        TLS encrypt option. Default is "true"
      */
-    void setEncrypt(boolean encrypt);
+    void setEncrypt(String encryptOption);
 
     /**
-     * Returns a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @return true if encrypt is enabled. Otherwise, false.
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
+     * @param encryptOption
+     *        TLS encrypt option. Default is true
      */
-    boolean getEncrypt();
+    @Deprecated
+    void setEncrypt(boolean encryptOption);
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
+     * Returns the TLS encryption option.
+     * 
+     * @return the TLS encrypt option
+     */
+    String getEncrypt();
+
+    /**
+     * Returns the path to the server certificate.
+     *
+     * @return serverCertificate property value
+     */
+    String getServerCertificate();
+
+    /**
+     * Sets the connection property 'serverCertificate' on the connection.
+     *
+     * @param cert
+     *        The path to the server certificate.
+     */
+    void setServerCertificate(String cert);
+
+    /**
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address
@@ -143,18 +167,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
-     *        communication layer is encrypted using SSL. Otherwise, false.
+     *        communication layer is encrypted using SSL. false, if server SLL certificate should not be trusted
+     *        certificate location, if encrypt=strict
      */
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
-     * @return true if trustServerCertificate is enabled. Otherwise, false.
+     * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
+     *         certificate location
      */
     boolean getTrustServerCertificate();
 
@@ -285,6 +311,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getResponseBuffering();
 
     /**
+     * Sets the value to enable/disable the replication connection property.
+     * 
+     * @param replication
+     *        A Boolean value. When true, tells the server that the connection is used for replication.
+     */
+    void setReplication(boolean replication);
+
+    /**
+     * Returns the value of the replication connection property.
+     * 
+     * @return true if the connection is to be used for replication. Otherwise false.
+     */
+    boolean getReplication();
+
+    /**
      * Sets the value to enable/disable the sendTimeAsDatetime connection property.
      * 
      * @param sendTimeAsDatetime
@@ -346,6 +387,22 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return A String that contains the server name or null if no value is set.
      */
     String getServerName();
+    
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+    
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
 
     /**
      * Sets the name of the failover server that is used in a database mirroring configuration.
@@ -489,6 +546,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return the authentication value
      */
     String getAuthentication();
+
+    /**
+     * Sets the realm for Kerberos authentication.
+     * 
+     * @param realm
+     *        A String that contains the realm
+     */
+    void setRealm(String realm);
+
+    /**
+     * Returns the realm for Kerberos authentication.
+     * 
+     * @return A String that contains the realm
+     */
+    String getRealm();
 
     /**
      * Sets the server spn.
@@ -762,6 +834,36 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getSSLProtocol();
 
     /**
+     * Returns the value for the connection property 'socketFactoryClass'.
+     *
+     * @return socketFactoryClass property value
+     */
+    String getSocketFactoryClass();
+
+    /**
+     * Sets the connection property 'socketFactoryClass' on the connection.
+     *
+     * @param socketFactoryClass
+     *        The fully qualified class name of a custom javax.net.SocketFactory.
+     */
+    void setSocketFactoryClass(String socketFactoryClass);
+
+    /**
+     * Returns the value for the connection property 'socketFactoryConstructorArg'.
+     *
+     * @return socketFactoryConstructorArg property value
+     */
+    String getSocketFactoryConstructorArg();
+
+    /**
+     * Sets Constructor Arguments to be provided on constructor of 'socketFactoryClass'.
+     *
+     * @param socketFactoryConstructorArg
+     *        'socketFactoryClass' constructor arguments
+     */
+    void setSocketFactoryConstructorArg(String socketFactoryConstructorArg);
+
+    /**
      * Sets the connection property 'trustManagerClass' on the connection.
      * 
      * @param trustManagerClass
@@ -836,6 +938,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return msiClientId property value
      */
     String getMSIClientId();
+
+    /**
+     * Sets the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @param keyStorePrincipalId
+     * 
+     *        <pre>
+     *        When keyStoreAuthentication = keyVaultClientSecret, set this value to a valid Azure Active Directory Application Client ID.
+     *        When keyStoreAuthentication = keyVaultManagedIdentity, set this value to a valid Azure Active Directory Application Object ID (optional, for user-assigned only).
+     *        </pre>
+     */
+    void setKeyStorePrincipalId(String keyStorePrincipalId);
+
+    /**
+     * Returns the value for the connection property 'keyStorePrincipalId'.
+     * 
+     * @return keyStorePrincipalId
+     */
+    String getKeyStorePrincipalId();
 
     /**
      * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
@@ -920,4 +1041,162 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     void setEnclaveAttestationProtocol(String protocol);
 
+    /**
+     * Returns client certificate path for client certificate authentication.
+     * 
+     * @return Client certificate path.
+     */
+    String getClientCertificate();
+
+    /**
+     * Sets client certificate path for client certificate authentication.
+     * 
+     * @param certPath
+     *        Client certificate path.
+     */
+    void setClientCertificate(String certPath);
+
+    /**
+     * Returns Private key file path for client certificate authentication.
+     * 
+     * @return Private key file path.
+     */
+    String getClientKey();
+
+    /**
+     * Sets Private key file path for client certificate authentication.
+     * 
+     * @param keyPath
+     *        Private key file path.
+     */
+    void setClientKey(String keyPath);
+
+    /**
+     * Sets the password to be used for Private key provided by the user for client certificate authentication.
+     * 
+     * @param password
+     *        Private key password.
+     */
+    void setClientKeyPassword(String password);
+
+    /**
+     * Specifies the flag to load LOBs instead of streaming them.
+     *
+     * @param delayLoadingLobs
+     *        boolean value for 'delayLoadingLobs'.
+     */
+    void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Returns the current flag value for delayLoadingLobs.
+     *
+     * @return 'delayLoadingLobs' property value.
+     */
+    boolean getDelayLoadingLobs();
+
+    /**
+     * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
+     *
+     * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
+     */
+    boolean getSendTemporalDataTypesAsStringForBulkCopy();
+
+    /**
+     * Specifies the flag to send temporal datatypes as String for Bulk Copy.
+     * 
+     * @param sendTemporalDataTypesAsStringForBulkCopy
+     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
+     */
+    void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
+
+    /**
+     * Returns the value for the connection property 'AADSecurePrincipalId'.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
+     *
+     * @return 'AADSecurePrincipalId' property value.
+     */
+    @Deprecated
+    String getAADSecurePrincipalId();
+
+    /**
+     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
+     * @param AADSecurePrincipalId
+     *        Active Directory Service Principal Id.
+     */
+    @Deprecated
+    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+
+    /**
+     * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
+     * authentication.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
+     * @param AADSecurePrincipalSecret
+     *        Active Directory Service Principal secret.
+     */
+    @Deprecated
+    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+
+    /**
+     * Returns value of 'maxResultBuffer' from Connection String.
+     *
+     * @return 'maxResultBuffer' property.
+     */
+    String getMaxResultBuffer();
+
+    /**
+     * Sets the value for 'maxResultBuffer' property
+     *
+     * @param maxResultBuffer
+     *        String value for 'maxResultBuffer'
+     */
+    void setMaxResultBuffer(String maxResultBuffer);
+
+    /**
+     * Sets the maximum number of attempts to reestablish a broken connection.
+     *
+     * @param connectRetryCount
+     *        maximum number of attempts
+     */
+    void setConnectRetryCount(int connectRetryCount);
+
+    /**
+     * Returns the maximum number of attempts set to reestablish a broken connection.
+     *
+     * @return maximum number of attempts
+     */
+    int getConnectRetryCount();
+
+    /**
+     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @param connectRetryInterval
+     *        interval in seconds
+     */
+    void setConnectRetryInterval(int connectRetryInterval);
+
+    /**
+     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @return interval in seconds
+     */
+    int getConnectRetryInterval();
+
+    /**
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
+     *
+     * @param prepareMethod
+     *        Changes the setting as per description
+     */
+    void setPrepareMethod(String prepareMethod);
+
+    /**
+     * Returns the value indicating the prepare method. {@link PrepareMethod}
+     *
+     * @return prepare method
+     */
+    String getPrepareMethod();
 }

@@ -16,6 +16,8 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -57,12 +59,14 @@ public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
+    /** response buffer adaptive flag */
     private boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
     }
 
+    /** flag if response buffering is set */
     private boolean wasResponseBufferingSet = false;
 
     final boolean wasResponseBufferingSet() {
@@ -70,6 +74,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     final static String identityQuery = " select SCOPE_IDENTITY() AS GENERATED_KEYS";
+
+    static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
 
     /** the stored procedure name to call (if there is one) */
     String procedureName;
@@ -81,6 +87,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         return serverCursorId;
     }
 
+    /** server cursor row count */
     private int serverCursorRowCount;
 
     final int getServerCursorRowCount() {
@@ -112,7 +119,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final SQLServerConnection connection;
 
     /**
-     * The user's specifed query timeout (in seconds).
+     * The user's specified query timeout (in seconds).
      */
     int queryTimeout;
 
@@ -132,9 +139,11 @@ public class SQLServerStatement implements ISQLServerStatement {
      * cancellation through Statement.cancel.
      *
      * Note: currentCommand is declared volatile to ensure that the JVM always returns the most recently set value for
-     * currentCommand to the cancelling thread.
+     * currentCommand to the canceling thread.
      */
     private volatile TDSCommand currentCommand = null;
+
+    /** last statement exec command */
     private TDSCommand lastStmtExecCmd = null;
 
     final void discardLastExecutionResults() {
@@ -142,25 +151,35 @@ public class SQLServerStatement implements ISQLServerStatement {
             lastStmtExecCmd.close();
             lastStmtExecCmd = null;
         }
+
         clearLastResult();
     }
 
     static final java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Statement");
+
+    /** logging class name */
     final private String loggingClassName;
+
+    /** trace ID */
     final private String traceID;
 
     String getClassNameLogging() {
         return loggingClassName;
     }
 
-    /*
+    /**
      * Column Encryption Override. Defaults to the connection setting, in which case it will be Enabled if
      * columnEncryptionSetting = true in the connection setting, Disabled if false. This may also be used to set other
      * behavior which overrides connection level setting.
      */
     protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
 
+    /**
+     * Returns the statement column encryption encryption setting
+     * 
+     * @return stmtColumnEncriptionSetting
+     */
     protected SQLServerStatementColumnEncryptionSetting getStmtColumnEncriptionSetting() {
         return stmtColumnEncriptionSetting;
     }
@@ -194,6 +213,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /** execute properties */
     private ExecuteProperties execProps;
 
     final ExecuteProperties getExecProps() {
@@ -226,7 +246,8 @@ public class SQLServerStatement implements ISQLServerStatement {
             else
                 throw e;
         } finally {
-            lastStmtExecCmd = newStmtCmd;
+            if (newStmtCmd.wasExecuted())
+                lastStmtExecCmd = newStmtCmd;
         }
     }
 
@@ -293,6 +314,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     static final int EXECUTE = 3;
     static final int EXECUTE_BATCH = 4;
     static final int EXECUTE_QUERY_INTERNAL = 5;
+
+    /** execute method */
     int executeMethod = EXECUTE_NOT_SET;
 
     /**
@@ -387,8 +410,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     boolean expectCursorOutParams;
 
     class StmtExecOutParamHandler extends TDSTokenHandler {
-        StmtExecOutParamHandler() {
+        SQLServerStatement statement;
+
+        StmtExecOutParamHandler(SQLServerStatement statement) {
             super("StmtExecOutParamHandler");
+            this.statement = statement;
         }
 
         boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
@@ -403,13 +429,13 @@ public class SQLServerStatement implements ISQLServerStatement {
 
                 // Read the cursor ID
                 param.skipRetValStatus(tdsReader);
-                serverCursorId = param.getInt(tdsReader);
+                serverCursorId = param.getInt(tdsReader, statement);
                 param.skipValue(tdsReader, true);
 
                 param = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 // Read the row count (-1 means unknown)
                 param.skipRetValStatus(tdsReader);
-                if (-1 == (serverCursorRowCount = param.getInt(tdsReader)))
+                if (-1 == (serverCursorRowCount = param.getInt(tdsReader, statement)))
                     serverCursorRowCount = SQLServerResultSet.UNKNOWN_ROW_COUNT;
                 param.skipValue(tdsReader, true);
 
@@ -435,6 +461,10 @@ public class SQLServerStatement implements ISQLServerStatement {
      * The user's specified fetch size. Only used for server side result sets. Client side cursors read all rows.
      */
     int nFetchSize;
+
+    /**
+     * default fetch size
+     */
     int defaultFetchSize;
 
     /**
@@ -510,6 +540,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         int statementID = nextStatementID();
         String classN = getClassNameInternal();
         traceID = classN + ":" + statementID;
+
+        /** logging classname */
         loggingClassName = "com.microsoft.sqlserver.jdbc." + classN + ":" + statementID;
 
         stmtPoolable = false;
@@ -745,6 +777,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != resultSet;
     }
 
+    /**
+     * Statement exec command
+     */
     private final class StmtExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -821,7 +856,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // call syntax is rewritten here as SQL exec syntax.
         String sql = ensureSQLSyntax(execCmd.sql);
         if (!isInternalEncryptionQuery && connection.isAEv2()) {
-            execCmd.enclaveCEKs = connection.initEnclaveParameters(sql, null, null, null);
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(this, sql, null, null, null);
         }
 
         // If this request might be a query (as opposed to an update) then make
@@ -889,6 +924,9 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    /**
+     * Statement batch exec command
+     */
     private final class StmtBatchExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -920,7 +958,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         String batchStatementString = String.join(";", batchStatementBuffer);
         if (connection.isAEv2()) {
-            execCmd.enclaveCEKs = connection.initEnclaveParameters(batchStatementString, null, null, null);
+            execCmd.enclaveCEKs = connection.initEnclaveParameters(this, batchStatementString, null, null, null);
         }
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
@@ -1208,7 +1246,8 @@ public class SQLServerStatement implements ISQLServerStatement {
         loggerExternal.exiting(getClassNameLogging(), "cancel");
     }
 
-    Vector<SQLWarning> sqlWarnings; // the SQL warnings chain
+    /** the SQL warnings chain */
+    Vector<SQLWarning> sqlWarnings;
 
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery;
@@ -1284,6 +1323,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     final void processExecuteResults() throws SQLServerException {
         if (wasExecuted()) {
             processBatch();
+            checkClosed(); // processBatch could have resulted in a closed connection if isCloseOnCompletion is set
             TDSParser.parse(resultsReader(), "batch completion");
             ensureExecuteResultsReader(null);
         }
@@ -1441,6 +1481,10 @@ public class SQLServerStatement implements ISQLServerStatement {
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
 
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
                 // If the done token has the attention ack bit set, then record
                 // it as the attention ack DONE token. We may or may not throw
                 // an statement canceled/timed out exception later based on
@@ -1682,7 +1726,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         if (expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new StmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new StmtExecOutParamHandler(this));
             return true;
         }
 
@@ -2356,6 +2400,92 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
         loggerExternal.exiting(getClassNameLogging(), "getResponseBuffering", responseBuff);
         return responseBuff;
+    }
+
+    /** This is a per-statement store provider. */
+    Map<String, SQLServerColumnEncryptionKeyStoreProvider> statementColumnEncryptionKeyStoreProviders = new HashMap<>();
+
+    /**
+     * Registers statement-level key store providers, replacing all existing providers.
+     * 
+     * @param clientKeyStoreProviders
+     *        a map containing the store providers information.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public synchronized void registerColumnEncryptionKeyStoreProvidersOnStatement(
+            Map<String, SQLServerColumnEncryptionKeyStoreProvider> clientKeyStoreProviders) throws SQLServerException {
+        loggerExternal.entering(loggingClassName, "registerColumnEncryptionKeyStoreProvidersOnStatement",
+                "Registering Column Encryption Key Store Providers on Statement");
+
+        checkClosed();
+
+        if (null == clientKeyStoreProviders) {
+            throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"), null,
+                    0, false);
+        }
+
+        statementColumnEncryptionKeyStoreProviders.clear();
+
+        for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
+            String providerName = entry.getKey();
+            if (null == providerName || 0 == providerName.trim().length()) {
+                throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"),
+                        null, 0, false);
+            }
+
+            // MSSQL_CERTIFICATE_STORE not allowed on statement level
+            if ((providerName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME))) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_InvalidCustomKeyStoreProviderName"));
+                Object[] msgArgs = {providerName, WINDOWS_KEY_STORE_NAME};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+            }
+
+            if (null == entry.getValue()) {
+                throw new SQLServerException(null, String
+                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                        null, 0, false);
+            }
+
+            statementColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
+        }
+
+        loggerExternal.exiting(loggingClassName, "registerColumnEncryptionKeyStoreProvidersOnStatement",
+                "Number of statement-level Key store providers that are registered: "
+                        + statementColumnEncryptionKeyStoreProviders.size());
+    }
+
+    synchronized String getAllStatementColumnEncryptionKeyStoreProviders() {
+        String keyStores = "";
+        if (0 != statementColumnEncryptionKeyStoreProviders.size())
+            keyStores = statementColumnEncryptionKeyStoreProviders.keySet().toString();
+        return keyStores;
+    }
+
+    synchronized boolean hasColumnEncryptionKeyStoreProvidersRegistered() {
+        return null != statementColumnEncryptionKeyStoreProviders
+                && statementColumnEncryptionKeyStoreProviders.size() > 0;
+    }
+
+    synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
+            String providerName) throws SQLServerException {
+
+        // Check for a statement-level provider first
+        if (null != statementColumnEncryptionKeyStoreProviders
+                && statementColumnEncryptionKeyStoreProviders.size() > 0) {
+            // If any statement-level providers are registered, we don't fall back to connection-level providers
+            if (statementColumnEncryptionKeyStoreProviders.containsKey(providerName)) {
+                return statementColumnEncryptionKeyStoreProviders.get(providerName);
+            } else {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_UnrecognizedStatementKeyStoreProviderName"));
+                Object[] msgArgs = {providerName, getAllStatementColumnEncryptionKeyStoreProviders()};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
+        }
+
+        return null;
     }
 }
 

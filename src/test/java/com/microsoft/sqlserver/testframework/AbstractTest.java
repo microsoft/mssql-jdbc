@@ -58,19 +58,34 @@ public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
+    protected static String tenantID;
     protected static String[] keyIDs = null;
 
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
 
+    protected static String clientCertificate = null;
+    protected static String clientKey = null;
+    protected static String clientKeyPassword = "";
+
+    protected static String trustStore = "";
+    protected static String trustStorePassword = "";
+
+    protected static String encrypt = "";
+    protected static String trustServerCertificate = "";
+
+    protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
     protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
-    protected static String windowsKeyPath = null;
+    // properties needed for MSI
+    protected static String msiClientId = null;
+    protected static String keyStorePrincipalId = null;
+    protected static String keyStoreSecret = null;
 
     protected static SQLServerConnection connection = null;
     protected static ISQLServerDataSource ds = null;
@@ -94,6 +109,10 @@ public abstract class AbstractTest {
     private static PrintStream logPrintStream = null;
     private static Properties configProperties = null;
 
+    protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    public static Properties properties = null;
+
     /**
      * This will take care of all initialization before running the Test Suite.
      * 
@@ -114,11 +133,20 @@ public abstract class AbstractTest {
         }
 
         connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
-        connectionStringNTLM = connectionString;
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+        tenantID = getConfiguredProperty("tenantID");
+
+        encrypt = getConfiguredProperty("encrypt", "false");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
+
+        trustServerCertificate = getConfiguredProperty("trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate",
+                trustServerCertificate);
+
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
+
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);
         windowsKeyPath = getConfiguredProperty("windowsKeyPath");
 
@@ -140,14 +168,31 @@ public abstract class AbstractTest {
         prop = getConfiguredProperty("enclaveAttestationProtocol", null);
         enclaveAttestationProtocol = null != prop ? prop.split(Constants.SEMI_COLON) : null;
 
+        clientCertificate = getConfiguredProperty("clientCertificate", null);
+
+        clientKey = getConfiguredProperty("clientKey", null);
+
+        clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
+
+        trustStore = getConfiguredProperty("trustStore", "");
+        if (!trustStore.trim().isEmpty()) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStore", trustStore);
+        }
+
+        trustStorePassword = getConfiguredProperty("trustStorePassword", "");
+        if (!trustStorePassword.trim().isEmpty()) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStorePassword",
+                    trustStorePassword);
+        }
+
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
                     Constants.JKS_SECRET.toCharArray());
-            map.put("My_KEYSTORE", jksProvider);
+            map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider) {
+        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -170,6 +215,15 @@ public abstract class AbstractTest {
             SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
             isKspRegistered = true;
         }
+
+        // MSI properties
+        msiClientId = getConfiguredProperty("msiClientId");
+        keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
+        keyStoreSecret = getConfiguredProperty("keyStoreSecret");
+    }
+
+    protected static void setupConnectionString() {
+        connectionStringNTLM = connectionString;
 
         // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
@@ -197,22 +251,22 @@ public abstract class AbstractTest {
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
         dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
+    }
 
-        try {
-            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
-            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-            if (!SQLServerDriver.isRegistered()) {
-                SQLServerDriver.register();
-            }
-            if (null == connection || connection.isClosed()) {
-                connection = getConnection();
-            }
-            isSqlAzureOrAzureDW(connection);
+    protected static void setConnection() throws Exception {
+        setupConnectionString();
 
-            checkSqlOS(connection);
-        } catch (Exception e) {
-            throw e;
+        Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+        Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+        if (!SQLServerDriver.isRegistered()) {
+            SQLServerDriver.register();
         }
+        if (null == connection || connection.isClosed()) {
+            connection = getConnection();
+        }
+        isSqlAzureOrAzureDW(connection);
+
+        checkSqlOS(connection);
     }
 
     /**
@@ -284,7 +338,19 @@ public abstract class AbstractTest {
                             ds.setCancelQueryTimeout(Integer.parseInt(value));
                             break;
                         case Constants.ENCRYPT:
-                            ds.setEncrypt(Boolean.parseBoolean(value));
+                            ds.setEncrypt(value);
+                            break;
+                        case Constants.TRUST_SERVER_CERTIFICATE:
+                            ds.setTrustServerCertificate(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.TRUST_STORE:
+                            ds.setTrustStore(value);
+                            break;
+                        case Constants.TRUST_STORE_SECRET_PROPERTY:
+                            ds.setTrustStorePassword(value);
+                            break;
+                        case Constants.TRUST_STORE_TYPE:
+                            ds.setTrustStoreType(value);
                             break;
                         case Constants.HOST_NAME_IN_CERTIFICATE:
                             ds.setHostNameInCertificate(value);
@@ -294,6 +360,54 @@ public abstract class AbstractTest {
                             break;
                         case Constants.ENCLAVE_ATTESTATIONPROTOCOL:
                             ds.setEnclaveAttestationProtocol(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTID:
+                            ds.setKeyVaultProviderClientId(value);
+                            break;
+                        case Constants.KEYVAULTPROVIDER_CLIENTKEY:
+                            ds.setKeyVaultProviderClientKey(value);
+                            break;
+                        case Constants.KEYSTORE_AUTHENTICATION:
+                            ds.setKeyStoreAuthentication(value);
+                            break;
+                        case Constants.KEYSTORE_PRINCIPALID:
+                            ds.setKeyStorePrincipalId(value);
+                            break;
+                        case Constants.KEYSTORE_SECRET:
+                            ds.setKeyStoreSecret(value);
+                            break;
+                        case Constants.MSICLIENTID:
+                            ds.setMSIClientId(value);
+                            break;
+                        case Constants.CLIENT_CERTIFICATE:
+                            ds.setClientCertificate(value);
+                            break;
+                        case Constants.CLIENT_KEY:
+                            ds.setClientKey(value);
+                            break;
+                        case Constants.CLIENT_KEY_PASSWORD:
+                            ds.setClientKeyPassword(value);
+                            break;
+                        case Constants.AAD_SECURE_PRINCIPAL_ID:
+                            ds.setAADSecurePrincipalId(value);
+                            break;
+                        case Constants.AAD_SECURE_PRINCIPAL_SECRET:
+                            ds.setAADSecurePrincipalSecret(value);
+                            break;
+                        case Constants.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY:
+                            ds.setSendTemporalDataTypesAsStringForBulkCopy(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.MAX_RESULT_BUFFER:
+                            ds.setMaxResultBuffer(value);
+                            break;
+                        case Constants.CONNECT_RETRY_COUNT:
+                            ds.setConnectRetryCount(Integer.parseInt(value));
+                            break;
+                        case Constants.CONNECT_RETRY_INTERVAL:
+                            ds.setConnectRetryInterval(Integer.parseInt(value));
+                            break;
+                        case Constants.PREPARE_METHOD:
+                            ds.setPrepareMethod(value);
                             break;
                         default:
                             break;
@@ -512,7 +626,7 @@ public abstract class AbstractTest {
      * @param key
      * @return property value or default value
      */
-    private static String getConfiguredProperty(String key, String defaultValue) {
+    protected static String getConfiguredProperty(String key, String defaultValue) {
         String value = getConfiguredProperty(key);
 
         if (null == value) {

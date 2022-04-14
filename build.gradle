@@ -3,10 +3,7 @@
  ****************************************************************
  * Instruction for Building JDBC Driver:
  * For building particular version of the driver, use commands:
- * jre13 - - PS> gradle build
-			 PS> gradle build -PbuildProfile=jre13
- * jre11 - - PS> gradle build -PbuildProfile=jre11
- * jre8  - - PS> gradle build -PbuildProfile=jre8
+ * jreXX - - PS> gradle build -PbuildProfile=jreXX
  *
  * For Excluding Groups in command line:
  * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
@@ -14,7 +11,7 @@
 
 apply plugin: 'java'
 
-version = '8.2.2'
+version = '11.1.1-SNAPSHOT'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -31,21 +28,21 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth')
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre13")){
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre17")){
 	
-	jreVersion = "jre13"
+	jreVersion = "jre17"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 13
-	targetCompatibility = 13
+	sourceCompatibility = 17
+	targetCompatibility = 17
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11"){
@@ -70,16 +67,16 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42')
 		}
 	}
 }
 
-jar.archiveName = "${archivesBaseName}-${version}.${jreVersion}.jar"
+jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}-preview.jar"
 jar {
 	manifest {
-        attributes 'Title': "Microsoft JDBC Driver ${version} for SQL Server",
-        'Version': version,
+        attributes 'Title': "Microsoft JDBC Driver ${archiveVersion} for SQL Server",
+        'Version': archiveVersion,
         'Vendor': 'Microsoft Corporation'
 	}
 }
@@ -96,10 +93,19 @@ sourceSets {
     }
 	test {
 		resources {
-			srcDirs "src/test/resources", "AE_Certificates"
+                      srcDirs "AE_Certificates"
 			output.resourcesDir = testOutputDir
 		}
 	}
+}
+task copyFiles(type: Copy) {
+    dependsOn "processTestResources"
+    from 'build/resources/test'
+    into 'build/classes/java/test'
+    include '**/*.*'
+}
+test {
+    dependsOn "copyFiles"
 }
 
 //Get dependencies from Maven central repository
@@ -108,16 +114,15 @@ repositories {
 }
 
 dependencies {
-	compile 'org.osgi:org.osgi.core:6.0.0',
+    implementation 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.compendium:5.0.0'
-	compileOnly 'com.microsoft.azure:azure-keyvault:1.2.2',
-			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
-			'com.microsoft.rest:client-runtime:1.7.0',
-			'com.microsoft.azure:adal4j:1.6.4',
-			'org.antlr:antlr4-runtime:4.7.2',
-			'com.google.code.gson:gson:2.8.6',
-			'org.bouncycastle:bcprov-jdk15on:1.64'
-	testCompile 'org.junit.platform:junit-platform-console:1.5.2',
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.2.8',
+			'com.azure:azure-identity:1.3.3',
+			'org.antlr:antlr4-runtime:4.9.2',
+			'com.google.code.gson:gson:2.8.7',
+			'org.bouncycastle:bcprov-jdk15on:1.69',
+			'org.bouncycastle:bcpkix-jdk15on:1.69'
+    testImplementation 'org.junit.platform:junit-platform-console:1.5.2',
 			'org.junit.platform:junit-platform-commons:1.5.2',
 			'org.junit.platform:junit-platform-engine:1.5.2',
 			'org.junit.platform:junit-platform-launcher:1.5.2',
@@ -126,15 +131,15 @@ dependencies {
 			'org.junit.jupiter:junit-jupiter-api:5.6.0',
 			'org.junit.jupiter:junit-jupiter-engine:5.6.0',
 			'org.junit.jupiter:junit-jupiter-params:5.6.0',
-			'com.zaxxer:HikariCP:3.4.1',
-			'org.apache.commons:commons-dbcp2:2.6.0',
-			'org.slf4j:slf4j-nop:1.7.29',
-			'org.antlr:antlr4-runtime:4.7.2',
+			'com.zaxxer:HikariCP:3.4.2',
+			'org.apache.commons:commons-dbcp2:2.7.0',
+			'org.slf4j:slf4j-nop:1.7.30',
+			'org.antlr:antlr4-runtime:4.9.2',
 			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE',
-			'com.google.code.gson:gson:2.8.6',
-			'org.bouncycastle:bcprov-jdk15on:1.64',
-			'com.microsoft.azure:adal4j:1.6.4',
-			'com.microsoft.azure:azure-keyvault:1.2.2',
-			'com.microsoft.azure:azure-keyvault-webkey:1.2.1',
+			'com.google.code.gson:gson:2.8.7',
+			'org.bouncycastle:bcprov-jdk15on:1.69',
+			'com.azure:azure-security-keyvault-keys:4.2.8',
+			'com.azure:azure-identity:1.3.3',
+			'com.microsoft.azure:adal4j:1.6.7',
 			'com.h2database:h2:1.4.200'
 }

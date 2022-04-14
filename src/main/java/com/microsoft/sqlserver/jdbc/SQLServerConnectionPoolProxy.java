@@ -72,7 +72,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     void checkClosed() throws SQLServerException {
         if (!bIsOpen) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
-                    null, false);
+                    SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
     }
 
@@ -150,18 +150,24 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
         bIsOpen = false;
 
-        executor.execute(new Runnable() {
-            public void run() {
-                if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-                    wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
-                try {
-                    wrappedConnection.poolCloseEventNotify();
-                    wrappedConnection = null;
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
+            executor.execute(new Runnable() {
+                public void run() {
+                    if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
+                    try {
+                        wrappedConnection.poolCloseEventNotify();
+                        wrappedConnection = null;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override
@@ -545,6 +551,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public String getPrepareMethod() {
+        return wrappedConnection.getPrepareMethod();
+    }
+
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        wrappedConnection.setPrepareMethod(prepareMethod);
+    }
+
+    @Override
     public int getServerPreparedStatementDiscardThreshold() {
         return wrappedConnection.getServerPreparedStatementDiscardThreshold();
     }
@@ -592,5 +608,26 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public boolean getUseFmtOnly() {
         return wrappedConnection.getUseFmtOnly();
+    }
+
+    @Override
+    public boolean getDelayLoadingLobs() {
+        return wrappedConnection.getDelayLoadingLobs();
+    }
+
+    @Override
+    public void setDelayLoadingLobs(boolean delayLoadingLobs) {
+        wrappedConnection.setDelayLoadingLobs(delayLoadingLobs);
+    }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        wrappedConnection.setIPAddressPreference(iPAddressPreference);
+        
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return wrappedConnection.getIPAddressPreference();
     }
 }

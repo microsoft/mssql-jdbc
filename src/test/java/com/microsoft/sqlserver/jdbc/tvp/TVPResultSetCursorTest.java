@@ -18,6 +18,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -53,6 +54,11 @@ public class TVPResultSetCursorTest extends AbstractTest {
     private static String procedureName = RandomUtil.getIdentifier("TVPResultSetCursorTest_SP");
     private static String srcTable = RandomUtil.getIdentifier("TVPResultSetCursorTest_SourceTable");
     private static String desTable = RandomUtil.getIdentifier("TVPResultSetCursorTest_DestinationTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create TVP and result set.
@@ -223,12 +229,14 @@ public class TVPResultSetCursorTest extends AbstractTest {
                 pstmt.setStructured(1, tvpName, rs);
                 pstmt.execute();
             } catch (SQLException e) {
-                if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))) {
+                if (!e.getMessage().contains(TestResource.getResource("R_StoredProcedureNotFound"))
+                        && !(ds.getColumnEncryptionSetting().equalsIgnoreCase(Constants.ENABLED)
+                                && e.getMessage().contains(TestResource.getResource("R_incorrectSyntaxP0")))) {
                     fail(e.getMessage());
                 }
-            } finally {
-                dropProcedure();
             }
+        } finally {
+            dropProcedure();
         }
     }
 

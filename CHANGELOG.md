@@ -3,6 +3,209 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.1.0] Preview Release
+### Added
+- Added new connection string property prepareMethod to toggle use of sp_prepare [1719](https://github.com/microsoft/mssql-jdbc/pull/1719)
+- Added Azure Active Directory tests for Azure Data Explorer using user/password/applicationName [1755](https://github.com/microsoft/mssql-jdbc/pull/1755)
+- Added check for MSAL library when attempting ActiveDirectoryServicePrincipal authentication [1759](https://github.com/microsoft/mssql-jdbc/pull/1759)
+- Added new encrypt options for TDSS support [1757](https://github.com/microsoft/mssql-jdbc/pull/1757)
+- Added Configurable IPv6 Support [1766](https://github.com/microsoft/mssql-jdbc/pull/1766)
+- Added serverCertificate connection property for encrypt=strict [1773](https://github.com/microsoft/mssql-jdbc/pull/1773)
+- Added encrypt utility to obfuscate password strings [1780](https://github.com/microsoft/mssql-jdbc/pull/1780)
+- Added option for NONE attestation protocol [1779](https://github.com/microsoft/mssql-jdbc/pull/1779)
+
+### Changed
+- Simplified traceID creation in DataSource and PooledConnection [1747](https://github.com/microsoft/mssql-jdbc/pull/1747)
+- Refactored SQLServerColumnEncryptionAzureKeyVaultProvider usage in SQLServerConnection [1774](https://github.com/microsoft/mssql-jdbc/pull/1774)
+### Fixed issues
+- Removed extra call to executeCommand() within connectionCommand() [1754](https://github.com/microsoft/mssql-jdbc/pull/1754)
+- Fixed warnings for Implicit narrowing conversion in compound assignment [1758](https://github.com/microsoft/mssql-jdbc/pull/1758)
+- Added check for MSAL library when attempting ActiveDirectoryServicePrincipal authentication [1759](https://github.com/microsoft/mssql-jdbc/pull/1759)
+- Fixed Managed Identity retry interval to exponential backoff properly [1770](https://github.com/microsoft/mssql-jdbc/pull/1770)
+
+
+## [10.2.0] Stable Release
+### Added
+- Support for datetimeoffset with sql_variant [1673](https://github.com/microsoft/mssql-jdbc/pull/1673)
+- Canonical host name resolution when realm is provided in connection string [1730](https://github.com/microsoft/mssql-jdbc/pull/1730)
+### Changed
+- Changed certificate validation behavior to validate when encryption is negotiated from either the client or the server side, not just the client side [1731](https://github.com/microsoft/mssql-jdbc/pull/1731)
+- Enclave Provider to use non blocking /dev/urandom [1734](https://github.com/microsoft/mssql-jdbc/pull/1734)
+- Updated azure dependancy versions to address vulnerability issues[1733](https://github.com/microsoft/mssql-jdbc/pull/1733)
+- Updated Bouncy Castle version [1735](https://github.com/microsoft/mssql-jdbc/pull/1735)
+### Fixed
+- Fixed issues detected by SonarQube [1739](https://github.com/microsoft/mssql-jdbc/pull/1739)
+
+## [10.1.0] Preview Release
+### Added
+- Fix for Idle Connection Resiliency for Azure AD Authentication [1706](https://github.com/microsoft/mssql-jdbc/pull/1706)
+- Retry for intermittent java NativeSeedGenerator [1705](https://github.com/microsoft/mssql-jdbc/pull/1705)
+- Default encryption to true [1697](https://github.com/microsoft/mssql-jdbc/pull/1697)
+- Fix for Azure AD interactive authentication timeout [1696](https://github.com/microsoft/mssql-jdbc/pull/1696)
+### Changed
+- Deprecated AADSecurePrincipalId/AADSecurePrincipalSecret [1693](https://github.com/microsoft/mssql-jdbc/pull/1693)
+### Fixed issues
+- Fixed TDSParser stuck on TDS_COLMETADATA issue [#1662] (https://github.com/microsoft/mssql-jdbc/pull/1662)
+- Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [#1640] (https://github.com/microsoft/mssql-jdbc/pull/1640)
+
+## [9.5.0] Preview Release
+### Added
+- Idle Connection Resiliency Feature [1669](https://github.com/microsoft/mssql-jdbc/pull/1669)
+- Fix for Bulkcopy multi byte characters in char/vchar columns [1671](https://github.com/microsoft/mssql-jdbc/pull/1671)
+- Java 17 support [1676](https://github.com/microsoft/mssql-jdbc/pull/1676)
+- Added logging when deriving realm [1672](https://github.com/microsoft/mssql-jdbc/pull/1672)
+- Added check for closed statement to registerColumnEncryptionKeyStoreProvidersOnStatement [1644](https://github.com/microsoft/mssql-jdbc/pull/1644)
+- Added 42108 and 42109 to transient error list [1643](https://github.com/microsoft/mssql-jdbc/pull/1643)
+### Changed
+- Updated MD4 based on Bouncy Castle implementation [1665](https://github.com/microsoft/mssql-jdbc/pull/1665)
+- Updated mssql-jdbc_auth_LICENSE [1663](https://github.com/microsoft/mssql-jdbc/pull/1663)
+### Fixed issues
+- Fixed and issue where Statement.closeOnCompletion() would cause a Null Pointer Exeception [1639](https://github.com/microsoft/mssql-jdbc/pull/1639)
+- Fixed conversion of LocalDateTime and LocalTime to String in Bulk Copy [1640](https://github.com/microsoft/mssql-jdbc/pull/1640)
+
+
+## [9.4.0] Stable Release
+### Added
+- Added JAVA 16 support [#1579](https://github.com/microsoft/mssql-jdbc/pull/1579)
+- Added optional realm connection string property for Kerberos authenticatoin [#1581](https://github.com/microsoft/mssql-jdbc/pull/1581)
+- Added support for multiple, successive connections using AKV provider [#1594](https://github.com/microsoft/mssql-jdbc/pull/1594)
+- Updated error messages for Enclave exceptions with forward link to troubleshooting guide [#1585](https://github.com/microsoft/mssql-jdbc/pull/1585)
+- Added driver version to the database during prelogin [#1583](https://github.com/microsoft/mssql-jdbc/pull/1583)
+- Append MSAL exception error msg to error string [#1576](https://github.com/microsoft/mssql-jdbc/pull/1576)
+- Send client process ID to server on Java 9+ [#1595](https://github.com/microsoft/mssql-jdbc/pull/1595)
+- Removed dependency to org.hamcrest [#1596](https://github.com/microsoft/mssql-jdbc/pull/1596)
+- Updated dependency versions for azure-identity, azure-security-keyvault-keys, adal4j, gson, antlr, and bouncycastle [#1613](https://github.com/Microsoft/mssql-jdbc/pull/1613)
+- Removed Java 9-specific class references from the Java 8 jar [#1626](https://github.com/microsoft/mssql-jdbc/pull/1626)
+- Updated dependencies versions and upgraded to Gradle version 7 [#1627](https://github.com/microsoft/mssql-jdbc/pull/1627)
+- Fixed memory leak issue [#1633](https://github.com/microsoft/mssql-jdbc/pull/1633)
+
+### Fixed issues
+- Fixed an issue where batch fails when always encrypted is enabled in connection string and clearParameters was called [#1578](https://github.com/microsoft/mssql-jdbc/pull/1578)
+
+## [9.3.1] Preview Release
+### Added
+- Added replication connection option [#1566](https://github.com/microsoft/mssql-jdbc/pull/1566)
+
+### Fixed issues
+- Fixed an issue where `trustStorePassword` is null when using applicationIntent=ReadOnly [#1565](https://github.com/microsoft/mssql-jdbc/pull/1565)
+- Fixed an issue where redirected token contains named instance in servername [#1568](https://github.com/microsoft/mssql-jdbc/pull/1568)
+
+## [9.3.0] Preview Release
+### Added
+- Added Open Connection Retry feature [#1535](https://github.com/microsoft/mssql-jdbc/pull/1535)
+- Added server recognition for Azure Synapse serverless SQL pool, and Azure SQL Edge [#1543](https://github.com/microsoft/mssql-jdbc/pull/1543)
+
+### Fixed issues
+- Fixed potential integer overflow in TDSWriter.writeString() [#1531](https://github.com/microsoft/mssql-jdbc/pull/1531)
+
+## [9.2.1] HotFix & Stable Release
+### Fixed issues
+- Fixed an issue with client secret being empty during ActiveDirectoryServicePrincipal authentication in Azure environment. [#1519](https://github.com/microsoft/mssql-jdbc/pull/1519)
+
+## [9.2.0] Stable Release
+### Added
+- Added logic to handle multi-factor authentication timeouts during ActiveDirectoryInteractive authentication [#1488](https://github.com/microsoft/mssql-jdbc/pull/1488)
+
+### Fixed issues
+- Fixed an issue with high memory allocation during bulk copy [#1475](https://github.com/microsoft/mssql-jdbc/pull/1475)
+
+## [9.1.1] Preview Release
+### Added
+- Added maxResultBuffer connection property [1431](https://github.com/microsoft/mssql-jdbc/pull/1431)
+- Added support for Service Principal Authentication [1456](https://github.com/microsoft/mssql-jdbc/pull/1456)
+- Added support for Azure Active Directory Interactive Authentication [1464](https://github.com/microsoft/mssql-jdbc/pull/1464)
+
+### Changed
+- Enabled useBulkCopyForBatchInsert against non Azure SQL Data Warehouse servers [#1465](https://github.com/microsoft/mssql-jdbc/pull/1465)
+
+## [9.1.0] Preview Release
+### Added
+- Added support for already connected sockets when using custom socket factory [1420](https://github.com/microsoft/mssql-jdbc/pull/1420)
+- Added JAVA 15 support [#1434](https://github.com/microsoft/mssql-jdbc/pull/1434)
+- Added LocalDateTime and OffsetDateTime support in CallableStatement [1393](https://github.com/microsoft/mssql-jdbc/pull/1393)
+- Added new endpoints to the list of trusted Azure Key Vault endpoints [#1445](https://github.com/microsoft/mssql-jdbc/pull/1445)
+
+### Fixed issues
+- Fixed an issue with column ordinal mapping not being sorted when using bulk copy [#1406](https://github.com/microsoft/mssql-jdbc/pull/1406)
+- Fixed PooledConnectionTest to catch exceptions from threads [#1409](https://github.com/microsoft/mssql-jdbc/pull/1409)
+- Fixed an issue with bulk copy when inserting non-unicode multibyte strings [#1421](https://github.com/microsoft/mssql-jdbc/pull/1421)
+- Fixed intermittent deadlock issue in DBMetadatatest [#1423](https://github.com/microsoft/mssql-jdbc/pull/1423)
+- Fixed Gradle exclude tags [#1424](https://github.com/microsoft/mssql-jdbc/pull/1424)
+- Fixed an issue with SQLServerBulkCSVFileRecord ignoring empty trailing columns when using setEscapeColumnDelimitersCSV() API [#1438](https://github.com/microsoft/mssql-jdbc/pull/1438)
+
+### Changed
+- Changed visibility of SQLServerBulkBatchInsertRecord to package-private [#1408](https://github.com/microsoft/mssql-jdbc/pull/1408)
+- Upgraded to the latest Azure Key Vault libraries [#1413](https://github.com/microsoft/mssql-jdbc/pull/1413)
+- Updated API version when using MSI authentication [#1418](https://github.com/microsoft/mssql-jdbc/pull/1418)
+- Enabled Azure Active Directory integrated authentication tests on non-Windows clients [#1425](https://github.com/microsoft/mssql-jdbc/pull/1425)
+- Updated the driver to remove clientKeyPassword from memory [#1428](https://github.com/microsoft/mssql-jdbc/pull/1428)
+- Updated SQLServerPreparedStatement.getMetaData() to retain exception details [#1430](https://github.com/microsoft/mssql-jdbc/pull/1430)
+- Made ADALGetAccessTokenForWindowsIntegrated thread-safe [#1441](https://github.com/microsoft/mssql-jdbc/pull/1441)
+
+## [8.4.1] HotFix & Stable Release
+### Fixed issues
+- Fixed issue with SQLServerConnectionPoolProxy not being compatible with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
+- Fixed a potential `NullPointerException` issue with `delayLoadingLobs`. [#1403](https://github.com/microsoft/mssql-jdbc/pull/1403)
+- Fixed issue with decrypting column encryption keys using Windows Certificate Store.
+
+## [8.4.0] Stable Release
+### Added
+- Added support for sensitivity ranking when using SQL Data Discovery and Classification [#1338](https://github.com/microsoft/mssql-jdbc/pull/1338) [#1373](https://github.com/microsoft/mssql-jdbc/pull/1373)
+- Added SQLServerDatabaseMetaData.getDatabaseCompatibilityLevel() API to return the database compatibility level [#1345](https://github.com/microsoft/mssql-jdbc/pull/1345)
+- Added support for Azure SQL DNS Caching [#1357](https://github.com/microsoft/mssql-jdbc/pull/1357)
+
+### Fixed issues
+- Fixed an issue with DatabaseMetaData.getColumns() intermittently returning table column descriptions in incorrect order [#1348](https://github.com/microsoft/mssql-jdbc/pull/1348)
+- Fixed an issue with spatial datatypes casting error when Always Encrypted is enabled [#1353](https://github.com/microsoft/mssql-jdbc/pull/1353)
+- Fixed an issue with DatabaseMetaData.getColumns() not returning correct type for IS_AUTOINCREMENT and IS_GENERATEDCOLUMN against Azure Data Warehouse [#1356](https://github.com/microsoft/mssql-jdbc/pull/1356)
+- Fixed an issue with Geography.STAsBinary() and Geometry.STAsBinary() returning WKB format instead of CLR format [#1364](https://github.com/microsoft/mssql-jdbc/pull/1364)
+- Fixed an issue with allowing non-MSSQL ResultSets to bulk copy DateTimeOffset [#1365](https://github.com/microsoft/mssql-jdbc/pull/1365)
+- Fixed issues identified by SonarQube [#1369](https://github.com/microsoft/mssql-jdbc/pull/1369)
+- Fixed an issue with batch insertion failing when Always Encrypted is enabled [#1378](https://github.com/microsoft/mssql-jdbc/pull/1378)
+
+### Changed
+- Updated Gradle build file to fix Azure pipelines [#1359](https://github.com/microsoft/mssql-jdbc/pull/1359)
+- Added database name to Always Encrypted enclave caching key [#1388](https://github.com/microsoft/mssql-jdbc/pull/1388)
+- Added functionality to validate both certificate beginning and expiration dates when creating encrypted connection [#1394](https://github.com/microsoft/mssql-jdbc/pull/1394)
+
+## [8.3.1] Preview Release
+### Added
+- Added delayed durability option to SQLServerConnection.commit() [#1310](https://github.com/microsoft/mssql-jdbc/pull/1310)
+- Introduced SQLServerBulkCSVFileRecord.setEscapeColumnDelimitersCSV() to escape delimiters and double quotes when using bulk copy to load from CSV files [#1312](https://github.com/microsoft/mssql-jdbc/pull/1312)
+- Added certificate expiry validation when using Always Encrypted with secure enclaves feature [#1321](https://github.com/microsoft/mssql-jdbc/pull/1321)
+- Added SQL State to Exception when connection is closed [#1326](https://github.com/microsoft/mssql-jdbc/pull/1326)
+- Introduced extended bulk copy support against Azure Data Warehouse [#1331](https://github.com/microsoft/mssql-jdbc/pull/1331)
+- Introduced 'delayLoadingLobs' connection property to provide backward compatibility when streaming LOBs [#1336](https://github.com/microsoft/mssql-jdbc/pull/1336)
+
+### Fixed issues
+- Fixed an issue with MSI authentication failing due to expiry date format mismatch [#1308](https://github.com/microsoft/mssql-jdbc/pull/1308)
+- Fixed an issue with streams not getting closed when using Always Encrypted with secure enclaves feature [#1315](https://github.com/microsoft/mssql-jdbc/pull/1315)
+- Fixed an issue with retrieving SQL VARIANT as its underlying type [#1320](https://github.com/microsoft/mssql-jdbc/pull/1320)
+- Fixed issues with the driver not being JAVA 8 compliant [#1328](https://github.com/microsoft/mssql-jdbc/pull/1328)
+- Fixed an issue with PreparedStatement when inserting large spatial data types [#1337](https://github.com/microsoft/mssql-jdbc/pull/1337)
+
+### Changed
+- Updated driver and test dependencies [#1294](https://github.com/microsoft/mssql-jdbc/pull/1294), [#1313](https://github.com/microsoft/mssql-jdbc/pull/1313)
+- Improved exception message when connecting to redirection-enabled Azure server [#1311](https://github.com/microsoft/mssql-jdbc/pull/1311)
+- Improved performance when parsing connection string [#1317](https://github.com/microsoft/mssql-jdbc/pull/1317)
+- Updated the driver to throw a warning when TLS version lower than 1.2 is negotiated [#1322](https://github.com/microsoft/mssql-jdbc/pull/1322)
+- Removed unused code [#1330](https://github.com/microsoft/mssql-jdbc/pull/1330)
+
+## [8.3.0] Preview Release
+### Added
+- Added connection properties to specify custom SocketFactory [#1217](https://github.com/Microsoft/mssql-jdbc/pull/1217)
+- Added support for Client Certificate Authentication [#1284](https://github.com/microsoft/mssql-jdbc/pull/1284)
+- Added support for JAVA 14 [#1290](https://github.com/microsoft/mssql-jdbc/pull/1290)
+- Added support for authentication to Azure Key Vault using Managed Identity [#1286](https://github.com/microsoft/mssql-jdbc/pull/1286)
+
+### Fixed issues
+- Fixed an issue with escaping curly brackets in connection string [#1251](https://github.com/microsoft/mssql-jdbc/pull/1251)
+- Fixed a warning when retrieving Operating System information from SQL Server Linux when using distributed transactions [#1279](https://github.com/microsoft/mssql-jdbc/pull/1279)
+
+### Changed
+- Updated Gradle dependencies [#1244](https://github.com/microsoft/mssql-jdbc/pull/1244)
+- Updated SQLServerPreparedStatement.setObject() to retrieve TVP name from SQLServerDataTable [#1282](https://github.com/microsoft/mssql-jdbc/pull/1282)
+
 ## [8.2.2] HotFix & Stable Release
 ### Added
 - Added an option to configure the list of trusted Azure Key Vault endpoints [#1285](https://github.com/microsoft/mssql-jdbc/pull/1285)

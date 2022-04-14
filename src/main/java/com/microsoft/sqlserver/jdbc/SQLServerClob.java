@@ -71,6 +71,10 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
 }
 
 
+/**
+ * Abstract class SQLServerClobBase
+ *
+ */
 abstract class SQLServerClobBase extends SQLServerLob {
     /**
      * Always refresh SerialVersionUID when prompted
@@ -79,13 +83,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
 
     // The value of the CLOB that this Clob object represents.
     // This value is never null unless/until the free() method is called.
-    protected String value;
+    String value;
 
     private final SQLCollation sqlCollation;
 
     private boolean isClosed = false;
 
-    protected final TypeInfo typeInfo;
+    final TypeInfo typeInfo;
 
     /**
      * Active streams which must be closed when the Clob/NClob is closed. Initial size of the array is based on an
@@ -205,9 +209,13 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public InputStream getAsciiStream() throws SQLException {
         checkClosed();
-
-        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion())
+        if (null != sqlCollation && !sqlCollation.supportsAsciiConversion()) {
             DataTypes.throwConversionError(getDisplayClassName(), "AsciiStream");
+        }
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         // Need to use a BufferedInputStream since the stream returned by this method is assumed to support mark/reset
         InputStream getterStream = null;
@@ -237,6 +245,10 @@ abstract class SQLServerClobBase extends SQLServerLob {
      */
     public Reader getCharacterStream() throws SQLException {
         checkClosed();
+        // If the LOB is currently streaming and the stream hasn't been read, read it.
+        if (!delayLoadingLob && null == value && !activeStreams.isEmpty()) {
+            getStringFromStream();
+        }
 
         Reader getterStream = null;
         if (null == value && !activeStreams.isEmpty()) {
@@ -616,6 +628,12 @@ abstract class SQLServerClobBase extends SQLServerLob {
         return len;
     }
 
+    /**
+     * Sets the default charset
+     * 
+     * @param c
+     *        charset
+     */
     protected void setDefaultCharset(Charset c) {
         this.defaultCharset = c;
     }

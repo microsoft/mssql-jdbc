@@ -186,15 +186,15 @@ final class Column {
      * If the column has not yet been read from the response then this method reads it.
      */
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
-            TDSReader tdsReader) throws SQLServerException {
+            TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata,
-                tdsReader);
+                tdsReader, statement);
         setInternalVariant(getterDTV.getInternalVariant());
         return (null != filter) ? filter.apply(value, jdbcType) : value;
     }
 
-    int getInt(TDSReader tdsReader) throws SQLServerException {
-        return (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader);
+    int getInt(TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+        return (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader, statement);
     }
 
     void updateValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
@@ -429,7 +429,7 @@ final class Column {
         updaterDTV = null;
     }
 
-    void sendByRPC(TDSWriter tdsWriter, SQLServerConnection conn) throws SQLServerException {
+    void sendByRPC(TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
         // If the column has had no updates then there is nothing to send
         if (null == updaterDTV)
             return;
@@ -449,7 +449,7 @@ final class Column {
                                                                                                                        // for
                                                                                                                        // column
                                                                                                                        // updates)
-                    tdsWriter, conn);
+                    tdsWriter, statement);
         } finally {
             // this is for updateRow() stuff
             updaterDTV.sendCryptoMetaData(null, tdsWriter);

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -189,6 +190,11 @@ public class EnclavePackageTest extends AbstractTest {
                         AbstractTest.enclaveAttestationProtocol[1]}};
     }
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
+
     /**
      * Setup environment for test.
      * 
@@ -202,6 +208,7 @@ public class EnclavePackageTest extends AbstractTest {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != url) ? url : "http://blah");
 
+        // NONE protocol does not need a URL and will not work properly with tests (false negative)
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationProtocol",
                 (null != url) ? protocol : "HGS");
     }
@@ -212,21 +219,18 @@ public class EnclavePackageTest extends AbstractTest {
      * @throws SQLException
      *         when an error occurs
      */
-    public static void testBasicConnection(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(url, protocol);
-
+    public static void testBasicConnection(String cString, String protocol) throws Exception {
         SQLServerDataSource dsLocal = new SQLServerDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsLocal);
+        AbstractTest.updateDataSource(cString, dsLocal);
 
         SQLServerDataSource dsXA = new SQLServerXADataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsXA);
+        AbstractTest.updateDataSource(cString, dsXA);
 
         SQLServerDataSource dsPool = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionStringEnclave, dsPool);
+        AbstractTest.updateDataSource(cString, dsPool);
 
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
-                Connection con3 = dsPool.getConnection();
-                Connection con4 = PrepUtil.getConnection(connectionStringEnclave)) {
+                Connection con3 = dsPool.getConnection(); Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
                 verifyEnclaveEnabled(con1, protocol);
             }
@@ -289,7 +293,7 @@ public class EnclavePackageTest extends AbstractTest {
     public static void testBadAkv() {
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    null);
+                    (String) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
@@ -305,7 +309,7 @@ public class EnclavePackageTest extends AbstractTest {
                     "keystore", null);
             assertFalse(jksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
 
         try {
@@ -313,7 +317,7 @@ public class EnclavePackageTest extends AbstractTest {
                     "");
             assertFalse(aksp.verifyColumnMasterKeyMetadata(null, false, null));
         } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
         }
     }
 
@@ -332,7 +336,7 @@ public class EnclavePackageTest extends AbstractTest {
             trustedKeyPaths.put(serverName, paths);
             SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
 
-            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, "My_KEYSTORE", "UnTrustedKeyPath",
+            SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, null, "My_KEYSTORE", "UnTrustedKeyPath",
                     serverName, true, null);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {
@@ -479,7 +483,10 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                if (String.valueOf(AttestationProtocol.HGS).equals(protocol)) {
+
+                // HGS/NONE use only VBS, AAS can use either VBS or SGX
+                if (String.valueOf(AttestationProtocol.HGS).equals(protocol)
+                        || String.valueOf(AttestationProtocol.NONE).equals(protocol)) {
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
                     assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()

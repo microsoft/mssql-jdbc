@@ -16,6 +16,7 @@ import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.MGF1ParameterSpec;
@@ -54,25 +55,29 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, String userSql,
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        ArrayList<byte[]> b = describeParameterEncryption(connection, userSql, preparedTypeDefinitions, params,
+        // Check if the session exists in our cache
+        StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
+                .append(attestationUrl);
+        EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
+        if (null != entry) {
+            this.enclaveSession = entry.getEnclaveSession();
+            this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
+        }
+        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions, params,
                 parameterNames);
-        if (null != hgsResponse && !connection.enclaveEstablished()) {
-            // Check if the session exists in our cache
-            EnclaveCacheEntry entry = enclaveCache.getSession(connection.getServerName() + attestationUrl);
-            if (null != entry) {
-                this.enclaveSession = entry.getEnclaveSession();
-                this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
-                return b;
-            }
+        if (connection.enclaveEstablished()) {
+            return b;
+        } else if (null != hgsResponse && !connection.enclaveEstablished()) {
+
             // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
                         vsmParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                enclaveCache.addEntry(connection.getServerName(), connection.enclaveAttestationUrl, vsmParams,
-                        enclaveSession);
+                enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
+                        connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
             }
@@ -136,7 +141,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return certData;
     }
 
-    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, String userSql,
+    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
@@ -148,7 +153,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                     // Should never happen.
                     return enclaveRequestedCEKs;
                 }
-                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, stmt, rs,
+                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt, rs,
                         enclaveRequestedCEKs);
                 // Process the third resultset.
                 if (connection.isAEv2() && stmt.getMoreResults()) {
@@ -275,9 +280,10 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                         .generateCertificates(new ByteArrayInputStream(b));
                 for (X509Certificate cert : certs) {
                     try {
+                        cert.checkValidity();
                         healthCert.verify(cert.getPublicKey());
                         return;
-                    } catch (SignatureException e) {
+                    } catch (SignatureException | CertificateExpiredException e) {
                         // Doesn't match, but continue looping through the rest of the certificates
                     }
                 }

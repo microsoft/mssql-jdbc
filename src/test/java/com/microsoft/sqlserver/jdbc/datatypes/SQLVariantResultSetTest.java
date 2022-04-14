@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import microsoft.sql.DateTimeOffset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -1026,22 +1027,18 @@ public class SQLVariantResultSetTest extends AbstractTest {
     }
 
     /**
-     * Tests unsupported type
+     * Tests returning class of base type datetimeoffset in sql_variant is correct
      * 
      * @throws SQLException
      */
     @Test
-    public void testUnsupportedDatatype() throws SQLException {
+    public void testDateTimeOffsetAsSqlVariant() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
                         "select cast(cast('2017-08-16 17:31:09.995 +07:00' as datetimeoffset) as sql_variant)")) {
             rs.next();
-            try {
-                rs.getObject(1);
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (Exception e) {
-                assertTrue(e.getMessage().equalsIgnoreCase("Unexpected TDS type  DATETIMEOFFSETN  in SQL_VARIANT."));
-            }
+            Object object = rs.getObject(1);
+            assertEquals(object.getClass(), DateTimeOffset.class);
         }
     }
 
@@ -1059,6 +1056,23 @@ public class SQLVariantResultSetTest extends AbstractTest {
             rs.next();
             Object object = rs.getObject(1);
             assertEquals(object.getClass(), java.sql.Time.class);;
+        }
+    }
+    
+    @Test
+    public void testCastThenGetNumeric() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("select cast(123 as sql_variant) as c1");) {
+
+            rs.next();
+            assertEquals(true, rs.getBoolean("c1")); // select int as boolean inside sql_variant
+            assertEquals(123, rs.getShort("c1")); // select int as short inside sql_variant
+            assertEquals(123L, rs.getInt("c1")); // select int as int inside sql_variant
+            assertEquals(123f, rs.getFloat("c1")); // select int as float inside sql_variant
+            assertEquals(123L, rs.getLong("c1")); // select int as long inside sql_variant
+            assertEquals(123d, rs.getDouble("c1")); // select int as double inside sql_variant
+            assertEquals(new BigDecimal(123), rs.getBigDecimal("c1")); // select int as bigdecimal (money) inside sql_variant
         }
     }
 
@@ -1096,7 +1110,9 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {
+    public static void setupHere() throws Exception {
+        setConnection();
+
         tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
         inputProc = RandomUtil.getIdentifier("sqlVariantProc");
     }

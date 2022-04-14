@@ -10,6 +10,7 @@ import java.sql.ShardingKey;
 
 import javax.sql.ConnectionPoolDataSource;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -25,9 +26,15 @@ import com.microsoft.sqlserver.testframework.Constants;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xJDBC42)
 public class JDBC43Test extends AbstractTest {
     ShardingKey superShardingKey = null;
     ShardingKey shardingKey = null;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     /**
      * Tests that we are throwing the unsupported exception for connectionBuilder()
@@ -128,7 +135,6 @@ public class JDBC43Test extends AbstractTest {
      * @since 1.9
      */
     @Test
-    @Tag(Constants.xJDBC42)
     public void setShardingKeyIfValidTest() throws TestAbortedException, SQLException {
         try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {
@@ -152,7 +158,6 @@ public class JDBC43Test extends AbstractTest {
      * @since 1.9
      */
     @Test
-    @Tag(Constants.xJDBC42)
     public void setShardingKeyTest() throws TestAbortedException, SQLException {
         try (SQLServerConnection connection43 = (SQLServerConnection43) getConnection()) {
             try {

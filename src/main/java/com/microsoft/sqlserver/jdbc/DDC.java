@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -29,7 +31,7 @@ import java.util.TimeZone;
 
 
 /**
- * Utility class for all Data Dependant Conversions (DDC).
+ * Utility class for all Data Dependent Conversions (DDC).
  */
 
 final class DDC {
@@ -72,6 +74,17 @@ final class DDC {
                 return (float) intValue;
             case BINARY:
                 return convertIntToBytes(intValue, valueLength);
+            case SQL_VARIANT:
+                // return short or bit if the underlying datatype of sql_variant is tinyint, smallint or bit
+                // otherwise, return integer
+                // Longer datatypes such as double and float are handled by convertLongToObject instead.
+                if (valueLength == 1) {
+                    return 0 != intValue;
+                } else if (valueLength == 3 || valueLength == 4) {
+                    return (short) intValue;
+                } else {
+                    return intValue;
+                }
             default:
                 return Integer.toString(intValue);
         }
@@ -93,6 +106,7 @@ final class DDC {
     static final Object convertLongToObject(long longVal, JDBCType jdbcType, SSType baseSSType, StreamType streamType) {
         switch (jdbcType) {
             case BIGINT:
+            case SQL_VARIANT:
                 return longVal;
             case INTEGER:
                 return (int) longVal;
@@ -209,6 +223,7 @@ final class DDC {
     static final Object convertFloatToObject(float floatVal, JDBCType jdbcType, StreamType streamType) {
         switch (jdbcType) {
             case REAL:
+            case SQL_VARIANT:
                 return floatVal;
             case INTEGER:
                 return (int) floatVal;
@@ -266,6 +281,7 @@ final class DDC {
         switch (jdbcType) {
             case FLOAT:
             case DOUBLE:
+            case SQL_VARIANT:
                 return doubleVal;
             case REAL:
                 return (Double.valueOf(doubleVal)).floatValue();
@@ -324,6 +340,30 @@ final class DDC {
         return valueBytes;
     }
 
+    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) {
+        byte[] valueBytes = new byte[bLength];
+
+        BigInteger bi = bigDecimalVal.unscaledValue();
+
+        if (bLength == 8) {
+            // money
+            byte[] longbArray = new byte[bLength];
+            Util.writeLong(bi.longValue(), longbArray, 0);
+            /*
+             * TDS 2.2.5.5.1.4 Fixed-Point Numbers Money is represented as a 8 byte signed integer, with one 4-byte
+             * integer that represents the more significant half, and one 4-byte integer that represents the less
+             * significant half.
+             */
+            System.arraycopy(longbArray, 0, valueBytes, 4, 4);
+            System.arraycopy(longbArray, 4, valueBytes, 0, 4);
+        } else {
+            // smallmoney
+            Util.writeInt(bi.intValue(), valueBytes, 0);
+        }
+
+        return valueBytes;
+    }
+
     /**
      * Convert a BigDecimal object to desired target user type.
      * 
@@ -341,6 +381,7 @@ final class DDC {
             case NUMERIC:
             case MONEY:
             case SMALLMONEY:
+            case SQL_VARIANT:
                 return bigDecimalVal;
             case FLOAT:
             case DOUBLE:
@@ -614,9 +655,9 @@ final class DDC {
         if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
             if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
                     && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s, 0, firstDash, 10);
-                month = Integer.parseInt(s, firstDash + 1, secondDash, 10);
-                day = Integer.parseInt(s, secondDash + 1, dividingSpace, 10);
+                year = Integer.parseInt(s.substring(0, firstDash));
+                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
 
                 if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
                     parsedDate = true;
@@ -630,16 +671,16 @@ final class DDC {
         // Convert the time; default missing nanos
         int len = s.length();
         if (firstColon > 0 && secondColon > 0 && secondColon < len - 1) {
-            hour = Integer.parseInt(s, dividingSpace + 1, firstColon, 10);
-            minute = Integer.parseInt(s, firstColon + 1, secondColon, 10);
+            hour = Integer.parseInt(s.substring(dividingSpace + 1, firstColon));
+            minute = Integer.parseInt(s.substring(firstColon + 1, secondColon));
             if (period > 0 && period < len - 1) {
-                second = Integer.parseInt(s, secondColon + 1, period, 10);
+                second = Integer.parseInt(s.substring(secondColon + 1, period));
                 int nanoPrecision = len - (period + 1);
                 if (nanoPrecision > 9)
                     throw new java.lang.IllegalArgumentException(formatError);
                 if (!Character.isDigit(s.charAt(period + 1)))
                     throw new java.lang.IllegalArgumentException(formatError);
-                int tmpNanos = Integer.parseInt(s, period + 1, len, 10);
+                int tmpNanos = Integer.parseInt(s.substring(period + 1, len));
                 while (nanoPrecision < 9) {
                     tmpNanos *= 10;
                     nanoPrecision++;
@@ -648,7 +689,7 @@ final class DDC {
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
-                second = Integer.parseInt(s, secondColon + 1, len, 10);
+                second = Integer.parseInt(s.substring(secondColon + 1, len));
             }
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
@@ -1168,11 +1209,11 @@ final class DDC {
         // overhead from using a Calendar object.
         // Note that DateTimeOffset path is not handled in this method, since DateTimeOffset always has
         // its own Calendar object (UTC timezone) associated with it.
-        LocalDateTime ldt = null;
+        LocalDateTime ldt;
 
         switch (ssType) {
             case TIME: {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
+                ldt = LocalDateTime.of(TDS.BASE_LOCAL_DATE_1900, LocalTime.ofNanoOfDay(ticksSinceMidnight));
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
@@ -1181,26 +1222,34 @@ final class DDC {
             case DATE:
             case DATETIME2:
             case DATETIMEOFFSET: {
-                ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight);
+                LocalDate ld = TDS.BASE_LOCAL_DATE.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(ticksSinceMidnight));
+                    subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 }
-                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
             }
 
             case DATETIME: // and SMALLDATETIME
             {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
+                LocalDate ld = TDS.BASE_LOCAL_DATE_1900.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    long nanoOfDay = ticksSinceMidnight * Nanos.PER_MILLISECOND;
+                    if (nanoOfDay > LocalTime.MAX.toNanoOfDay()) {
+                        ldt = LocalDateTime.of(ld, LocalTime.MIN).plusNanos(nanoOfDay);
+                    } else {
+                        ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                    }
+                    subSecondNanos = (int) (nanoOfDay % Nanos.PER_SECOND);
                 }
-
-                subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
                 break;
             }
 
@@ -1274,7 +1323,8 @@ final class DDC {
 
                     case DATETIME2: {
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
-                                java.sql.Timestamp.valueOf(ldt), fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
+                                java.sql.Timestamp.valueOf(ldt),
+                                fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
                     }
 
                     case DATETIME: // and SMALLDATETIME

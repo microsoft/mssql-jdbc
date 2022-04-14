@@ -12,6 +12,31 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
+/**
+ * Provides timeout handling for basic and bulk TDS commands to use a shared timer class. SharedTimer provides a static
+ * method for fetching an existing static object or creating one on demand. Usage is tracked through reference counting
+ * and callers are required to call removeRef() when they will no longer be using the SharedTimer. If the SharedTimer
+ * does not have any more references then its internal ScheduledThreadPoolExecutor will be shutdown.
+ * 
+ * The SharedTimer is cached at the Connection level so that repeated invocations do not create new timers. Connections
+ * only create timers on first use so if no actions involve a timeout then no timer is fetched or created. If a
+ * Connection does create a timer then it will be released when the Connection closed.
+ * 
+ * Properly written JDBC applications that always close their Connection objects when they are finished using them
+ * should not have any extra threads running after they are all closed. Applications that do not use query timeouts will
+ * not have any extra threads created as they are only done on demand. Applications that use timeouts and use a JDBC
+ * connection pool will have a single shared object across all JDBC connections as long as there are some open
+ * connections in the pool with timeouts enabled.
+ * 
+ * Interrupt actions to handle a timeout are executed in their own thread. A handler thread is created when the timeout
+ * occurs with the thread name matching the connection id of the client connection that created the timeout. If the
+ * timeout is canceled prior to the interrupt action being executed, say because the command finished, then no handler
+ * thread is created.
+ * 
+ * Note that the sharing of the timers happens across all Connections, not just Connections with the same JDBC URL and
+ * properties.
+ * 
+ */
 class SharedTimer implements Serializable {
     /**
      * Always update serialVersionUID when prompted

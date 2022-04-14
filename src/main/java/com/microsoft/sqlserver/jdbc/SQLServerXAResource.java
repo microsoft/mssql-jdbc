@@ -152,7 +152,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     private boolean serverInfoRetrieved;
     private String version, instanceName;
-    private int ArchitectureMSSQL, ArchitectureOS;
+    private int architectureMSSQL, architectureOS;
 
     private static boolean xaInitDone;
     private static final Object xaInitLock;
@@ -164,7 +164,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     private int tightlyCoupled = 0;
     private int isTransacrionTimeoutSet = 0; // set to 1 if setTransactionTimeout() is called
 
+    /**
+     * Used to allow the tightly coupled XA transactions, which have different XA branch transaction IDs (XIDs) but have
+     * the same global transaction ID (GTRID)
+     */
     public static final int SSTRANSTIGHTLYCPLD = 0x8000;
+
     private SQLServerCallableStatement[] xaStatements = {null, null, null, null, null, null, null, null, null, null};
     private final String traceID;
     /**
@@ -201,8 +206,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         serverInfoRetrieved = false;
         version = "0";
         instanceName = "";
-        ArchitectureMSSQL = 0;
-        ArchitectureOS = 0;
+        architectureMSSQL = 0;
+        architectureOS = 0;
 
     }
 
@@ -453,22 +458,16 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 case XA_START:
 
                     if (!serverInfoRetrieved) {
-                        Statement stmt = null;
-                        try {
+                        String query = "select convert(varchar(100), SERVERPROPERTY('Edition'))as edition, "
+                                + " convert(varchar(100), SERVERPROPERTY('InstanceName'))as instance,"
+                                + " convert(varchar(100), SERVERPROPERTY('ProductVersion')) as version, @@VERSION;";
+                        try (Statement stmt = controlConnection.createStatement();
+                                ResultSet rs = stmt.executeQuery(query);) {
                             serverInfoRetrieved = true;
-                            // data are converted to varchar as type variant returned by SERVERPROPERTY is not supported
-                            // by driver
-                            String query = "select convert(varchar(100), SERVERPROPERTY('Edition'))as edition, "
-                                    + " convert(varchar(100), SERVERPROPERTY('InstanceName'))as instance,"
-                                    + " convert(varchar(100), SERVERPROPERTY('ProductVersion')) as version,"
-                                    + " SUBSTRING(@@VERSION, CHARINDEX('<', @@VERSION)+2, 2)";
-
-                            stmt = controlConnection.createStatement();
-                            ResultSet rs = stmt.executeQuery(query);
                             rs.next();
 
                             String edition = rs.getString(1);
-                            ArchitectureMSSQL = ((null != edition) && (edition.contains("(64-bit)"))) ? 64 : 32;
+                            architectureMSSQL = ((null != edition) && (edition.contains("(64-bit)"))) ? 64 : 32;
 
                             // if InstanceName is null use the default instance without name (MSSQLSERVER)
                             instanceName = (rs.getString(2) == null) ? "MSSQLSERVER" : rs.getString(2);
@@ -479,27 +478,24 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 version = version.substring(0, version.indexOf('.'));
                             }
 
-                            // @@VERSION returns single nvarchar string with SQL version, architecture, build date,
-                            // edition and OS version
-                            // Version of the OS running MS SQL is retrieved as substring
-                            ArchitectureOS = Integer.parseInt(rs.getString(4));
-
-                            rs.close();
+                            /*
+                             * @@VERSION returns single nvarchar string with SQL version, architecture, build date,
+                             * edition and OS version.
+                             */
+                            String buildInfo = rs.getString(4);
+                            // SQL Server Linux is x64-compatible only.
+                            if (null != buildInfo && (buildInfo.contains("Linux") || buildInfo.contains("Microsoft SQL Azure"))) {
+                                architectureOS = 64;
+                            } else if (null != buildInfo) {
+                                architectureOS = Integer.parseInt(buildInfo.substring(buildInfo.lastIndexOf('<') + 2,
+                                        buildInfo.lastIndexOf('>')));
+                            }
                         }
-                        // Got caught in static analysis. Catch only the thrown exceptions, do not catch
-                        // run time exceptions.
+                        // Catch only the thrown exceptions, do not catch run time exceptions.
                         catch (Exception e) {
                             if (xaLogger.isLoggable(Level.WARNING))
                                 xaLogger.warning(
                                         toString() + " Cannot retrieve server information: :" + e.getMessage());
-                        } finally {
-                            if (null != stmt)
-                                try {
-                                    stmt.close();
-                                } catch (SQLException e) {
-                                    if (xaLogger.isLoggable(Level.FINER))
-                                        xaLogger.finer(toString());
-                                }
                         }
                     }
 
@@ -517,8 +513,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     cs.setInt(n++, Integer.parseInt(version)); // Version of SQL Server
                     cs.setInt(n++, instanceName.length()); // Length of SQL Server instance name
                     cs.setBytes(n++, instanceName.getBytes()); // SQL Server instance name
-                    cs.setInt(n++, ArchitectureMSSQL); // Architecture of SQL Server
-                    cs.setInt(n++, ArchitectureOS); // Architecture of OS running SQL Server
+                    cs.setInt(n++, architectureMSSQL); // Architecture of SQL Server
+                    cs.setInt(n++, architectureOS); // Architecture of OS running SQL Server
                     cs.setInt(n++, isTransacrionTimeoutSet); // pass 1 if setTransactionTimeout() is called
                     cs.registerOutParameter(n++, Types.BINARY); // Return UoW
 

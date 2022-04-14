@@ -1,7 +1,0 @@
-codecov:
-  branch: dev
-  notify:
-    require_ci_to_pass: false
-  coverage:
-  	range: "10...100"
-  comment:

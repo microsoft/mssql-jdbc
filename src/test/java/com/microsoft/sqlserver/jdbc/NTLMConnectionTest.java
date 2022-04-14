@@ -51,6 +51,8 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setUp() throws Exception {
+        setConnection();
+
         // reset logging to avoid servere logs due to negative testing
         LogManager.getLogManager().reset();
 
@@ -81,8 +83,7 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMBasicConnection() throws SQLException {
-        try (Connection con1 = dsNTLMLocal.getConnection();
-                Connection con2 = dsNTLMXA.getConnection();
+        try (Connection con1 = dsNTLMLocal.getConnection(); Connection con2 = dsNTLMXA.getConnection();
                 Connection con3 = dsNTLMPool.getConnection();
                 Connection con4 = PrepUtil.getConnection(connectionStringNTLM)) {
             verifyNTLM(con1);
@@ -119,10 +120,11 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
-        try (Connection con = PrepUtil
-                .getConnection(connectionStringNTLM + ";encrypt=true;trustServerCertificate=true")) {
+        try (Connection con = PrepUtil.getConnection(
+                connectionStringNTLM + ";encrypt=" + encrypt + ";trustServerCertificate=" + trustServerCertificate)) {
             verifyNTLM(con);
         }
+
     }
 
     /**
@@ -372,17 +374,20 @@ public class NTLMConnectionTest extends AbstractTest {
 
         token.put(challengeTargetInfo2);
 
-        // update targetinfo len
-        token.position(ntlmChallengeTargetInfoLenOffset);
-        token.putShort((short) targetInfoLen); // len
-        token.putShort((short) targetInfoLen); // maxlen
+        /*
+         * update target info - the cast is necessary as JDK 8 calls method Buffer.position(I)LBuffer while in JDK 9+
+         * calls method ByteBuffer.position(I)LByteBuffer
+         */
+        ((java.nio.Buffer) token).position(ntlmChallengeTargetInfoLenOffset);
+        token.putShort((short) targetInfoLen); // update target info len
+        token.putShort((short) targetInfoLen); // update target info maxlen
 
         // write bad bytes
         if (0 <= offset) {
-            token.position(offset);
+            ((java.nio.Buffer) token).position(offset);
             token.put(badBytes);
         } else {
-            token.position(tokenLen + offset);
+            ((java.nio.Buffer) token).position(tokenLen + offset);
             token.put(badBytes);
         }
 

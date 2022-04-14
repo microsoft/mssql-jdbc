@@ -241,10 +241,10 @@ final class DTV {
      * determine the value (e.g. a Calendar object for time-valued DTV values).
      */
     Object getValue(JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         if (null == impl)
             impl = new ServerDTVImpl();
-        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader);
+        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader, statement);
     }
 
     Object getSetterValue() {
@@ -271,9 +271,10 @@ final class DTV {
         private final boolean isOutParam;
         private final TDSWriter tdsWriter;
         private final SQLServerConnection conn;
+        private final SQLServerStatement statement;
 
         SendByRPCOp(String name, TypeInfo typeInfo, SQLCollation collation, int precision, int outScale,
-                boolean isOutParam, TDSWriter tdsWriter, SQLServerConnection conn) {
+                boolean isOutParam, TDSWriter tdsWriter, SQLServerStatement statement) {
             this.name = name;
             this.typeInfo = typeInfo;
             this.collation = collation;
@@ -281,7 +282,8 @@ final class DTV {
             this.outScale = outScale;
             this.isOutParam = isOutParam;
             this.tdsWriter = tdsWriter;
-            this.conn = conn;
+            this.conn = statement.connection;
+            this.statement = statement;
         }
 
         void execute(DTV dtv, String strValue) throws SQLServerException {
@@ -793,26 +795,26 @@ final class DTV {
                             case SMALLDATETIME:
                                 tdsWriter.writeEncryptedRPCDateTime(name,
                                         timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, isOutParam, jdbcType);
+                                        subSecondNanos, isOutParam, jdbcType, statement);
                                 break;
 
                             case TIMESTAMP:
                                 assert null != cryptoMeta;
                                 tdsWriter.writeEncryptedRPCDateTime2(name,
                                         timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, valueLength, isOutParam);
+                                        subSecondNanos, valueLength, isOutParam, statement);
                                 break;
 
                             case TIME:
                                 // when colum is encrypted, always send time as time, ignore sendTimeAsDatetime setting
                                 assert null != cryptoMeta;
                                 tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength,
-                                        isOutParam);
+                                        isOutParam, statement);
                                 break;
 
                             case DATE:
                                 assert null != cryptoMeta;
-                                tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam);
+                                tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam, statement);
                                 break;
 
                             case TIMESTAMP_WITH_TIMEZONE:
@@ -830,7 +832,7 @@ final class DTV {
 
                                 assert null != cryptoMeta;
                                 tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset, subSecondNanos,
-                                        valueLength, isOutParam);
+                                        valueLength, isOutParam, statement);
                                 break;
 
                             default:
@@ -865,15 +867,15 @@ final class DTV {
                                 if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
                                     tdsWriter.writeEncryptedRPCDateTime(name,
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam, jdbcType);
+                                            subSecondNanos, isOutParam, jdbcType, statement);
                                 } else if (0 == valueLength) {
                                     tdsWriter.writeEncryptedRPCDateTime2(name,
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, outScale, isOutParam);
+                                            subSecondNanos, outScale, isOutParam, statement);
                                 } else {
                                     tdsWriter.writeEncryptedRPCDateTime2(name,
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, (valueLength), isOutParam);
+                                            subSecondNanos, (valueLength), isOutParam, statement);
                                 }
                             } else
                                 tdsWriter.writeRPCDateTime2(name,
@@ -887,10 +889,10 @@ final class DTV {
                             if (null != cryptoMeta) {
                                 if (0 == valueLength) {
                                     tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, outScale,
-                                            isOutParam);
+                                            isOutParam, statement);
                                 } else {
                                     tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength,
-                                            isOutParam);
+                                            isOutParam, statement);
                                 }
                             } else {
                                 // Send the java.sql.Types.TIME value as TIME or DATETIME SQL Server
@@ -909,7 +911,7 @@ final class DTV {
 
                         case DATE:
                             if (null != cryptoMeta)
-                                tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam);
+                                tdsWriter.writeEncryptedRPCDate(name, calendar, isOutParam, statement);
                             else
                                 tdsWriter.writeRPCDate(name, calendar, isOutParam);
 
@@ -947,12 +949,12 @@ final class DTV {
                             if (null != cryptoMeta) {
                                 if (0 == valueLength) {
                                     tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
-                                            subSecondNanos, outScale, isOutParam);
+                                            subSecondNanos, outScale, isOutParam, statement);
                                 } else {
                                     tdsWriter.writeEncryptedRPCDateTimeOffset(name, calendar, minutesOffset,
                                             subSecondNanos,
                                             (0 == valueLength ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : valueLength),
-                                            isOutParam);
+                                            isOutParam, statement);
                                 }
                             } else
                                 tdsWriter.writeRPCDateTimeOffset(name, calendar, minutesOffset, subSecondNanos,
@@ -1115,7 +1117,7 @@ final class DTV {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
                 if (null != byteArrayValue) {
-                    byteArrayValue = SQLServerSecurityUtility.encryptWithKey(byteArrayValue, cryptoMeta, conn);
+                    byteArrayValue = SQLServerSecurityUtility.encryptWithKey(byteArrayValue, cryptoMeta, conn, statement);
                     tdsWriter.writeEncryptedRPCByteArray(byteArrayValue);
                     writeEncryptData(dtv, false);
                 } else {
@@ -1910,9 +1912,9 @@ final class DTV {
      * Serializes a value as the specified type for RPC.
      */
     void sendByRPC(String name, TypeInfo typeInfo, SQLCollation collation, int precision, int outScale,
-            boolean isOutParam, TDSWriter tdsWriter, SQLServerConnection conn) throws SQLServerException {
+            boolean isOutParam, TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
         // typeInfo is null when called from PreparedStatement->Parameter->SendByRPC
-        executeOp(new SendByRPCOp(name, typeInfo, collation, precision, outScale, isOutParam, tdsWriter, conn));
+        executeOp(new SendByRPCOp(name, typeInfo, collation, precision, outScale, isOutParam, tdsWriter, statement));
     }
 }
 
@@ -1953,7 +1955,7 @@ abstract class DTVImpl {
     abstract JavaType getJavaType();
 
     abstract Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs,
-            Calendar cal, TypeInfo type, CryptoMetadata cryptoMetadata, TDSReader tdsReader) throws SQLServerException;
+            Calendar cal, TypeInfo type, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException;
 
     abstract Object getSetterValue();
 
@@ -2328,7 +2330,7 @@ final class AppDTVImpl extends DTVImpl {
     }
 
     Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         // Client side type conversion is not supported
         if (this.jdbcType != jdbcType)
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
@@ -3658,7 +3660,7 @@ final class ServerDTVImpl extends DTVImpl {
     }
 
     Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         SQLServerConnection con = tdsReader.getConnection();
         Object convertedValue = null;
         byte[] decryptedValue;
@@ -3734,7 +3736,7 @@ final class ServerDTVImpl extends DTVImpl {
                     throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), null);
                 }
 
-                decryptedValue = SQLServerSecurityUtility.decryptWithKey((byte[]) convertedValue, cryptoMetadata, con);
+                decryptedValue = SQLServerSecurityUtility.decryptWithKey((byte[]) convertedValue, cryptoMetadata, con, statement);
                 return denormalizedValue(decryptedValue, jdbcType, cryptoMetadata.baseTypeInfo, con, streamGetterArgs,
                         cryptoMetadata.normalizationRuleVersion, cal);
             }
@@ -3922,41 +3924,32 @@ final class ServerDTVImpl extends DTVImpl {
         TDSType baseType = TDSType.valueOf(intbaseType);
         switch (baseType) {
             case INT8:
-                jdbcType = JDBCType.BIGINT;
                 convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT4:
-                jdbcType = JDBCType.INTEGER;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT2:
-                jdbcType = JDBCType.SMALLINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case INT1:
-                jdbcType = JDBCType.TINYINT;
                 convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), valueLength, jdbcType,
                         streamGetterArgs.streamType);
                 break;
 
             case DECIMALN:
             case NUMERICN:
-                if (TDSType.DECIMALN == baseType)
-                    jdbcType = JDBCType.DECIMAL;
-                else if (TDSType.NUMERICN == baseType)
-                    jdbcType = JDBCType.NUMERIC;
                 if (cbPropsActual != sqlVariantProbBytes.DECIMALN.getIntValue()) { // Numeric and decimal have the same
                                                                                    // probbytes value
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                jdbcType = JDBCType.DECIMAL;
                 precision = tdsReader.readUnsignedByte();
                 scale = tdsReader.readUnsignedByte();
                 typeInfo.setScale(scale); // typeInfo needs to be updated. typeInfo is usually set when reading
@@ -3969,17 +3962,14 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case FLOAT4:
-                jdbcType = JDBCType.REAL;
                 convertedValue = tdsReader.readReal(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
             case FLOAT8:
-                jdbcType = JDBCType.FLOAT;
                 convertedValue = tdsReader.readFloat(expectedValueLength, jdbcType, streamGetterArgs.streamType);
                 break;
 
             case MONEY4:
-                jdbcType = JDBCType.SMALLMONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 typeInfo.setPrecision(precision);
                 scale = 4;
@@ -3991,7 +3981,6 @@ final class ServerDTVImpl extends DTVImpl {
                 break;
 
             case MONEY8:
-                jdbcType = JDBCType.MONEY;
                 precision = Long.toString(Long.MAX_VALUE).length();
                 scale = 4;
                 typeInfo.setPrecision(precision);
@@ -4004,32 +3993,8 @@ final class ServerDTVImpl extends DTVImpl {
 
             case BIT1:
             case BITN:
-                jdbcType = JDBCType.BIT;
-                switch (expectedValueLength) {
-                    case 8:
-                        convertedValue = DDC.convertLongToObject(tdsReader.readLong(), jdbcType, baseSSType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 4:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readInt(), expectedValueLength, jdbcType,
-                                streamGetterArgs.streamType);
-                        break;
-
-                    case 2:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readShort(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    case 1:
-                        convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
-                                jdbcType, streamGetterArgs.streamType);
-                        break;
-
-                    default:
-                        assert false : "Unexpected valueLength" + expectedValueLength;
-                        break;
-                }
+                    convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
+                            jdbcType, streamGetterArgs.streamType);
                 break;
 
             case BIGVARCHAR:
@@ -4038,10 +4003,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.BIGVARCHAR == baseType)
-                    jdbcType = JDBCType.VARCHAR;
-                else if (TDSType.BIGCHAR == baseType)
-                    jdbcType = JDBCType.CHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();
@@ -4063,10 +4024,6 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidProbbytes"));
                     throw new SQLServerException(form.format(new Object[] {baseType}), null, 0, null);
                 }
-                if (TDSType.NCHAR == baseType)
-                    jdbcType = JDBCType.NCHAR;
-                else if (TDSType.NVARCHAR == baseType)
-                    jdbcType = JDBCType.NVARCHAR;
                 collation = tdsReader.readCollation();
                 typeInfo.setSQLCollation(collation);
                 maxLength = tdsReader.readUnsignedShort();
@@ -4123,6 +4080,14 @@ final class ServerDTVImpl extends DTVImpl {
                 typeInfo.setScale(scale);
                 internalVariant.setScale(scale);
                 convertedValue = tdsReader.readDateTime2(expectedValueLength, typeInfo, cal, jdbcType);
+                break;
+
+            case DATETIMEOFFSETN:
+                jdbcType = JDBCType.DATETIMEOFFSET;
+                scale = tdsReader.readUnsignedByte();
+                typeInfo.setScale(scale);
+                internalVariant.setScale(scale);
+                convertedValue = tdsReader.readDateTimeOffset(expectedValueLength, typeInfo, jdbcType);
                 break;
 
             case BIGBINARY: // e.g binary20, binary 512, binary 8000 -> reads as bigbinary

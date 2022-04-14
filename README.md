@@ -1,6 +1,5 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/LICENSE)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.sqlserver/mssql-jdbc/badge.svg)](http://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc)
-[![codecov.io](http://codecov.io/github/Microsoft/mssql-jdbc/coverage.svg?branch=master)](http://codecov.io/github/Microsoft/mssql-jdbc?branch=master)
 [![Javadocs](http://javadoc.io/badge/com.microsoft.sqlserver/mssql-jdbc.svg)](http://javadoc.io/doc/com.microsoft.sqlserver/mssql-jdbc)
 [![Gitter](https://img.shields.io/gitter/room/badges/shields.svg)](https://gitter.im/Microsoft/mssql-developers)
 </br>
@@ -23,7 +22,7 @@ Let us know how you think we're doing.
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
 |--------------------------|--------------------------|--------------------------|
-|[![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.windows?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=1&branchName=dev) | [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.linux?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=3&branchName=dev) | [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.macOS?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=7&branchName=dev)|
+| [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/public-mssql-jdbc.windows?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=825&branchName=main) | [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/public-mssql-jdbc.linux?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=823&branchName=main) | [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/CI-MacOS?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=824&branchName=main) |
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
@@ -48,14 +47,14 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre13`. This creates JRE 13 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre13`. This creates JRE 13 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 13+).
+        * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
@@ -64,13 +63,13 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 ### Documentation
 API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavadocs).
 
-This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
+This driver is documented on [Microsoft Docs](https://docs.microsoft.com/sql/connect/jdbc/).
 
 ### Sample Code
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth` DLLs. They can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287)
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
 
 ### Download the driver
 Don't want to compile anything?
@@ -81,18 +80,18 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=868287).
+The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc).
 
-To get the latest preview version of the driver, add the following to your POM file: 
+To get the latest version of the driver, add the following to your POM file: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.1.1.jre13-preview</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 ```
 
@@ -104,10 +103,8 @@ Starting from version 7.0.0, the driver Jars (jre10 and above) will expose 'Auto
 This project has following dependencies: 
 
 Compile Time:
- - `com.microsoft.azure:azure-keyvault` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
- - `com.microsoft.azure:azure-keyvault-webkey` : Azure Key Vault Provider for Always Encrypted Azure Key Vault feature (optional)
- - `com.microsoft.azure:adal4j` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
- - `com.microsoft.rest:client-runtime` : Azure Active Directory Library for Java for Azure Active Directory Authentication feature and Azure Key Vault feature (optional)
+ - `com.azure:azure-security-keyvault-keys` : Microsoft Azure Client Library For KeyVault Keys (optional)
+ - `com.azure:azure-identity` : Microsoft Azure Client Library For Identity (optional)
  - `org.bouncycastle:bcprov-jdk15on` : Bouncy Castle Provider for Always Encrypted with secure enclaves feature with JAVA 8 only (optional)
  - `com.google.code.gson:gson` : Gson for Always Encrypted with secure enclaves feature (optional)
 
@@ -123,55 +120,44 @@ mvn dependency:tree
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 
-***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to redeclare *adal4j* and *client-runtime* dependency in your project's POM file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Active Directory Authentication feature* then you need to declare the *azure-identity* dependency in your project's POM file. Please see the following snippet: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>11.1.0.jre17</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-identity</artifactId>
+	<version>1.3.3</version>
 </dependency>
 
-<dependency>
-	<groupId>com.microsoft.rest</groupId>
-	<artifactId>client-runtime</artifactId>
-	<version>1.7.0</version>
-</dependency>
 ```
 
-***For Example:*** If you are using *Azure Key Vault feature* then you need to redeclare *azure-keyvault*, *azure-keyvault-webkey* dependency and *adal4j*, *client-runtime* dependency in your project's POM file. Please see the following snippet: 
+***For Example:*** If you are using *Azure Key Vault feature* then you need to declare the *azure-identity* and *azure-security-keyvault-keys* dependencies in your project's POM file. Please see the following snippet: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>11.1.0.jre17</version>
 	<scope>compile</scope>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>adal4j</artifactId>
-	<version>1.6.4</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-identity</artifactId>
+	<version>1.3.3</version>
 </dependency>
 
 <dependency>
-	<groupId>com.microsoft.rest</groupId>
-	<artifactId>client-runtime</artifactId>
-	<version>1.7.0</version>
-</dependency>
-
-<dependency>
-	<groupId>com.microsoft.azure</groupId>
-	<artifactId>azure-keyvault</artifactId>
-	<version>1.2.2</version>
+	<groupId>com.azure</groupId>
+	<artifactId>azure-security-keyvault-keys</artifactId>
+	<version>4.2.8</version>
 </dependency>
 ```
 
@@ -185,13 +171,13 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>8.2.2.jre13</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 
 <dependency>
 	<groupId>org.antlr</groupId>
 	<artifactId>antlr4-runtime</artifactId>
-	<version>4.7.2</version>
+	<version>4.9.2</version>
 </dependency>
 ```
 
@@ -225,7 +211,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Version conventions
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1 and so on
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, and so on.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project. 
@@ -241,13 +227,14 @@ Here are our Top 15 contributors from the community:
 - simon04 (Simon Legner)
 - gstojsic
 - cosmofrit
-- rPraml (Roland Praml)
+- harawata- shayaantx
+- (Iwao AVE!)
 - nsidhaye (Nikhil Sidhaye)
-- tonytamwk
+- rPraml (Roland Praml)
+- worldtiki (Daniel Albuquerque)
 - shayaantx
-- mnhubspot
 - mfriesen (Mike Friesen)
-- harawata (Iwao AVE!)
+
 
 ## License
 The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See the [LICENSE](https://github.com/Microsoft/mssql-jdbc/blob/master/LICENSE) file for more details.

@@ -56,6 +56,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @SuppressWarnings("unused")
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
+
+    /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
     /** The prepared type definitions */
@@ -73,6 +75,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if this execute has been called for this statement at least once */
     private boolean isExecutedAtLeastOnce = false;
 
+    /** True if sp_prepare was called **/
+    private boolean isSpPrepareExecuted = false;
+
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private PreparedStatementHandle cachedPreparedStatementHandle;
 
@@ -89,6 +94,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
+    /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
     /**
@@ -183,7 +189,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean encryptionMetadataIsRetrieved = false;
 
+    /**
+     * local user SQL
+     */
     private String localUserSQL;
+
+    /**
+     * crypto meta batch
+     */
+    private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
     // Internal function used in tracing
     String getClassNameInternal() {
@@ -362,6 +376,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.entering(getClassNameLogging(), "clearParameters");
         checkClosed();
         encryptionMetadataIsRetrieved = false;
+        cryptoMetaBatch.clear();
         int i;
         if (inOutParam == null)
             return;
@@ -505,6 +520,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null != resultSet;
     }
 
+    /**
+     * Prepare statement exec command
+     */
     private final class PrepStmtExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -555,7 +573,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (connection.isAEv2() && !isInternalEncryptionQuery) {
-            this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, inOutParam,
+            this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions, inOutParam,
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
@@ -593,7 +611,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
 
-                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, command);
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
@@ -641,6 +659,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
+
+            PrepStmtExecOutParamHandler(SQLServerStatement statement) {
+                super(statement);
+            }
+
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // If no prepared statement handle is expected at this time
                 // then don't consume this OUT parameter as it does not contain
@@ -655,7 +678,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                 param.skipRetValStatus(tdsReader);
 
-                setPreparedStatementHandle(param.getInt(tdsReader));
+                setPreparedStatementHandle(param.getInt(tdsReader, statement));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
                 if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)) {
@@ -673,7 +696,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if (expectPrepStmtHandle || expectCursorOutParams) {
-            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler());
+            TDSParser.parse(tdsReader, new PrepStmtExecOutParamHandler(this));
             return true;
         }
 
@@ -692,7 +715,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
-            params[index].sendByRPC(tdsWriter, connection);
+            params[index].sendByRPC(tdsWriter, this);
         }
     }
 
@@ -738,6 +761,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, 0, true);
+    }
+
+    private void buildPrepParams(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
+            getStatementLogger().fine(toString() + ": calling sp_prepare: PreparedHandle:"
+                    + getPreparedStatementHandle() + ", SQL:" + preparedSQL);
+
+        expectPrepStmtHandle = true;
+        executedSqlDirectly = false;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 4;
+
+        tdsWriter.writeShort((short) 0xFFFF); // procedure name length -> use ProcIDs
+        tdsWriter.writeShort(TDS.PROCID_SP_PREPARE);
+        tdsWriter.writeByte((byte) 0);
+        tdsWriter.writeByte((byte) 0);
+        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
+
+        tdsWriter.writeRPCInt(null, getPreparedStatementHandle(), true);
+        resetPrepStmtHandle(false);
+
+        tdsWriter.writeRPCStringUnicode((preparedTypeDefinitions.length() > 0) ? preparedTypeDefinitions : null);
+
+        tdsWriter.writeRPCStringUnicode(preparedSQL);
+        tdsWriter.writeRPCInt(null, 1, false);
     }
 
     private void buildPrepExecParams(TDSWriter tdsWriter) throws SQLServerException {
@@ -862,6 +910,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementLogger().fine(
                         "Calling stored procedure sp_describe_parameter_encryption to get parameter encryption information.");
             }
+
+            // pass registered custom provider to stmt
+            if (this.hasColumnEncryptionKeyStoreProvidersRegistered()) {
+                ((SQLServerCallableStatement) stmt).registerColumnEncryptionKeyStoreProvidersOnStatement(
+                        this.statementColumnEncryptionKeyStoreProviders);
+            }
+
             ((SQLServerCallableStatement) stmt).isInternalEncryptionQuery = true;
             ((SQLServerCallableStatement) stmt).setNString(1, preparedSQL);
             ((SQLServerCallableStatement) stmt).setNString(2, preparedTypeDefinitions);
@@ -875,21 +930,21 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 Map<Integer, CekTableEntry> cekList = new HashMap<>();
                 CekTableEntry cekEntry = null;
                 while (rs.next()) {
-                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+                    int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
                     if (!cekList.containsKey(currentOrdinal)) {
                         cekEntry = new CekTableEntry(currentOrdinal);
                         cekList.put(cekEntry.ordinal, cekEntry);
                     } else {
                         cekEntry = cekList.get(currentOrdinal);
                     }
-                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value()),
-                            rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
-                            rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value()),
-                            rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value()));
+                    cekEntry.add(rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value()),
+                            rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
+                            rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value()),
+                            rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value()));
                 }
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                     getStatementLogger().fine("Matadata of CEKs is retrieved.");
@@ -907,10 +962,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     while (secondRs.next()) {
                         paramCount++;
                         String paramName = secondRs
-                                .getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
+                                .getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
                         int paramIndex = parameterNames.indexOf(paramName);
                         int cekOrdinal = secondRs
-                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
+                                .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONKEYORDINAL.value());
                         cekEntry = cekList.get(cekOrdinal);
 
                         // cekEntry will be null if none of the parameters are encrypted.
@@ -921,15 +976,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                         }
                         SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
-                                .getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
+                                .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
                         if (SQLServerEncryptionType.PlainText != encType) {
                             params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                                     (byte) secondRs.getInt(
-                                            DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()),
+                                            DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                                     null, encType.value, (byte) secondRs.getInt(
-                                            DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
+                                            DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
+
+                            SQLServerStatement statement = (SQLServerStatement) stmt;
                             // Decrypt the symmetric key.(This will also validate and throw if needed).
-                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection);
+                            SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection,
+                                    statement);
                         } else {
                             if (params[paramIndex].getForceEncryption()) {
                                 MessageFormat form = new MessageFormat(SQLServerException
@@ -1014,32 +1072,49 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
+    /**
+     * enclave CEKs
+     */
     private ArrayList<byte[]> enclaveCEKs;
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
-            boolean hasExistingTypeDefinitions) throws SQLServerException {
+            boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
+        boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
-
             if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
             else
                 buildServerCursorExecParams(tdsWriter);
         } else {
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
-            // First execution, use sp_executesql, optimizing for asumption we will not re-use statement.
+            // First execution, use sp_executesql, optimizing for assumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
-            }
-            // Second execution, use prepared statements since we seem to be re-using it.
-            else if (needsPrepare)
-                buildPrepExecParams(tdsWriter);
-            else
+            } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
+                if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
+                    buildPrepExecParams(tdsWriter);
+                } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
+                    isSpPrepareExecuted = true;
+                    // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
+                    // "batching" code it will start another tds request to execute the statement after preparing.
+                    if (executeMethod == EXECUTE_BATCH) {
+                        buildPrepParams(tdsWriter);
+                        return needsPrepare;
+                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute the statement.
+                        isSpPrepareExecuted = false;
+                        doPrep(tdsWriter, command);
+                        command.startRequest(TDS.PKT_RPC);
+                        buildExecParams(tdsWriter);
+                    }
+                }
+            } else {
                 buildExecParams(tdsWriter);
+            }
         }
 
         sendParamsByRPC(tdsWriter, params);
@@ -1047,8 +1122,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return needsPrepare;
     }
 
+    /**
+     * Executes sp_prepare to prepare a parameterized statement and sets the prepared statement handle
+     *
+     * @param tdsWriter TDS writer to write sp_prepare params to
+     * @throws SQLServerException
+     */
+    private void doPrep(TDSWriter tdsWriter, TDSCommand command) throws SQLServerException {
+        buildPrepParams(tdsWriter);
+        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+        command.processResponse(resultsReader());
+    }
+
     @Override
-    public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException {
+    public final java.sql.ResultSetMetaData getMetaData() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "getMetaData");
         checkClosed();
         boolean rsclosed = false;
@@ -1061,7 +1148,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             rsclosed = true;
         }
         if (resultSet == null || rsclosed) {
-            SQLServerResultSet emptyResultSet = (SQLServerResultSet) buildExecuteMetaData();
+            SQLServerResultSet emptyResultSet = buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
         } else if (resultSet != null) {
@@ -1078,21 +1165,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLServerException
      * @return the result set containing the meta data
      */
-    private ResultSet buildExecuteMetaData() throws SQLServerException {
+    private SQLServerResultSet buildExecuteMetaData() throws SQLServerException, SQLTimeoutException {
         String fmtSQL = userSQL;
 
-        ResultSet emptyResultSet = null;
+        SQLServerResultSet emptyResultSet = null;
         try {
             fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
-        } catch (SQLException sqle) {
+        } catch (SQLServerException sqle) {
+            // Ignore empty result set errors, otherwise propagate the server error.
             if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
-                // if the error is not no resultset then throw a processings error.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_processingError"));
-                Object[] msgArgs = {sqle.getMessage()};
-
-                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, true);
+                throw sqle;
             }
         }
         return emptyResultSet;
@@ -1466,7 +1550,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             JavaType javaType = JavaType.of(obj);
             if (JavaType.TVP == javaType) {
-                tvpName = getTVPNameIfNull(index, null); // will return null if called from preparedStatement
+                // May return null if called from preparedStatement.
+                tvpName = getTVPNameFromObject(index, obj);
 
                 if ((null == tvpName) && (obj instanceof ResultSet)) {
                     throw new SQLServerException(SQLServerException.getErrString("R_TVPnotWorkWithSetObjectResultSet"),
@@ -1501,8 +1586,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
         checkClosed();
-        if (microsoft.sql.Types.STRUCTURED == jdbcType)
-            tvpName = getTVPNameIfNull(n, null);
+        if (microsoft.sql.Types.STRUCTURED == jdbcType) {
+            tvpName = getTVPNameFromObject(n, obj);
+        }
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -1864,6 +1950,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setStructured");
     }
 
+    String getTVPNameFromObject(int n, Object obj) throws SQLServerException {
+        String tvpName = null;
+        if (obj instanceof SQLServerDataTable) {
+            tvpName = ((SQLServerDataTable) obj).getTvpName();
+        }
+        // Get TVP name from SQLServerParameterMetaData if it is still null.
+        return getTVPNameIfNull(n, tvpName);
+    }
+
     String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
         if ((null == tvpName) || (0 == tvpName.length())) {
             // Check if the CallableStatement/PreparedStatement is a stored procedure call
@@ -1941,7 +2036,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
 
         try {
-            if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+            if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                 if (null == batchParamValues) {
                     updateCounts = new int[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
@@ -2098,7 +2193,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         localUserSQL = userSQL;
 
         try {
-            if (this.useBulkCopyForBatchInsert && connection.isAzureDW() && isInsert(localUserSQL)) {
+            if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                 if (null == batchParamValues) {
                     updateCounts = new long[0];
                     loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
@@ -2647,6 +2742,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return true;
     }
 
+    /**
+     * Prepare statement batch execute command
+     */
     private final class PrepStmtBatchExecCmd extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -2674,7 +2772,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     final void doExecutePreparedStatementBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
         executeMethod = EXECUTE_BATCH;
-
         batchCommand.batchException = null;
         final int numBatches = batchParamValues.size();
         batchCommand.updateCounts = new long[numBatches];
@@ -2683,7 +2780,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -2709,18 +2805,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
             boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
 
-            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()) {
-                this.enclaveCEKs = connection.initEnclaveParameters(preparedSQL, preparedTypeDefinitions, batchParam,
-                        parameterNames);
+            if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
+                    && !encryptionMetadataIsRetrieved) {
+                this.enclaveCEKs = connection.initEnclaveParameters(this, preparedSQL, preparedTypeDefinitions,
+                        batchParam, parameterNames);
                 encryptionMetadataIsRetrieved = true;
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on
-                // Connection
+                /*
+                 * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
+                 * one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 * batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
@@ -2729,22 +2829,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Get the encryption metadata for the first batch only.
             if ((0 == numBatchesExecuted) && (Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection))
                     && (0 < batchParam.length) && !isInternalEncryptionQuery && !encryptionMetadataIsRetrieved) {
+                encryptionMetadataIsRetrieved = true;
                 getParameterEncryptionMetadata(batchParam);
 
-                // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is
-                // on on
-                // Connection
+                /*
+                 * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
+                 * one Connection
+                 */
                 buildPreparedStrings(batchParam, true);
 
-                // Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
-                // batches.
+                /*
+                 * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
+                 * batches.
+                 */
                 for (Parameter aBatchParam : batchParam) {
                     cryptoMetaBatch.add(aBatchParam.cryptoMeta);
                 }
-            }
-
-            // Update the crypto metadata for this batch.
-            if (0 < numBatchesExecuted) {
+            } else {
                 // cryptoMetaBatch will be empty for non-AE connections/statements.
                 for (int i = 0; i < cryptoMetaBatch.size(); i++) {
                     batchParam[i].cryptoMeta = cryptoMetaBatch.get(i);
@@ -2778,7 +2879,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
-                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions);
+                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, batchCommand);
                     if (needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
@@ -2796,6 +2897,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // the update count array.
                                 if (!getNextResult(true))
                                     return;
+
+                                if (isSpPrepareExecuted) {
+                                    isSpPrepareExecuted = false;
+                                    resetForReexecute();
+                                    tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                                    buildExecParams(tdsWriter);
+                                    sendParamsByRPC(tdsWriter, batchParam);
+                                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                    startResults();
+                                    if (!getNextResult(true))
+                                        return;
+                                }
 
                                 // If the result is a ResultSet (rather than an update count) then throw an
                                 // exception for this result. The exception gets caught immediately below and

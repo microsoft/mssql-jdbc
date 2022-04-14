@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +36,11 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class LobsStreamingTest extends AbstractTest {
 
     private static String tableName = null;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @BeforeEach
     public void init() throws SQLException {
@@ -127,14 +133,13 @@ public class LobsStreamingTest extends AbstractTest {
 
     @Test
     @DisplayName("testClobsVarcharASCII")
-    @SuppressWarnings("resource")
     public void testClobsVarcharASCII() throws SQLException, IOException {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
 
                 ArrayList<String> lob_data = createRandomStringArray(Constants.LOB.CLOB);
-                ArrayList<String> recievedDataFromServer = new ArrayList<>();
+                ArrayList<String> receivedDataFromServer = new ArrayList<>();
 
                 createLobTable(stmt, tableName, Constants.LOB.CLOB);
                 insertData(conn, tableName, lob_data);
@@ -144,19 +149,18 @@ public class LobsStreamingTest extends AbstractTest {
                         int index = rs.getInt(1);
                         Clob c = rs.getClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        try (InputStream is = c.getAsciiStream();
-                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
-                                        .useDelimiter("\\A")) {
-                            String received = getStringFromInputStream(is, s);// streaming string
-                            assertEquals(lob_data.get(index), received);// compare streamed string to initial string
+                        try (InputStream is = c.getAsciiStream(); Scanner s = new Scanner(is, "US-ASCII")) {
+                            // streaming string
+                            String received = getStringFromInputStream(is, s.useDelimiter("\\A"));
+                            // compare streamed string to initial string
+                            assertEquals(lob_data.get(index), received);
                             c.free();
-                            recievedDataFromServer.add(received);
+                            receivedDataFromServer.add(received);
                         }
                     }
                     for (int i = 0; i < lob_data.size(); i++) {
-                        assertEquals(recievedDataFromServer.get(i), lob_data.get(i));// compare static string to
-                                                                                     // streamed
-                                                                                     // string
+                        // compare satic string to streamed string
+                        assertEquals(receivedDataFromServer.get(i), lob_data.get(i));
                     }
                 }
             } finally {
@@ -168,7 +172,6 @@ public class LobsStreamingTest extends AbstractTest {
 
     }
 
-    @SuppressWarnings("resource")
     @Test
     @DisplayName("testNClobsNVarcharASCII")
     public void testNClobsVarcharASCII() throws SQLException, IOException {
@@ -186,10 +189,9 @@ public class LobsStreamingTest extends AbstractTest {
                         int index = rs.getInt(1);
                         NClob c = rs.getNClob(2);
                         assertEquals(c.length(), lob_data.get(index).length());
-                        try (InputStream is = c.getAsciiStream();
-                                Scanner s = new Scanner(is, java.nio.charset.StandardCharsets.US_ASCII)
-                                        .useDelimiter("\\A")) {
-                            String received = getStringFromInputStream(is, s);// NClob AsciiStream is never streamed
+                        try (InputStream is = c.getAsciiStream(); Scanner s = new Scanner(is, "US-ASCII")) {
+                            // nClob AsciiStream is never streamed
+                            String received = getStringFromInputStream(is, s.useDelimiter("\\A"));
                             c.free();
                             assertEquals(lob_data.get(index), received);// compare string to initial string
                         }

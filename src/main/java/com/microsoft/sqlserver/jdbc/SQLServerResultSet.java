@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
@@ -56,6 +57,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
+
+    /** trace ID */
     private final String traceID;
 
     private static int nextResultSetID() {
@@ -74,9 +77,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return " currentRow:" + currentRow + " numFetchedRows:" + numFetchedRows + " rowCount:" + rowCount;
     }
 
-    protected static final java.util.logging.Logger loggerExternal = java.util.logging.Logger
+    static final java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ResultSet");
 
+    /** logging classname */
     final private String loggingClassName;
 
     String getClassNameLogging() {
@@ -95,8 +99,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /** is the result set close */
     private boolean isClosed = false;
 
+    /** server cursor id */
     private final int serverCursorId;
 
+    /**
+     * Returns the server cursor id
+     * 
+     * @return server cursor id
+     */
     protected int getServerCursorId() {
         return serverCursorId;
     }
@@ -116,19 +126,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /** The index (1-based) of the last column in the current row that has been marked for reading */
     private int lastColumnIndex;
 
-    // Indicates if the null bit map is loaded for the current row
-    // in the resultset
+    /**
+     * Indicates if the null bit map is loaded for the current row in the resultset
+     */
     private boolean areNullCompressedColumnsInitialized = false;
 
-    // Indicates the type of the current row in the result set
+    /** Indicates the type of the current row in the result set */
     private RowType resultSetCurrentRowType = RowType.UNKNOWN;
 
-    // getter for resultSetCurrentRowType
+    /** getter for resultSetCurrentRowType */
     final RowType getCurrentRowType() {
         return resultSetCurrentRowType;
     }
 
-    // setter for resultSetCurrentRowType
+    /** setter for resultSetCurrentRowType */
     final void setCurrentRowType(RowType rowType) {
         resultSetCurrentRowType = rowType;
     }
@@ -138,6 +149,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * closed when a column or row move occurs
      */
     private transient Closeable activeStream;
+
+    /** active LOB */
     private SQLServerLob activeLOB;
 
     /**
@@ -151,12 +164,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private static final int BEFORE_FIRST_ROW = 0;
     private static final int AFTER_LAST_ROW = -1;
     private static final int UNKNOWN_ROW = -2;
+
+    /** current row */
     private int currentRow = BEFORE_FIRST_ROW;
 
     /** Flag set to true if the current row was updated through this ResultSet object */
     private boolean updatedCurrentRow = false;
 
-    // Column name hash map for caching.
+    /** Column name hash map for caching */
     private final Map<String, Integer> columnNames = new HashMap<>();
 
     final boolean getUpdatedCurrentRow() {
@@ -185,12 +200,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * traversal of the result set, or possibly never (as is the case with DYNAMIC cursors).
      */
     static final int UNKNOWN_ROW_COUNT = -3;
+
+    /** row count */
     private int rowCount;
 
     /** The current row's column values */
     private final Column[] columns;
 
-    // The CekTable retrieved from the COLMETADATA token for this resultset.
+    /** The CekTable retrieved from the COLMETADATA token for this resultset */
     private CekTable cekTable = null;
 
     /* Returns the CekTable */
@@ -221,10 +238,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /** TDS reader from which row values are read */
     private TDSReader tdsReader;
 
-    protected TDSReader getTDSReader() {
+    TDSReader getTDSReader() {
         return tdsReader;
     }
 
+    /** fetch buffer */
     private final FetchBuffer fetchBuffer;
 
     @Override
@@ -372,6 +390,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                         // Consume the DONE packet if there is error
                         StreamDone doneToken = new StreamDone();
                         doneToken.setFromTDS(tdsReader);
+                        if (doneToken.isFinal()) {
+                            // Response is completely processed, hence decrement unprocessed response count.
+                            stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                        }
                         return true;
                     }
                 }
@@ -436,6 +458,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return t;
     }
 
+    /** row error exception */
     private SQLServerException rowErrorException = null;
 
     /**
@@ -479,6 +502,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 SQLServerException.getErrString("R_requestedOpNotSupportedOnForward"), null, true);
     }
 
+    /**
+     * Check if type is ForwardOnly
+     * 
+     * @return if type is ForwardOnly
+     */
     protected boolean isForwardOnly() {
         return TYPE_SS_DIRECT_FORWARD_ONLY == stmt.getSQLResultSetType()
                 || TYPE_SS_SERVER_CURSOR_FORWARD_ONLY == stmt.getSQLResultSetType();
@@ -2050,7 +2078,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     private Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs,
             Calendar cal) throws SQLServerException {
-        Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader);
+        Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader, stmt);
         lastValueWasNull = (null == o);
         return o;
     }
@@ -2078,6 +2106,18 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (null != value)
             activeStream = value.getStream();
         return value;
+    }
+
+    private void configureLobs(SQLServerLob lob) throws SQLServerException {
+        if (null != stmt) {
+            Connection c = stmt.getConnection();
+            if (c instanceof ISQLServerConnection) {
+                if (null != c && !((ISQLServerConnection) c).getDelayLoadingLobs() && null != lob) {
+                    lob.setDelayLoadingLob();
+                }
+            }
+        }
+        activeLOB = lob;
     }
 
     @Override
@@ -2628,7 +2668,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
         return value;
     }
-    
+
     LocalDateTime getLocalDateTime(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getLocalDateTime", columnIndex);
         checkClosed();
@@ -2782,7 +2822,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(i, JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2792,7 +2832,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Blob value = (Blob) getValue(findColumn(colName), JDBCType.BLOB);
         loggerExternal.exiting(getClassNameLogging(), "getBlob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2802,7 +2842,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(columnIndex, JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2812,7 +2852,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         Clob value = (Clob) getValue(findColumn(colName), JDBCType.CLOB);
         loggerExternal.exiting(getClassNameLogging(), "getClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2822,7 +2862,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(columnIndex, JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -2832,7 +2872,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         checkClosed();
         NClob value = (NClob) getValue(findColumn(columnLabel), JDBCType.NCLOB);
         loggerExternal.exiting(getClassNameLogging(), "getNClob", value);
-        activeLOB = (SQLServerLob) value;
+        configureLobs((SQLServerLob) value);
         return value;
     }
 
@@ -3046,8 +3086,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Having a current row implies we have a fetch buffer in which that row exists.
         assert null != tdsReader;
 
-        return deletedCurrentRow
-                || (0 != serverCursorId && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader));
+        return deletedCurrentRow || (0 != serverCursorId
+                && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
     }
 
     /* ---------------- Column updates ---------------------- */
@@ -4012,7 +4052,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateObject");
     }
 
-    protected final void updateObject(int index, Object x, Integer scale, JDBCType jdbcType, Integer precision,
+    final void updateObject(int index, Object x, Integer scale, JDBCType jdbcType, Integer precision,
             boolean forceEncrypt) throws SQLServerException {
         Column column = updaterGetColumn(index);
         SSType ssType = column.getTypeInfo().getSSType();
@@ -4741,7 +4781,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsWriter.writeRPCStringUnicode(tableName);
 
             for (Column column : columns)
-                column.sendByRPC(tdsWriter, stmt.connection);
+                column.sendByRPC(tdsWriter, stmt);
         } else {
             tdsWriter.writeRPCStringUnicode("");
             tdsWriter.writeRPCStringUnicode("INSERT INTO " + tableName + " DEFAULT VALUES");
@@ -4822,7 +4862,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         assert hasUpdatedColumns();
 
         for (Column column : columns)
-            column.sendByRPC(tdsWriter, stmt.connection);
+            column.sendByRPC(tdsWriter, stmt);
 
         TDSParser.parse(command.startResponse(), command.getLogContext());
     }
@@ -5344,6 +5384,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                if (doneToken.isFinal()) {
+                    // Response is completely processed, hence decrement unprocessed response count.
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
@@ -5441,6 +5485,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         }
     }
 
+    /**
+     * Cursor Fetch Command
+     */
     private final class CursorFetchCommand extends TDSCommand {
         /**
          * Always update serialVersionUID when prompted.
@@ -5535,7 +5582,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (numRows < 0 || startRow < 0) {
             // Scroll past all the returned rows, caching in the scroll window as we go.
             try {
-                while (scrollWindow.next(this));
+                while (scrollWindow != null && scrollWindow.next(this));
             } catch (SQLException e) {
                 // If there is a row error in the results, don't throw an exception from here.
                 // Ignore it for now and defer the exception until the app encounters the
@@ -5552,7 +5599,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
 
             // Put the scroll window back before the first row.
-            scrollWindow.reset();
+            if (null != scrollWindow)
+                scrollWindow.reset();
         }
     }
 

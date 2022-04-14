@@ -1,3 +1,7 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -159,6 +163,13 @@ public class ActivityIDTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws Exception {
+        try {
+            setConnection();
+        } catch (SQLServerException e) {
+            // this times out a lot retry one more time
+            setConnection();
+        }
+        
         String activityIDTraceOn = Util.ACTIVITY_ID_TRACE_PROPERTY + "=on";
         try (InputStream is = new ByteArrayInputStream(activityIDTraceOn.getBytes());) {
             LogManager lm = LogManager.getLogManager();
