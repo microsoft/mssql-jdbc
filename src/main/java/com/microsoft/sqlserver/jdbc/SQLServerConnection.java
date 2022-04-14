@@ -3306,7 +3306,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         activeConnectionProperties.remove(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString());
 
-        if (sessionRecovery.getReconnectThread().isAlive()) {
+        if (sessionRecovery.isReconnectRunning()) {
             if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable()
                     .getOriginalNegotiatedEncryptionLevel()) {
                 connectionlogger.warning(toString()
@@ -3838,7 +3838,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             newCommand.createCounter(previousCounter, activeConnectionProperties);
             if (!(newCommand instanceof LogonCommand)) {
                 // isAlive() doesn't guarantee the thread is actually running, just that it's been requested to start
-                if (!sessionRecovery.getReconnectThread().isAlive()) {
+                if (!sessionRecovery.isReconnectRunning()) {
                     if (this.connectRetryCount > 0 && sessionRecovery.isConnectionRecoveryNegotiated()) {
                         if (isConnectionDead()) {
                             if (connectionlogger.isLoggable(Level.FINER)) {
@@ -3854,29 +3854,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         SQLServerException.getErrString("R_crServerSessionStateNotRecoverable"), null,
                                         false);
                             }
-                            sessionRecovery.getReconnectThread().init(newCommand);
-                            sessionRecovery.getReconnectThread().start();
-                            /*
-                             * Join only blocks the thread that started the reconnect. Currently can't think of a good
-                             * reason to leave the original thread running, no work can be done while we're not
-                             * connected anyways. Can be easily changed to non-blocking if necessary.
-                             */
                             try {
-                                sessionRecovery.getReconnectThread().join();
+                                sessionRecovery.reconnect(newCommand);
                             } catch (InterruptedException e) {
                                 // re-interrupt thread
                                 Thread.currentThread().interrupt();
 
                                 // Keep compiler happy, something's probably seriously wrong if this line is run
-                                SQLServerException.makeFromDriverError(this, sessionRecovery.getReconnectThread(),
-                                        e.getMessage(), null, false);
+                                SQLServerException.makeFromDriverError(this, sessionRecovery, e.getMessage(), null,
+                                        false);
                             }
-                            if (sessionRecovery.getReconnectThread().getException() != null) {
+                            if (sessionRecovery.getReconnectException() != null) {
                                 if (connectionlogger.isLoggable(Level.FINER)) {
                                     connectionlogger.finer(
                                             this.toString() + "Connection is broken and recovery is not possible.");
                                 }
-                                throw sessionRecovery.getReconnectThread().getException();
+                                throw sessionRecovery.getReconnectException();
                             }
                         }
                     }
@@ -4005,7 +3998,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        if (sessionRecovery.getReconnectThread().isAlive()) {
+        if (sessionRecovery.isReconnectRunning()) {
             executeReconnectCommand(new ConnectionCommand(sql, logContext));
         } else {
             executeCommand(new ConnectionCommand(sql, logContext));
@@ -4709,7 +4702,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_SESSIONRECOVERY);
         }
-        if (!sessionRecovery.getReconnectThread().isAlive()) {
+        if (!sessionRecovery.isReconnectRunning()) {
             if (write) {
                 tdsWriter.writeInt(0);
             }
@@ -6266,7 +6259,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if (sessionRecovery.getReconnectThread().isAlive() && !sessionRecovery.isConnectionRecoveryPossible()) {
+        if (sessionRecovery.isReconnectRunning() && !sessionRecovery.isConnectionRecoveryPossible()) {
             if (connectionlogger.isLoggable(Level.WARNING)) {
                 connectionlogger.warning(this.toString()
                         + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
@@ -6274,7 +6267,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,
                     SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
         }
-        if (connectRetryCount > 0 && !sessionRecovery.getReconnectThread().isAlive()) {
+        if (connectRetryCount > 0 && !sessionRecovery.isReconnectRunning()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
             sessionRecovery.getSessionStateTable().setOriginalLanguage(sLanguage);
