@@ -4561,8 +4561,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
             tdsWriter.writeInt(1); // length of version
-        if (null == enclaveAttestationProtocol || ((null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) 
-              && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
+            
+            // For protocol = HGS,AAS, we want V2, unless URL is null or empty, in which case we want V1
+            // For protocol = NONE, we always want V2, even with a URL that is none or empty
+            // For protocol = null, we always want V1
+              if (null == enclaveAttestationProtocol || ((null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty()) 
+                  && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
