@@ -1767,7 +1767,7 @@ final class TDSChannel implements Serializable {
 
                 // set ALPN values
                 SSLParameters sslParam = sslSocket.getSSLParameters();
-                sslParam.setApplicationProtocols(new String[] {"tds", "/", "8.0"});
+                sslParam.setApplicationProtocols(new String[] {"tds/8.0"});
                 sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
