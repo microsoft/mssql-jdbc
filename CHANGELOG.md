@@ -5,14 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [11.1.1] Preview Release
 ### Added
-- Added support for JDK 18 [1802](https://github.com/microsoft/mssql-jdbc/pull/1802)
-- Added support for bulk insert of null guid values [1778](https://github.com/microsoft/mssql-jdbc/pull/1778)
-- Added ALPN for TDSS connections [1795](https://github.com/microsoft/mssql-jdbc/pull/1795)
+- Added support for Java 18 [1802](https://github.com/microsoft/mssql-jdbc/pull/1802)
+- Added support for bulk insert of null GUID values [1778](https://github.com/microsoft/mssql-jdbc/pull/1778)
+- Added ALPN for TDS 8.0 connections [1795](https://github.com/microsoft/mssql-jdbc/pull/1795)
 ### Changed
 - Updated dependency versions of azure-keyvault and azure-identity [1798](https://github.com/microsoft/mssql-jdbc/pull/1798)
 - Refactored Idle Connection Resiliency timeout to use existing SharedTimer [1794](https://github.com/microsoft/mssql-jdbc/pull/1794)
 ### Fixed issues
-- Fixed check that mistakenly assigns wrong column encryption versions to attestation protocols [1805](https://github.com/microsoft/mssql-jdbc/pull/1805)
+- Fixed regression with Always Encrypted with secure enclaves [1805](https://github.com/microsoft/mssql-jdbc/pull/1805)
 
 
 ## [11.1.0] Preview Release
