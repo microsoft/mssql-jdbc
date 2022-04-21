@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+
 ## [11.1.1] Preview Release
 ### Added
 - Added support for JDK 18 [1802](https://github.com/microsoft/mssql-jdbc/pull/1802)
