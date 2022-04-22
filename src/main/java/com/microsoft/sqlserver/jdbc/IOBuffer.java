@@ -1683,7 +1683,8 @@ final class TDSChannel implements Serializable {
                         try {
                             ks.load(is, (null == trustStorePassword) ? null : trustStorePassword);
                         } finally {
-                            Arrays.fill(trustStorePassword, ' ');
+                            if (trustStorePassword != null)
+                                Arrays.fill(trustStorePassword, ' ');
                             // We are also done with the trust store input stream.
                             if (null != is) {
                                 try {
