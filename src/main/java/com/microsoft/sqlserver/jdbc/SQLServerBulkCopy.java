@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2287,11 +2288,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
 
-                            String colValueStr;
+                            String colValueStr = null;
                             if (colValue instanceof LocalDateTime) {
                                 colValueStr = ((LocalDateTime) colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                             } else if (colValue instanceof LocalTime) {
                                 colValueStr = ((LocalTime) colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
+                            } else if (bulkJdbcType == java.sql.Types.VARCHAR) {
+                                try {
+                                    colValueStr = new String ((byte[]) colValue, System.getProperty("file.encoding"));
+                                } catch (UnsupportedEncodingException e) {
+                                    throw new SQLServerException(null, e.getMessage(), null, 0, false);
+                                }
                             } else {
                                 colValueStr = colValue.toString();
                             }
