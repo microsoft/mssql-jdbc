@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 
 
 @RunWith(JUnitPlatform.class)
-public class SSLCertificateValidation {
+public class SSLCertificateValidationTest {
 
     /**
      * Tests our internal method, validateServerName() against different possible names in SSL certificate.
