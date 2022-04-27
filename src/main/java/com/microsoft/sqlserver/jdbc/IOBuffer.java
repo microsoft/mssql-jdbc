@@ -1785,7 +1785,6 @@ final class TDSChannel implements Serializable {
             sslSocket.startHandshake();
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            System.out.println("here: " + sslSocket.getApplicationProtocol());
             if (isTDS8) {
                 if (logger.isLoggable(Level.FINEST)) {
                     String negotiatedProtocol = sslSocket.getApplicationProtocol();
