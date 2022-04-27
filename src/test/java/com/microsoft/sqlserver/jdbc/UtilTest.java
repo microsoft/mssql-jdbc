@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -62,6 +63,25 @@ public class UtilTest {
         constr = "jdbc:sqlserver://localhost;password={pasS}}} ;";
         prt = Util.parseUrl(constr, drLogger);
         assertEquals(prt.getProperty("password"), "pasS}");
+    }
+
+    private static String testString = "A ß € 嗨 𝄞 🙂ăѣ𝔠ծềſģȟᎥ𝒋ǩľḿꞑȯ𝘱𝑞𝗋𝘴ȶ𝞄𝜈ψ𝒙𝘆𝚣1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝘈Ḇ𝖢𝕯٤ḞԍНǏ𝙅ƘԸⲘ𝙉০Ρ𝗤Ɍ𝓢ȚЦ𝒱Ѡ𝓧ƳȤѧᖯć𝗱ễ𝑓𝙜Ⴙ𝞲𝑗𝒌ļṃŉо𝞎𝒒ᵲꜱ𝙩ừ𝗏ŵ𝒙𝒚ź1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~АḂⲤ𝗗𝖤𝗙ꞠꓧȊ𝐉𝜥ꓡ𝑀𝑵Ǭ𝙿𝑄Ŗ𝑆𝒯𝖴𝘝𝘞ꓫŸ𝜡ả𝘢ƀ𝖼ḋếᵮℊ𝙝Ꭵ𝕛кιṃդⱺ𝓅𝘲𝕣𝖘ŧ𝑢ṽẉ𝘅ყž1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~Ѧ𝙱ƇᗞΣℱԍҤ١𝔍К𝓛𝓜ƝȎ𝚸𝑄Ṛ𝓢ṮṺƲᏔꓫ𝚈𝚭𝜶Ꮟçძ𝑒𝖿𝗀ḧ𝗂𝐣ҝɭḿ𝕟𝐨𝝔𝕢ṛ𝓼тú𝔳ẃ⤬𝝲𝗓1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝖠Β𝒞𝘋𝙴𝓕ĢȞỈ𝕵ꓗʟ𝙼ℕ০𝚸𝗤ՀꓢṰǓⅤ𝔚Ⲭ𝑌𝙕𝘢𝕤";
+
+    @Test
+    public void testArrayConversions() {
+        char[] chars = testString.toCharArray();
+        byte[] bytes = Util.charsToBytes(chars);
+        char[] newChars = Util.bytesToChars(bytes);
+        assertArrayEquals(chars, newChars);
+        String end = String.valueOf(newChars);
+        assertEquals(testString, end);
+    }
+
+    @Test
+    public void testSecureStringUtil() throws SQLException {
+        byte[] bytes = SecureStringUtil.getInstance().getEncryptedBytes(testString.toCharArray());
+        String end = String.valueOf(SecureStringUtil.getInstance().getDecryptedChars(bytes));
+        assertEquals(testString, end);
     }
 
     private void writeAndReadLong(long valueToTest) {

@@ -1584,11 +1584,6 @@ final class TDSChannel implements Serializable {
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
 
-            String trustStorePassword = null;
-            if (con.encryptedTrustStorePassword != null) {
-                trustStorePassword = SecureStringUtil.getInstance().getDecryptedString(con.encryptedTrustStorePassword);
-            }
-
             String hostNameInCertificate = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
 
@@ -1656,7 +1651,7 @@ final class TDSChannel implements Serializable {
                     // If we are using the system default trustStore and trustStorePassword
                     // then we can skip all of the KeyStore loading logic below.
                     // The security provider's implementation takes care of everything for us.
-                    if (null == trustStoreFileName && null == trustStorePassword && !isTDSS) {
+                    if (null == trustStoreFileName && null == con.encryptedTrustStorePassword && !isTDSS) {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer(toString() + " Using system default trust store and password");
                         }
@@ -1683,9 +1678,13 @@ final class TDSChannel implements Serializable {
                         if (logger.isLoggable(Level.FINEST))
                             logger.finest(toString() + " Loading key store");
 
+                        char[] trustStorePassword = SecureStringUtil.getInstance()
+                                .getDecryptedChars(con.encryptedTrustStorePassword);
                         try {
-                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
+                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword);
                         } finally {
+                            if (trustStorePassword != null)
+                                Arrays.fill(trustStorePassword, ' ');
                             // We are also done with the trust store input stream.
                             if (null != is) {
                                 try {
