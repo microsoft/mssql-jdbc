@@ -2,7 +2,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.security.SecureRandom;
 import java.text.MessageFormat;
-import java.util.Base64;
+import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -88,7 +88,7 @@ final class SecureStringUtil {
     /**
      * Get encrypted value of given string
      * 
-     * @param str
+     * @param chars
      *        string to encrypt
      * 
      * @return encrypted string
@@ -96,7 +96,9 @@ final class SecureStringUtil {
      * @throws SQLServerException
      *         if error
      */
-    String getEncryptedString(String str) throws SQLServerException {
+    byte[] getEncryptedBytes(char[] chars) throws SQLServerException {
+        if (chars == null)
+            return null;
         SecureRandom random = new SecureRandom();
         random.nextBytes(iv);
         GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
@@ -104,8 +106,8 @@ final class SecureStringUtil {
         try {
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
 
-            byte[] cipherText = encryptCipher.doFinal(str.getBytes());
-            return Base64.getEncoder().encodeToString(cipherText);
+            byte[] cipherText = encryptCipher.doFinal(Util.charsToBytes(chars));
+            return cipherText;
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
@@ -116,24 +118,31 @@ final class SecureStringUtil {
     /**
      * Get decrypted value of an encrypted string
      * 
-     * @param str
+     * @param bytes
      * 
      * @return decrypted string
      * 
      * @throws SQLServerException
      */
-    String getDecryptedString(String str) throws SQLServerException {
+    char[] getDecryptedChars(byte[] bytes) throws SQLServerException {
+        if (bytes == null)
+            return null;
         GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
 
+        byte[] plainText = null;
         try {
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
 
-            byte[] plainText = decryptCipher.doFinal(Base64.getDecoder().decode(str));
-            return new String(plainText);
+            plainText = decryptCipher.doFinal(bytes);
+            return Util.bytesToChars(plainText);
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        } finally {
+            if (plainText != null) {
+                Arrays.fill(plainText, (byte) 0);
+            }
         }
     }
 }
