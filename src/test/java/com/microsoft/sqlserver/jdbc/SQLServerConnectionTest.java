@@ -952,7 +952,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
@@ -963,7 +963,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
