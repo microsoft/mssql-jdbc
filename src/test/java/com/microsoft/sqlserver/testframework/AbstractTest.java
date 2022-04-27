@@ -138,10 +138,10 @@ public abstract class AbstractTest {
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
 
-        encrypt = getConfiguredProperty("encrypt", "true");
+        encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
 
-        trustServerCertificate = getConfiguredProperty("trustServerCertificate", "false");
+        trustServerCertificate = getConfiguredProperty("trustServerCertificate", "true");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate",
                 trustServerCertificate);
 
