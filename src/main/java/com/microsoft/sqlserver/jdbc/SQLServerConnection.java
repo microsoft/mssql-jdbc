@@ -218,6 +218,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether prelogin TLS handshake is required */
     private boolean isTDS8 = false;
 
+    /** encrypted truststore password */
     byte[] encryptedTrustStorePassword = null;
 
     /**

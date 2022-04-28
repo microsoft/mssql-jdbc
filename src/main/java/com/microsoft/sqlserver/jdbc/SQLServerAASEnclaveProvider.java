@@ -49,6 +49,11 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
+    /**
+     * default constructor
+     */
+    public SQLServerAASEnclaveProvider() {}
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == aasParams) {
@@ -62,8 +67,8 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
-            String preparedTypeDefinitions, Parameter[] params,
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
+            String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         // Check if the session exists in our cache
         StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
@@ -73,8 +78,8 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             this.enclaveSession = entry.getEnclaveSession();
             this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
         }
-        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions, params,
-                parameterNames);
+        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
+                params, parameterNames);
         if (connection.enclaveEstablished()) {
             return b;
         } else if (null != hgsResponse && !connection.enclaveEstablished()) {
@@ -116,8 +121,8 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
         }
     }
 
-    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement, String userSql,
-            String preparedTypeDefinitions, Parameter[] params,
+    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
+            String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {

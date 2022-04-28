@@ -32,7 +32,12 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     private NoneAttestationResponse noneResponse = null;
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
-    
+
+    /**
+     * default constructor
+     */
+    public SQLServerNoneEnclaveProvider() {}
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == noneParams) {
@@ -44,7 +49,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
     }
-    
+
     @Override
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
@@ -104,7 +109,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
     }
-    
+
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
@@ -148,7 +153,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 
 /**
  * 
- * Represents the serialization of the request the client sends to the 
+ * Represents the serialization of the request the client sends to the
  * SQL Server while setting up a session.
  *
  */
@@ -200,7 +205,7 @@ class NoneAttestationParameters extends BaseAttestationRequest {
  *
  */
 class NoneAttestationResponse extends BaseAttestationResponse {
-    
+
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
          * Protocol format:

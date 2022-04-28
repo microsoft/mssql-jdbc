@@ -13,6 +13,12 @@ import java.util.ListResourceBundle;
  *
  */
 public final class SQLServerResource extends ListResourceBundle {
+
+    /**
+     * default constructor
+     */
+    public SQLServerResource() {}
+
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
     }
