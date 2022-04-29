@@ -1782,15 +1782,25 @@ final class TDSChannel implements Serializable {
             // TLS 1.2 intermittent exception may happen here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
             sslSocket.startHandshake();
-            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
             if (isTDS8) {
+                String negotiatedProtocol = sslSocket.getApplicationProtocol();
+
                 if (logger.isLoggable(Level.FINEST)) {
-                    String negotiatedProtocol = sslSocket.getApplicationProtocol();
                     logger.finest(toString() + " Application Protocol negotiated: "
                             + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
                 }
+
+                // check negotiated ALPN
+                if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
+                        && negotiatedProtocol.compareToIgnoreCase(TDS.VER_TDS80) != 0) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
+                    Object[] msgArgs = {TDS.VER_TDS80, negotiatedProtocol};
+                    con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                }
             }
+
+            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
             // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
