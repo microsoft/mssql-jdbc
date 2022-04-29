@@ -2293,9 +2293,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 colValueStr = ((LocalDateTime) colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                             } else if (colValue instanceof LocalTime) {
                                 colValueStr = ((LocalTime) colValue).format(DateTimeFormatter.ISO_LOCAL_TIME);
-                            } else if (!(colValue instanceof String)) {
+                            } else if (!(colValue instanceof String && destSSType != SSType.SMALLDATETIME
+                                    && destSSType != SSType.DATETIME && destSSType != SSType.DATETIME2
+                                    && destSSType != SSType.DATETIMEOFFSET && destSSType != SSType.DATE)) {
                                 try {
-                                    colValueStr = new String ((byte[]) colValue, System.getProperty("file.encoding"));
+                                    colValueStr = new String((byte[]) colValue, System.getProperty("file.encoding"));
                                 } catch (UnsupportedEncodingException e) {
                                     throw new SQLServerException(null, e.getMessage(), null, 0, false);
                                 }
