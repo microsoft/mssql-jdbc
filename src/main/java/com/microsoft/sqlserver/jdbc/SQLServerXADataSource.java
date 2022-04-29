@@ -45,6 +45,11 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
     static Logger xaLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.XA");
 
     /**
+     * default constructor
+     */
+    public SQLServerXADataSource() {}
+
+    /**
      * Returns a physical database connection to particate in an XA transaction with the specified user and password.
      * This API should only be called by XA connection pool implementations, not regular JDBC application code.
      *
