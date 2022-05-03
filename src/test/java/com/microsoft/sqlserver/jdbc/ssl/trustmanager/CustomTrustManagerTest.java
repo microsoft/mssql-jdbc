@@ -62,7 +62,6 @@ public class CustomTrustManagerTest extends AbstractTest {
         String url = TestUtils.removeProperty(connectionString, Constants.TRUST_SERVER_CERTIFICATE);
         url = url + "encrypt=true;trustServerCertificate=false;trustManagerClass="
                 + InvalidTrustManager.class.getName();
-        System.out.println("url: "+url);
         try (Connection con = PrepUtil.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
