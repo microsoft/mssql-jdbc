@@ -56,7 +56,6 @@ public class DataClassificationTest extends AbstractTest {
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
-    @Tag(Constants.xAzureSQLDW)
     public void testDataClassificationSelectMethodCursor() throws Exception {
         String connectionStringSelectMethodCursor = connectionString + ";selectMethod=cursor;";
         String createTable = "create table " + tableName1 + " (col1 int, col2 varchar(50))";
@@ -96,14 +95,12 @@ public class DataClassificationTest extends AbstractTest {
     /**
      * Tests data classification metadata information from SQL Server
      * 
-     * TODO: remove xAzureSQLDW tag once issue on server is fixed (currently DW not returning rank info) VSO issue 12931
-     * 
+     *
      * @throws Exception
      */
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
-    @Tag(Constants.xAzureSQLDW)
     @Test
     public void testDataClassificationMetadata() throws Exception {
         try (Statement stmt = connection.createStatement();) {
@@ -135,7 +132,6 @@ public class DataClassificationTest extends AbstractTest {
      * @throws Exception
      */
     @Tag(Constants.xAzureSQLDB)
-    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv15)
     @Test
     public void testDataClassificationNotSupported() throws Exception {
