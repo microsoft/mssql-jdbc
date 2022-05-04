@@ -151,6 +151,8 @@ final class ExtendedSocketOptions {
 
 final class TDS {
     // TDS protocol versions
+    static final String VER_TDS80 = "tds/8.0"; // TLS-first connections
+
     static final int VER_DENALI = 0x74000004; // TDS 7.4
     static final int VER_KATMAI = 0x730B0003; // TDS 7.3B(includes null bit compression)
     static final int VER_YUKON = 0x72090002; // TDS 7.2
@@ -1563,7 +1565,7 @@ final class TDSChannel implements Serializable {
      * @throws SQLServerException
      */
     void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword,
-            boolean isTDSS) throws SQLServerException {
+            boolean isTDS8) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1583,11 +1585,6 @@ final class TDSChannel implements Serializable {
 
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
-
-            String trustStorePassword = null;
-            if (con.encryptedTrustStorePassword != null) {
-                trustStorePassword = SecureStringUtil.getInstance().getDecryptedString(con.encryptedTrustStorePassword);
-            }
 
             String hostNameInCertificate = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
@@ -1615,7 +1612,7 @@ final class TDSChannel implements Serializable {
             assert TDS.ENCRYPT_OFF == requestedEncryptLevel || // Login only SSL
                     TDS.ENCRYPT_ON == requestedEncryptLevel || // Full SSL
                     TDS.ENCRYPT_REQ == requestedEncryptLevel || // Full SSL
-                    (isTDSS && TDS.ENCRYPT_NOT_SUP == requestedEncryptLevel); // TDSS
+                    (isTDS8 && TDS.ENCRYPT_NOT_SUP == requestedEncryptLevel); // TDS 8
 
             // If encryption wasn't negotiated or trust server certificate is specified,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
@@ -1637,9 +1634,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-                if (isTDSS) {
+                if (isTDS8) {
                     if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Verify server certificate for TDSS");
+                        logger.finest(toString() + " Verify server certificate for TDS 8");
 
                     if (null != hostNameInCertificate) {
                         tm = new TrustManager[] {
@@ -1656,7 +1653,7 @@ final class TDSChannel implements Serializable {
                     // If we are using the system default trustStore and trustStorePassword
                     // then we can skip all of the KeyStore loading logic below.
                     // The security provider's implementation takes care of everything for us.
-                    if (null == trustStoreFileName && null == trustStorePassword && !isTDSS) {
+                    if (null == trustStoreFileName && null == con.encryptedTrustStorePassword && !isTDS8) {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer(toString() + " Using system default trust store and password");
                         }
@@ -1683,9 +1680,13 @@ final class TDSChannel implements Serializable {
                         if (logger.isLoggable(Level.FINEST))
                             logger.finest(toString() + " Loading key store");
 
+                        char[] trustStorePassword = SecureStringUtil.getInstance()
+                                .getDecryptedChars(con.encryptedTrustStorePassword);
                         try {
-                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
+                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword);
                         } finally {
+                            if (trustStorePassword != null)
+                                Arrays.fill(trustStorePassword, ' ');
                             // We are also done with the trust store input stream.
                             if (null != is) {
                                 try {
@@ -1762,12 +1763,12 @@ final class TDSChannel implements Serializable {
 
             proxySocket = new ProxySocket(this);
 
-            if (isTDSS) {
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
+            if (isTDS8) {
+                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(channelSocket, host, port, true);
 
                 // set ALPN values
                 SSLParameters sslParam = sslSocket.getSSLParameters();
-                sslParam.setApplicationProtocols(new String[] {"tds/8.0"});
+                sslParam.setApplicationProtocols(new String[] {TDS.VER_TDS80});
                 sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
@@ -1781,16 +1782,26 @@ final class TDSChannel implements Serializable {
             // TLS 1.2 intermittent exception may happen here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
             sslSocket.startHandshake();
-            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            if (isTDSS) {
+            if (isTDS8) {
+                String negotiatedProtocol = sslSocket.getApplicationProtocol();
+
                 if (logger.isLoggable(Level.FINEST)) {
-                    String negotiatedProtocol = sslSocket.getApplicationProtocol();
                     logger.finest(toString() + " Application Protocol negotiated: "
                             + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
                 }
+
+                // check negotiated ALPN
+                if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
+                        && negotiatedProtocol.compareToIgnoreCase(TDS.VER_TDS80) != 0) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
+                    Object[] msgArgs = {TDS.VER_TDS80, negotiatedProtocol};
+                    con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                }
             }
-            
+
+            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+
             // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");

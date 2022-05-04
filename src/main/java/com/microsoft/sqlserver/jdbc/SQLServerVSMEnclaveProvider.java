@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -46,6 +45,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
+    /**
+     * default constructor
+     */
+    public SQLServerVSMEnclaveProvider() {}
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == vsmParams) {
@@ -55,8 +59,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     }
 
     @Override
-    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement, String userSql,
-            String preparedTypeDefinitions, Parameter[] params,
+    public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
+            String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         // Check if the session exists in our cache
         StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
@@ -66,8 +70,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             this.enclaveSession = entry.getEnclaveSession();
             this.vsmParams = (VSMAttestationParameters) entry.getBaseAttestationRequest();
         }
-        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions, params,
-                parameterNames);
+        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
+                params, parameterNames);
         if (connection.enclaveEstablished()) {
             return b;
         } else if (null != hgsResponse && !connection.enclaveEstablished()) {
@@ -141,8 +145,8 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         return certData;
     }
 
-    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement, String userSql,
-            String preparedTypeDefinitions, Parameter[] params,
+    private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
+            String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
