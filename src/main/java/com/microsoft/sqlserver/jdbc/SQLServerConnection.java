@@ -218,6 +218,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether prelogin TLS handshake is required */
     private boolean isTDSS = false;
 
+    /** cached MSI token time-to-live */
+    private int cachedMsiTokenTtl = 0;
+
     String encryptedTrustStorePassword = null;
 
     /**
@@ -2632,6 +2635,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                cachedMsiTokenTtl = SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue();
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString());
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        cachedMsiTokenTtl = Integer.parseInt(sPropValue);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                    if (cachedMsiTokenTtl < 0) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
                 }
 
                 sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
@@ -5403,7 +5426,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
-        // No:of milliseconds to sleep for the inital back off.
+        // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
         while (true) {
@@ -5420,7 +5443,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                        cachedMsiTokenTtl);
 
                 // Break out of the retry loop in successful case.
                 break;
