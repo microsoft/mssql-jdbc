@@ -269,10 +269,15 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     private void basicReconnect(String connectionString) throws SQLException {
-        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
-            try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
-                s.executeQuery("SELECT 1");
+        // Ensure reconnects can happen multiple times over the same connection and subsequent connections
+        for (int i1 = 0; i1 < 2; i1++) {
+            try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
+                for (int i2 = 0; i2 < 3; i2++) {
+                    try (Statement s = c.createStatement()) {
+                        ResiliencyUtils.killConnection(c, connectionString);
+                        s.executeQuery("SELECT 1");
+                    }
+                }
             }
         }
     }
