@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [10.2.1] HotFix & Stable Release
+### Fixed issues
+- Refactored Idle Connection Resiliency timeout to use existing SharedTimer [1794](https://github.com/microsoft/mssql-jdbc/pull/1794)
+- Fixed Managed Identity retry interval to exponential backoff properly [1770](https://github.com/microsoft/mssql-jdbc/pull/1770)
+- Removed extra call to executeCommand() within connectionCommand() [1754](https://github.com/microsoft/mssql-jdbc/pull/1754)
+
 ## [10.2.0] Stable Release
 ### Added
 - Support for datetimeoffset with sql_variant [1673](https://github.com/microsoft/mssql-jdbc/pull/1673)
