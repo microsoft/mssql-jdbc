@@ -98,7 +98,6 @@ final class TDSParser {
                     tdsReader.getCommand().checkForInterrupt();
                     parsing = tdsTokenHandler.onDone(tdsReader);
                     break;
-
                 case TDS.TDS_ERR:
                     parsing = tdsTokenHandler.onError(tdsReader);
                     break;
@@ -123,9 +122,11 @@ final class TDSParser {
                 case TDS.TDS_TABNAME:
                     parsing = tdsTokenHandler.onTabName(tdsReader);
                     break;
-
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
+                    break;
+                case TDS.TDS_SQLDATACLASSIFICATION:
+                    parsing = tdsTokenHandler.onDataClassification(tdsReader);
                     break;
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
@@ -304,5 +305,10 @@ class TDSTokenHandler {
     boolean onFedAuthInfo(TDSReader tdsReader) throws SQLServerException {
         tdsReader.getConnection().processFedAuthInfo(tdsReader, this);
         return true;
+    }
+
+    boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
+        TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
+        return false;
     }
 }
