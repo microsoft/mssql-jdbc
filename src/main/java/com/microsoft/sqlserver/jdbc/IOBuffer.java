@@ -7532,43 +7532,6 @@ final class TDSReader implements Serializable {
 
 
 /**
- * The tds default implementation of a timeout command
- */
-class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
-    protected TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-        super(timeout, command, sqlServerConnection);
-    }
-
-    protected void interrupt() throws Exception {
-        TDSCommand command = getCommand();
-        SQLServerConnection sqlServerConnection = getSqlServerConnection();
-        try {
-            // If TCP Connection to server is silently dropped, exceeding the query timeout
-            // on the same connection does
-            // not throw SQLTimeoutException
-            // The application stops responding instead until SocketTimeoutException is
-            // thrown. In this case, we must
-            // manually terminate the connection.
-            if (null == command && null != sqlServerConnection) {
-                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        SQLServerException.getErrString("R_connectionIsClosed"));
-            } else {
-                // If the timer wasn't canceled before it ran out of
-                // time then interrupt the registered command.
-                if (null != command)
-                    command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-            }
-        } catch (SQLServerException e) {
-            // Request failed to time out and SQLServerConnection does not exist
-            if (null != command)
-                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-            throw new SQLServerException(SQLServerException.getErrString("R_crCommandCannotTimeOut"), e);
-        }
-    }
-}
-
-
-/**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
  * A conversation may consist of one or more TDS request and response messages. A command may be interrupted at any
@@ -7695,13 +7658,7 @@ abstract class TDSCommand implements Serializable {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private ScheduledFuture<?> timeout;
-    private TdsTimeoutCommand timeoutCommand;
 
-    /*
-     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
-     * if it was actually executed.
-     */
-    private boolean isRegisteredInPoller = false;
     private boolean isExecuted = false;
 
     protected int getQueryTimeoutSeconds() {
@@ -7732,18 +7689,6 @@ abstract class TDSCommand implements Serializable {
             counter = new MaxResultBufferCounter(Long.parseLong(maxResultBuffer));
         } else {
             counter = previousCounter;
-        }
-    }
-
-    synchronized void addToPoller() {
-        if (!isRegisteredInPoller) {
-            // If command execution is subject to timeout then start timing until
-            // the server returns the first response packet.
-            if (queryTimeoutSeconds > 0) {
-                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-                isRegisteredInPoller = true;
-            }
         }
     }
 
@@ -8162,7 +8107,6 @@ abstract class TDSCommand implements Serializable {
             SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
             this.timeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
         }
-        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");
