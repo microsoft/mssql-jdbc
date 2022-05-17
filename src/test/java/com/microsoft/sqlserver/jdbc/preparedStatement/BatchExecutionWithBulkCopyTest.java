@@ -282,49 +282,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             }
         }
     }
-    
-    @Test
-    public void testSetStringWithoutUnicode() throws Exception {
-        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c4, c13, c15, c23) values "
-                + "(" + "?, " + "?, " + "?, " + "? " + ")";
-        
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendStringParametersAsUnicode=false;");
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(connection, true);
-
-            String randomChar = RandomData.generateCharTypes("1", false, false);
-            String randomString = RandomData.generateCharTypes("6", false, false);
-
-            pstmt.setString(1, randomChar); // char
-            pstmt.setString(2, randomChar); // nchar
-            pstmt.setString(3, randomString); // nvarchar(20)
-            pstmt.setString(4, randomString); // varchar(20)
-            pstmt.addBatch();
-
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt
-                    .executeQuery("select c4, c13, c15, c23 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-
-                Object[] expected = new Object[4];
-
-                expected[0] = randomChar;
-                expected[1] = randomChar;
-                expected[2] = randomString;
-                expected[3] = randomString;
-                rs.next();
-
-                for (int i = 0; i < expected.length; i++) {
-                    if (null != rs.getObject(i + 1)) {
-                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
-                    }
-                }
-            }
-        }
-    }
 
     @Test
     public void testMixColumns() throws Exception {
