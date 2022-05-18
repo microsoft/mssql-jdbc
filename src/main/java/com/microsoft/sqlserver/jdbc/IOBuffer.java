@@ -66,6 +66,7 @@ import java.util.logging.Logger;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -150,6 +151,8 @@ final class ExtendedSocketOptions {
 
 final class TDS {
     // TDS protocol versions
+    static final String VER_TDS80 = "tds/8.0"; // TLS-first connections
+
     static final int VER_DENALI = 0x74000004; // TDS 7.4
     static final int VER_KATMAI = 0x730B0003; // TDS 7.3B(includes null bit compression)
     static final int VER_YUKON = 0x72090002; // TDS 7.2
@@ -1562,7 +1565,7 @@ final class TDSChannel implements Serializable {
      * @throws SQLServerException
      */
     void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword,
-            boolean isTDSS) throws SQLServerException {
+            boolean isTDS8) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1582,11 +1585,6 @@ final class TDSChannel implements Serializable {
 
             String trustStoreFileName = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE.toString());
-
-            String trustStorePassword = null;
-            if (con.encryptedTrustStorePassword != null) {
-                trustStorePassword = SecureStringUtil.getInstance().getDecryptedString(con.encryptedTrustStorePassword);
-            }
 
             String hostNameInCertificate = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString());
@@ -1614,7 +1612,7 @@ final class TDSChannel implements Serializable {
             assert TDS.ENCRYPT_OFF == requestedEncryptLevel || // Login only SSL
                     TDS.ENCRYPT_ON == requestedEncryptLevel || // Full SSL
                     TDS.ENCRYPT_REQ == requestedEncryptLevel || // Full SSL
-                    (isTDSS && TDS.ENCRYPT_NOT_SUP == requestedEncryptLevel); // TDSS
+                    (isTDS8 && TDS.ENCRYPT_NOT_SUP == requestedEncryptLevel); // TDS 8
 
             // If encryption wasn't negotiated or trust server certificate is specified,
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
@@ -1636,9 +1634,9 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-                if (isTDSS) {
+                if (isTDS8) {
                     if (logger.isLoggable(Level.FINEST))
-                        logger.finest(toString() + " Verify server certificate for TDSS");
+                        logger.finest(toString() + " Verify server certificate for TDS 8");
 
                     if (null != hostNameInCertificate) {
                         tm = new TrustManager[] {
@@ -1655,7 +1653,7 @@ final class TDSChannel implements Serializable {
                     // If we are using the system default trustStore and trustStorePassword
                     // then we can skip all of the KeyStore loading logic below.
                     // The security provider's implementation takes care of everything for us.
-                    if (null == trustStoreFileName && null == trustStorePassword && !isTDSS) {
+                    if (null == trustStoreFileName && null == con.encryptedTrustStorePassword && !isTDS8) {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer(toString() + " Using system default trust store and password");
                         }
@@ -1682,9 +1680,13 @@ final class TDSChannel implements Serializable {
                         if (logger.isLoggable(Level.FINEST))
                             logger.finest(toString() + " Loading key store");
 
+                        char[] trustStorePassword = SecureStringUtil.getInstance()
+                                .getDecryptedChars(con.encryptedTrustStorePassword);
                         try {
-                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword.toCharArray());
+                            ks.load(is, (null == trustStorePassword) ? null : trustStorePassword);
                         } finally {
+                            if (trustStorePassword != null)
+                                Arrays.fill(trustStorePassword, ' ');
                             // We are also done with the trust store input stream.
                             if (null != is) {
                                 try {
@@ -1761,8 +1763,13 @@ final class TDSChannel implements Serializable {
 
             proxySocket = new ProxySocket(this);
 
-            if (isTDSS) {
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(host, port);
+            if (isTDS8) {
+                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(channelSocket, host, port, true);
+
+                // set ALPN values
+                SSLParameters sslParam = sslSocket.getSSLParameters();
+                sslParam.setApplicationProtocols(new String[] {TDS.VER_TDS80});
+                sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
                 sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
@@ -1772,18 +1779,36 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
 
-            // TLS 1.2 intermittent exception happens here.
+            // TLS 1.2 intermittent exception may happen here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
             sslSocket.startHandshake();
+
+            if (isTDS8) {
+                String negotiatedProtocol = sslSocket.getApplicationProtocol();
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(toString() + " Application Protocol negotiated: "
+                            + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
+                }
+
+                // check negotiated ALPN
+                if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
+                        && negotiatedProtocol.compareToIgnoreCase(TDS.VER_TDS80) != 0) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
+                    Object[] msgArgs = {TDS.VER_TDS80, negotiatedProtocol};
+                    con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                }
+            }
+
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            // After SSL handshake is complete, rewire proxy socket to use raw TCP/IP streams ...
+            // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");
 
             proxySocket.setStreams(inputStream, outputStream);
 
-            // ... and rewire TDSChannel to use SSL streams.
+            // ... and re-wire TDSChannel to use SSL streams.
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting SSL InputStream");
 
@@ -2669,7 +2694,8 @@ final class SocketFinder {
 
     /**
      * Helper function which traverses through list of InetAddresses to find a resolved one
-     * @param hostName 
+     * 
+     * @param hostName
      * 
      * @param portNumber
      *        Port Number
@@ -2677,7 +2703,8 @@ final class SocketFinder {
      * @throws IOException
      * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(String hostName, int portNumber) throws IOException, SQLServerException {
+    private InetSocketAddress getInetAddressByIPPreference(String hostName,
+            int portNumber) throws IOException, SQLServerException {
         InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
         for (int i = 0; i < addressList.size(); i++) {
             addr = new InetSocketAddress(addressList.get(i), portNumber);
@@ -2760,8 +2787,11 @@ final class SocketFinder {
 
     /**
      * Fills static array of IP Addresses with addresses of the preferred protocol version.
-     * @param addresses Array of all addresses
-     * @param ipv6first Boolean switch for IPv6 first
+     * 
+     * @param addresses
+     *        Array of all addresses
+     * @param ipv6first
+     *        Boolean switch for IPv6 first
      */
     private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
         addressList.clear();
@@ -7384,43 +7414,6 @@ final class TDSReader implements Serializable {
 
 
 /**
- * The tds default implementation of a timeout command
- */
-class TdsTimeoutCommand extends TimeoutCommand<TDSCommand> {
-    protected TdsTimeoutCommand(int timeout, TDSCommand command, SQLServerConnection sqlServerConnection) {
-        super(timeout, command, sqlServerConnection);
-    }
-
-    protected void interrupt() throws Exception {
-        TDSCommand command = getCommand();
-        SQLServerConnection sqlServerConnection = getSqlServerConnection();
-        try {
-            // If TCP Connection to server is silently dropped, exceeding the query timeout
-            // on the same connection does
-            // not throw SQLTimeoutException
-            // The application stops responding instead until SocketTimeoutException is
-            // thrown. In this case, we must
-            // manually terminate the connection.
-            if (null == command && null != sqlServerConnection) {
-                sqlServerConnection.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        SQLServerException.getErrString("R_connectionIsClosed"));
-            } else {
-                // If the timer wasn't canceled before it ran out of
-                // time then interrupt the registered command.
-                if (null != command)
-                    command.interrupt(SQLServerException.getErrString("R_queryTimedOut"));
-            }
-        } catch (SQLServerException e) {
-            // Request failed to time out and SQLServerConnection does not exist
-            if (null != command)
-                command.log(Level.FINE, "Command could not be timed out. Reason: " + e.getMessage());
-            throw new SQLServerException(SQLServerException.getErrString("R_crCommandCannotTimeOut"), e);
-        }
-    }
-}
-
-
-/**
  * TDSCommand encapsulates an interruptable TDS conversation.
  *
  * A conversation may consist of one or more TDS request and response messages. A command may be interrupted at any
@@ -7547,13 +7540,7 @@ abstract class TDSCommand implements Serializable {
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
     private ScheduledFuture<?> timeout;
-    private TdsTimeoutCommand timeoutCommand;
 
-    /*
-     * Some flags for Connection Resiliency. We need to know if a command has already been registered in the poller, or
-     * if it was actually executed.
-     */
-    private boolean isRegisteredInPoller = false;
     private boolean isExecuted = false;
 
     protected int getQueryTimeoutSeconds() {
@@ -7584,18 +7571,6 @@ abstract class TDSCommand implements Serializable {
             counter = new MaxResultBufferCounter(Long.parseLong(maxResultBuffer));
         } else {
             counter = previousCounter;
-        }
-    }
-
-    synchronized void addToPoller() {
-        if (!isRegisteredInPoller) {
-            // If command execution is subject to timeout then start timing until
-            // the server returns the first response packet.
-            if (queryTimeoutSeconds > 0) {
-                this.timeoutCommand = new TdsTimeoutCommand(queryTimeoutSeconds, this, null);
-                TimeoutPoller.getTimeoutPoller().addTimeoutCommand(this.timeoutCommand);
-                isRegisteredInPoller = true;
-            }
         }
     }
 
@@ -8014,7 +7989,6 @@ abstract class TDSCommand implements Serializable {
             SQLServerConnection conn = tdsReader != null ? tdsReader.getConnection() : null;
             this.timeout = tdsWriter.getSharedTimer().schedule(new TDSTimeoutTask(this, conn), queryTimeoutSeconds);
         }
-        addToPoller();
 
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Reading response...");

@@ -34,6 +34,11 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
             .getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault())
             .getString("R_propertyNotSupported");
 
+    /**
+     * default constructor
+     */
+    public SQLServerDataSourceFactory() {}
+
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {
         SQLServerDataSource source = new SQLServerDataSource();

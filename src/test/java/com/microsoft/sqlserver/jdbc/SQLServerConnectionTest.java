@@ -56,13 +56,14 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     /**
      * Test connection properties with SQLServerDataSource
+     * 
+     * @throws SQLServerException
      */
     @Test
-    public void testDataSource() {
+    public void testDataSource() throws SQLServerException {
         SQLServerDataSource ds = new SQLServerDataSource();
         String stringPropValue = "stringPropValue";
         boolean booleanPropValue = true;
-        String booleanStringValue = "true";
         int intPropValue = 1;
 
         ds.setInstanceName(stringPropValue);
@@ -82,7 +83,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setPortNumber(intPropValue);
         assertEquals(intPropValue, ds.getPortNumber(), TestResource.getResource("R_valuesAreDifferent"));
-        
+
         ds.setIPAddressPreference(stringPropValue);
         assertEquals(stringPropValue, ds.getIPAddressPreference(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -162,8 +163,29 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setEncrypt(booleanStringValue);
-        assertEquals(booleanStringValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
+        // verify encrypt=true options
+        ds.setEncrypt(EncryptOption.Mandatory.toString());
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.True.toString());
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        // verify encrypt=false options
+        ds.setEncrypt(EncryptOption.Optional.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.False.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.No.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        // verify enrypt=strict options
+        ds.setEncrypt(EncryptOption.Strict.toString());
+        assertEquals("Strict", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setEncrypt(booleanPropValue);
         assertEquals(Boolean.toString(booleanPropValue), ds.getEncrypt(),
@@ -930,7 +952,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
@@ -941,7 +963,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());

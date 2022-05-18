@@ -28,6 +28,11 @@ public class DNSUtilities {
     private static final Level DNS_ERR_LOG_LEVEL = Level.FINE;
 
     /**
+     * default constructor
+     */
+    public DNSUtilities() {}
+
+    /**
      * Finds all SRV Record using DNS.
      *
      * @param dnsSrvRecordToFind

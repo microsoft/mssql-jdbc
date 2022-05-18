@@ -13,6 +13,12 @@ import java.util.ListResourceBundle;
  *
  */
 public final class SQLServerResource extends ListResourceBundle {
+
+    /**
+     * default constructor
+     */
+    public SQLServerResource() {}
+
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
     }
@@ -506,10 +512,10 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
         {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
-        {"R_serverCertError", "Error validating Server Certificate: {0}."},
+        {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
-        {"R_usePlatformGssCredentialsPropertyDescription",
-        "Indicates whether the platform GSS credentials should be used to connect to SQL Server."},
+        {"R_usePlatformGssCredentialsPropertyDescription", "Indicates whether the platform GSS credentials should be used to connect to SQL Server."},
+        {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
     };
 }
 // @formatter:on
