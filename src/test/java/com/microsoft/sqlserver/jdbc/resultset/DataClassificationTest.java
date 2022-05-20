@@ -53,6 +53,7 @@ public class DataClassificationTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
@@ -98,6 +99,7 @@ public class DataClassificationTest extends AbstractTest {
      *
      * @throws Exception
      */
+    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
@@ -132,6 +134,7 @@ public class DataClassificationTest extends AbstractTest {
      * @throws Exception
      */
     @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv15)
     @Test
     public void testDataClassificationNotSupported() throws Exception {
