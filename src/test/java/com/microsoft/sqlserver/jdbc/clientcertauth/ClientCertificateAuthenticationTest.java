@@ -122,7 +122,6 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     @Test
     public void pfxTest() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PFX_KEY_SUFFIX;
-	System.out.println("conStr="+conStr);
         try (Connection conn = DriverManager.getConnection(conStr)) {
             assertTrue(conn.isValid(1));
         }
