@@ -128,8 +128,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseBulkCopyForBatchInsert(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setJASSConfigurationName(stringPropValue);
-        assertEquals(stringPropValue, ds.getJASSConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setJAASConfigurationName(stringPropValue);
+        assertEquals(stringPropValue, ds.getJAASConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setMSIClientId(stringPropValue);
         assertEquals(stringPropValue, ds.getMSIClientId(), TestResource.getResource("R_valuesAreDifferent"));
