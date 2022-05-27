@@ -407,4 +407,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
+    
+    /**
+     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * Sets whether the driver should allow the use of platform GSS for Kerberos Integrated Authentication.
+     * 
+     * @param usePlatformGSS
+     *        indicates whether driver should consider platform GSS when authenticating with Kerberos.
+     */
+    void setUsePlatformGSSCredentials(boolean usePlatformGSS);
+
+    /**
+     * Returns whether the driver will respect platform GSS when authenticating with Kerberos.
+     * 
+     * @return whether the driver is respecting platform GSS when authenticating with Kerberos.
+     */
+    boolean getUsePlatformGSSCredentials();
 }

@@ -630,4 +630,15 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public String getIPAddressPreference() {
         return wrappedConnection.getIPAddressPreference();
     }
+
+    @Override
+    public void setUsePlatformGSSCredentials(boolean usePlatformGSS) {
+        wrappedConnection.setUsePlatformGSSCredentials(usePlatformGSS);
+        
+    }
+
+    @Override
+    public boolean getUsePlatformGSSCredentials() {
+        return wrappedConnection.getUsePlatformGSSCredentials();
+    }
 }

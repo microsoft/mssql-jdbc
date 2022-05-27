@@ -7689,6 +7689,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public String getIPAddressPreference() {
         return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
     }
+
+    @Override
+    public void setUsePlatformGSSCredentials(boolean usePlatformGSS) {
+        this.usePlatformGssCredentials = usePlatformGSS;
+    }
+
+    @Override
+    public boolean getUsePlatformGSSCredentials() {
+        return usePlatformGssCredentials;
+    }
+
 }
 
 
