@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.clientcertauth;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
@@ -207,9 +208,9 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    public void testEncryptTrusted() throws Exception {
+    public void testEncryptOn() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX;
+                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=true;";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
                 ResultSet rs = stmt
                         .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
@@ -219,19 +220,19 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     }
 
     /**
-     * Tests client certificate authentication feature with encryption turned on, untrusted.
+     * Tests client certificate authentication feature with encryption turned off.
      * 
      * @throws Exception
      */
     @Test
-    public void testEncryptUntrusted() throws Exception {
+    public void testEncryptOff() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX;
+                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=false;trustServerCertificate=true";
         try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
                 ResultSet rs = stmt
                         .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
             rs.next();
-            assertTrue(rs.getBoolean(1));
+            assertFalse(rs.getBoolean(1));
         }
     }
 }

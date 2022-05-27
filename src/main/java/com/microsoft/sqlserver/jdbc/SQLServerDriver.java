@@ -525,7 +525,8 @@ enum SQLServerDriverIntProperty {
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
-    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
+    MSI_TOKEN_CACHE_TTL("msiTokenCacheTtl", 3600, 0, Integer.MAX_VALUE);
 
     private final String name;
     private final int defaultValue;
@@ -779,6 +780,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue()), false,
+                    null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
