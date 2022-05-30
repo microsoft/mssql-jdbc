@@ -594,23 +594,26 @@ public class SQLServerDataSource
     public String getServerName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_NAME.toString(), null);
     }
-    
+
     /**
      * Set the preferred type of IP Address
      * 
-     * @param iPAddressPreference Preferred IP Address type
+     * @param iPAddressPreference
+     *        Preferred IP Address type
      */
     @Override
     public void setIPAddressPreference(String iPAddressPreference) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), iPAddressPreference);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                iPAddressPreference);
     }
-    
+
     /**
      * Gets the preferred type of IP Address
      */
     @Override
     public String getIPAddressPreference() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(), SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
     }
 
     /**
@@ -979,13 +982,27 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 configurationName);
     }
 
     @Override
+    @Deprecated
     public String getJASSConfigurationName() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+    }
+
+    @Override
+    public void setJAASConfigurationName(String configurationName) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                configurationName);
+    }
+
+    @Override
+    public String getJAASConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }

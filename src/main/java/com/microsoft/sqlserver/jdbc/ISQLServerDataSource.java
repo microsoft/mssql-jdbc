@@ -387,7 +387,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return A String that contains the server name or null if no value is set.
      */
     String getServerName();
-    
+
     /**
      * Sets the name of the preferred type of IP Address.
      * 
@@ -395,12 +395,12 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        A String that contains the preferred type of IP Address.
      */
     void setIPAddressPreference(String iPAddressPreference);
-    
+
     /**
      * Gets the name of the preferred type of IP Address.
      * 
      * @return IPAddressPreference
-     *        A String that contains the preferred type of IP Address.
+     *         A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
 
@@ -788,17 +788,40 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
+     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName()} instead
+     * 
      * @param configurationName
      *        the configuration name
      */
+    @Deprecated
     void setJASSConfigurationName(String configurationName);
+
+    /**
+     * Returns the login configuration file for Kerberos authentication.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     * 
+     * @return login configuration file name
+     */
+    @Deprecated
+    String getJASSConfigurationName();
+
+    /**
+     * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
+     * SQLJDBCDriver </i>
+     * 
+     * 
+     * @param configurationName
+     *        the configuration name
+     */
+    void setJAASConfigurationName(String configurationName);
 
     /**
      * Returns the login configuration file for Kerberos authentication.
      * 
      * @return login configuration file name
      */
-    String getJASSConfigurationName();
+    String getJAASConfigurationName();
 
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
