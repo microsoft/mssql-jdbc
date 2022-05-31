@@ -37,7 +37,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private final GSSManager manager = GSSManager.getInstance();
     private LoginContext lc = null;
-    private boolean usePlatformGssCredentials = false;
+    private boolean usePlatformGSSCredentials = false;
     private boolean isUserCreatedCredential = false;
     private GSSCredential peerCredentials = null;
     private GSSContext peerContext = null;
@@ -64,7 +64,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
-            } else if (usePlatformGssCredentials) {
+            } else if (usePlatformGSSCredentials) {
                 // pass myCred as null to trigger default initiator principal usage
                 peerContext = manager.createContext(remotePeerName, kerberos, null, GSSContext.DEFAULT_LIFETIME);
                 peerContext.requestCredDeleg(false);
@@ -212,9 +212,9 @@ final class KerbAuthentication extends SSPIAuthentication {
     KerbAuthentication(SQLServerConnection con,
             String address,
             int port,
-            boolean usePlatformGssCredentials) throws SQLServerException {
+            boolean usePlatformGSSCredentials) throws SQLServerException {
         this(con, address, port);
-        this.usePlatformGssCredentials = usePlatformGssCredentials;
+        this.usePlatformGSSCredentials = usePlatformGSSCredentials;
     }
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {

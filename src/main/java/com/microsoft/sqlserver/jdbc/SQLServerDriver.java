@@ -571,7 +571,7 @@ enum SQLServerDriverBooleanProperty {
     SEND_TIME_AS_DATETIME("sendTimeAsDatetime", true),
     TRANSPARENT_NETWORK_IP_RESOLUTION("TransparentNetworkIPResolution", true),
     TRUST_SERVER_CERTIFICATE("trustServerCertificate", false),
-    USE_PLATFORM_GSS_CREDENTIALS("usePlatformGssCredentials", false),
+    USE_PLATFORM_GSS_CREDENTIALS("usePlatformGSSCredentials", false),
     XOPEN_STATES("xopenStates", false),
     FIPS("fips", false),
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),

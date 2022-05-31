@@ -1240,7 +1240,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean integratedSecurity = SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue();
 
     /** native platform gss property */
-    private boolean usePlatformGssCredentials = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS
+    private boolean usePlatformGSSCredentials = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS
             .getDefaultValue();
     
     /** NTLM authentication flag */
@@ -2305,7 +2305,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     sPropKey = SQLServerDriverBooleanProperty.USE_PLATFORM_GSS_CREDENTIALS.toString();
                     sPropValue = activeConnectionProperties.getProperty(sPropKey);
                     if (sPropValue != null) {
-                        usePlatformGssCredentials = isBooleanPropertyOn(sPropKey, sPropValue);
+                        usePlatformGSSCredentials = isBooleanPropertyOn(sPropKey, sPropValue);
                     }
                 } else if (intAuthScheme == AuthenticationScheme.ntlm) {
                     String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
@@ -4866,7 +4866,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
-                } else if (usePlatformGssCredentials) {
+                } else if (usePlatformGSSCredentials) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), true);
                 } else {
@@ -7716,12 +7716,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public void setUsePlatformGSSCredentials(boolean usePlatformGSS) {
-        this.usePlatformGssCredentials = usePlatformGSS;
+        this.usePlatformGSSCredentials = usePlatformGSS;
     }
 
     @Override
     public boolean getUsePlatformGSSCredentials() {
-        return usePlatformGssCredentials;
+        return usePlatformGSSCredentials;
     }
 
 }

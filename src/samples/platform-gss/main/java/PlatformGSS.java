@@ -25,7 +25,7 @@ public class PlatformGSS {
         driverProperties = new Properties();
         driverProperties.setProperty("integratedSecurity", "true");
         driverProperties.setProperty("authenticationScheme", "JavaKerberos");
-        driverProperties.setProperty("usePlatformGssCredentials", "true"); // Additional property to be added
+        driverProperties.setProperty("usePlatformGSSCredentials", "true"); // Additional property to be added
 
         System.setProperty("sun.security.jgss.native", "true");
     }
