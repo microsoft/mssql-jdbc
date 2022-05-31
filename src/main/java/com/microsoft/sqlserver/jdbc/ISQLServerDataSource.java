@@ -788,7 +788,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName()} instead
+     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
      * 
      * @param configurationName
      *        the configuration name
