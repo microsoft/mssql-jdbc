@@ -16,6 +16,7 @@ import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -318,6 +319,8 @@ class SQLServerSecurityUtility {
         }
     }
 
+    private static SimpleTtlCache<String, SqlFedAuthToken> msiTokenCache = new SimpleTtlCache<>();
+
     /**
      * Get Managed Identity Authentication token
      * 
@@ -325,10 +328,22 @@ class SQLServerSecurityUtility {
      *        token resource
      * @param msiClientId
      *        Managed Identity or User Assigned Managed Identity
+     * @param tokenCacheTtl
+     *        The number of seconds the token should remain in the cache
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) throws SQLServerException {
+    static SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId,
+            int tokenCacheTtl) throws SQLServerException {
+        String cacheKey = "resource:" + resource + "|clientid:" + msiClientId;
+        SqlFedAuthToken token = msiTokenCache.get(cacheKey);
+        if (token != null) {
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer("Using cached Managed Identity auth token: " + token.toString());
+            }
+            return token;
+        }
+
         // IMDS upgrade time can take up to 70s
         final int imdsUpgradeTimeInMs = 70 * 1000;
         final List<Integer> retrySlots = new ArrayList<>();
@@ -419,11 +434,23 @@ class SQLServerSecurityUtility {
                                 + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
                     }
 
-                    String accessTokenExpiry = result.substring(startIndex_ATX,
-                            result.indexOf("\"", startIndex_ATX + 1));
-                    cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                    int accessTokenExpiry = Integer
+                            .parseInt(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+                    cal.add(Calendar.SECOND, accessTokenExpiry);
+                    token = new SqlFedAuthToken(accessToken, cal.getTime());
 
-                    return new SqlFedAuthToken(accessToken, cal.getTime());
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer("Obtained new Managed Identity auth token: " + token.toString());
+                    }
+
+                    if (tokenCacheTtl > 0) {
+                        // Cache the token for up to tokenCacheTtl but not longer than 5 minutes less than the token's
+                        // expiration, in case we are given a token with a very short lifetime.
+                        msiTokenCache.put(cacheKey, token,
+                                Duration.ofSeconds(Math.min(tokenCacheTtl, accessTokenExpiry - 300)));
+                    }
+
+                    return token;
                 }
             } catch (Exception e) {
                 retry++;
