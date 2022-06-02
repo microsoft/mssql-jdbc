@@ -409,6 +409,9 @@ public abstract class AbstractTest {
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
                             break;
+                        case Constants.MSITOKENCACHETTL:
+                            ds.setMsiTokenCacheTtl(Integer.parseInt(value));
+                            break;
                         default:
                             break;
                     }
