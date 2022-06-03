@@ -1206,4 +1206,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return prepare method
      */
     String getPrepareMethod();
+
+    /**
+     * Sets time-to-live for the the cached MSI token
+     *
+     * @param timeToLive
+     *        Changes the setting as per description
+     */
+    void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Gets the time-to-live for the the cached MSI token
+     *
+     * @return time-to-live for the cached MSI token
+     */
+    int getMsiTokenCacheTtl();
 }

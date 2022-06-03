@@ -7480,6 +7480,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             parameterMetadataCache.setCapacity(value);
     }
 
+    @Override
+    public int getMsiTokenCacheTtl() {
+        return cachedMsiTokenTtl;
+    }
+
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) {
+        this.cachedMsiTokenTtl = timeToLive;
+    }
+
     /**
      * Prepares the cache handle.
      */
