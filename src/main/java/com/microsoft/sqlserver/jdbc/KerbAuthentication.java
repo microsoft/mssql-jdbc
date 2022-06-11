@@ -66,7 +66,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext.requestInteg(true);
             } else if (usePlatformGSSCredentials) {
                 // pass myCred as null to trigger default initiator principal usage
-                peerContext = manager.createContext(remotePeerName, kerberos, null, GSSContext.DEFAULT_LIFETIME);
+                peerContext = manager.createContext(remotePeerName, kerberos, null, GSSContext.INDEFINITE_LIFETIME);
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
