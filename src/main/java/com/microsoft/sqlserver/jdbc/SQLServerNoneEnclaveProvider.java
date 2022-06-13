@@ -32,7 +32,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     private NoneAttestationResponse noneResponse = null;
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
-    
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == noneParams) {
@@ -44,7 +44,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
     }
-    
+
     @Override
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
@@ -104,31 +104,35 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
             }
         }
     }
-    
+
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
-                    preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, noneParams)) {
-                if (null == rs) {
-                    // No results. Meaning no parameter.
-                    // Should never happen.
-                    return enclaveRequestedCEKs;
-                }
-                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt, rs,
-                        enclaveRequestedCEKs);
-                // Process the third result set.
-                if (connection.isAEv2() && stmt.getMoreResults()) {
-                    try (ResultSet hgsRs = stmt.getResultSet()) {
-                        if (hgsRs.next()) {
-                            noneResponse = new NoneAttestationResponse(hgsRs.getBytes(1));
-                            // This validates and establishes the enclave session if valid
-                            validateAttestationResponse();
-                        } else {
-                            SQLServerException.makeFromDriverError(null, this,
-                                    SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0", false);
+            if (!SQLQueryMetadataCache.getQueryMetadataIfExists(params, parameterNames, enclaveSession, connection,
+                    statement)) {
+                try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
+                        preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, noneParams)) {
+                    if (null == rs) {
+                        // No results. Meaning no parameter.
+                        // Should never happen.
+                        return enclaveRequestedCEKs;
+                    }
+                    processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
+                            rs, enclaveRequestedCEKs, enclaveSession);
+                    // Process the third result set.
+                    if (connection.isAEv2() && stmt.getMoreResults()) {
+                        try (ResultSet hgsRs = stmt.getResultSet()) {
+                            if (hgsRs.next()) {
+                                noneResponse = new NoneAttestationResponse(hgsRs.getBytes(1));
+                                // This validates and establishes the enclave session if valid
+                                validateAttestationResponse();
+                            } else {
+                                SQLServerException.makeFromDriverError(null, this,
+                                        SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0",
+                                        false);
+                            }
                         }
                     }
                 }
@@ -148,8 +152,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 
 /**
  * 
- * Represents the serialization of the request the client sends to the 
- * SQL Server while setting up a session.
+ * Represents the serialization of the request the client sends to the SQL Server while setting up a session.
  *
  */
 class NoneAttestationParameters extends BaseAttestationRequest {
@@ -195,12 +198,12 @@ class NoneAttestationParameters extends BaseAttestationRequest {
 
 /**
  * 
- * Represents the deserialization of the byte payload the client receives from the
- * SQL Server while setting up a session.
+ * Represents the deserialization of the byte payload the client receives from the SQL Server while setting up a
+ * session.
  *
  */
 class NoneAttestationResponse extends BaseAttestationResponse {
-    
+
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
          * Protocol format:

@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -226,6 +227,30 @@ class CryptoMetadata {
 
     boolean isAlgorithmInitialized() {
         return null != cipherAlgorithm;
+    }
+}
+
+
+/*
+ * Represents a cache of all queries for a given enclave session.
+ */
+class CryptoCache {
+    private HashMap<String, HashMap<String, CryptoMetadata>> map = new HashMap<>();
+
+    public HashMap<String, HashMap<String, CryptoMetadata>> getMap() {
+        return map;
+    }
+
+    public HashMap<String, CryptoMetadata> getEntry(String key) {
+        return map.get(key);
+    }
+
+    public void addEntry(String key, HashMap<String, CryptoMetadata> value) {
+        map.put(key, value);
+    }
+
+    public void remove(String key) {
+        map.remove(key);
     }
 }
 
