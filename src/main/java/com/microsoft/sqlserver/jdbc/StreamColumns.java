@@ -232,26 +232,7 @@ final class StreamColumns extends StreamPacket {
         }
     }
 
-    private String readByteString(TDSReader tdsReader) throws SQLServerException {
-        String value = "";
-        int byteLen = (int) tdsReader.readUnsignedByte();
-        value = tdsReader.readUnicodeString(byteLen);
-        return value;
-    }
-
-    private Label readSensitivityLabel(TDSReader tdsReader) throws SQLServerException {
-        String name = readByteString(tdsReader);
-        String id = readByteString(tdsReader);
-        return new Label(name, id);
-    }
-
-    private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
-        String name = readByteString(tdsReader);
-        String id = readByteString(tdsReader);
-        return new InformationType(name, id);
-    }
-
-    private SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException {
+    SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException {
         if (!tdsReader.getServerSupportsDataClassification()) {
             tdsReader.throwInvalidTDS();
         }
@@ -341,6 +322,25 @@ final class StreamColumns extends StreamPacket {
         }
 
         return sensitivityClassification;
+    }
+
+    private String readByteString(TDSReader tdsReader) throws SQLServerException {
+        String value = "";
+        int byteLen = (int) tdsReader.readUnsignedByte();
+        value = tdsReader.readUnicodeString(byteLen);
+        return value;
+    }
+
+    private Label readSensitivityLabel(TDSReader tdsReader) throws SQLServerException {
+        String name = readByteString(tdsReader);
+        String id = readByteString(tdsReader);
+        return new Label(name, id);
+    }
+
+    private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
+        String name = readByteString(tdsReader);
+        String id = readByteString(tdsReader);
+        return new InformationType(name, id);
     }
 
     /**

@@ -49,6 +49,11 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
+    /**
+     * default constructor
+     */
+    public SQLServerAASEnclaveProvider() {}
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == aasParams) {

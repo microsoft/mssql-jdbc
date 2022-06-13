@@ -128,8 +128,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseBulkCopyForBatchInsert(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setJASSConfigurationName(stringPropValue);
-        assertEquals(stringPropValue, ds.getJASSConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setJAASConfigurationName(stringPropValue);
+        assertEquals(stringPropValue, ds.getJAASConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setMSIClientId(stringPropValue);
         assertEquals(stringPropValue, ds.getMSIClientId(), TestResource.getResource("R_valuesAreDifferent"));
@@ -196,6 +196,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setPrepareMethod(stringPropValue);
         assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setMsiTokenCacheTtl(intPropValue);
+        assertEquals(intPropValue, ds.getMsiTokenCacheTtl(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -952,7 +955,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
@@ -963,7 +966,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            // TODO: servers which do not support TDSS will return SSL failed error, test should be updated once server
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
                     || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());

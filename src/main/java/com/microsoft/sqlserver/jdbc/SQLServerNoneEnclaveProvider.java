@@ -33,6 +33,11 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
+    /**
+     * default constructor
+     */
+    public SQLServerNoneEnclaveProvider() {}
+
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == noneParams) {

@@ -13,6 +13,12 @@ import java.util.ListResourceBundle;
  *
  */
 public final class SQLServerResource extends ListResourceBundle {
+
+    /**
+     * default constructor
+     */
+    public SQLServerResource() {}
+
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
     }
@@ -183,6 +189,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
         {"R_connectRetryCountPropertyDescription", "The number of reconnection attempts if there is a connection failure."},
         {"R_connectRetryIntervalPropertyDescription", "The number of seconds between each connection retry attempt."},
+        {"R_msiTokenCacheTtlPropertyDescription", "The number of seconds a Managed Identity (MSI) access token should be cached."},
         {"R_loginTimeoutPropertyDescription", "The number of seconds the driver should wait before timing out a failed connection."},
         {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},
         {"R_xopenStatesPropertyDescription", "Determines if the driver returns XOPEN-compliant SQL state codes in exceptions."},
@@ -493,6 +500,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
         {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
+        {"R_invalidMsiTokenCacheTtl", "msiTokenCacheTtl {0} is not valid."},
         {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
         {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
         {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
@@ -508,6 +516,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
         {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
+        {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
     };
 }
 // @formatter:on

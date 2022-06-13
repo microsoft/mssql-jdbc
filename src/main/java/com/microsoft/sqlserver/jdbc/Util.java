@@ -1006,6 +1006,27 @@ final class Util {
     static String zeroOneToYesNo(int i) {
         return 0 == i ? "NO" : "YES";
     }
+
+    static byte[] charsToBytes(char[] chars) {
+        if (chars == null)
+            return null;
+        byte[] bytes = new byte[chars.length * 2];
+        for (int i = 0; i < chars.length; i++) {
+            bytes[i * 2] = (byte) (0xff & (chars[i] >> 8));
+            bytes[i * 2 + 1] = (byte) (0xff & (chars[i]));
+        }
+        return bytes;
+    }
+
+    static char[] bytesToChars(byte[] bytes) {
+        if (bytes == null)
+            return null;
+        char[] chars = new char[bytes.length / 2];
+        for (int i = 0; i < chars.length; i++) {
+            chars[i] = (char) (((0xFF & (bytes[i * 2])) << 8) | (0xFF & bytes[i * 2 + 1]));
+        }
+        return chars;
+    }
 }
 
 

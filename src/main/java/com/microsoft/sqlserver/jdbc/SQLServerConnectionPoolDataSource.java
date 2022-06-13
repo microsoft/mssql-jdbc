@@ -20,6 +20,12 @@ import javax.sql.PooledConnection;
  * API spec connection pooling.
  */
 public class SQLServerConnectionPoolDataSource extends SQLServerDataSource implements ConnectionPoolDataSource {
+
+    /**
+     * default constructor
+     */
+    public SQLServerConnectionPoolDataSource() {}
+
     // Get a new physical connection that the pool manager will issue logical connections from
     @Override
     public PooledConnection getPooledConnection() throws SQLException {
