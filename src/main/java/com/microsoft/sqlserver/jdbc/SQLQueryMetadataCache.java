@@ -110,16 +110,13 @@ public class SQLQueryMetadataCache {
 
         // Logic for checking enclave retry
         Map<Integer, CekTableEntry> enclaveKeys = session.getCryptoCache().getEnclaveEntry(encryptionValues.getValue());
-        if (enclaveKeys != null) {
-            //something something = copyEnclaveKeys(enclaveKeys);
-        }
-
-        return true;
+        return (enclaveKeys == null);
     }
 
     // Add the metadata for a specific query to the cache.
     public static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, EnclaveSession session,
-            SQLServerConnection connection, SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList, boolean isRequestedByEnclave) {
+            SQLServerConnection connection, SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList,
+            boolean isRequestedByEnclave) {
 
         // Caching is enabled if column encryption is enabled, return false if it's not
         if (connection.activeConnectionProperties
@@ -232,8 +229,7 @@ public class SQLQueryMetadataCache {
      * @param keysToBeSentToEnclave
      * @return
      */
-    private static Map<Integer, CekTableEntry> copyEnclaveKeys(
-            Map<Integer, CekTableEntry> keysToBeSentToEnclave) {
+    private static Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeSentToEnclave) {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
 
         for (Map.Entry<Integer, CekTableEntry> entry : keysToBeSentToEnclave.entrySet()) {
