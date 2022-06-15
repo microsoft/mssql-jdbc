@@ -70,6 +70,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testParameterMetaDataCache() throws SQLServerException {
         tableSetup();
         try {
@@ -80,22 +81,14 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
             selectFromTable(connection, secondTable, "firstColumn", "'test2'");
             long secondRun = timedTestSelect(connection, firstTable, "firstColumn", "'test1'");
             
-            
+            // As long as there is a noticible performance improvement, caching is working as intended. For now
+            // the threshold measured is 10%.
+            double threshold = 0.1;
+            assertTrue(1 - (secondRun / firstRun) > threshold);
 
         } catch (SQLException e) {
             fail(e.getMessage());
         }
-    }
-    
-    private long timedTestSelect(Connection connection, String tableName, String firstColumn,
-            String firstData) throws SQLException {
-        long timer = System.currentTimeMillis();
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(" select * from " + tableName + " where " + firstColumn + " = " + firstData + ";");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-        return System.currentTimeMillis() - timer;
     }
 
     /**
@@ -106,6 +99,8 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * 
      * @throws SQLServerException
      */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testRetryWithSecureCache() throws SQLServerException {
         tableSetup();
         try {
@@ -163,6 +158,17 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         } catch (SQLException e) {
             fail(e.getMessage());
         }
+    }
+    
+    private long timedTestSelect(Connection connection, String tableName, String firstColumn,
+            String firstData) throws SQLException {
+        long timer = System.currentTimeMillis();
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(" select * from " + tableName + " where " + firstColumn + " = " + firstData + ";");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+        return System.currentTimeMillis() - timer;
     }
 
     private void createCMK(String cmkName, String keyPath) throws SQLException {
