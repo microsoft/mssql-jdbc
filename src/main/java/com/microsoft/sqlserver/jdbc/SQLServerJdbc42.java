@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  * any earlier driver version. That is, they should throw an exception, be a no-op, or whatever.
  */
 
-final class DriverJDBCVersion {
+final class DriverJDBCVersionn {
     // The 4.2 driver is compliant to JDBC 4.2.
     static final int major = 4;
     static final int minor = 2;

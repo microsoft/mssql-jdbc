@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -235,22 +236,41 @@ class CryptoMetadata {
  * Represents a cache of all queries for a given enclave session.
  */
 class CryptoCache {
-    private HashMap<String, HashMap<String, CryptoMetadata>> map = new HashMap<>();
+    private HashMap<String, Map<Integer, CekTableEntry>> cekMap = new HashMap<>();
+    private HashMap<String, HashMap<String, CryptoMetadata>> paramMap = new HashMap<>();
 
-    public HashMap<String, HashMap<String, CryptoMetadata>> getMap() {
-        return map;
+    public HashMap<String, Map<Integer, CekTableEntry>> getCekMap() {
+        return cekMap;
     }
 
-    public HashMap<String, CryptoMetadata> getEntry(String key) {
-        return map.get(key);
+    public HashMap<String, HashMap<String, CryptoMetadata>> getParamMap() {
+        return paramMap;
     }
 
-    public void addEntry(String key, HashMap<String, CryptoMetadata> value) {
-        map.put(key, value);
+    // Returns a list of parameters with associated metadata, for a given enclave cache.
+    public Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
+        return cekMap.get(enclaveLookupKey);
     }
 
-    public void remove(String key) {
-        map.remove(key);
+    // Returns a list of parameters with associated metadata, for a given enclave cache.
+    public HashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+        return paramMap.get(cacheLookupKey);
+    }
+
+    public void addCekEntry(String key, Map<Integer, CekTableEntry> value) {
+        cekMap.put(key, value);
+    }
+
+    public void addParamEntry(String key, HashMap<String, CryptoMetadata> value) {
+        paramMap.put(key, value);
+    }
+
+    public void removeCekEntry(String enclaveLookupKey) {
+        cekMap.remove(enclaveLookupKey);
+    }
+
+    public void removeParamEntry(String cacheLookupKey) {
+        paramMap.remove(cacheLookupKey);
     }
 }
 

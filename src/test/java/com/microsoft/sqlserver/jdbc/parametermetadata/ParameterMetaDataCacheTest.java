@@ -16,29 +16,28 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
-import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
+/**
+ * Tests for caching parameter metadata in sp_describe_parameter_encryption calls
+ */
 @RunWith(JUnitPlatform.class)
 public class ParameterMetaDataCacheTest extends AbstractTest {
-    private static final String firstTableName = "firstTableName";
-    private static final String secondTableName = "secondTableName";
-    private final String cmkName = "Wibble";
-    private final String cekName = "MyColumnKey";
+    private static final String firstTable = "firstTable";
+    private static final String secondTable = "secondTable";
+    private final String cmkName = "my_cmk";
+    private final String cekName = "my_cek_1";
+    private final String cekNameAlt = "my_cek_2";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -47,35 +46,85 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
 
     public void tableSetup() throws SQLServerException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(firstTableName, stmt);
-            TestUtils.dropTableIfExists(secondTableName, stmt);
-            dropCEK();
+            TestUtils.dropTableIfExists(firstTable, stmt);
+            TestUtils.dropTableIfExists(secondTable, stmt);
+
+            dropCEK(cekName);
             dropCMK(cmkName);
             createCMK(cmkName, keyIDs[0]);
-            createCEK(cmkName, setupKeyStoreProvider(), keyIDs[0]);
-            createTable(firstTableName, "firstTableDeterministicColumn", "firstTableRandomizedColumn");
-            createTable(secondTableName, "secondTableDeterministicColumn", "secondTableRandomizedColumn");
+            createCEK(cekName, cmkName, setupKeyStoreProvider(), keyIDs[0]);
+
+            createTable(cekName, firstTable, "firstColumn", "secondColumn");
+            createTable(cekName, secondTable, "firstColumn", "secondColumn");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
 
     }
 
+    /**
+     * 
+     * Tests caching of parameter metadata by running a query to be cached, another to replace parameter information,
+     * then the first again to measure the difference in time between the two runs.
+     * 
+     * @throws SQLServerException
+     */
     @Test
-    public void testParameterMetaDataCacheSecure() throws SQLServerException {
+    public void testParameterMetaDataCache() throws SQLServerException {
         tableSetup();
-        // Insert data into the first
         try {
-            populateTable(connection, firstTableName, "firstTableDeterministicColumn", "firstTableRandomizedColumn");
+            updateTable(connection, firstTable, "firstColumn", "secondColumn", "'test1'", "'data1'");
+            updateTable(connection, secondTable, "firstColumn", "secondColumn", "'test2'", "'data2'");
+            
+            long firstRun = timedTestSelect(connection, firstTable, "firstColumn", "'test1'");
+            selectFromTable(connection, secondTable, "firstColumn", "'test2'");
+            long secondRun = timedTestSelect(connection, firstTable, "firstColumn", "'test1'");
+            
+            
+
         } catch (SQLException e) {
             fail(e.getMessage());
         }
-
-        // Then we insert data into the second
-        // Then we check if the metadata for the first table is visible
+    }
+    
+    private long timedTestSelect(Connection connection, String tableName, String firstColumn,
+            String firstData) throws SQLException {
+        long timer = System.currentTimeMillis();
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(" select * from " + tableName + " where " + firstColumn + " = " + firstData + ";");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+        return System.currentTimeMillis() - timer;
     }
 
-    private void createTable(String tableName, String column1, String column2) throws SQLException {
+    /**
+     * 
+     * Tests that the enclave is retried when using secure enclaves (assuming the server supports this). This is done
+     * by executing a query generating metadata in the cache, changing the CEK to make the metadata stale, and running
+     * the query again. The query should fail, but retry and pass.
+     * 
+     * @throws SQLServerException
+     */
+    public void testRetryWithSecureCache() throws SQLServerException {
+        tableSetup();
+        try {
+            updateTable(connection, firstTable, "firstColumn", "secondColumn", "'test1'", "'data1'");
+            selectFromTable(connection, firstTable, "firstColumn", "'test1'");
+
+            
+            createCEK(cekNameAlt, cmkName, setupKeyStoreProvider(), keyIDs[0]);
+            alterTable(connection, firstTable,"firstColumn", cekNameAlt);
+            
+            selectFromTable(connection, firstTable, "firstColumn", "'test1'");
+            alterTable(connection, firstTable,"firstColumn", cekNameAlt);
+            dropCEK(cekNameAlt);
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void createTable(String cekName, String tableName, String column1, String column2) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("create table " + tableName + " (col1 int identity(1,1) primary key," + column1
                     + " [nvarchar](32) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (" + "COLUMN_ENCRYPTION_KEY="
@@ -87,13 +136,30 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         }
     }
 
-    private void populateTable(Connection connection, String charTable, String firstColumn,
-            String secondColumn) throws SQLException {
+    private void updateTable(Connection connection, String tableName, String firstColumn, String secondColumn,
+            String firstData, String secondData) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(
-                    "declare @firstColumn nvarchar(32) = 'Test' declare @secondColumn nvarchar(32) = 'Data' insert into "
-                            + charTable + "(" + firstColumn + ", " + secondColumn
-                            + ") values (@firstColumn, @secondColumn)");
+            stmt.executeUpdate("declare @firstColumn nvarchar(32) = " + firstData
+                    + " declare @secondColumn nvarchar(32) = " + secondData + " insert into " + tableName + "("
+                    + firstColumn + ", " + secondColumn + ") values (@firstColumn, @secondColumn)");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void selectFromTable(Connection connection, String tableName, String firstColumn,
+            String firstData) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(" select * from " + tableName + " where " + firstColumn + " = " + firstData + ";");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private void alterTable(Connection connection, String tableName, String firstColumn,
+            String newCek) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("alter table " + tableName + " modify " + firstColumn + " encrypt with " + newCek);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -110,7 +176,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         }
     }
 
-    private void createCEK(String cmkName, SQLServerColumnEncryptionKeyStoreProvider storeProvider,
+    private void createCEK(String cekName, String cmkName, SQLServerColumnEncryptionKeyStoreProvider storeProvider,
             String encryptionKey) throws SQLServerException, SQLException {
         try (Statement stmt = connection.createStatement()) {
             String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -138,7 +204,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
 
     }
 
-    private void dropCEK() throws SQLServerException, SQLException {
+    private void dropCEK(String cekName) throws SQLServerException, SQLException {
         try (Statement stmt = connection.createStatement()) {
             String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
                     + " begin" + " drop column encryption key " + cekName + " end";

@@ -16,7 +16,7 @@ import java.util.Map;
  * 
  */
 
-class SQLQueryMetadataCache {
+public class SQLQueryMetadataCache {
 
     final static int cacheSize = 2000; // Size of the cache in number of entries
     final static int cacheTrimThreshold = 300; // Threshold above which to trim the cache
@@ -47,7 +47,7 @@ class SQLQueryMetadataCache {
         }
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeysFromSqlCommand(stmt, connection);
-        HashMap<String, CryptoMetadata> metadataMap = session.getCryptoCache().getEntry(encryptionValues.getKey());
+        HashMap<String, CryptoMetadata> metadataMap = session.getCryptoCache().getCacheEntry(encryptionValues.getKey());
 
         if (metadataMap == null) {
             return false;
@@ -108,12 +108,18 @@ class SQLQueryMetadataCache {
 
         }
 
+        // Logic for checking enclave retry
+        Map<Integer, CekTableEntry> enclaveKeys = session.getCryptoCache().getEnclaveEntry(encryptionValues.getValue());
+        if (enclaveKeys != null) {
+            //something something = copyEnclaveKeys(enclaveKeys);
+        }
+
         return true;
     }
 
     // Add the metadata for a specific query to the cache.
     public static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, EnclaveSession session,
-            SQLServerConnection connection, SQLServerStatement stmt) {
+            SQLServerConnection connection, SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList, boolean isRequestedByEnclave) {
 
         // Caching is enabled if column encryption is enabled, return false if it's not
         if (connection.activeConnectionProperties
@@ -152,12 +158,12 @@ class SQLQueryMetadataCache {
         }
 
         // If the size of the cache exceeds the threshold, set that we are in trimming and trim the cache accordingly.
-        int cacheSizeCurrent = session.getCryptoCache().getMap().size();
+        int cacheSizeCurrent = session.getCryptoCache().getParamMap().size();
         if (cacheSizeCurrent > cacheSize + cacheTrimThreshold) {
             try {
                 int entriesToRemove = cacheSizeCurrent - cacheSize;
                 HashMap<String, HashMap<String, CryptoMetadata>> newMap = new HashMap<>();
-                HashMap<String, HashMap<String, CryptoMetadata>> oldMap = session.getCryptoCache().getMap();
+                HashMap<String, HashMap<String, CryptoMetadata>> oldMap = session.getCryptoCache().getParamMap();
                 int count = 0;
 
                 for (Map.Entry<String, HashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
@@ -172,6 +178,13 @@ class SQLQueryMetadataCache {
             }
         }
 
+        // Servers supporting enclave computationsa always return a boolean indicating whether the key
+        // is required by enclave or not. If it is required we need to save it.
+        if (isRequestedByEnclave) {
+            Map<Integer, CekTableEntry> keysToBeCached = copyEnclaveKeys(cekList);
+            session.getCryptoCache().addCekEntry(encryptionValues.getValue(), keysToBeCached);
+        }
+
         return true;
     }
 
@@ -182,7 +195,7 @@ class SQLQueryMetadataCache {
             return;
         }
 
-        session.getCryptoCache().remove(encryptionValues.getKey());
+        session.getCryptoCache().removeParamEntry(encryptionValues.getKey());
     }
 
     private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeysFromSqlCommand(
@@ -210,5 +223,29 @@ class SQLQueryMetadataCache {
         String enclaveLookupKey = cacheLookupKeyBuilder.append(":::enclaveKeys").toString();
 
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
+    }
+
+    /**
+     * 
+     * 
+     * 
+     * @param keysToBeSentToEnclave
+     * @return
+     */
+    private static Map<Integer, CekTableEntry> copyEnclaveKeys(
+            Map<Integer, CekTableEntry> keysToBeSentToEnclave) {
+        Map<Integer, CekTableEntry> cekList = new HashMap<>();
+
+        for (Map.Entry<Integer, CekTableEntry> entry : keysToBeSentToEnclave.entrySet()) {
+            int ordinal = entry.getKey();
+            CekTableEntry original = entry.getValue();
+            CekTableEntry copy = new CekTableEntry(ordinal);
+            for (EncryptionKeyInfo cekInfo : original.getColumnEncryptionKeyValues()) {
+                copy.add(cekInfo.encryptedKey, cekInfo.databaseId, cekInfo.cekId, cekInfo.cekVersion,
+                        cekInfo.cekMdVersion, cekInfo.keyPath, cekInfo.keyStoreName, cekInfo.algorithmName);
+            }
+            cekList.put(ordinal, copy);
+        }
+        return cekList;
     }
 }
