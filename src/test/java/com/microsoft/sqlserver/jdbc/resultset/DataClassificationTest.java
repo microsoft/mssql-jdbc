@@ -6,10 +6,12 @@ package com.microsoft.sqlserver.jdbc.resultset;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -20,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
@@ -36,9 +39,11 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 public class DataClassificationTest extends AbstractTest {
+
     private static final String tableName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("DataClassification"));
-
+    private static final String tableName1 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("SelectMethodCursor"));
     private static final String addSensitivitySql = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='%s', INFORMATION_TYPE_ID='%s'%s)";
     private static final String sensitivityRankSql = ", RANK=%s";
 
@@ -47,17 +52,57 @@ public class DataClassificationTest extends AbstractTest {
         setConnection();
     }
 
-    /**
-     * Tests data classification metadata information from SQL Server
-     * 
-     * TODO: remove xAzureSQLDW tag once issue on server is fixed (currently DW not returning rank info) VSO issue 12931
-     * 
-     * @throws Exception
-     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
+    public void testDataClassificationSelectMethodCursor() throws Exception {
+        String connectionStringSelectMethodCursor = connectionString + ";selectMethod=cursor;";
+        String createTable = "create table " + tableName1 + " (col1 int, col2 varchar(50))";
+        String insertQuery = "insert into " + tableName1 + " (col1, col2) values (0, 1231231230000)";
+        String query = "select sum(col1) as summation from " + tableName1 + " c (nolock) where col2 = ?";
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionStringSelectMethodCursor)) {
+            // Create table
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(createTable);
+            }
+
+            // Insert values to table
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(insertQuery);
+            }
+
+            // Add sensitivity classification
+            try (Statement stmt = conn.createStatement()) {
+                String addRankSql = String.format(sensitivityRankSql, SensitivityRank.MEDIUM);
+                stmt.execute(String.format(addSensitivitySql, tableName1, "col1", "Financial", "Company", addRankSql));
+            }
+
+            // Query table
+            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                pstmt.setString(1, "1231231230000");
+                ResultSet rs = pstmt.executeQuery();
+                if(rs.next()){
+                    rs.getInt("summation");
+                } else {
+                    fail("Expected to have a row returned from table " + tableName1);
+                }
+            }
+        }
+    }
+
+    /**
+     * Tests data classification metadata information from SQL Server
+     * 
+     *
+     * @throws Exception
+     */
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
     @Test
     public void testDataClassificationMetadata() throws Exception {
         try (Statement stmt = connection.createStatement();) {

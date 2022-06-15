@@ -2458,14 +2458,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 tdsWriter.writeDatetime(colValue.toString());
                                 break;
                             default: // DATETIME2
-                                if (bulkNullable) {
-                                    if (2 >= bulkScale)
-                                        tdsWriter.writeByte((byte) 0x06);
-                                    else if (4 >= bulkScale)
-                                        tdsWriter.writeByte((byte) 0x07);
-                                    else
-                                        tdsWriter.writeByte((byte) 0x08);
-                                }
+                                if (2 >= bulkScale)
+                                    tdsWriter.writeByte((byte) 0x06);
+                                else if (4 >= bulkScale)
+                                    tdsWriter.writeByte((byte) 0x07);
+                                else
+                                    tdsWriter.writeByte((byte) 0x08);
                                 String timeStampValue = colValue.toString();
                                 tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), bulkScale);
                                 // Send only the date part

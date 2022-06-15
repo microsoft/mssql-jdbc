@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
@@ -45,6 +44,11 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private VSMAttestationResponse hgsResponse = null;
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
+
+    /**
+     * default constructor
+     */
+    public SQLServerVSMEnclaveProvider() {}
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {

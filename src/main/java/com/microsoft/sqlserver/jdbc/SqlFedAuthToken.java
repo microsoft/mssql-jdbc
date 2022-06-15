@@ -33,4 +33,8 @@ class SqlFedAuthToken implements Serializable {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
     }
+
+    public String toString() {
+        return "accessToken hashCode: " + accessToken.hashCode() + " expiresOn: " + expiresOn.toInstant().toString();
+    }
 }

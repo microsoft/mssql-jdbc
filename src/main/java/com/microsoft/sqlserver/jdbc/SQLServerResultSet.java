@@ -5410,6 +5410,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 super.onEOF(tdsReader);
                 done = true;
             }
+
+            boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
+                if (tdsReader.getServerSupportsDataClassification()) {
+                    tdsReader.trySetSensitivityClassification(
+                            new StreamColumns(Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection))
+                                    .processDataClassification(tdsReader));
+                }
+                return true;
+            }
         }
 
         private final FetchBufferTokenHandler fetchBufferTokenHandler = new FetchBufferTokenHandler();

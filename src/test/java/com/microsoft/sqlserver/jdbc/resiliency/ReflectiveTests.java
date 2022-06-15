@@ -108,7 +108,9 @@ public class ReflectiveTests extends AbstractTest {
         m.put("queryTimeout", "10");
         m.put("loginTimeout", "65535");
         m.put("connectRetryCount", "1");
-        timeoutVariations(m, 12000, Optional.empty());
+        // The timeout happens in < 10s about 55% of the time and < 12s ~95% of the time in pipelines.
+        // Using 14s to ensure we don't needlessly fail for the last ~5%.
+        timeoutVariations(m, 14000, Optional.empty());
     }
 
     /*

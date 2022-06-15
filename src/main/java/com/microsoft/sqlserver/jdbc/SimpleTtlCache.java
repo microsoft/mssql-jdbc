@@ -170,4 +170,29 @@ final class SimpleTtlCache<K,V> {
         return previousValue;
     }
 
+    /**
+     * Put (Key, Value, TTL) entry into cache.
+     * 
+     * @param key
+     *        key
+     * @param value
+     *        value
+     * @param ttl
+     *        Time-To-Live for this cache entry
+     * @return value
+     */
+    V put(K key, V value, Duration ttl) {
+        V previousValue = null;
+        long cacheTtlInSeconds = ttl.getSeconds();
+
+        if (0 < cacheTtlInSeconds) {
+            previousValue = cache.put(key, value);
+            if (simpleCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                simpleCacheLogger.fine("Adding encryption key to cache...");
+            }
+            scheduler.schedule(new CacheClear(key), cacheTtlInSeconds, SECONDS);
+        }
+
+        return previousValue;
+    }
 }

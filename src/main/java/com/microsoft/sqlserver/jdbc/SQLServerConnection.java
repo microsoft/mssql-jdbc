@@ -216,9 +216,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int connectRetryInterval = 0;
 
     /** flag indicating whether prelogin TLS handshake is required */
-    private boolean isTDSS = false;
+    private boolean isTDS8 = false;
 
-    String encryptedTrustStorePassword = null;
+    /** encrypted truststore password */
+    byte[] encryptedTrustStorePassword = null;
+
+    /** cached MSI token time-to-live */
+    private int cachedMsiTokenTtl = 0;
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -768,7 +772,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte negotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
     final byte getNegotiatedEncryptionLevel() {
-        assert (!isTDSS ? TDS.ENCRYPT_INVALID != negotiatedEncryptionLevel : true);
+        assert (!isTDS8 ? TDS.ENCRYPT_INVALID != negotiatedEncryptionLevel : true);
         return negotiatedEncryptionLevel;
     }
 
@@ -1844,7 +1848,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String trustStorePassword = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
                 if (trustStorePassword != null) {
-                    encryptedTrustStorePassword = SecureStringUtil.getInstance().getEncryptedString(trustStorePassword);
+                    encryptedTrustStorePassword = SecureStringUtil.getInstance()
+                            .getEncryptedBytes(trustStorePassword.toCharArray());
                     activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
                 }
 
@@ -2148,7 +2153,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
 
                     // prelogin TLS handshake is required
-                    isTDSS = true;
+                    isTDS8 = true;
                 } else {
                     MessageFormat form = new MessageFormat(
                             SQLServerException.getErrString("R_InvalidConnectionSetting"));
@@ -2632,6 +2637,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                cachedMsiTokenTtl = SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue();
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString());
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    try {
+                        cachedMsiTokenTtl = Integer.parseInt(sPropValue);
+                    } catch (NumberFormatException e) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
+                    if (cachedMsiTokenTtl < 0) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                    }
                 }
 
                 sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
@@ -3289,16 +3314,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         assert null != clientConnectionId;
 
-        if (isTDSS) {
+        if (isTDS8) {
             tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
-                    clientKey, clientKeyPassword, isTDSS);
+                    clientKey, clientKeyPassword, isTDS8);
             clientKeyPassword = "";
         }
 
         prelogin(serverInfo.getServerName(), serverInfo.getPortNumber());
 
         // If not enabled already and prelogin negotiated SSL encryption then, enable it on the TDS channel.
-        if (!isTDSS && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
+        if (!isTDS8 && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel) {
             tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
                     clientKey, clientKeyPassword, false);
             clientKeyPassword = "";
@@ -3408,7 +3433,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 (byte) (SQLJdbcVersion.build & 0xff), (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
 
                 // Encryption
-                // turn encryption off for TDSS since it's already enabled
+                // turn encryption off for TDS 8 since it's already enabled
                 (null == clientCertificate) ? requestedEncryptionLevel
                                             : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
@@ -3691,7 +3716,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // If we say we don't support SSL and the server doesn't accept unencrypted connections,
                     // then terminate the connection.
                     if (TDS.ENCRYPT_NOT_SUP == requestedEncryptionLevel
-                            && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel && !isTDSS) {
+                            && TDS.ENCRYPT_NOT_SUP != negotiatedEncryptionLevel && !isTDS8) {
                         // If the server required an encrypted connection then terminate with an appropriate error.
                         if (TDS.ENCRYPT_REQ == negotiatedEncryptionLevel)
                             terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED,
@@ -4554,8 +4579,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_AE); // FEATUREEXT_TC
             tdsWriter.writeInt(1); // length of version
-            if (null == enclaveAttestationUrl || enclaveAttestationUrl.isEmpty() || (enclaveAttestationProtocol != null
-                    && !enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
+
+            // For protocol = HGS,AAS, at this point it can only have a valid URL, therefore is V2
+            // For protocol = NONE, it is V2 regardless
+            // For protocol = null, we always want V1
+            if (null == enclaveAttestationProtocol) {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION1);
             } else {
                 tdsWriter.writeByte(TDS.COLUMNENCRYPTION_VERSION2);
@@ -5400,7 +5428,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
-        // No:of milliseconds to sleep for the inital back off.
+        // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
         while (true) {
@@ -5417,7 +5445,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                        cachedMsiTokenTtl);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -7449,6 +7478,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (null != parameterMetadataCache)
             parameterMetadataCache.setCapacity(value);
+    }
+
+    @Override
+    public int getMsiTokenCacheTtl() {
+        return cachedMsiTokenTtl;
+    }
+
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) {
+        this.cachedMsiTokenTtl = timeToLive;
     }
 
     /**
