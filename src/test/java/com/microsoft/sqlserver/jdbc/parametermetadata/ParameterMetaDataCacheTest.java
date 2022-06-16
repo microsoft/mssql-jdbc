@@ -73,6 +73,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCache() throws SQLServerException {
         tableSetup();
         try {
@@ -103,6 +104,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
     public void testRetryWithSecureCache() throws SQLServerException {
         tableSetup();
         try {
@@ -127,7 +129,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
                     + " [nvarchar](32) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (" + "COLUMN_ENCRYPTION_KEY="
                     + cekName + ",ENCRYPTION_TYPE=Deterministic," + "ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256') NULL,"
                     + column2 + " [nvarchar](32) COLLATE Latin1_General_BIN2 ENCRYPTED WITH ("
-                    + "COLUMN_ENCRYPTION_KEY=" + cekName + ",ENCRYPTION_TYPE=Randomized,"
+                    + "COLUMN_ENCRYPTION_KEY=" + cekName + ",ENCRYPTION_TYPE=Deterministic,"
                     + "ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256') NULL)");
         }
     }
