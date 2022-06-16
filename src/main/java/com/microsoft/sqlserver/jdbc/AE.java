@@ -236,8 +236,12 @@ class CryptoMetadata {
  * Represents a cache of all queries for a given enclave session.
  */
 class CryptoCache {
-    private HashMap<String, Map<Integer, CekTableEntry>> cekMap = new HashMap<>();
-    private HashMap<String, HashMap<String, CryptoMetadata>> paramMap = new HashMap<>();
+    /**
+    * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
+    * and parameter data in paramMap.
+    */
+    private final HashMap<String, Map<Integer, CekTableEntry>> cekMap = new HashMap<>(16);
+    private final HashMap<String, HashMap<String, CryptoMetadata>> paramMap = new HashMap<>(16);
 
     public HashMap<String, Map<Integer, CekTableEntry>> getCekMap() {
         return cekMap;
@@ -246,13 +250,11 @@ class CryptoCache {
     public HashMap<String, HashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;
     }
-
-    // Returns a list of parameters with associated metadata, for a given enclave cache.
+    
     public Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
         return cekMap.get(enclaveLookupKey);
     }
-
-    // Returns a list of parameters with associated metadata, for a given enclave cache.
+    
     public HashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
     }

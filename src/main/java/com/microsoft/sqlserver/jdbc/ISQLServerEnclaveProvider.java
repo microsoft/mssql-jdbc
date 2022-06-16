@@ -239,7 +239,6 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
-
         }
 
         // Process the second resultset.
@@ -282,8 +281,7 @@ interface ISQLServerEnclaveProvider {
             }
         }
 
-        SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, sqlServerStatement,
-                cekList, isRequestedByEnclave);
+        SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, sqlServerStatement, cekList);
     }
 
     /**

@@ -126,7 +126,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            if (!SQLQueryMetadataCache.getQueryMetadataIfExists(params, parameterNames, enclaveSession, connection,
+            if (!SQLQueryMetadataCache.getQueryMetadata(params, parameterNames, enclaveSession, connection,
                     statement)) {
                 try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
                         preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, aasParams)) {

@@ -63,6 +63,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
 
     }
 
+    
     /**
      * 
      * Tests caching of parameter metadata by running a query to be cached, another to replace parameter information,
@@ -91,6 +92,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         }
     }
 
+    
     /**
      * 
      * Tests that the enclave is retried when using secure enclaves (assuming the server supports this). This is done
