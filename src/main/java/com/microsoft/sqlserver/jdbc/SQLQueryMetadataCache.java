@@ -164,7 +164,6 @@ class SQLQueryMetadataCache {
             }
         }
         
-        
         // If the size of the cache exceeds the threshold, set that we are in trimming and trim the cache accordingly.
         int cacheSizeCurrent = session.getCryptoCache().getParamMap().size();
         if (cacheSizeCurrent > cacheSize + cacheTrimThreshold) {
@@ -186,7 +185,6 @@ class SQLQueryMetadataCache {
                                     ("R_cryptoCacheInaccessible"), null, 0, false);
             }
         }
-        
         
         session.getCryptoCache().addParamEntry(encryptionValues.getKey(), metadataMap);
         return true;
@@ -250,6 +248,7 @@ class SQLQueryMetadataCache {
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
     }
 
+    
     /**
      * 
      * Copy the enclave CEKs so they can be later used to retry secure enlave queries.

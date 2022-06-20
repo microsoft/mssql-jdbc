@@ -44,7 +44,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         setConnection();
     }
 
-    public void tableSetup() throws SQLServerException {
+    private void tableSetup() throws SQLServerException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(firstTable, stmt);
             TestUtils.dropTableIfExists(secondTable, stmt);
@@ -234,13 +234,6 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map1);
         return provider;
     }
-    
-//    private void callDbccFreeProcCache() throws SQLException {
-//        try (Connection connection = DriverManager.getConnection();
-//                Statement stmt = connection.createStatement()) {
-//            stmt.execute("DBCC FREEPROCCACHE");
-//        }
-//    }
 
     private String bytesToHexString(byte[] b, int length) {
         final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
