@@ -32,6 +32,9 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Tests for caching parameter metadata in sp_describe_parameter_encryption calls
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv11)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv14)
 public class ParameterMetaDataCacheTest extends AbstractTest {
     private static final String firstTable = "firstTable";
     private static final String secondTable = "secondTable";
@@ -71,6 +74,9 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCache() throws SQLServerException {
         tableSetup();
@@ -101,6 +107,9 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
     public void testRetryWithSecureCache() throws SQLServerException {
         tableSetup();
