@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Tests for caching parameter metadata in sp_describe_parameter_encryption calls
  */
 @RunWith(JUnitPlatform.class)
-@Tag(Constants.xAzureSQLDW)
 public class ParameterMetaDataCacheTest extends AbstractTest {
     private static final String firstTable = "firstTable";
     private static final String secondTable = "secondTable";
@@ -72,7 +71,6 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCache() throws SQLServerException {
         tableSetup();
@@ -103,7 +101,6 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * @throws SQLServerException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.reqExternalSetup)
     public void testRetryWithSecureCache() throws SQLServerException {
         tableSetup();
@@ -127,9 +124,9 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("create table " + tableName + " (col1 int identity(1,1) primary key," + column1
                     + " [nvarchar](32) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (" + "COLUMN_ENCRYPTION_KEY="
-                    + cekName + ",ENCRYPTION_TYPE=Deterministic," + "ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256') NULL,"
+                    + cekName + ",ENCRYPTION_TYPE=DETERMINISTIC," + "ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256') NULL,"
                     + column2 + " [nvarchar](32) COLLATE Latin1_General_BIN2 ENCRYPTED WITH ("
-                    + "COLUMN_ENCRYPTION_KEY=" + cekName + ",ENCRYPTION_TYPE=Deterministic,"
+                    + "COLUMN_ENCRYPTION_KEY=" + cekName + ",ENCRYPTION_TYPE=DETERMINISTIC,"
                     + "ALGORITHM='AEAD_AES_256_CBC_HMAC_SHA_256') NULL)");
         }
     }
@@ -178,7 +175,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
                     + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
-                    + Constants.WINDOWS_KEY_STORE_NAME + "', KEY_PATH = '" + keyPath + "')" + " end";
+                    + Constants.AZURE_KEY_VAULT_NAME + "', KEY_PATH = '" + keyPath + "')" + " end";
             stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -237,6 +234,13 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map1);
         return provider;
     }
+    
+//    private void callDbccFreeProcCache() throws SQLException {
+//        try (Connection connection = DriverManager.getConnection();
+//                Statement stmt = connection.createStatement()) {
+//            stmt.execute("DBCC FREEPROCCACHE");
+//        }
+//    }
 
     private String bytesToHexString(byte[] b, int length) {
         final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};

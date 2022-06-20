@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -238,16 +238,13 @@ class CryptoMetadata {
 class CryptoCache {
     /**
     * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
-    * and parameter data in paramMap.
+    * and parameter data in paramMap. 
     */
-    private final HashMap<String, Map<Integer, CekTableEntry>> cekMap = new HashMap<>(16);
-    private final HashMap<String, HashMap<String, CryptoMetadata>> paramMap = new HashMap<>(16);
+    private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap 
+        = new ConcurrentHashMap<>(16);
 
-    public HashMap<String, Map<Integer, CekTableEntry>> getCekMap() {
-        return cekMap;
-    }
-
-    public HashMap<String, HashMap<String, CryptoMetadata>> getParamMap() {
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;
     }
     
@@ -255,20 +252,12 @@ class CryptoCache {
         return cekMap.get(enclaveLookupKey);
     }
     
-    public HashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+    public ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
     }
 
-    public void addCekEntry(String key, Map<Integer, CekTableEntry> value) {
-        cekMap.put(key, value);
-    }
-
-    public void addParamEntry(String key, HashMap<String, CryptoMetadata> value) {
+    public void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
         paramMap.put(key, value);
-    }
-
-    public void removeCekEntry(String enclaveLookupKey) {
-        cekMap.remove(enclaveLookupKey);
     }
 
     public void removeParamEntry(String cacheLookupKey) {

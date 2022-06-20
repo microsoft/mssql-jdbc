@@ -200,5 +200,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_AKVProviderNull", "The Azure key store provider is null."},
             {"R_objectNullOrEmpty", "The {0} is null or empty."},
             {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
+            {"R_cryptoCacheInaccessible", "Unable to access session crypto cache and perform operations."},
             {"R_connectTimedOut", "connect timed out"}};
 }
