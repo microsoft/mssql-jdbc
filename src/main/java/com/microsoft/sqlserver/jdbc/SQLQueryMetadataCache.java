@@ -193,6 +193,8 @@ class SQLQueryMetadataCache {
     
     /**
     * 
+    * Remove the cache entry.
+    * 
     * @param stmt
     *        SQLServer statement used to retrieve keys
     * @param session
