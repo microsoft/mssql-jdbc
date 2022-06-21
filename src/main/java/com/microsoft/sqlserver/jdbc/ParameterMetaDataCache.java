@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -105,7 +106,9 @@ class ParameterMetaDataCache {
                     }
                 }
             } catch (Exception e) {
-                throw new SQLServerException(SQLServerException.getErrString("R_CryptoCacheInaccessible"), e);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CryptoCacheInaccessible"));
+                Object[] msgArgs = {e.getMessage()};
+                throw new SQLServerException(form.format(msgArgs), null);
             }
         }
 
@@ -161,7 +164,9 @@ class ParameterMetaDataCache {
                     return false;
                 }
             } catch (SQLServerException e) {
-                throw new SQLServerException(SQLServerException.getErrString("R_CryptoCacheInaccessible"), e);
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CryptoCacheInaccessible"));
+                Object[] msgArgs = {e.getMessage()};
+                throw new SQLServerException(form.format(msgArgs), null);
             }
         }
 

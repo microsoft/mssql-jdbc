@@ -302,7 +302,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ByteToShortConversion", "Error occurred while decrypting column encryption key."},
         {"R_InvalidCertificateSignature", "The specified encrypted column encryption key signature does not match the signature computed with the column master key (certificate) in \"{0}\". The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
         {"R_CEKDecryptionFailed", "Exception while decryption of encrypted column encryption key:  {0} "},
-        {"R_CryptoCacheInaccessible", "Unable to access session crypto cache and perform operations."},
+        {"R_CryptoCacheInaccessible", "Error while attempting to perform session crypto cache operations: {0} "},
         {"R_NullKeyEncryptionAlgorithm", "Key encryption algorithm cannot be null."},
         {"R_NullKeyEncryptionAlgorithmInternal", "Internal error. Key encryption algorithm cannot be null."},
         {"R_InvalidKeyEncryptionAlgorithm", "Invalid key encryption algorithm specified: {0}. Expected value: {1}."},
