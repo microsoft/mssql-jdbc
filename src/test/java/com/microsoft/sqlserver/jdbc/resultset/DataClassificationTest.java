@@ -44,12 +44,42 @@ public class DataClassificationTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("DataClassification"));
     private static final String tableName1 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("SelectMethodCursor"));
+    private static final String tableName2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("USHORT_MAX"));
     private static final String addSensitivitySql = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII', LABEL_ID='L1', INFORMATION_TYPE='%s', INFORMATION_TYPE_ID='%s'%s)";
     private static final String sensitivityRankSql = ", RANK=%s";
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    public void testInformationTypeSensitivityLabelIndexMax() throws Exception {
+        String createTable = "create table " + tableName2 + " (col1 varchar(200), col2 varchar(200), col3 varchar(200))";
+        String sensitivityClassification = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII')";
+        String query = "select * from " + tableName2;
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
+            // Create table
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(createTable);
+            }
+
+            // Add sensitivity classification
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(String.format(sensitivityClassification, tableName2, "col1"));
+            }
+
+            // Execute query
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(query);
+            }
+        }
     }
 
     @Test
