@@ -281,7 +281,12 @@ interface ISQLServerEnclaveProvider {
             }
         }
 
-        SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, sqlServerStatement, cekList);
+        // If using AEv1, add to cache
+        if (!connection.enclaveEstablished()) {
+            SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, 
+                sqlServerStatement, cekList);
+        }
+        
     }
 
     /**

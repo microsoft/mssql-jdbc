@@ -40,11 +40,6 @@ class SQLQueryMetadataCache {
      */
     static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
             EnclaveSession session, SQLServerConnection connection, SQLServerStatement stmt)throws SQLServerException {
-        
-        if (connection.activeConnectionProperties
-                .getProperty(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString()).equalsIgnoreCase("Disabled")) {
-            return false;
-        }
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         ConcurrentHashMap<String, CryptoMetadata> metadataMap = session.getCryptoCache().getCacheEntry(encryptionValues.getKey());
@@ -129,11 +124,6 @@ class SQLQueryMetadataCache {
 */
     static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, EnclaveSession session,
             SQLServerConnection connection, SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList) throws SQLServerException {
-        
-        if (connection.activeConnectionProperties
-                .getProperty(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString()).equalsIgnoreCase("Disabled")) {
-            return false;
-        }
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
@@ -179,6 +169,8 @@ class SQLQueryMetadataCache {
                     }
                     count++;
                 }
+                
+                session.getCryptoCache().replaceParamMap(newMap);
 
             } catch (Exception e) {
                 throw new SQLServerException(null, SQLServerException.getErrString

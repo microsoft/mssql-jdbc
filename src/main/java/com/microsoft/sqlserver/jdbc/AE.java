@@ -7,9 +7,9 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -237,30 +237,33 @@ class CryptoMetadata {
  */
 class CryptoCache {
     /**
-    * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
-    * and parameter data in paramMap. 
-    */
+     * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
+     * and parameter data in paramMap.
+     */
     private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
-    private final ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap 
-        = new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
+    ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;
     }
-    
-    public Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
+
+    void replaceParamMap(ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap) {
+        paramMap = newMap;
+    };
+
+    Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
         return cekMap.get(enclaveLookupKey);
     }
-    
-    public ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+
+    ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
     }
 
-    public void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
+    void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
         paramMap.put(key, value);
     }
 
-    public void removeParamEntry(String cacheLookupKey) {
+    void removeParamEntry(String cacheLookupKey) {
         paramMap.remove(cacheLookupKey);
     }
 }

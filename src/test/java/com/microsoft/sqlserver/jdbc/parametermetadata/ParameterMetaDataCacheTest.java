@@ -39,6 +39,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     private final String cekNameAlt = "my_cek_2";
     
     private final String sampleData = "testData";
+    private final String sampleData2 = "testData2";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -51,6 +52,7 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
             TestUtils.dropTableIfExists(firstTable, stmt);
             TestUtils.dropTableIfExists(secondTable, stmt);
 
+            dropCEK(cekNameAlt);
             dropCEK(cekName);
             dropCMK(cmkName);
             createCMK(cmkName, keyIDs[0]);
@@ -81,10 +83,10 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         tableSetup();
         try {
             updateTable(firstTable, sampleData);
-            updateTable(secondTable, sampleData);
+            updateTable(secondTable, sampleData2);
             
             long firstRun = timedTestSelect(connection, firstTable, "DeterministicVarcharMax", sampleData);
-            //selectFromTable(connection, secondTable, "firstColumn", "'test2'");
+            selectTable(secondTable, sampleData2);
             long secondRun = timedTestSelect(connection, firstTable, "DeterministicVarcharMax", sampleData);
 
             // As long as there is a noticible performance improvement, caching is working as intended. For now
@@ -101,11 +103,11 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
      * 
      * Tests that the enclave is retried when using secure enclaves (assuming the server supports this). This is done
      * by executing a query generating metadata in the cache, changing the CEK to make the metadata stale, and running
-     * the query again. The query should fail, but retry and pass.
+     * the query again. The query should fail, but retry and pass. Currently disabled as secure enclaves are not
+     * supported.
      * 
      * @throws SQLServerException
      */
-    @Test
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
@@ -113,15 +115,14 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     public void testRetryWithSecureCache() throws Exception {
         tableSetup();
         try {
-            //updateTable(connection, firstTable, "firstColumn", "secondColumn", "'test1'", "'data1'");
-            //selectFromTable(connection, firstTable, "firstColumn", "'test1'");
-
+            updateTable(firstTable, sampleData);
+            selectTable(firstTable, sampleData);
             
             createCEK(cekNameAlt, cmkName, setupKeyStoreProvider(), keyIDs[0]);
-//            alterTable(connection, firstTable,"firstColumn", cekNameAlt);
-//            
-//            selectFromTable(connection, firstTable, "firstColumn", "'test1'");
-//            alterTable(connection, firstTable,"firstColumn", cekNameAlt);
+            alterTable(firstTable,cekNameAlt);
+
+            selectTable(firstTable, sampleData);
+            alterTable(firstTable,cekName);
             dropCEK(cekNameAlt);
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -153,8 +154,14 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
         pstmt.execute();
         pstmt.close();
     }
- 
-  
+    
+    private static void alterTable(String tableName, String newCek) throws SQLException {
+        String sql = "alter table " + tableName + " alter column DeterministicVarcharMax nvarchar(max)";
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql);
+        pstmt.execute();
+        pstmt.close();
+    }
+    
     private long timedTestSelect(Connection connection, String tableName, String firstColumn,
             String firstData) throws SQLException {
         long timer = System.currentTimeMillis();
