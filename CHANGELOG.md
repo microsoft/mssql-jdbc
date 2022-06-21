@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Fixed issues
 - Fixed double connection issue when enabling TDS 8.0 and SSL by reusing original socket connection [1817](https://github.com/microsoft/mssql-jdbc/pull/1817)
 - Fixed unknown token error 0xA3 when selectMethod cursor is used with data classification [1821](https://github.com/microsoft/mssql-jdbc/pull/1821)
+- Fixed out of bounds error for when a data classification information type is not provided [1847](https://github.com/microsoft/mssql-jdbc/pull/1847)
 
 
 ## [11.1.1] Preview Release
