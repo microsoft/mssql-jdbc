@@ -6,10 +6,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.HashMap;
 import java.util.Map;
-import java.text.MessageFormat;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -17,10 +15,13 @@ import java.text.MessageFormat;
  * reading from the cache is handled here, with the location of the cache being in the EnclaveSession.
  * 
  */
-class SQLQueryMetadataCache {
+class ParameterMetaDataCache {
 
-    final static int cacheSize = 2000; // Size of the cache in number of entries
-    final static int cacheTrimThreshold = 300; // Threshold above which to trim the cache
+    static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
+    static final int CACHE_TRIM_THRESHOLD = 300; // Threshold above which to trim the cache
+
+    static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
 
     /**
      * Retrieves the metadata from the cache, should it exist.
@@ -38,17 +39,19 @@ class SQLQueryMetadataCache {
      * @return true, if the metadata for the query can be retrieved
      * 
      */
-    static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
-            EnclaveSession session, SQLServerConnection connection, SQLServerStatement stmt)throws SQLServerException {
+    static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, CryptoCache cache,
+            SQLServerConnection connection, SQLServerStatement stmt) throws SQLServerException {
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
-        ConcurrentHashMap<String, CryptoMetadata> metadataMap = session.getCryptoCache()
-            .getCacheEntry(encryptionValues.getKey());
+        ConcurrentHashMap<String, CryptoMetadata> metadataMap = cache.getCacheEntry(encryptionValues.getKey());
 
         if (metadataMap == null) {
+            if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                metadataCacheLogger.finest("Cache Miss. Unable to retrieve cache entry from cache.");
+            }
             return false;
         }
-        
+
         for (int i = 0; i < params.length; i++) {
             boolean found = metadataMap.containsKey(parameterNames.get(i));
             CryptoMetadata foundData = metadataMap.get(parameterNames.get(i));
@@ -61,6 +64,10 @@ class SQLQueryMetadataCache {
             if (!found || (foundData != null && foundData.isAlgorithmInitialized())) {
                 for (Parameter param : params) {
                     param.cryptoMeta = null;
+                }
+                if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                    metadataCacheLogger
+                            .finest("Cache Miss. Cache entry either has missing parameter or initialized algorithm.");
                 }
                 return false;
             }
@@ -85,47 +92,50 @@ class SQLQueryMetadataCache {
                         SQLServerSecurityUtility.decryptSymmetricKey(cryptoCopy, connection, stmt);
                     } catch (SQLServerException e) {
 
-                        removeCacheEntry(stmt, session, connection);
+                        removeCacheEntry(stmt, cache, connection);
 
                         for (Parameter paramToCleanup : params) {
                             paramToCleanup.cryptoMeta = null;
                         }
-                        
+
+                        if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                            metadataCacheLogger.finest("Cache Miss. Unable to decrypt CEK.");
+                        }
                         return false;
                     }
                 }
             } catch (Exception e) {
-                throw new SQLServerException(null, SQLServerException.getErrString
-                    ("R_CEKDecryptionFailed"), null, 0, false);
+                throw new SQLServerException(SQLServerException.getErrString("R_CryptoCacheInaccessible"), e);
             }
         }
-        
-        Map<Integer, CekTableEntry> enclaveKeys = session.getCryptoCache().getEnclaveEntry(encryptionValues.getValue());
-        return (enclaveKeys == null);
+
+        if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+            metadataCacheLogger.finest("Cache Hit. Successfully retrieved metadata from cache.");
+        }
+        return true;
     }
 
-    
     /**
-    * 
-    * Adds the parameter metadata to the cache, also handles cache trimming.
-    * 
-    * @param params
-    *        List of parameters used
-    * @param parameterNames
-    *        Names of parameters used
-    * @param session
-    *        Enclave session containing the cryptocache
-    * @param connection
-    *        SQLServerConnection
-    * @param stmt
-    *        SQLServer statement used to retrieve keys to find correct cache
-    * @param cekList
-    *        The list of CEKs (from the first RS) that is also added to the cache as well as parameter metadata
-    * @return true, if the query metadata has been added correctly
-    */
-    static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, EnclaveSession session,
-            SQLServerConnection connection, SQLServerStatement stmt, Map<Integer, 
-            CekTableEntry> cekList) throws SQLServerException {
+     * 
+     * Adds the parameter metadata to the cache, also handles cache trimming.
+     * 
+     * @param params
+     *        List of parameters used
+     * @param parameterNames
+     *        Names of parameters used
+     * @param session
+     *        Enclave session containing the cryptocache
+     * @param connection
+     *        SQLServerConnection
+     * @param stmt
+     *        SQLServer statement used to retrieve keys to find correct cache
+     * @param cekList
+     *        The list of CEKs (from the first RS) that is also added to the cache as well as parameter metadata
+     * @return true, if the query metadata has been added correctly
+     */
+    static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, CryptoCache cache,
+            SQLServerConnection connection, SQLServerStatement stmt,
+            Map<Integer, CekTableEntry> cekList) throws SQLServerException {
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
@@ -133,7 +143,7 @@ class SQLQueryMetadataCache {
         }
 
         ConcurrentHashMap<String, CryptoMetadata> metadataMap = new ConcurrentHashMap<>(params.length);
-        
+
         for (int i = 0; i < params.length; i++) {
             try {
                 CryptoMetadata cryptoCopy = null;
@@ -151,80 +161,66 @@ class SQLQueryMetadataCache {
                     return false;
                 }
             } catch (SQLServerException e) {
-                throw new SQLServerException(null, SQLServerException.getErrString
-                                                    ("R_cryptoCacheInaccessible"), null, 0, false);
+                throw new SQLServerException(SQLServerException.getErrString("R_CryptoCacheInaccessible"), e);
             }
         }
-        
+
         // If the size of the cache exceeds the threshold, set that we are in trimming and trim the cache accordingly.
-        int cacheSizeCurrent = session.getCryptoCache().getParamMap().size();
-        if (cacheSizeCurrent > cacheSize + cacheTrimThreshold) {
-            try {
-                int entriesToRemove = cacheSizeCurrent - cacheSize;
-                ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap = new ConcurrentHashMap<>();
-                ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> oldMap = 
-                    session.getCryptoCache().getParamMap();
-                int count = 0;
+        int cacheSizeCurrent = cache.getParamMap().size();
+        if (cacheSizeCurrent > CACHE_SIZE + CACHE_TRIM_THRESHOLD) {
+            int entriesToRemove = cacheSizeCurrent - CACHE_SIZE;
+            ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap = new ConcurrentHashMap<>();
+            ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> oldMap = cache.getParamMap();
+            int count = 0;
 
-                for (Map.Entry<String, ConcurrentHashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
-                    if (count >= entriesToRemove) {
-                        newMap.put(entry.getKey(), entry.getValue());
-                    }
-                    count++;
+            for (Map.Entry<String, ConcurrentHashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
+                if (count >= entriesToRemove) {
+                    newMap.put(entry.getKey(), entry.getValue());
                 }
-                session.getCryptoCache().replaceParamMap(newMap);
-
-            } catch (Exception e) {
-                throw new SQLServerException(null, SQLServerException.getErrString
-                                    ("R_cryptoCacheInaccessible"), null, 0, false);
+                count++;
+            }
+            cache.replaceParamMap(newMap);
+            if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                metadataCacheLogger.finest("Cache successfully trimmed.");
             }
         }
-        
-        session.getCryptoCache().addParamEntry(encryptionValues.getKey(), metadataMap);
+
+        cache.addParamEntry(encryptionValues.getKey(), metadataMap);
         return true;
     }
 
-    
     /**
-    * 
-    * Remove the cache entry.
-    * 
-    * @param stmt
-    *        SQLServer statement used to retrieve keys
-    * @param session
-    *        The enclave session where the cryptocache is stored
-    * @param connection
-    *        The SQLServerConnection, also used to retrieve keys
-    */
-    static void removeCacheEntry(SQLServerStatement stmt, EnclaveSession session,
-            SQLServerConnection connection) {
+     * 
+     * Remove the cache entry.
+     * 
+     * @param stmt
+     *        SQLServer statement used to retrieve keys
+     * @param session
+     *        The enclave session where the cryptocache is stored
+     * @param connection
+     *        The SQLServerConnection, also used to retrieve keys
+     */
+    static void removeCacheEntry(SQLServerStatement stmt, CryptoCache cache, SQLServerConnection connection) {
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
             return;
         }
 
-        session.getCryptoCache().removeParamEntry(encryptionValues.getKey());
+        cache.removeParamEntry(encryptionValues.getKey());
     }
 
-    
     /**
-    * 
-    * Returns the cache and enclave lookup keys for a given connection and statement
-    * 
-    * @param statement
-    *        The SQLServer statement used to construct part of the keys
-    * @param connection
-    *        The connection from which database name is retrieved
-    * @return
-    *        A key value pair containing cache lookup key and enclave lookup key
-    */
-    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(
-            SQLServerStatement statement, SQLServerConnection connection) {
-        final int sqlIdentifierLength = 128;
-        
-        if (connection == null) {
-            return new AbstractMap.SimpleEntry<>(null, null);
-        }
+     * 
+     * Returns the cache and enclave lookup keys for a given connection and statement
+     * 
+     * @param statement
+     *        The SQLServer statement used to construct part of the keys
+     * @param connection
+     *        The connection from which database name is retrieved
+     * @return A key value pair containing cache lookup key and enclave lookup key
+     */
+    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
+            SQLServerConnection connection) {
 
         StringBuilder cacheLookupKeyBuilder = new StringBuilder();
         cacheLookupKeyBuilder.append(":::");
@@ -232,7 +228,7 @@ class SQLQueryMetadataCache {
         String databaseName = connection.activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         cacheLookupKeyBuilder.append(databaseName);
-        for (int i = databaseName.length() - 1; i < sqlIdentifierLength; ++i) {
+        for (int i = databaseName.length() - 1; i < SQLServerConnection.MAX_SQL_LOGIN_NAME_WCHARS; ++i) {
             cacheLookupKeyBuilder.append(" ");
         }
         cacheLookupKeyBuilder.append(":::");
@@ -244,16 +240,15 @@ class SQLQueryMetadataCache {
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
     }
 
-    
     /**
      * 
-     * Copy the enclave CEKs so they can be later used to retry secure enlave queries.
+     * Copy the enclave CEKs so they can be later used to retry secure enclave queries.
      * 
      * @param keysToBeSentToEnclave
      *        The CEKs sent to the enclave cryptocache
-     * @return
-     *        A copy of the CEKs, this is what is actually added to the cryptocache
+     * @return A copy of the CEKs, this is what is actually added to the cryptocache
      */
+    @SuppressWarnings("unused")
     private static Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeSentToEnclave) {
         Map<Integer, CekTableEntry> cekList = new ConcurrentHashMap<>();
 

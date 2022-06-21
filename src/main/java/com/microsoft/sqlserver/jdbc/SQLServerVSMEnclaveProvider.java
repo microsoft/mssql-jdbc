@@ -151,9 +151,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             // Check the cache for metadata only if we're using AEv1 (without secure enclaves)
-            if (connection.getServerColumnEncryptionVersion() != ColumnEncryptionVersion.AE_V1 
-                    || !SQLQueryMetadataCache.getQueryMetadata(params, parameterNames, enclaveSession, 
-                    connection, statement)) {
+            if (connection.getServerColumnEncryptionVersion() != ColumnEncryptionVersion.AE_V1
+                    || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,
+                            enclaveSession.getCryptoCache(), connection, statement)) {
                 try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
                         preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams)) {
                     if (null == rs) {

@@ -241,8 +241,7 @@ class CryptoCache {
      * and parameter data in paramMap.
      */
     private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = 
-        new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
 
     ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;

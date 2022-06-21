@@ -281,10 +281,10 @@ interface ISQLServerEnclaveProvider {
             }
         }
 
-        // If using AEv1, add to cache
+        // If using Always Encrypted v1 (without secure enclaves), add to cache
         if (!connection.enclaveEstablished()) {
-            SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, 
-                sqlServerStatement, cekList);
+            ParameterMetaDataCache.addQueryMetadata(params, parameterNames, session.getCryptoCache(), connection, 
+                    sqlServerStatement, cekList);
         }
     }
 
