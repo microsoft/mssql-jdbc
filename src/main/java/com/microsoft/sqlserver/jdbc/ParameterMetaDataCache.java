@@ -224,13 +224,9 @@ class ParameterMetaDataCache {
 
         StringBuilder cacheLookupKeyBuilder = new StringBuilder();
         cacheLookupKeyBuilder.append(":::");
-        // Pad database name to 128 characters to avoid any false cache matches because of weird DB names.
         String databaseName = connection.activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         cacheLookupKeyBuilder.append(databaseName);
-        for (int i = databaseName.length() - 1; i < SQLServerConnection.MAX_SQL_LOGIN_NAME_WCHARS; ++i) {
-            cacheLookupKeyBuilder.append(" ");
-        }
         cacheLookupKeyBuilder.append(":::");
         cacheLookupKeyBuilder.append(statement.toString());
 
