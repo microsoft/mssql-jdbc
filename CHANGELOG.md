@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [11.1.2] Preview Release
 ### Added
-- Added support for caching managed identity tokens[1825](https://github.com/microsoft/mssql-jdbc/pull/1825)
+- Added support for caching managed identity tokens [1825](https://github.com/microsoft/mssql-jdbc/pull/1825)
 - Added support for caching Always Encrypted parameter metadata [1845](https://github.com/microsoft/mssql-jdbc/pull/1845)
 ### Changed
 - Switched from strings to char arrays for secure string use [1813](https://github.com/microsoft/mssql-jdbc/pull/1813)
