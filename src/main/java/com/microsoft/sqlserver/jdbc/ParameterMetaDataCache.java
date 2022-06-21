@@ -235,29 +235,4 @@ class ParameterMetaDataCache {
 
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
     }
-
-    /**
-     * 
-     * Copy the enclave CEKs so they can be later used to retry secure enclave queries.
-     * 
-     * @param keysToBeSentToEnclave
-     *        The CEKs sent to the enclave cryptocache
-     * @return A copy of the CEKs, this is what is actually added to the cryptocache
-     */
-    @SuppressWarnings("unused")
-    private static Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeSentToEnclave) {
-        Map<Integer, CekTableEntry> cekList = new ConcurrentHashMap<>();
-
-        for (Map.Entry<Integer, CekTableEntry> entry : keysToBeSentToEnclave.entrySet()) {
-            int ordinal = entry.getKey();
-            CekTableEntry original = entry.getValue();
-            CekTableEntry copy = new CekTableEntry(ordinal);
-            for (EncryptionKeyInfo cekInfo : original.getColumnEncryptionKeyValues()) {
-                copy.add(cekInfo.encryptedKey, cekInfo.databaseId, cekInfo.cekId, cekInfo.cekVersion,
-                        cekInfo.cekMdVersion, cekInfo.keyPath, cekInfo.keyStoreName, cekInfo.algorithmName);
-            }
-            cekList.put(ordinal, copy);
-        }
-        return cekList;
-    }
 }
