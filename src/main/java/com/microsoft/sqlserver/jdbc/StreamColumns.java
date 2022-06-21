@@ -32,9 +32,6 @@ final class StreamColumns extends StreamPacket {
 
     private boolean sensitivityRankSupported = false;
 
-    // SensitivityLabelIndex and InformationTypeIndex as defined in the TDS spec have a max of USHORT_MAX
-    private static final int DATACLASSIFICATION_INDEX_MAX = 65535;
-
     /* Returns the CekTable */
     CekTable getCekTable() {
         return cekTable;
@@ -290,7 +287,7 @@ final class StreamColumns extends StreamPacket {
                 Label label = null;
 
                 // If sensitivity label index is equal to USHORT_MAX eg. 65535 then there is no sensitivity label
-                if (sensitivityLabelIndex != DATACLASSIFICATION_INDEX_MAX) {
+                if (sensitivityLabelIndex != DataTypes.SQL_USHORTVARMAXLEN) {
                     if (sensitivityLabelIndex >= sensitivityLabels.size()) {
                         tdsReader.throwInvalidTDS();
                     }
@@ -301,7 +298,7 @@ final class StreamColumns extends StreamPacket {
                 InformationType informationType = null;
 
                 // If information type index is equal to USHORT_MAX eg. 65535 then there is no information type
-                if (informationTypeIndex != DATACLASSIFICATION_INDEX_MAX) {
+                if (informationTypeIndex != DataTypes.SQL_USHORTVARMAXLEN) {
                     if (informationTypeIndex >= informationTypes.size()) {}
                     informationType = informationTypes.get(informationTypeIndex);
                 }

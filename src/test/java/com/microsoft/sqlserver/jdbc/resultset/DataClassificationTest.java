@@ -70,7 +70,7 @@ public class DataClassificationTest extends AbstractTest {
                 stmt.execute(createTable);
             }
 
-            // Add sensitivity classification
+            // Add sensitivity classification without an INFORMATION_TYPE
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(String.format(sensitivityClassification, tableName2, "col1"));
             }
