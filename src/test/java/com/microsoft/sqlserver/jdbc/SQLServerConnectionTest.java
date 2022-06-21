@@ -985,8 +985,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      */
     @Test
     public void testParameterMetadataAccessDenial() throws SQLException {
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled");
-                SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+        try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             CryptoCache cache = new CryptoCache();
             Map<Integer, CekTableEntry> cekList = new HashMap<>();
             Parameter[] params = {new Parameter(false)};
