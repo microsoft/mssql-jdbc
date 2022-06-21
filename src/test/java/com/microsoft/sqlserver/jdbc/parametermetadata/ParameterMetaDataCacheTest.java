@@ -37,7 +37,6 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     private final String cmkName = "my_cmk";
     private final String cekName = "my_cek_1";
     private final String cekNameAlt = "my_cek_2";
-    
     private final String sampleData = "testData";
     private final String sampleData2 = "testData2";
 
@@ -48,18 +47,19 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     }
 
     private void tableSetup() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(firstTable, stmt);
-            TestUtils.dropTableIfExists(secondTable, stmt);
-
-            dropCEK(cekNameAlt);
-            dropCEK(cekName);
-            dropCMK(cmkName);
-            createCMK(cmkName, keyIDs[0]);
-            createCEK(cekName, cmkName, setupKeyStoreProvider(), keyIDs[0]);
-
-            createTable(cekName, firstTable);
-            createTable(cekName, secondTable);
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(firstTable, stmt);
+                TestUtils.dropTableIfExists(secondTable, stmt);
+    
+                dropCEK(cekNameAlt);
+                dropCEK(cekName);
+                dropCMK(cmkName);
+                
+                createCMK(cmkName, keyIDs[0]);
+                createCEK(cekName, cmkName, setupKeyStoreProvider(), keyIDs[0]);
+                createTable(cekName, firstTable);
+                createTable(cekName, secondTable);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -131,11 +131,12 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     
 
     private static void createTable(String cekName, String tableName) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate("create table " + tableName + " ("
-                    + "DeterministicVarcharMax varchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH " 
-                    + "(ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', " 
-                    + "COLUMN_ENCRYPTION_KEY = " + cekName + ") NULL,);");
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("create table " + tableName + " ("
+                        + "DeterministicVarcharMax varchar(max) COLLATE Latin1_General_BIN2 ENCRYPTED WITH " 
+                        + "(ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', " 
+                        + "COLUMN_ENCRYPTION_KEY = " + cekName + ") NULL,);");
         }
     }
 
@@ -170,11 +171,12 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     }
 
     private void createCMK(String cmkName, String keyPath) throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
-                    + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
-                    + Constants.AZURE_KEY_VAULT_NAME+ "', KEY_PATH = '"+ keyPath +"')" + " end";
-            stmt.execute(sql);
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                String sql = " if not exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                        + " begin" + " CREATE COLUMN MASTER KEY " + cmkName + " WITH (KEY_STORE_PROVIDER_NAME = '"
+                        + Constants.AZURE_KEY_VAULT_NAME+ "', KEY_PATH = '"+ keyPath +"')" + " end";
+                stmt.execute(sql);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -182,15 +184,17 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
 
     private void createCEK(String cekName, String cmkName, SQLServerColumnEncryptionKeyStoreProvider storeProvider,
             String encryptionKey) throws SQLServerException, SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            byte[] valuesDefault = letters.getBytes();
-            byte[] key = storeProvider.encryptColumnEncryptionKey(encryptionKey, "RSA_OAEP", valuesDefault);
-            String cekSql = " if not exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
-                    + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName + " WITH VALUES " + "(COLUMN_MASTER_KEY = "
-                    + cmkName + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + bytesToHexString(key, key.length)
-                    + ")" + ";" + " end";
-            stmt.execute(cekSql);
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                String letters = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+                byte[] valuesDefault = letters.getBytes();
+                byte[] key = storeProvider.encryptColumnEncryptionKey(encryptionKey, "RSA_OAEP", valuesDefault);
+                String cekSql = " if not exists (SELECT name from sys.column_encryption_keys where name='" 
+                        + cekName + "')" + " begin" + " CREATE COLUMN ENCRYPTION KEY " + cekName 
+                        + " WITH VALUES " + "(COLUMN_MASTER_KEY = " + cmkName 
+                        + ", ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x" + bytesToHexString(key, key.length)
+                        + ")" + ";" + " end";
+                stmt.execute(cekSql);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -198,10 +202,11 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     }
 
     private void dropCMK(String cmkName) throws SQLServerException, SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
-                    + " begin" + " drop column master key " + cmkName + " end";
-            stmt.execute(cekSql);
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                String cekSql = " if exists (SELECT name from sys.column_master_keys where name='" + cmkName + "')"
+                        + " begin" + " drop column master key " + cmkName + " end";
+                stmt.execute(cekSql);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -209,10 +214,11 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
     }
 
     private void dropCEK(String cekName) throws SQLServerException, SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement stmt = connection.createStatement()) {
-            String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
-                    + " begin" + " drop column encryption key " + cekName + " end";
-            stmt.execute(cekSql);
+        try (Connection conn = DriverManager.getConnection(connectionString); 
+            Statement stmt = connection.createStatement()) {
+                String cekSql = " if exists (SELECT name from sys.column_encryption_keys where name='" + cekName + "')"
+                        + " begin" + " drop column encryption key " + cekName + " end";
+                stmt.execute(cekSql);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -227,7 +233,8 @@ public class ParameterMetaDataCacheTest extends AbstractTest {
 
     private SQLServerColumnEncryptionKeyStoreProvider registerProvider(
             SQLServerColumnEncryptionKeyStoreProvider provider) throws SQLServerException {
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map1 = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map1 = 
+            new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         map1.put(provider.getName(), provider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map1);
         return provider;

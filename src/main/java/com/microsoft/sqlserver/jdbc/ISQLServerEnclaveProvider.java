@@ -286,7 +286,6 @@ interface ISQLServerEnclaveProvider {
             SQLQueryMetadataCache.addQueryMetadata(params, parameterNames, session, connection, 
                 sqlServerStatement, cekList);
         }
-        
     }
 
     /**

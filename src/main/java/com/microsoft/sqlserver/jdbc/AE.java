@@ -232,7 +232,7 @@ class CryptoMetadata {
 }
 
 
-/*
+/**
  * Represents a cache of all queries for a given enclave session.
  */
 class CryptoCache {
@@ -241,7 +241,8 @@ class CryptoCache {
      * and parameter data in paramMap.
      */
     private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = 
+        new ConcurrentHashMap<>(16);
 
     ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;
@@ -249,7 +250,7 @@ class CryptoCache {
 
     void replaceParamMap(ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap) {
         paramMap = newMap;
-    };
+    }
 
     Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
         return cekMap.get(enclaveLookupKey);
