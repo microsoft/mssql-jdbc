@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.1.2] Preview Release
+### Added
+- Added support for caching managed identity tokens[1825](https://github.com/microsoft/mssql-jdbc/pull/1825)
+- Added support for caching Always Encrypted parameter metadata [1845](https://github.com/microsoft/mssql-jdbc/pull/1845)
+### Changed
+- Switched from strings to char arrays for secure string use [1813](https://github.com/microsoft/mssql-jdbc/pull/1813)
+- Added check for negotiated ALPN [1818](https://github.com/microsoft/mssql-jdbc/pull/1818)
+### Fixed issues
+- Fixed double connection issue when enabling TDS 8.0 and SSL by reusing original socket connection [1817](https://github.com/microsoft/mssql-jdbc/pull/1817)
+- Fixed unknown token error 0xA3 when selectMethod cursor is used with data classification [1821](https://github.com/microsoft/mssql-jdbc/pull/1821)
+
+
 ## [11.1.1] Preview Release
 ### Added
 - Added support for Java 18 [1802](https://github.com/microsoft/mssql-jdbc/pull/1802)
