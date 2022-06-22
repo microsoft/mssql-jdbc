@@ -282,7 +282,7 @@ interface ISQLServerEnclaveProvider {
         }
 
         // If using Always Encrypted v1 (without secure enclaves), add to cache
-        if (!connection.enclaveEstablished()) {
+        if (!connection.enclaveEstablished() && session != null) {
             ParameterMetaDataCache.addQueryMetadata(params, parameterNames, session.getCryptoCache(), connection, 
                     sqlServerStatement, cekList);
         }
