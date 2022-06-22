@@ -181,7 +181,8 @@ interface ISQLServerEnclaveProvider {
      */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement,
-            PreparedStatement stmt, ResultSet rs, ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
+            PreparedStatement stmt, ResultSet rs, ArrayList<byte[]> enclaveRequestedCEKs,
+            EnclaveSession session) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
@@ -278,6 +279,12 @@ interface ISQLServerEnclaveProvider {
                     }
                 }
             }
+        }
+
+        // If using Always Encrypted v1 (without secure enclaves), add to cache
+        if (!connection.enclaveEstablished() && session != null) {
+            ParameterMetaDataCache.addQueryMetadata(params, parameterNames, session.getCryptoCache(), connection, 
+                    sqlServerStatement, cekList);
         }
     }
 
@@ -482,11 +489,13 @@ class EnclaveSession {
     private byte[] sessionID;
     private AtomicLong counter;
     private byte[] sessionSecret;
+    private CryptoCache cryptoCache;
 
     EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
         counter = new AtomicLong(0);
+        cryptoCache = new CryptoCache();
     }
 
     byte[] getSessionID() {
@@ -495,6 +504,10 @@ class EnclaveSession {
 
     byte[] getSessionSecret() {
         return sessionSecret;
+    }
+
+    CryptoCache getCryptoCache() {
+        return cryptoCache;
     }
 
     synchronized long getCounter() {

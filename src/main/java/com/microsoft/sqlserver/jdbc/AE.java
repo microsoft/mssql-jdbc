@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -226,6 +228,43 @@ class CryptoMetadata {
 
     boolean isAlgorithmInitialized() {
         return null != cipherAlgorithm;
+    }
+}
+
+
+/**
+ * Represents a cache of all queries for a given enclave session.
+ */
+class CryptoCache {
+    /**
+     * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
+     * and parameter data in paramMap.
+     */
+    private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
+
+    ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
+        return paramMap;
+    }
+
+    void replaceParamMap(ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap) {
+        paramMap = newMap;
+    }
+
+    Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
+        return cekMap.get(enclaveLookupKey);
+    }
+
+    ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+        return paramMap.get(cacheLookupKey);
+    }
+
+    void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
+        paramMap.put(key, value);
+    }
+
+    void removeParamEntry(String cacheLookupKey) {
+        paramMap.remove(cacheLookupKey);
     }
 }
 

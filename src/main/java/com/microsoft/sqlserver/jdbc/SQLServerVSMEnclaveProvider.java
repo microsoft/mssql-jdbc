@@ -150,25 +150,31 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
-                    preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams)) {
-                if (null == rs) {
-                    // No results. Meaning no parameter.
-                    // Should never happen.
-                    return enclaveRequestedCEKs;
-                }
-                processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt, rs,
-                        enclaveRequestedCEKs);
-                // Process the third resultset.
-                if (connection.isAEv2() && stmt.getMoreResults()) {
-                    try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
-                        if (hgsRs.next()) {
-                            hgsResponse = new VSMAttestationResponse(hgsRs.getBytes(1));
-                            // This validates and establishes the enclave session if valid
-                            validateAttestationResponse();
-                        } else {
-                            SQLServerException.makeFromDriverError(null, this,
-                                    SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0", false);
+            // Check the cache for metadata only if we're using AEv1 (without secure enclaves)
+            if (connection.getServerColumnEncryptionVersion() != ColumnEncryptionVersion.AE_V1
+                    || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,
+                            enclaveSession.getCryptoCache(), connection, statement)) {
+                try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
+                        preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams)) {
+                    if (null == rs) {
+                        // No results. Meaning no parameter.
+                        // Should never happen.
+                        return enclaveRequestedCEKs;
+                    }
+                    processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
+                            rs, enclaveRequestedCEKs, enclaveSession);
+                    // Process the third resultset.
+                    if (connection.isAEv2() && stmt.getMoreResults()) {
+                        try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
+                            if (hgsRs.next()) {
+                                hgsResponse = new VSMAttestationResponse(hgsRs.getBytes(1));
+                                // This validates and establishes the enclave session if valid
+                                validateAttestationResponse();
+                            } else {
+                                SQLServerException.makeFromDriverError(null, this,
+                                        SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0",
+                                        false);
+                            }
                         }
                     }
                 }
