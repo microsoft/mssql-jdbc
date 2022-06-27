@@ -36,7 +36,7 @@ final class Util {
 
     final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
 
-    final static Pattern SERVER_NAME_PATTERN = Pattern.compile("((?=^.{1,253}$)(^(((?!-)[a-zA-Z0-9-]{1,63}(?<!-))|((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+[a-zA-Z]{2,63})$))|(\\d+\\.?)+");
+    final static Pattern SERVER_NAME_PATTERN = Pattern.compile("((?=^.{1,253}$)(^(((?!-)[a-zA-Z0-9-]{1,}(?<!-))|((?!-)[a-zA-Z0-9-'\"_]{1,}(?<!-)\\.)+[a-zA-Z]{2,})$))|(\\d+\\.?)+");
 
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
