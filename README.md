@@ -22,7 +22,7 @@ Let us know how you think we're doing.
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
 |--------------------------|--------------------------|--------------------------|
-|[![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.windows?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=1&branchName=dev) | [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.linux?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=3&branchName=dev) | [![Build Status](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_apis/build/status/Microsoft.mssql-jdbc.macOS?branchName=dev)](https://dev.azure.com/sqlclientdrivers-ci/mssql-jdbc/_build/latest?definitionId=7&branchName=dev)|
+| [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/public-mssql-jdbc.windows?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=825&branchName=main) | [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/public-mssql-jdbc.linux?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=823&branchName=main) | [![Build Status](https://sqlclientdrivers.visualstudio.com/public/_apis/build/status/JDBC/CI-MacOS?branchName=main)](https://sqlclientdrivers.visualstudio.com/public/_build/latest?definitionId=824&branchName=main) |
 
 ## Announcements
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
@@ -63,13 +63,13 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 ### Documentation
 API reference documentation is available in [Javadocs](https://aka.ms/jdbcjavadocs).
 
-This driver is documented on [Microsoft's Documentation web site](https://docs.microsoft.com/en-us/sql/connect/jdbc/getting-started-with-the-jdbc-driver).
+This driver is documented on [Microsoft Docs](https://docs.microsoft.com/sql/connect/jdbc/).
 
 ### Sample Code
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be downloaded from the [Microsoft Download Center](https://docs.microsoft.com/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
+For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
 
 ### Download the driver
 Don't want to compile anything?
@@ -80,18 +80,18 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.5.0.jre17</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 ```
-The driver can be downloaded from the [Microsoft Download Center](https://go.microsoft.com/fwlink/?linkid=2168495).
+The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc).
 
-To get the latest preview version of the driver, add the following to your POM file: 
+To get the latest version of the driver, add the following to your POM file: 
 
 ```xml
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.5.0.jre17</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 ```
 
@@ -126,7 +126,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.5.0.jre17</version>
+	<version>11.1.0.jre17</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -144,7 +144,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.5.0.jre17</version>
+	<version>11.1.0.jre17</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -171,7 +171,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>9.5.0.jre17</version>
+	<version>11.1.0.jre17</version>
 </dependency>
 
 <dependency>
@@ -211,7 +211,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Version conventions
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4, 9.5. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1 and so on.
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, and so on.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project. 

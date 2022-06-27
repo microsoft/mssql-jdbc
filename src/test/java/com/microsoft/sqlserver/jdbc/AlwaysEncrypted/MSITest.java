@@ -4,16 +4,14 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -48,6 +46,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -58,6 +57,21 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
+                Integer.toString(Integer.MAX_VALUE));
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
+
+        testSimpleConnect(connStr); // This call will use a cached token
+    }
+
+    private void testSimpleConnect(String connStr) {
         try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {} catch (Exception e) {
             fail(TestResource.getResource("R_loginFailed") + e.getMessage());
         }
@@ -66,6 +80,7 @@ public class MSITest extends AESetup {
     /*
      * Test MSI auth with msiClientId
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -77,14 +92,24 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
 
-        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {} catch (Exception e) {
-            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
-        }
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
+                Integer.toString(Integer.MAX_VALUE));
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
+
+        testSimpleConnect(connStr); // This call will use a cached token
     }
 
     /*
      * Test MSI auth using datasource
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -98,14 +123,13 @@ public class MSITest extends AESetup {
         ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
 
-        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
-            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
-        }
+        testSimpleConnect(connStr);
     }
 
     /*
      * Test MSI auth with msiClientId using datasource
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -120,9 +144,7 @@ public class MSITest extends AESetup {
         ds.setMSIClientId(msiClientId);
         AbstractTest.updateDataSource(connStr, ds);
 
-        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {} catch (Exception e) {
-            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
-        }
+        testSimpleConnect(connStr);
     }
 
     /*

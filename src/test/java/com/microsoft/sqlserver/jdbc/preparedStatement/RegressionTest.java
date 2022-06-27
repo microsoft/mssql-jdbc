@@ -50,7 +50,9 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @BeforeAll
-    public static void setupTest() throws SQLException {
+    public static void setupTest() throws Exception {
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }

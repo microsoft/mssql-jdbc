@@ -20,6 +20,7 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -38,6 +39,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
+        setConnection();
+    }
 
     static class TrustStore {
         private File trustStoreFile;
@@ -161,56 +168,56 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testNotValidNotSpecified() throws SQLException {
-        testNotValid(SqlAuthentication.NotSpecified.toString(), false, false);
-        testNotValid(SqlAuthentication.NotSpecified.toString(), false, true);
-        testNotValid(SqlAuthentication.NotSpecified.toString(), true, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, false);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.NotSpecified.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidSqlPassword() throws SQLException {
-        testNotValid(SqlAuthentication.SqlPassword.toString(), false, true);
-        testNotValid(SqlAuthentication.SqlPassword.toString(), true, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.SqlPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testNotValidActiveDirectoryPassword() throws SQLException {
-        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
-        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.FALSE, true);
+        testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidNotSpecified() throws SQLException {
-        testValid(SqlAuthentication.NotSpecified.toString(), false, false);
-        testValid(SqlAuthentication.NotSpecified.toString(), false, true);
-        testValid(SqlAuthentication.NotSpecified.toString(), true, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, false);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.NotSpecified.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidSqlPassword() throws SQLException {
-        testValid(SqlAuthentication.SqlPassword.toString(), false, true);
-        testValid(SqlAuthentication.SqlPassword.toString(), true, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.SqlPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidActiveDirectoryIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), false, true);
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), true, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
     }
 
     @Test
     public void testValidActiveDirectoryPassword() throws SQLException {
-        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), false, true);
-        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), true, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.FALSE, true);
+        testValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.TRUE, true);
     }
 
     @Test
@@ -240,13 +247,61 @@ public class FedauthTest extends FedauthCommon {
     }
 
     /**
-     * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
+     * Test AAD Password Authentication using username/password in connection string, data source and SSL
+     * encryption, in addition to application name in order to use different authorities.
+     *
+     * @throws Exception
+     *          if an exception occurs
+     */
+    @Test
+    public void testAADPasswordApplicationName() throws Exception {
+        String url = "jdbc:sqlserver://" + kustoServer + ";database=" + azureDatabase + ";user=" + azureUserName
+                + ";password=" + azurePassword + ";Authentication="
+                + SqlAuthentication.ActiveDirectoryPassword.toString() + ";hostNameInCertificate="
+                + hostNameInCertificate + ";applicationName=" + applicationName
+                + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(url);
+
+        try (Connection con = ds.getConnection()) {
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test AAD Service Principal Authentication using AADSecurePrincipalId/AADSecurePrincipalSecret in connection
+     * string, data source and SSL encryption.
+     * 
+     * @deprecated
+     */
+    @Test
+    public void testAADServicePrincipalAuthDeprecated() {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
+                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(url, ds);
+        try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
+                Connection conn3 = DriverManager.getConnection(urlEncrypted)) {
+            assertNotNull(conn1);
+            assertNotNull(conn2);
+            assertNotNull(conn3);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test AAD Service Principal Authentication using username/password in connection string, data source and SSL
+     * encryption.
      */
     @Test
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
-                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + azureAADPrincipialId + ";Password="
+                + azureAADPrincipialSecret;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -275,16 +330,26 @@ public class FedauthTest extends FedauthCommon {
         url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
         validateException(url, "R_MSALExecution");
 
-        // AADSecurePrincipalSecret not provided.
+        // AADSecurePrincipalSecret/password not provided.
         url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-
-        // AADSecurePrincipalId not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        url = baseUrl + "Username=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
-        // Both AADSecurePrincipalId and AADSecurePrincipalSecret not provided.
+        // AADSecurePrincipalId/username not provided.
+        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+        url = baseUrl + "password=" + azureAADPrincipialSecret;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
+        url = baseUrl + "Username=" + azureAADPrincipialId + ";password=" + azureAADPrincipialSecret
+                + ";AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret="
+                + azureAADPrincipialSecret;
+        validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
     private static void validateException(String url, String resourceKey) {
@@ -295,7 +360,7 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    private void testValid(String authentication, boolean encrypt, boolean trustServerCertificate) throws SQLException {
+    private void testValid(String authentication, String encrypt, boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
@@ -326,7 +391,7 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    private void testNotValid(String authentication, boolean encrypt,
+    private void testNotValid(String authentication, String encrypt,
             boolean trustServerCertificate) throws SQLException {
         try {
             SQLServerDataSource ds = new SQLServerDataSource();

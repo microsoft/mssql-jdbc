@@ -38,6 +38,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  *
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 public class BatchExecutionTest extends AbstractTest {
@@ -53,6 +54,15 @@ public class BatchExecutionTest extends AbstractTest {
      */
     @Test
     public void testBatchExceptionAEOn() throws Exception {
+        testAddBatch1();
+        testExecuteBatch1();
+        testAddBatch1UseBulkCopyAPI();
+        testExecuteBatch1UseBulkCopyAPI();
+    }
+
+    @Test
+    public void testBatchSpPrepare() throws Exception {
+        connectionString += ";prepareMethod=prepare;";
         testAddBatch1();
         testExecuteBatch1();
         testAddBatch1UseBulkCopyAPI();
@@ -232,6 +242,8 @@ public class BatchExecutionTest extends AbstractTest {
 
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        setConnection();
+
         ctstable1 = RandomUtil.getIdentifier("ctstable1");
         ctstable2 = RandomUtil.getIdentifier("ctstable2");
 

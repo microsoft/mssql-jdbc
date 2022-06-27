@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.clientcertauth;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
@@ -11,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -25,11 +27,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
- * Tests client certificate authentication feature
- * The feature is only supported against SQL Server Linux CU2 or higher.
+ * Tests client certificate authentication feature. The feature is only supported against SQL Server Linux CU2 or
+ * higher.
  * 
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.xAzureSQLDW)
@@ -47,6 +50,13 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
     static final String ENCRYPTED_PKCS8_KEY_SUFFIX = "-encrypted-pkcs8.key;";
     static final String PFX_KEY_SUFFIX = ".pfx;";
     static final String ENCRYPTED_PFX_KEY_SUFFIX = "-encrypted.pfx;";
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        // Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
+        setConnection();
+    }
 
     /**
      * Tests client certificate authentication feature with PKCS1 private key.
@@ -198,32 +208,31 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
      * @throws Exception
      */
     @Test
-    public void testEncryptTrusted() throws Exception {
+    public void testEncryptOn() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
                 + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=true;";
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt
-                    .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
             rs.next();
             assertTrue(rs.getBoolean(1));
         }
     }
 
     /**
-     * Tests client certificate authentication feature with encryption turned on, untrusted.
+     * Tests client certificate authentication feature with encryption turned off.
      * 
      * @throws Exception
      */
     @Test
-    public void testEncryptUntrusted() throws Exception {
+    public void testEncryptOff() throws Exception {
         String conStr = connectionString + ";clientCertificate=" + clientCertificate + PEM_SUFFIX + "clientKey="
-                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=true;trustServerCertificate=false;trustStore="
-                + trustStorePath;
-        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt
-                    .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID");
+                + clientKey + PKCS8_KEY_SUFFIX + "encrypt=false;trustServerCertificate=true";
+        try (Connection conn = DriverManager.getConnection(conStr); Statement stmt = conn.createStatement();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")) {
             rs.next();
-            assertTrue(rs.getBoolean(1));
+            assertFalse(rs.getBoolean(1));
         }
     }
 }

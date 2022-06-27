@@ -17,6 +17,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -195,6 +196,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         }
     }
 
+<<<<<<< HEAD
     /*
      * Test to make sure that a Timestamp is treated as a datetime object.
      */
@@ -287,6 +289,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
         }
 
         assertEquals(expected, actual);
+    }
+    
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
     }
 
     @BeforeEach

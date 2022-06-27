@@ -101,23 +101,47 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getLastUpdateCount();
 
     /**
-     * Sets a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @param encrypt
-     *        true if the Secure Sockets Layer (SSL) encryption is enabled between the client and the SQL Server.
-     *        Otherwise, false.
+     * @param encryptOption
+     *        TLS encrypt option. Default is "true"
      */
-    void setEncrypt(boolean encrypt);
+    void setEncrypt(String encryptOption);
 
     /**
-     * Returns a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @return true if encrypt is enabled. Otherwise, false.
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
+     * @param encryptOption
+     *        TLS encrypt option. Default is true
      */
-    boolean getEncrypt();
+    @Deprecated
+    void setEncrypt(boolean encryptOption);
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
+     * Returns the TLS encryption option.
+     * 
+     * @return the TLS encrypt option
+     */
+    String getEncrypt();
+
+    /**
+     * Returns the path to the server certificate.
+     *
+     * @return serverCertificate property value
+     */
+    String getServerCertificate();
+
+    /**
+     * Sets the connection property 'serverCertificate' on the connection.
+     *
+     * @param cert
+     *        The path to the server certificate.
+     */
+    void setServerCertificate(String cert);
+
+    /**
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address
@@ -143,18 +167,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
-     *        communication layer is encrypted using SSL. Otherwise, false.
+     *        communication layer is encrypted using SSL. false, if server SLL certificate should not be trusted
+     *        certificate location, if encrypt=strict
      */
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
-     * @return true if trustServerCertificate is enabled. Otherwise, false.
+     * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
+     *         certificate location
      */
     boolean getTrustServerCertificate();
 
@@ -378,6 +404,22 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return A String that contains the server name or null if no value is set.
      */
     String getServerName();
+
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *         A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
 
     /**
      * Sets the name of the failover server that is used in a database mirroring configuration.
@@ -763,17 +805,40 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
+     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
+     * 
      * @param configurationName
      *        the configuration name
      */
+    @Deprecated
     void setJASSConfigurationName(String configurationName);
+
+    /**
+     * Returns the login configuration file for Kerberos authentication.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     * 
+     * @return login configuration file name
+     */
+    @Deprecated
+    String getJASSConfigurationName();
+
+    /**
+     * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
+     * SQLJDBCDriver </i>
+     * 
+     * 
+     * @param configurationName
+     *        the configuration name
+     */
+    void setJAASConfigurationName(String configurationName);
 
     /**
      * Returns the login configuration file for Kerberos authentication.
      * 
      * @return login configuration file name
      */
-    String getJASSConfigurationName();
+    String getJAASConfigurationName();
 
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
@@ -1055,7 +1120,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
-     * 
+     *
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
@@ -1070,33 +1135,33 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value for the connection property 'AADSecurePrincipalId'.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
      *
      * @return 'AADSecurePrincipalId' property value.
      */
+    @Deprecated
     String getAADSecurePrincipalId();
 
     /**
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
      * @param AADSecurePrincipalId
      *        Active Directory Service Principal Id.
      */
+    @Deprecated
     void setAADSecurePrincipalId(String AADSecurePrincipalId);
-
-    /**
-     * Returns the value for the connection property 'AADSecurePrincipalSecret'.
-     *
-     * @return 'AADSecurePrincipalSecret' property value.
-     */
-    String getAADSecurePrincipalSecret();
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      * @param AADSecurePrincipalSecret
      *        Active Directory Service Principal secret.
      */
+    @Deprecated
     void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 
     /**
@@ -1143,4 +1208,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return interval in seconds
      */
     int getConnectRetryInterval();
+
+    /**
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
+     *
+     * @param prepareMethod
+     *        Changes the setting as per description
+     */
+    void setPrepareMethod(String prepareMethod);
+
+    /**
+     * Returns the value indicating the prepare method. {@link PrepareMethod}
+     *
+     * @return prepare method
+     */
+    String getPrepareMethod();
+
+    /**
+     * Sets time-to-live for the the cached MSI token
+     *
+     * @param timeToLive
+     *        Changes the setting as per description
+     */
+    void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Gets the time-to-live for the the cached MSI token
+     *
+     * @return time-to-live for the cached MSI token
+     */
+    int getMsiTokenCacheTtl();
 }

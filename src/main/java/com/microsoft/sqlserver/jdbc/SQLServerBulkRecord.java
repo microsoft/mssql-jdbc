@@ -15,6 +15,7 @@ import java.util.Map.Entry;
  * Abstract class that implements ISQLServerBulkRecord
  *
  */
+@SuppressWarnings("deprecation")
 abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
 
     /**

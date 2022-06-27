@@ -13,6 +13,12 @@ import java.util.ListResourceBundle;
  *
  */
 public final class SQLServerResource extends ListResourceBundle {
+
+    /**
+     * default constructor
+     */
+    public SQLServerResource() {}
+
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
     }
@@ -166,6 +172,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_databaseNamePropertyDescription", "The name of the database to connect to."},
         {"R_domainPropertyDescription", "The Windows domain to authenticate in using NTLM."},
         {"R_serverNamePropertyDescription", "The computer running SQL Server."},
+        {"R_iPAddressPreferencePropertyDescription", "The preferred type of IP address."},
         {"R_portNumberPropertyDescription", "The TCP port where an instance of SQL Server is listening."},
         {"R_realmPropertyDescription", "The realm for Kerberos authentication."},
         {"R_serverSpnPropertyDescription", "SQL Server SPN."},
@@ -183,6 +190,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
         {"R_connectRetryCountPropertyDescription", "The number of reconnection attempts if there is a connection failure."},
         {"R_connectRetryIntervalPropertyDescription", "The number of seconds between each connection retry attempt."},
+        {"R_msiTokenCacheTtlPropertyDescription", "The number of seconds a Managed Identity (MSI) access token should be cached."},
         {"R_loginTimeoutPropertyDescription", "The number of seconds the driver should wait before timing out a failed connection."},
         {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},
         {"R_xopenStatesPropertyDescription", "Determines if the driver returns XOPEN-compliant SQL state codes in exceptions."},
@@ -193,6 +201,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_failoverPartnerPropertyDescription", "The name of the failover server used in a database mirroring configuration."},
         {"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
         {"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
+        {"R_serverCertificatePropertyDescription", "The path to the server certificate file."},
+        {"R_prepareMethodPropertyDescription", "Determines the prepare method used in the driver."},
         {"R_socketFactoryClassPropertyDescription", "The class to instantiate as the SocketFactory for connections"},
         {"R_socketFactoryConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by socketFactoryClass"},
         {"R_trustServerCertificatePropertyDescription", "Determines if the driver should validate the SQL Server Secure Sockets Layer (SSL) certificate."},
@@ -267,8 +277,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCipherTextSize", "Specified ciphertext has an invalid size of {0} bytes, which is below the minimum {1} bytes required for decryption."},
         {"R_InvalidAlgorithmVersion", "The specified ciphertext''s encryption algorithm version {0} does not match the expected encryption algorithm version {1} ."},
         {"R_InvalidAuthenticationTag", "Specified ciphertext has an invalid authentication tag. "},
-        {"R_EncryptionFailed", "Internal error while encryption:  {0} "},
-        {"R_DecryptionFailed", "Internal error while decryption:  {0} "},
+        {"R_EncryptionFailed", "Internal error during encryption:  {0} "},
+        {"R_DecryptionFailed", "Internal error during decryption:  {0} "},
         {"R_InvalidKeySize", "The column encryption key has been successfully decrypted but it''s length: {0} does not match the length: {1} for algorithm \"{2}\". Verify the encrypted value of the column encryption key in the database."},
         {"R_InvalidEncryptionType", "Encryption type {0} specified for the column in the database is either invalid or corrupted. Valid encryption types for algorithm {1} are: {2}."},
         {"R_UnknownColumnEncryptionAlgorithm", "The Algorithm {0} does not exist. Algorithms registered in the factory are {1}."},
@@ -286,8 +296,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_PlainTextNullAE", "Internal error. Plaintext value cannot be null."},
         {"R_StreamingDataTypeAE", "Data of length greater than {0} is not supported in encrypted {1} column."},
         {"R_AE_NotSupportedByServer", "SQL Server in use does not support column encryption."},
-        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From
-                                                                                                       // Server
+        {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From server
         {"R_NullEncryptedColumnEncryptionKey", "Internal error. Encrypted column encryption key cannot be null."},
         {"R_EmptyEncryptedColumnEncryptionKey", "Internal error. Empty encrypted column encryption key specified."},
         {"R_InvalidMasterKeyDetails", "Invalid master key details specified."},
@@ -295,6 +304,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ByteToShortConversion", "Error occurred while decrypting column encryption key."},
         {"R_InvalidCertificateSignature", "The specified encrypted column encryption key signature does not match the signature computed with the column master key (certificate) in \"{0}\". The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
         {"R_CEKDecryptionFailed", "Exception while decryption of encrypted column encryption key:  {0} "},
+        {"R_CryptoCacheInaccessible", "Error while attempting to perform session crypto cache operations: {0} "},
         {"R_NullKeyEncryptionAlgorithm", "Key encryption algorithm cannot be null."},
         {"R_NullKeyEncryptionAlgorithmInternal", "Internal error. Key encryption algorithm cannot be null."},
         {"R_InvalidKeyEncryptionAlgorithm", "Invalid key encryption algorithm specified: {0}. Expected value: {1}."},
@@ -312,7 +322,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unknownColumnEncryptionType", "Invalid column encryption type {0}."},
         {"R_unsupportedStmtColEncSetting", "SQLServerStatementColumnEncryptionSetting cannot be null."},
         {"R_unsupportedConversionAE", "The conversion from {0} to {1} is unsupported for encrypted column."},
-        {"R_InvalidDataForAE", "The given value of type {0} from the data source cannot be converted to type {1} of the specified target column."},
+        {"R_InvalidDataForAE", "The given value of type {0} from the data source cannot be converted to type {1} of the specified target column {2}."},
         {"R_authenticationPropertyDescription", "The authentication to use."},
         {"R_accessTokenPropertyDescription", "The access token to use for Azure Active Directory."},
         {"R_FedAuthRequiredPreLoginResponseInvalidValue", "Server sent an unexpected value for FedAuthRequired PreLogin Option. Value was {0}."},
@@ -336,8 +346,9 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
-        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"AADSecurePrincipalId\" and \"AADSecurePrincipalSecret\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
+        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
         {"R_NoUserPasswordForSqlPassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
+        {"R_BothUserPasswordandDeprecated", "Both \"User\" (or \"UserName\"), \"Password\" and \"AADSecurePrincipalId\", \"AADSecurePrincipalSecret\" connection string keywords are specified, please use \"User\" (or \"UserName\"), \"Password\" only."},
         {"R_ForceEncryptionTrue_HonorAEFalse", "Cannot set Force Encryption to true for parameter {0} because enryption is not enabled for the statement or procedure {1}."},
         {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn", "Cannot execute statement or procedure {0} because Force Encryption was set as true for parameter {1} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
         {"R_ForceEncryptionTrue_HonorAEFalseRS", "Cannot set Force Encryption to true for parameter {0} because encryption is not enabled for the statement or procedure."},
@@ -410,8 +421,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_certificateStoreInvalidKeyword", "Cannot set \"keyStoreSecret\", if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStoreLocationNotSet", "\"keyStoreLocation\" must be specified, if \"keyStoreAuthentication=CertificateStore\" has been specified in the connection string."},
         {"R_certificateStorePlatformInvalid", "Cannot set \"keyStoreAuthentication=CertificateStore\" on a Windows operating system."},
-        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for
-                                                                                                                                // JKS/PKCS
+        {"R_invalidKeyStoreFile", "Cannot parse \"{0}\". Either the file format is not valid or the password is not correct."}, // for JKS/PKCS
         {"R_invalidCEKCacheTtl", "Invalid column encryption key cache time-to-live specified. The columnEncryptionKeyCacheTtl value cannot be negative and timeUnit can only be DAYS, HOURS, MINUTES or SECONDS."},
         {"R_sendTimeAsDateTimeForAE", "Use sendTimeAsDateTime=false with Always Encrypted."},
         {"R_TVPnotWorkWithSetObjectResultSet", "setObject() with ResultSet is not supported for Table-Valued Parameter. Please use setStructured()."},
@@ -493,6 +503,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
         {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
+        {"R_invalidMsiTokenCacheTtl", "msiTokenCacheTtl {0} is not valid."},
         {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
         {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
         {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
@@ -502,6 +513,13 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crServerSessionStateNotRecoverable", "The connection is broken and recovery is not possible. The connection is marked by the server as unrecoverable. No attempt was made to restore the connection."},
         {"R_crClientUnrecoverable","The connection is broken and recovery is not possible. The connection is marked by the client driver as unrecoverable. No attempt was made to restore the connection."},
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
+        {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
+        {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
+        {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
+        {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
+        {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
+        {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
+        {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
     };
 }
 // @formatter:on

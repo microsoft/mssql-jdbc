@@ -28,12 +28,15 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = "[" + RandomUtil.getIdentifier("resTable") + "]";
     static int numberOfRows = 10;
 
     @BeforeAll
-    public static void setUp() throws SQLException {
+    public static void setupTests() throws Exception {
+        setConnection();
+
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {
             TestUtils.dropTableIfExists(tableName, s);
             createTable(s);

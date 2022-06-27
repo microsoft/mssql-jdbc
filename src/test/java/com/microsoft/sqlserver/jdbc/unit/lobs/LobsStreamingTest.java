@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +36,11 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class LobsStreamingTest extends AbstractTest {
 
     private static String tableName = null;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @BeforeEach
     public void init() throws SQLException {

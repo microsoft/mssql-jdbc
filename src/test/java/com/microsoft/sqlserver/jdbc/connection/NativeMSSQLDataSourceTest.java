@@ -17,22 +17,24 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import com.microsoft.sqlserver.jdbc.*;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
 public class NativeMSSQLDataSourceTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @Test
     public void testNativeMSSQLDataSource() throws SQLException {
@@ -72,7 +74,9 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         System.setProperty("java.net.preferIPv6Addresses", Boolean.TRUE.toString());
         ds.setURL(connectionString);
         ds.setTrustStorePassword("wrong_password");
-        try (Connection conn = ds.getConnection()) {}
+        try (Connection conn = ds.getConnection()) {} catch (SQLException e) {
+            assert (e.getMessage().contains(TestResource.getResource("R_keystorePassword")));
+        }
         ds = testSerial(ds);
         try (Connection conn = ds.getConnection()) {} catch (SQLException e) {
             assertEquals(TestResource.getResource("R_trustStorePasswordNotSet"), e.getMessage());
@@ -114,8 +118,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     @Test
     public void testDSReference() {
         SQLServerDataSource ds = new SQLServerDataSource();
-        assertTrue(ds.getReference().getClassName()
-                .equals("com.microsoft.sqlserver.jdbc.SQLServerDataSource"));
+        assertTrue(ds.getReference().getClassName().equals("com.microsoft.sqlserver.jdbc.SQLServerDataSource"));
     }
 
     private SQLServerDataSource testSerial(SQLServerDataSource ds) throws IOException, ClassNotFoundException {

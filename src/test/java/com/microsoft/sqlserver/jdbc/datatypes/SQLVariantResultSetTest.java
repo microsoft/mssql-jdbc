@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import microsoft.sql.DateTimeOffset;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -1026,22 +1027,18 @@ public class SQLVariantResultSetTest extends AbstractTest {
     }
 
     /**
-     * Tests unsupported type
+     * Tests returning class of base type datetimeoffset in sql_variant is correct
      * 
      * @throws SQLException
      */
     @Test
-    public void testUnsupportedDatatype() throws SQLException {
+    public void testDateTimeOffsetAsSqlVariant() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(
                         "select cast(cast('2017-08-16 17:31:09.995 +07:00' as datetimeoffset) as sql_variant)")) {
             rs.next();
-            try {
-                rs.getObject(1);
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            } catch (Exception e) {
-                assertTrue(e.getMessage().equalsIgnoreCase("Unexpected TDS type  DATETIMEOFFSETN  in SQL_VARIANT."));
-            }
+            Object object = rs.getObject(1);
+            assertEquals(object.getClass(), DateTimeOffset.class);
         }
     }
 
@@ -1113,7 +1110,9 @@ public class SQLVariantResultSetTest extends AbstractTest {
      * @throws IOException
      */
     @BeforeAll
-    public static void setupHere() throws SQLException, SecurityException, IOException {
+    public static void setupHere() throws Exception {
+        setConnection();
+
         tableName = RandomUtil.getIdentifier("sqlVariantTestSrcTable");
         inputProc = RandomUtil.getIdentifier("sqlVariantProc");
     }
