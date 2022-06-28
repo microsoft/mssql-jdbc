@@ -107,7 +107,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_statementMustBeExecuted", "The statement must be executed before any results can be obtained."},
         {"R_modeSuppliedNotValid", "The supplied mode is not valid."},
         {"R_errorConnectionString", "The connection string contains a badly formed name or value."},
-        {"R_errorServerName", "The server name {0} is badly formed."},
+        {"R_errorServerName", "The serverName connection property value {0} is badly formed."},
         {"R_errorProcessingComplexQuery", "An error occurred while processing the complex query."},
         {"R_invalidOffset", "The offset {0} is not valid."},
         {"R_nullConnection", "The connection URL is null."},
