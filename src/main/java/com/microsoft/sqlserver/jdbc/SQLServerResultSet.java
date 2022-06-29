@@ -383,21 +383,24 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 // Continue to read the error message if DONE packet has error flag
                 int packetType = tdsReader.peekTokenType();
-                if (TDS.TDS_DONE == packetType) {
-                    short status = tdsReader.peekStatusFlag();
-                    // check if status flag has DONE_ERROR set i.e., 0x2
-                    if ((status & 0x0002) != 0) {
-                        // Consume the DONE packet if there is error
-                        StreamDone doneToken = new StreamDone();
-                        doneToken.setFromTDS(tdsReader);
-                        if (doneToken.isFinal()) {
-                            // Response is completely processed, hence decrement unprocessed response count.
-                            stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                        }
-                        return true;
+                short status = tdsReader.peekStatusFlag();
+
+                if (TDS.TDS_DONE == packetType && ((status & TDS.DONE_ERROR) != 0)) {
+                    StreamDone doneToken = new StreamDone();
+                    doneToken.setFromTDS(tdsReader);
+                    if (doneToken.isFinal()) {
+                        // Response is completely processed, hence decrement unprocessed response count.
+                        stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
                     }
+                    return true;
                 }
 
+                if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {tdsReader.peekStatusFlag()};
+                    throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                            DriverError.NOT_SET, null);
+                }
                 return false;
             }
         }
@@ -5413,8 +5416,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
             boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
                 if (tdsReader.getServerSupportsDataClassification()) {
-                    tdsReader.trySetSensitivityClassification(
-                            new StreamColumns(Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection))
+                    tdsReader.trySetSensitivityClassification(new StreamColumns(
+                            Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection))
                                     .processDataClassification(tdsReader));
                 }
                 return true;
