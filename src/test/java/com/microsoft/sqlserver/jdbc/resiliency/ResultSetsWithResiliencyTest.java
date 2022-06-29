@@ -133,11 +133,10 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testKillSession() throws Exception {
-
         // setup test with big table
-        String table1 = AbstractSQLGenerator.escapeIdentifier("killSessionTestTable1");
-        String table2 = AbstractSQLGenerator.escapeIdentifier("killSessionTestTable2");
-        String table3 = AbstractSQLGenerator.escapeIdentifier("killSessionTestTable3");
+        String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable1"));
+        String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable2"));
+        String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable3"));
 
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();
                 PreparedStatement ps1 = c.prepareStatement("INSERT INTO table1 values (?)");
@@ -166,38 +165,43 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             ps3.executeBatch();
 
             c.commit();
-        }
 
-        // execute query which takes a long time and kill session in aother thread
-        try (Connection c = DriverManager.getConnection(connectionString)) {
-            int sessionId = ResiliencyUtils.getSessionId(c);
+            // execute query which takes a long time and kill session in aother thread
+            try (Connection c2 = DriverManager.getConnection(connectionString)) {
+                int sessionId = ResiliencyUtils.getSessionId(c2);
 
-            Runnable r1 = () -> {
-                try {
-                    ResiliencyUtils.killConnection(sessionId, connectionString, c);
-                } catch (SQLException e) {
-                    fail(e.getMessage());;
-                }
-            };
+                Runnable r1 = () -> {
+                    try {
+                        ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                    } catch (SQLException e) {
+                        fail(e.getMessage());;
+                    }
+                };
 
-            Runnable r2 = () -> {
-                try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT e1.* FROM table1 e1, table2 e2, table3 e3, table1 e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM table2) and e2.name not in (select name  FROM table1 ) and e3.name not in (SELECT name FROM table2) and e4.name not in (SELECT name FROM table3);");
-                        ResultSet rs = ps.executeQuery()) {
+                Runnable r2 = () -> {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT e1.* FROM table1 e1, table2 e2, table3 e3, table1 e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM table2) and e2.name not in (select name  FROM table1 ) and e3.name not in (SELECT name FROM table2) and e4.name not in (SELECT name FROM table3);");
+                            ResultSet rs = ps.executeQuery()) {
 
-                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                } catch (SQLException e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")));
-                }
-            };
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } catch (SQLException e) {
+                        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")));
+                    }
+                };
 
-            Thread t1 = new Thread(r1);
-            Thread t2 = new Thread(r2);
-            t2.start();
-            Thread.sleep(TimeUnit.SECONDS.toMillis(5));
-            t1.start();
-            t2.join();
-            t1.join();
+                Thread t1 = new Thread(r1);
+                Thread t2 = new Thread(r2);
+                t2.start();
+                Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+                t1.start();
+                t2.join();
+                t1.join();
+
+            } finally {
+                TestUtils.dropTableIfExists(table1, s);
+                TestUtils.dropTableIfExists(table2, s);
+                TestUtils.dropTableIfExists(table3, s);
+            }
         }
     }
 
