@@ -381,11 +381,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
-                // Continue to read the error message if DONE packet has error flag
                 int packetType = tdsReader.peekTokenType();
                 short status = tdsReader.peekStatusFlag();
 
-                if (TDS.TDS_DONE == packetType && ((status & TDS.DONE_ERROR) != 0)) {
+                if (TDS.TDS_DONE == packetType) {
                     StreamDone doneToken = new StreamDone();
                     doneToken.setFromTDS(tdsReader);
                     if (doneToken.isFinal()) {
