@@ -31,9 +31,6 @@ final class SecureStringUtil {
     /* authentication tag length in bits */
     static final int TAG_LENGTH = 16;
 
-    /* initialization vector */
-    byte[] iv;
-
     /** secret key for encryption/decryption */
     SecretKeySpec secretKey;
 
@@ -68,7 +65,6 @@ final class SecureStringUtil {
      *         if error
      */
     private SecureStringUtil() throws SQLServerException {
-        iv = new byte[IV_LENGTH];
         try {
             // generate key */
             KeyGenerator keygen = KeyGenerator.getInstance(KEYGEN_ALGORITHEM);
@@ -99,6 +95,8 @@ final class SecureStringUtil {
     byte[] getEncryptedBytes(char[] chars) throws SQLServerException {
         if (chars == null)
             return null;
+
+        byte[] iv = new byte[IV_LENGTH];
         SecureRandom random = new SecureRandom();
         random.nextBytes(iv);
         GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
@@ -107,7 +105,10 @@ final class SecureStringUtil {
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
 
             byte[] cipherText = encryptCipher.doFinal(Util.charsToBytes(chars));
-            return cipherText;
+            byte[] bytes = new byte[iv.length + cipherText.length];
+            System.arraycopy(iv, 0, bytes, 0, iv.length);
+            System.arraycopy(cipherText, 0, bytes, iv.length, cipherText.length);
+            return bytes;
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
@@ -127,13 +128,19 @@ final class SecureStringUtil {
     char[] getDecryptedChars(byte[] bytes) throws SQLServerException {
         if (bytes == null)
             return null;
+
+        byte[] iv = new byte[IV_LENGTH];
+        byte[] encryptedBytes = new byte[bytes.length - IV_LENGTH];
+        System.arraycopy(bytes, 0, iv, 0, IV_LENGTH);
+        System.arraycopy(bytes, IV_LENGTH, encryptedBytes, 0, bytes.length - IV_LENGTH);
+
         GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
 
         byte[] plainText = null;
         try {
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
 
-            plainText = decryptCipher.doFinal(bytes);
+            plainText = decryptCipher.doFinal(encryptedBytes);
             return Util.bytesToChars(plainText);
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
