@@ -133,15 +133,15 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
      */
     @Test
     public void testKillSession() throws Exception {
-        // setup test with big table
+        // setup test with big tables
         String table1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable1"));
         String table2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable2"));
         String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable3"));
 
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();
-                PreparedStatement ps1 = c.prepareStatement("INSERT INTO table1 values (?)");
-                PreparedStatement ps2 = c.prepareStatement("INSERT INTO table2 values (?)");
-                PreparedStatement ps3 = c.prepareStatement("INSERT INTO table3 values (?)")) {
+                PreparedStatement ps1 = c.prepareStatement("INSERT INTO " + table1 + " values (?)");
+                PreparedStatement ps2 = c.prepareStatement("INSERT INTO " + table2 + " values (?)");
+                PreparedStatement ps3 = c.prepareStatement("INSERT INTO " + table3 + " values (?)")) {
             TestUtils.dropTableIfExists(table1, s);
             TestUtils.dropTableIfExists(table2, s);
             TestUtils.dropTableIfExists(table3, s);
@@ -172,15 +172,19 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
                 Runnable r1 = () -> {
                     try {
-                        ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                        ResiliencyUtils.killConnection(sessionId, connectionString, c2);
                     } catch (SQLException e) {
                         fail(e.getMessage());;
                     }
                 };
 
                 Runnable r2 = () -> {
-                    try (PreparedStatement ps = c.prepareStatement(
-                            "SELECT e1.* FROM table1 e1, table2 e2, table3 e3, table1 e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM table2) and e2.name not in (select name  FROM table1 ) and e3.name not in (SELECT name FROM table2) and e4.name not in (SELECT name FROM table3);");
+                    try (PreparedStatement ps = c2.prepareStatement("SELECT e1.* FROM " + table1 + " e1, " + table2
+                            + " e2, " + table3 + " e3, " + table1
+                            + " e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM "
+                            + table2 + ") and e2.name not in (select name  FROM " + table1
+                            + " ) and e3.name not in (SELECT name FROM " + table2
+                            + ") and e4.name not in (SELECT name FROM " + table3 + ");");
                             ResultSet rs = ps.executeQuery()) {
 
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
