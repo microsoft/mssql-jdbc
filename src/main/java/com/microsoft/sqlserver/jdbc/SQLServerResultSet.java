@@ -381,24 +381,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
-                int packetType = tdsReader.peekTokenType();
                 short status = tdsReader.peekStatusFlag();
-
-                if (TDS.TDS_DONE == packetType) {
-                    StreamDone doneToken = new StreamDone();
-                    doneToken.setFromTDS(tdsReader);
-                    if (doneToken.isFinal()) {
-                        // Response is completely processed, hence decrement unprocessed response count.
-                        stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                    }
-                    return true;
-                }
+                StreamDone doneToken = new StreamDone();
+                doneToken.setFromTDS(tdsReader);
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
-                    Object[] msgArgs = {tdsReader.peekStatusFlag()};
-                    throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
-                            DriverError.NOT_SET, null);
+                    Object[] msgArgs = {status};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
                 return false;
             }
@@ -5386,10 +5377,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-                if (doneToken.isFinal()) {
-                    // Response is completely processed, hence decrement unprocessed response count.
-                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                }
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
