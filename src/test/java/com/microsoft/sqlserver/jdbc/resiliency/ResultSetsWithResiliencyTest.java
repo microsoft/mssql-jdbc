@@ -92,7 +92,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 // Partially parsed
                 rs.next();
                 rs.getString(2);
-                ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail("Driver should not have succesfully reconnected but it did.");
@@ -116,7 +116,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
-                ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
                 fail("Driver should not have succesfully reconnected but it did.");
@@ -150,7 +150,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                     + " (ID int primary key IDENTITY(1,1) NOT NULL, NAME varchar(255) NOT NULL); CREATE TABLE " + table3
                     + "( ID int primary key IDENTITY(1,1) NOT NULL, NAME varchar(255) NOT NULL);");
 
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 ps1.setString(1, "value" + i);
                 ps2.setString(1, "value" + i);
                 ps3.setString(1, "value" + i);
@@ -166,39 +166,33 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             c.commit();
 
-            // execute query which takes a long time and kill session in aother thread
             try (Connection c2 = DriverManager.getConnection(connectionString)) {
                 int sessionId = ResiliencyUtils.getSessionId(c2);
 
                 Runnable r1 = () -> {
                     try {
-                        ResiliencyUtils.killConnection(sessionId, connectionString, c2);
-                    } catch (SQLException e) {
+                        ResiliencyUtils.killConnection(sessionId, connectionString, c2, 10);
+                    } catch (Exception e) {
                         fail(e.getMessage());;
                     }
                 };
 
-                Runnable r2 = () -> {
-                    try (PreparedStatement ps = c2.prepareStatement("SELECT e1.* FROM " + table1 + " e1, " + table2
-                            + " e2, " + table3 + " e3, " + table1
-                            + " e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM "
-                            + table2 + ") and e2.name not in (select name  FROM " + table1
-                            + " ) and e3.name not in (SELECT name FROM " + table2
-                            + ") and e4.name not in (SELECT name FROM " + table3 + ");");
-                            ResultSet rs = ps.executeQuery()) {
-
-                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                    } catch (SQLException e) {
-                        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")));
-                    }
-                };
-
                 Thread t1 = new Thread(r1);
-                Thread t2 = new Thread(r2);
-                t2.start();
-                Thread.sleep(TimeUnit.SECONDS.toMillis(5));
                 t1.start();
-                t2.join();
+
+                // execute query which takes a long time and kill session in another thread
+                try (PreparedStatement ps = c2.prepareStatement("SELECT e1.* FROM " + table1 + " e1, " + table2
+                        + " e2, " + table3 + " e3, " + table1
+                        + " e4 where e1.name = 'abc' or e2.name = 'def'or e3.name = 'ghi' or e4.name = 'xxx' and e1.name not in (select name  FROM "
+                        + table2 + ") and e2.name not in (select name  FROM " + table1
+                        + " ) and e3.name not in (SELECT name FROM " + table2
+                        + ") and e4.name not in (SELECT name FROM " + table3 + ");");
+                        ResultSet rs = ps.executeQuery()) {
+
+                    fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")));
+                }
                 t1.join();
 
             } finally {
@@ -234,7 +228,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             boolean strongReferenceToResultSet) throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
                 Statement s = c.createStatement()) {
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                     verifyResultSet(rs);
