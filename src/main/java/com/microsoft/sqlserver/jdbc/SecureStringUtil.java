@@ -130,9 +130,7 @@ final class SecureStringUtil {
             return null;
 
         byte[] iv = new byte[IV_LENGTH];
-        byte[] encryptedBytes = new byte[bytes.length - IV_LENGTH];
         System.arraycopy(bytes, 0, iv, 0, IV_LENGTH);
-        System.arraycopy(bytes, IV_LENGTH, encryptedBytes, 0, bytes.length - IV_LENGTH);
 
         GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
 
@@ -140,7 +138,7 @@ final class SecureStringUtil {
         try {
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
 
-            plainText = decryptCipher.doFinal(encryptedBytes);
+            plainText = decryptCipher.doFinal(bytes, IV_LENGTH, bytes.length - IV_LENGTH);
             return Util.bytesToChars(plainText);
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DecryptionFailed"));
