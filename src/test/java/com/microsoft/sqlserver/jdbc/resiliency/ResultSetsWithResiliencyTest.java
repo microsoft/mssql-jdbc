@@ -6,8 +6,8 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,7 +15,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -101,7 +100,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable"))) {
                 e.printStackTrace();
             }
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")), e.getMessage());
 
         }
     }
@@ -122,8 +121,10 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 fail("Driver should not have succesfully reconnected but it did.");
             }
         } catch (SQLServerException e) {
-            assertTrue("08S01" == e.getSQLState()
-                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")));
+            assertTrue(
+                    "08S01" == e.getSQLState()
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")),
+                    e.getMessage());
 
         }
     }
@@ -191,7 +192,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")));
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")), e.getMessage());
                 }
                 t1.join();
 
