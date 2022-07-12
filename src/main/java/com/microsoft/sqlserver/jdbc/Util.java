@@ -21,8 +21,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -35,8 +33,6 @@ final class Util {
     final static String WSIDNotAvailable = ""; // default string when WSID is not available
 
     final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
-
-    final static Pattern SERVER_NAME_PATTERN = Pattern.compile("^((?!=).)*$");
 
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
@@ -288,9 +284,8 @@ final class Util {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
                         String property = result.toString().trim();
-                        Matcher matcher = SERVER_NAME_PATTERN.matcher(property);
 
-                        if (!matcher.matches()) {
+                        if (property.contains("=")) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorServerName"));
                             Object[] msgArgs = {property};
                             SQLServerException.makeFromDriverError(null, null,
