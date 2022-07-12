@@ -43,16 +43,17 @@
 		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
 			xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications 
 			xGradle - - - - - - For tests not compatible with Gradle Script - - - - - 
-			xSQLv11 - - - - - - For tests not compatible with SQL Server 2012
+			xSQLv11 - - - - - - For tests not compatible with SQL Server 2012 - - - - 
 			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
 			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
 			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup  - For tests requiring external setup (excluded by default)
-			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
+			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup - For tests requiring external setup (excluded by default) 
+			clientCertAuth - - For tests requiring client certificate authentication 
+			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
@@ -61,16 +62,15 @@
 		<releaseExt>-preview</releaseExt>
 
 		<!-- Driver Dependencies -->
-		<azure.keyvault.version>4.2.8</azure.keyvault.version>
-		<azure.identity.version>1.3.3</azure.identity.version>
-		<osgi.core.version>6.0.0</osgi.core.version>
-		<azure.keyvault.version>4.4.1</azure.keyvault.version>
-		<azure.identity.version>1.5.0</azure.identity.version>
-		<osgi.comp.version>5.0.0</osgi.comp.version>
-		<antlr.runtime.version>4.9.3</antlr.runtime.version>
-		<google.gson.version>2.8.9</google.gson.version>
-		<bouncycastle.bcprov.version>1.70</bouncycastle.bcprov.version>
-		<bouncycastle.bcpkix.version>1.70</bouncycastle.bcpkix.version>
+		<org.osgi.core.version>6.0.0</org.osgi.core.version>
+		<azure-security-keyvault-keys.version>4.4.4</azure-security-keyvault-keys.version>
+		<azure-identity.version>1.5.3</azure-identity.version>
+		<msal.version>1.13.0</msal.version>
+		<org.osgi.compendium.version>5.0.0</org.osgi.compendium.version>
+		<antlr-runtime.version>4.9.3</antlr-runtime.version>
+		<com.google.code.gson.version>2.9.0</com.google.code.gson.version>
+		<bcprov-jdk15on.version>1.70</bcprov-jdk15on.version>
+		<bcpkix-jdk15on.version>1.70</bcpkix-jdk15on.version>
 
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
@@ -90,13 +90,13 @@
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-keys</artifactId>
-			<version>${azure.keyvault.version}</version>
+			<version>${azure-security-keyvault-keys.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
-			<version>${azure.identity.version}</version>
+			<version>${azure-identity.version}</version>
 			<optional>true</optional>
 			<exclusions>
 				<exclusion>
@@ -106,11 +106,17 @@
 			</exclusions>
 		</dependency>
 
+		<dependency>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>msal4j</artifactId>
+			<version>1.13.0</version>
+		</dependency>
+
 		<!-- dependencies for ANTLR -->
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
-			<version>${antlr.runtime.version}</version>
+			<version>${antlr-runtime.version}</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -118,33 +124,33 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>${google.gson.version}</version>
+			<version>${com.google.code.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>${bouncycastle.bcprov.version}</version>
+			<version>${bcprov-jdk15on.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies for Client Certificate Authentication -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>${bouncycastle.bcpkix.version}</version>
+			<version>${bcpkix-jdk15on.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
-			<version>${osgi.core.version}</version>
+			<version>${org.osgi.core.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.compendium</artifactId>
-			<version>${osgi.comp.version}</version>
+			<version>${org.osgi.compendium.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -541,12 +547,12 @@
 						</goals>
 					</execution>
 					<execution>
-				        <id>default-report</id>
-				        <phase>prepare-package</phase>
-				        <goals>
-				            <goal>report</goal>
-				        </goals>
-				    </execution>
+						<id>default-report</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
 				</executions>
 				<configuration>
 					<excludes>

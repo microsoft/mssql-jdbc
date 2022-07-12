@@ -196,7 +196,6 @@ public class DateAndTimeTypeTest extends AbstractTest {
         }
     }
 
-<<<<<<< HEAD
     /*
      * Test to make sure that a Timestamp is treated as a datetime object.
      */
