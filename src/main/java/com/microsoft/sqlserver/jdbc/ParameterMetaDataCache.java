@@ -17,12 +17,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  */
 class ParameterMetaDataCache {
-
+    
     static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
     static final int CACHE_TRIM_THRESHOLD = 300; // Threshold above which to trim the cache
-
+    CryptoCache cache = new CryptoCache(); // Represents the actual cache of CEK and metadata
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
+    
 
     /**
      * Retrieves the metadata from the cache, should it exist.
@@ -40,8 +41,8 @@ class ParameterMetaDataCache {
      * @return true, if the metadata for the query can be retrieved
      * 
      */
-    static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, CryptoCache cache,
-            SQLServerConnection connection, SQLServerStatement stmt) throws SQLServerException {
+    boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, SQLServerConnection connection, 
+        SQLServerStatement stmt) throws SQLServerException {
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         ConcurrentHashMap<String, CryptoMetadata> metadataMap = cache.getCacheEntry(encryptionValues.getKey());
@@ -136,9 +137,8 @@ class ParameterMetaDataCache {
      *        The list of CEKs (from the first RS) that is also added to the cache as well as parameter metadata
      * @return true, if the query metadata has been added correctly
      */
-    static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, CryptoCache cache,
-            SQLServerConnection connection, SQLServerStatement stmt,
-            Map<Integer, CekTableEntry> cekList) throws SQLServerException {
+    boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, SQLServerConnection connection, 
+            SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList) throws SQLServerException {
 
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
@@ -205,7 +205,7 @@ class ParameterMetaDataCache {
      * @param connection
      *        The SQLServerConnection, also used to retrieve keys
      */
-    static void removeCacheEntry(SQLServerStatement stmt, CryptoCache cache, SQLServerConnection connection) {
+    void removeCacheEntry(SQLServerStatement stmt, CryptoCache cache, SQLServerConnection connection) {
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
             return;
@@ -224,7 +224,7 @@ class ParameterMetaDataCache {
      *        The connection from which database name is retrieved
      * @return A key value pair containing cache lookup key and enclave lookup key
      */
-    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
+    private AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
             SQLServerConnection connection) {
 
         StringBuilder cacheLookupKeyBuilder = new StringBuilder();
@@ -239,5 +239,42 @@ class ParameterMetaDataCache {
         String enclaveLookupKey = cacheLookupKeyBuilder.append(":::enclaveKeys").toString();
 
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
+    }
+}
+
+
+/**
+ * Represents a cache of all queries for a given enclave session.
+ */
+class CryptoCache {
+    /**
+     * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. CEK data in cekMap,
+     * and parameter data in paramMap.
+     */
+    private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
+
+    ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
+        return paramMap;
+    }
+
+    void replaceParamMap(ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap) {
+        paramMap = newMap;
+    }
+
+    Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
+        return cekMap.get(enclaveLookupKey);
+    }
+
+    ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+        return paramMap.get(cacheLookupKey);
+    }
+
+    void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
+        paramMap.put(key, value);
+    }
+
+    void removeParamEntry(String cacheLookupKey) {
+        paramMap.remove(cacheLookupKey);
     }
 }

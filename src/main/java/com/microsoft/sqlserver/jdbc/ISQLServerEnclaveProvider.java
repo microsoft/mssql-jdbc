@@ -283,8 +283,8 @@ interface ISQLServerEnclaveProvider {
 
         // If using Always Encrypted v1 (without secure enclaves), add to cache
         if (!connection.enclaveEstablished() && session != null) {
-            ParameterMetaDataCache.addQueryMetadata(params, parameterNames, session.getCryptoCache(), connection, 
-                    sqlServerStatement, cekList);
+            session.getMetaDataCache().addQueryMetadata(params, parameterNames, connection, sqlServerStatement, 
+                cekList);
         }
     }
 
@@ -489,13 +489,13 @@ class EnclaveSession {
     private byte[] sessionID;
     private AtomicLong counter;
     private byte[] sessionSecret;
-    private CryptoCache cryptoCache;
+    private ParameterMetaDataCache metaDataCache;
 
     EnclaveSession(byte[] cs, byte[] b) {
         sessionID = cs;
         sessionSecret = b;
         counter = new AtomicLong(0);
-        cryptoCache = new CryptoCache();
+        metaDataCache = new ParameterMetaDataCache();
     }
 
     byte[] getSessionID() {
@@ -506,8 +506,8 @@ class EnclaveSession {
         return sessionSecret;
     }
 
-    CryptoCache getCryptoCache() {
-        return cryptoCache;
+    ParameterMetaDataCache getMetaDataCache() {
+        return metaDataCache;
     }
 
     synchronized long getCounter() {

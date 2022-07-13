@@ -201,6 +201,8 @@ final class TDS {
     static final byte COLUMNENCRYPTION_NOT_SUPPORTED = 0x00; // column encryption not supported
     static final byte COLUMNENCRYPTION_VERSION1 = 0x01; // column encryption without enclave
     static final byte COLUMNENCRYPTION_VERSION2 = 0x02; // column encryption with enclave
+    
+    static final byte COLUMNENCRYPTION_VERSION3 = 0x03; // column encryption with enclave, with retry
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
     // 0x06 is for x_eFeatureExtensionId_LoginToken
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry
