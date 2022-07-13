@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.HashMap;import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -23,7 +23,6 @@ class ParameterMetaDataCache {
     CryptoCache cache = new CryptoCache(); // Represents the actual cache of CEK and metadata
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
-    
 
     /**
      * Retrieves the metadata from the cache, should it exist.
@@ -189,6 +188,10 @@ class ParameterMetaDataCache {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
         }
+        if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V3) {
+            Map<Integer, CekTableEntry> keysToBeCached = copyEnclaveKeys(cekList);
+            cache.addEnclaveEntry(encryptionValues.getValue(), keysToBeCached);
+        }
 
         cache.addParamEntry(encryptionValues.getKey(), metadataMap);
         return true;
@@ -240,6 +243,31 @@ class ParameterMetaDataCache {
 
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
     }
+    
+    /**
+    * Creates a copy of the enclave keys to be sent to the crypto cache. This allows reconnection when table information
+    * has changed but session, and enclave information, is the same.
+    * 
+    * @param keysToBeCached
+    *        The keys sent to the cryptocache
+    * @return A copy of the enclave keys, stored in the cryptoCache
+    */
+    private Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeCached) {
+        Map<Integer, CekTableEntry> enclaveKeys = new HashMap<Integer, CekTableEntry>();
+        for (Map.Entry<Integer, CekTableEntry> entry : keysToBeCached.entrySet())
+        {
+            int ordinal = entry.getKey();
+            CekTableEntry original = entry.getValue();
+            CekTableEntry copy = new CekTableEntry(ordinal);
+            for (EncryptionKeyInfo cekInfo : original.columnEncryptionKeyValues)
+            {
+                copy.add(cekInfo.encryptedKey, cekInfo.databaseId, cekInfo.cekId, cekInfo.cekVersion,
+                        cekInfo.cekMdVersion, cekInfo.keyPath, cekInfo.keyStoreName, cekInfo.algorithmName);
+            }
+            enclaveKeys.put(ordinal, copy);
+        }
+        return enclaveKeys;
+    }
 }
 
 
@@ -268,6 +296,10 @@ class CryptoCache {
 
     ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
+    }
+    
+    void addEnclaveEntry(String key, Map<Integer, CekTableEntry> value) {
+        cekMap.put(key, value);
     }
 
     void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
