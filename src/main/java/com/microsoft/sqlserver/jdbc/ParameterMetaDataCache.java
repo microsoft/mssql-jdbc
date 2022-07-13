@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -254,7 +253,7 @@ class ParameterMetaDataCache {
      * @return A copy of the enclave keys, stored in the cryptoCache
      */
     private Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeCached) {
-        Map<Integer, CekTableEntry> enclaveKeys = new HashMap<>();
+        Map<Integer, CekTableEntry> enclaveKeys = new ConcurrentHashMap<>();
         for (Map.Entry<Integer, CekTableEntry> entry : keysToBeCached.entrySet()) {
             int ordinal = entry.getKey();
             CekTableEntry original = entry.getValue();
