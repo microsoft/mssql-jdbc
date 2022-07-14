@@ -2713,13 +2713,15 @@ final class SocketFinder {
      */
     private InetSocketAddress getInetAddressByIPPreference(String hostName,
             int portNumber) throws IOException, SQLServerException {
-        InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
-        for (int i = 0; i < addressList.size(); i++) {
-            addr = new InetSocketAddress(addressList.get(i), portNumber);
-            if (!addr.isUnresolved())
-                return addr;
+        synchronized (addressList) {
+            InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
+            for (int i = 0; i < addressList.size(); i++) {
+                addr = new InetSocketAddress(addressList.get(i), portNumber);
+                if (!addr.isUnresolved())
+                    return addr;
+            }
+            return addr;
         }
-        return addr;
     }
 
     /**
@@ -2802,17 +2804,19 @@ final class SocketFinder {
      *        Boolean switch for IPv6 first
      */
     private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
-        addressList.clear();
-        if (ipv6first) {
-            for (InetAddress addr : addresses) {
-                if (addr instanceof Inet6Address) {
-                    addressList.add(addr);
+        synchronized (addressList) {
+            addressList.clear();
+            if (ipv6first) {
+                for (InetAddress addr : addresses) {
+                    if (addr instanceof Inet6Address) {
+                        addressList.add(addr);
+                    }
                 }
-            }
-        } else {
-            for (InetAddress addr : addresses) {
-                if (addr instanceof Inet4Address) {
-                    addressList.add(addr);
+            } else {
+                for (InetAddress addr : addresses) {
+                    if (addr instanceof Inet4Address) {
+                        addressList.add(addr);
+                    }
                 }
             }
         }
