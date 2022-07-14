@@ -192,7 +192,10 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError")), e.getMessage());
+                    assertTrue(
+                            e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
+                                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sessionKilled")),
+                            e.getMessage());
                 }
                 t1.join();
 
