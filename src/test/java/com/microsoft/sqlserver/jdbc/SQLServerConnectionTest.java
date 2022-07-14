@@ -1015,7 +1015,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         int indexOfFirstDelimiter = connectionString.indexOf(";");
         int indexOfLastDelimiter = connectionString.lastIndexOf(";");
 
-        String[] serverNameAndPort = connectionString.substring(17, indexOfFirstDelimiter).split(":");
+        String[] serverNameAndPort = connectionString.substring(subProtocol.length(), indexOfFirstDelimiter).split(":");
         String connectionProperties = connectionString.substring(indexOfFirstDelimiter, indexOfLastDelimiter + 1);
         String loginTimeout = "loginTimout=15";
 
@@ -1030,9 +1030,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(invalidServerNameField)) {
         } catch (SQLException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorServerName"));
-            assertEquals(form.format(new Object[] {loginTimeout}), e.getMessage(),
-                    TestResource.getResource("R_wrongExceptionMessage"));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }
 }
