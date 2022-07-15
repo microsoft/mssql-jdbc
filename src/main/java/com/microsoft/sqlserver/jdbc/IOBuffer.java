@@ -153,6 +153,7 @@ final class TDS {
     // TDS protocol versions
     static final String VER_TDS80 = "tds/8.0"; // TLS-first connections
 
+    static final int VER_SQL2022 = 0x8000005; // TDS 8.0
     static final int VER_DENALI = 0x74000004; // TDS 7.4
     static final int VER_KATMAI = 0x730B0003; // TDS 7.3B(includes null bit compression)
     static final int VER_YUKON = 0x72090002; // TDS 7.2

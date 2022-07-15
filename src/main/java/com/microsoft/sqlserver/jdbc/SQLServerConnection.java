@@ -6038,7 +6038,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int dataLen = 0;
 
         // Denali --> TDS 7.4, Katmai (10.0) & later 7.3B, Prelogin disconnects anything older
-        if (serverMajorVersion >= 11) {
+        // TDS version 8 if strict mode
+        if (serverMajorVersion >= 17 && encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+            tdsVersion = TDS.VER_SQL2022;
+        } else if (serverMajorVersion >= 11) {
             tdsVersion = TDS.VER_DENALI;
         } else if (serverMajorVersion >= 10) {
             tdsVersion = TDS.VER_KATMAI;
