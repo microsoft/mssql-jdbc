@@ -31,14 +31,11 @@ class ParameterMetaDataCache {
      *        Array of parameters used
      * @param parameterNames
      *        Names of parameters used
-     * @param session
-     *        The current enclave session containing the cache
      * @param connection
      *        The SQLServer connection
      * @param stmt
      *        The SQLServer statement, whose returned metadata we're checking
      * @return true, if the metadata for the query can be retrieved
-     * 
      */
     boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, SQLServerConnection connection,
             SQLServerStatement stmt) throws SQLServerException {
@@ -93,7 +90,7 @@ class ParameterMetaDataCache {
                         SQLServerSecurityUtility.decryptSymmetricKey(cryptoCopy, connection, stmt);
                     } catch (SQLServerException e) {
 
-                        removeCacheEntry(stmt, cache, connection);
+                        removeCacheEntry(stmt, connection);
 
                         for (Parameter paramToCleanup : params) {
                             paramToCleanup.cryptoMeta = null;
@@ -126,8 +123,6 @@ class ParameterMetaDataCache {
      *        List of parameters used
      * @param parameterNames
      *        Names of parameters used
-     * @param session
-     *        Enclave session containing the cryptocache
      * @param connection
      *        SQLServerConnection
      * @param stmt
@@ -203,18 +198,16 @@ class ParameterMetaDataCache {
      * 
      * @param stmt
      *        SQLServer statement used to retrieve keys
-     * @param session
-     *        The enclave session where the cryptocache is stored
      * @param connection
      *        The SQLServerConnection, also used to retrieve keys
      */
-    void removeCacheEntry(SQLServerStatement stmt, CryptoCache cryptoCache, SQLServerConnection connection) {
+    void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection) {
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
         if (encryptionValues.getKey() == null) {
             return;
         }
 
-        cryptoCache.removeParamEntry(encryptionValues.getKey());
+        cache.removeParamEntry(encryptionValues.getKey());
     }
 
     /**
