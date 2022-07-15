@@ -192,9 +192,12 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
+                    // may get different error message depending on SQL servers.
+                    // Local servers will report a TDS error where as Azure servers will have a DONE error
                     assertTrue(
                             e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
-                                    || e.getMessage().contains(TestResource.getResource("R_sessionKilled")),
+                                    || e.getMessage().contains(TestResource.getResource("R_sessionKilled"))
+                                    || e.getMessage().contains(TestResource.getResource("R_connectionReset")),
                             e.getMessage());
                 }
                 t1.join();
