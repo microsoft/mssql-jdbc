@@ -150,10 +150,11 @@ final class ExtendedSocketOptions {
 
 
 final class TDS {
-    // TDS protocol versions
-    static final String VER_TDS80 = "tds/8.0"; // TLS-first connections
+    // application protocol
+    static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
 
-    static final int VER_SQL2022 = 0x8000005; // TDS 8.0
+    // TDS versions
+    static final int VER_TDS80 = 0x8000005; // TDS 8.0
     static final int VER_DENALI = 0x74000004; // TDS 7.4
     static final int VER_KATMAI = 0x730B0003; // TDS 7.3B(includes null bit compression)
     static final int VER_YUKON = 0x72090002; // TDS 7.2
@@ -1769,7 +1770,7 @@ final class TDSChannel implements Serializable {
 
                 // set ALPN values
                 SSLParameters sslParam = sslSocket.getSSLParameters();
-                sslParam.setApplicationProtocols(new String[] {TDS.VER_TDS80});
+                sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
                 sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
@@ -1794,9 +1795,9 @@ final class TDSChannel implements Serializable {
 
                 // check negotiated ALPN
                 if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
-                        && negotiatedProtocol.compareToIgnoreCase(TDS.VER_TDS80) != 0) {
+                        && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
-                    Object[] msgArgs = {TDS.VER_TDS80, negotiatedProtocol};
+                    Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
                     con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
                 }
             }
