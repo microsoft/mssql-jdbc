@@ -9,16 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;import org.junit.jupiter.api.AfterAll;
+import com.microsoft.sqlserver.jdbc.*;import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -50,7 +47,6 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
-    @Tag(Constants.AEv2)
     public void testParameterMetaDataCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -74,7 +70,10 @@ public class ParameterMetaDataCacheTest extends AESetup {
             populateCharNormalCase(charValues);
             int hitsAfter = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
             
-            assertTrue((hitsAfter - hitsBefore) == 1);
+            // AEv2 does not support caching, so the assertion would always be false.
+            if (!TestUtils.isAEv2(con)) {
+                assertTrue((hitsAfter - hitsBefore) == 1);
+            }
             con.close();
         }
     }
@@ -133,7 +132,6 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
-    @Tag(Constants.AEv2)
     public void testRetryWithSecureCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -141,7 +139,9 @@ public class ParameterMetaDataCacheTest extends AESetup {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(values);
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            if (TestUtils.isRetrySupported(con)) {
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            }
             populateCharNormalCase(values);
             con.close();
         }
