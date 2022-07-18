@@ -38,6 +38,8 @@ public class ParameterMetaDataCache {
      *        The SQLServer connection
      * @param stmt
      *        The SQLServer statement, whose returned metadata we're checking
+     * @param userSql
+     *        The query executed by the user
      * @return true, if the metadata for the query can be retrieved
      */
     static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
@@ -57,12 +59,12 @@ public class ParameterMetaDataCache {
             CryptoMetadata foundData = metadataMap.get(parameterNames.get(i));
 
             /*
-             * A parameter could be missing, this means it uses plaintext encryption. A warning is logged in this
-             * case. If data is found with an initialized algorithm, all metadata is cleared, as this should never be
-             * the case.
+             * A parameter could be missing, this means it uses plaintext encryption. A warning is logged in this case.
+             * If data is found with an initialized algorithm, all metadata is cleared, as this should never be the
+             * case.
              */
-            if (!metadataMap.containsKey(parameterNames.get(i)) 
-                && metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+            if (!metadataMap.containsKey(parameterNames.get(i))
+                    && metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Parameter uses Plaintext (type 0) encryption.");
             }
             if (foundData != null && foundData.isAlgorithmInitialized()) {
@@ -108,9 +110,9 @@ public class ParameterMetaDataCache {
                         return false;
                     }
                 }
-            } catch (Exception e) {
+            } catch (SQLServerException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CryptoCacheInaccessible"));
-                Object[] msgArgs = {e.getMessage()};
+                Object[] msgArgs = {"R_unknownColumnEncryptionType", e.getMessage()};
                 throw new SQLServerException(form.format(msgArgs), null);
             }
         }
@@ -136,6 +138,8 @@ public class ParameterMetaDataCache {
      *        SQLServer statement used to retrieve keys to find correct cache
      * @param cekList
      *        The list of CEKs (from the first RS) that is also added to the cache as well as parameter metadata
+     * @param userSql
+     *        The query executed by the user
      * @return true, if the query metadata has been added correctly
      */
     static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
@@ -166,7 +170,7 @@ public class ParameterMetaDataCache {
                 }
             } catch (SQLServerException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CryptoCacheInaccessible"));
-                Object[] msgArgs = {e.getMessage()};
+                Object[] msgArgs = {"R_unknownColumnEncryptionType", e.getMessage()};
                 throw new SQLServerException(form.format(msgArgs), null);
             }
         }
@@ -205,6 +209,8 @@ public class ParameterMetaDataCache {
      *        SQLServer statement used to retrieve keys
      * @param connection
      *        The SQLServerConnection, also used to retrieve keys
+     * @param userSql
+     *        The query executed by the user
      */
     static void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection, String userSql) {
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
@@ -223,6 +229,8 @@ public class ParameterMetaDataCache {
      *        The SQLServer statement used to construct part of the keys
      * @param connection
      *        The connection from which database name is retrieved
+     * @param userSql
+     *        The query executed by the user
      * @return A key value pair containing cache lookup key and enclave lookup key
      */
     private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
