@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 
-import org.junit.jupiter.api.AfterAll;
+import com.microsoft.sqlserver.jdbc.SQLServerException;import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -50,6 +50,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.AEv2)
     public void testParameterMetaDataCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
@@ -72,7 +73,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
             int hitsBefore = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
             populateCharNormalCase(charValues);
             int hitsAfter = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
-
+            
             assertTrue((hitsAfter - hitsBefore) == 1);
             con.close();
         }
@@ -132,6 +133,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.AEv2)
     public void testRetryWithSecureCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {

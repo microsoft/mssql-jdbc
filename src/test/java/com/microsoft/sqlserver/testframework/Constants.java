@@ -27,6 +27,7 @@ public final class Constants {
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
      * Fedauth - - - - - - For Fedauth tests
+     * AE_V2 - - - - - - - For tests not compatible with Always Encrypted version 2
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -43,6 +44,7 @@ public final class Constants {
     public static final String reqExternalSetup = "reqExternalSetup";
     public static final String clientCertAuth = "clientCertAuth";
     public static final String fedAuth = "fedAuth";
+    public static final String AEv2 = "AEv2";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
