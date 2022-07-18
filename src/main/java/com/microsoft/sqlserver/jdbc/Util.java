@@ -284,6 +284,14 @@ final class Util {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
                         String property = result.toString().trim();
+
+                        if (property.contains("=")) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorServerName"));
+                            Object[] msgArgs = {property};
+                            SQLServerException.makeFromDriverError(null, null,
+                                    form.format(msgArgs), null, true);
+                        }
+
                         if (property.length() > 0) {
                             p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                             if (logger.isLoggable(Level.FINE)) {

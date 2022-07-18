@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -1005,6 +1006,31 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertEquals(TestResource.getResource("R_CryptoCacheInaccessible"), e.getMessage(),
                         TestResource.getResource("R_wrongExceptionMessage"));
             }
+        }
+    }
+
+    @Test
+    public void testServerNameField() throws SQLException {
+        String subProtocol = "jdbc:sqlserver://";
+        int indexOfFirstDelimiter = connectionString.indexOf(";");
+        int indexOfLastDelimiter = connectionString.lastIndexOf(";");
+
+        String[] serverNameAndPort = connectionString.substring(subProtocol.length(), indexOfFirstDelimiter).split(":");
+        String connectionProperties = connectionString.substring(indexOfFirstDelimiter, indexOfLastDelimiter + 1);
+        String loginTimeout = "loginTimout=15";
+
+        // Server name field is empty but serverName connection property is set, should pass
+        String emptyServerNameField = subProtocol + connectionProperties + "serverName=" + serverNameAndPort[0] + ";";
+
+        // A loginTimeout connection property is passed into the server name field, should fail
+        String invalidServerNameField = subProtocol + loginTimeout + connectionProperties;
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(emptyServerNameField)) {
+        }
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(invalidServerNameField)) {
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }
 }
