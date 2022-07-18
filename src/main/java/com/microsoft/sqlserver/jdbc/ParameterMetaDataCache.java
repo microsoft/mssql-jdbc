@@ -8,7 +8,9 @@ import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
 
 
 /**
@@ -16,11 +18,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * reading from the cache is handled here, with the location of the cache being in the EnclaveSession.
  * 
  */
-class ParameterMetaDataCache {
+public class ParameterMetaDataCache {
 
-    static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
-    static final int CACHE_TRIM_THRESHOLD = 300; // Threshold above which to trim the cache
-    CryptoCache cache = new CryptoCache(); // Represents the actual cache of Column Encryption Keys and metadata
+    static int CACHE_SIZE = 2000; // Size of the cache in number of entries
+    static int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
+    static int CACHE_HITS = 0; // Record of the number of cache hits, mainly for testing
+    static CryptoCache cache = new CryptoCache();
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
 
@@ -37,11 +40,11 @@ class ParameterMetaDataCache {
      *        The SQLServer statement, whose returned metadata we're checking
      * @return true, if the metadata for the query can be retrieved
      */
-    boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, SQLServerConnection connection,
-            SQLServerStatement stmt) throws SQLServerException {
+    static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
+            SQLServerConnection connection, SQLServerStatement stmt, String userSql) throws SQLServerException {
 
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
-        ConcurrentHashMap<String, CryptoMetadata> metadataMap = cache.getCacheEntry(encryptionValues.getKey());
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
+        ConcurrentLinkedHashMap<String, CryptoMetadata> metadataMap = cache.getCacheEntry(encryptionValues.getKey());
 
         if (metadataMap == null) {
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
@@ -51,15 +54,14 @@ class ParameterMetaDataCache {
         }
 
         for (int i = 0; i < params.length; i++) {
-            boolean found = metadataMap.containsKey(parameterNames.get(i));
             CryptoMetadata foundData = metadataMap.get(parameterNames.get(i));
 
             /*
-             * If ever the map doesn't contain a parameter, the cache entry cannot be used. If there is data found, it
-             * should never have the initialized algorithm as that would contain the key. Clear all metadata that has
-             * already been assigned in either case.
+             * It's fine for the cache to not contain a parameter. This means the parameter uses a plaintext encryption
+             * and its CryptoMetadata was never formed. It is NOT okat for there to be found data with an initialized
+             * algorithm, clear all metadata in the second case.
              */
-            if (!found || (foundData != null && foundData.isAlgorithmInitialized())) {
+            if (foundData != null && foundData.isAlgorithmInitialized()) {
                 for (Parameter param : params) {
                     param.cryptoMeta = null;
                 }
@@ -90,7 +92,7 @@ class ParameterMetaDataCache {
                         SQLServerSecurityUtility.decryptSymmetricKey(cryptoCopy, connection, stmt);
                     } catch (SQLServerException e) {
 
-                        removeCacheEntry(stmt, connection);
+                        removeCacheEntry(stmt, connection, userSql);
 
                         for (Parameter paramToCleanup : params) {
                             paramToCleanup.cryptoMeta = null;
@@ -112,6 +114,7 @@ class ParameterMetaDataCache {
         if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
             metadataCacheLogger.finest("Cache Hit. Successfully retrieved metadata from cache.");
         }
+        CACHE_HITS++;
         return true;
     }
 
@@ -131,15 +134,16 @@ class ParameterMetaDataCache {
      *        The list of CEKs (from the first RS) that is also added to the cache as well as parameter metadata
      * @return true, if the query metadata has been added correctly
      */
-    boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames, SQLServerConnection connection,
-            SQLServerStatement stmt, Map<Integer, CekTableEntry> cekList) throws SQLServerException {
+    static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
+            SQLServerConnection connection, SQLServerStatement stmt, String userSql) throws SQLServerException {
 
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
         if (encryptionValues.getKey() == null) {
             return false;
         }
 
-        ConcurrentHashMap<String, CryptoMetadata> metadataMap = new ConcurrentHashMap<>(params.length);
+        ConcurrentLinkedHashMap<String, CryptoMetadata> metadataMap = new Builder<String, CryptoMetadata>()
+                .maximumWeightedCapacity(params.length).build();
 
         for (int i = 0; i < params.length; i++) {
             try {
@@ -150,12 +154,11 @@ class ParameterMetaDataCache {
                     cryptoCopy = new CryptoMetadata(metaData.getCekTableEntry(), metaData.getOrdinal(),
                             metaData.getEncryptionAlgorithmId(), metaData.getEncryptionAlgorithmName(),
                             metaData.getEncryptionType().getValue(), metaData.getNormalizationRuleVersion());
-                }
-                if (cryptoCopy != null && !cryptoCopy.isAlgorithmInitialized()) {
+                    if (cryptoCopy.isAlgorithmInitialized()) {
+                        return false;
+                    }
                     String paramName = parameterNames.get(i);
                     metadataMap.put(paramName, cryptoCopy);
-                } else {
-                    return false;
                 }
             } catch (SQLServerException e) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CryptoCacheInaccessible"));
@@ -166,13 +169,15 @@ class ParameterMetaDataCache {
 
         // If the size of the cache exceeds the threshold, set that we are in trimming and trim the cache accordingly.
         int cacheSizeCurrent = cache.getParamMap().size();
-        if (cacheSizeCurrent > CACHE_SIZE + CACHE_TRIM_THRESHOLD) {
+        if (cacheSizeCurrent > MAX_WEIGHTED_CAPACITY) {
             int entriesToRemove = cacheSizeCurrent - CACHE_SIZE;
-            ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> oldMap = cache.getParamMap();
+            ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> newMap = new Builder<String, ConcurrentLinkedHashMap<String, CryptoMetadata>>()
+                    .maximumWeightedCapacity(MAX_WEIGHTED_CAPACITY).build();
+            ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> oldMap = cache
+                    .getParamMap();
             int count = 0;
 
-            for (Map.Entry<String, ConcurrentHashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
+            for (Map.Entry<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
                 if (count >= entriesToRemove) {
                     newMap.put(entry.getKey(), entry.getValue());
                 }
@@ -182,10 +187,6 @@ class ParameterMetaDataCache {
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
-        }
-        if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V3) {
-            Map<Integer, CekTableEntry> keysToBeCached = copyEnclaveKeys(cekList);
-            cache.addEnclaveEntry(encryptionValues.getValue(), keysToBeCached);
         }
 
         cache.addParamEntry(encryptionValues.getKey(), metadataMap);
@@ -201,8 +202,8 @@ class ParameterMetaDataCache {
      * @param connection
      *        The SQLServerConnection, also used to retrieve keys
      */
-    void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection) {
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection);
+    static void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection, String userSql) {
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
         if (encryptionValues.getKey() == null) {
             return;
         }
@@ -220,8 +221,8 @@ class ParameterMetaDataCache {
      *        The connection from which database name is retrieved
      * @return A key value pair containing cache lookup key and enclave lookup key
      */
-    private AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
-            SQLServerConnection connection) {
+    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
+            SQLServerConnection connection, String userSql) {
 
         StringBuilder cacheLookupKeyBuilder = new StringBuilder();
         cacheLookupKeyBuilder.append(":::");
@@ -229,35 +230,12 @@ class ParameterMetaDataCache {
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         cacheLookupKeyBuilder.append(databaseName);
         cacheLookupKeyBuilder.append(":::");
-        cacheLookupKeyBuilder.append(statement.toString());
+        cacheLookupKeyBuilder.append(userSql);
 
         String cacheLookupKey = cacheLookupKeyBuilder.toString();
         String enclaveLookupKey = cacheLookupKeyBuilder.append(":::enclaveKeys").toString();
 
         return new AbstractMap.SimpleEntry<>(cacheLookupKey, enclaveLookupKey);
-    }
-
-    /**
-     * Creates a copy of the enclave keys to be sent to the crypto cache. This allows reconnection when table
-     * information has changed but session, and enclave information, is the same.
-     * 
-     * @param keysToBeCached
-     *        The keys sent to the cryptocache
-     * @return A copy of the enclave keys, stored in the cryptoCache
-     */
-    private Map<Integer, CekTableEntry> copyEnclaveKeys(Map<Integer, CekTableEntry> keysToBeCached) {
-        Map<Integer, CekTableEntry> enclaveKeys = new ConcurrentHashMap<>();
-        for (Map.Entry<Integer, CekTableEntry> entry : keysToBeCached.entrySet()) {
-            int ordinal = entry.getKey();
-            CekTableEntry original = entry.getValue();
-            CekTableEntry copy = new CekTableEntry(ordinal);
-            for (EncryptionKeyInfo cekInfo : original.columnEncryptionKeyValues) {
-                copy.add(cekInfo.encryptedKey, cekInfo.databaseId, cekInfo.cekId, cekInfo.cekVersion,
-                        cekInfo.cekMdVersion, cekInfo.keyPath, cekInfo.keyStoreName, cekInfo.algorithmName);
-            }
-            enclaveKeys.put(ordinal, copy);
-        }
-        return enclaveKeys;
     }
 }
 
@@ -270,30 +248,23 @@ class CryptoCache {
      * The cryptocache stores both result sets returned from sp_describe_parameter_encryption calls. Column Encryption
      * Key data in cekMap, and parameter data in paramMap.
      */
-    private final ConcurrentHashMap<String, Map<Integer, CekTableEntry>> cekMap = new ConcurrentHashMap<>(16);
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> paramMap = new ConcurrentHashMap<>(16);
+    static final int MAX_WEIGHTED_CAPACITY = 2300;
+    private ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> paramMap = new Builder<String, ConcurrentLinkedHashMap<String, CryptoMetadata>>()
+            .maximumWeightedCapacity(MAX_WEIGHTED_CAPACITY).build();
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> getParamMap() {
+    ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> getParamMap() {
         return paramMap;
     }
 
-    void replaceParamMap(ConcurrentHashMap<String, ConcurrentHashMap<String, CryptoMetadata>> newMap) {
+    void replaceParamMap(ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> newMap) {
         paramMap = newMap;
     }
 
-    Map<Integer, CekTableEntry> getEnclaveEntry(String enclaveLookupKey) {
-        return cekMap.get(enclaveLookupKey);
-    }
-
-    ConcurrentHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
+    ConcurrentLinkedHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
     }
 
-    void addEnclaveEntry(String key, Map<Integer, CekTableEntry> value) {
-        cekMap.put(key, value);
-    }
-
-    void addParamEntry(String key, ConcurrentHashMap<String, CryptoMetadata> value) {
+    void addParamEntry(String key, ConcurrentLinkedHashMap<String, CryptoMetadata> value) {
         paramMap.put(key, value);
     }
 

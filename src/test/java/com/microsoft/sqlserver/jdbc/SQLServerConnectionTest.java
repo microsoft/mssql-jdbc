@@ -986,21 +986,22 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testParameterMetadataAccessDenial() throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
-            ParameterMetaDataCache cache = new ParameterMetaDataCache();
+            CryptoCache cache = new CryptoCache();
+            String userSql = "";
             Map<Integer, CekTableEntry> cekList = new HashMap<>();
             Parameter[] params = {new Parameter(false)};
             ArrayList<String> parameterNames = new ArrayList<>(1);
             parameterNames.add("testParameter");
             // Both will always return false
             try {
-                cache.addQueryMetadata(params, parameterNames, connection, stmt, cekList);
+                ParameterMetaDataCache.addQueryMetadata(params, parameterNames, connection, stmt, userSql);
             } catch (SQLException e) {
                 assertEquals(TestResource.getResource("R_CryptoCacheInaccessible"), e.getMessage(),
                         TestResource.getResource("R_wrongExceptionMessage"));
             }
 
             try {
-                cache.getQueryMetadata(params, parameterNames, connection, stmt);
+                ParameterMetaDataCache.getQueryMetadata(params, parameterNames, connection, stmt, userSql);
             } catch (SQLException e) {
                 assertEquals(TestResource.getResource("R_CryptoCacheInaccessible"), e.getMessage(),
                         TestResource.getResource("R_wrongExceptionMessage"));

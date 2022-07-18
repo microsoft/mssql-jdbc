@@ -6,10 +6,10 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.ResultSet;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
-import java.util.ArrayList;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -60,18 +59,63 @@ public class ParameterMetaDataCacheTest extends AESetup {
             TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             createTable(NUMERIC_TABLE_AE, cekAkv, numericTable);
+
+            final Field cacheHits = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
+                    .getDeclaredField("CACHE_HITS");
+            cacheHits.setAccessible(true);
+
+            // Success is measured by looking at the cache hits. For the second call to update CHAR_TABLE, if we
+            // successfully cached the first time, we will be able to read from the cache and cache hits should
+            // increase.
             populateCharNormalCase(charValues);
             populateNumeric(numericValues);
+            int hitsBefore = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
+            populateCharNormalCase(charValues);
+            int hitsAfter = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
 
-            long firstRun = timedTestSelect(CHAR_TABLE_AE);
-            timedTestSelect(NUMERIC_TABLE_AE);
-            long secondRun = timedTestSelect(CHAR_TABLE_AE);
+            assertTrue((hitsAfter - hitsBefore) == 1);
+            con.close();
+        }
+    }
 
-            // As long as there is a noticeable performance improvement, caching is working as intended. For now
-            // the threshold measured is 5%.
-            double threshold = 0.05;
+    /**
+     * 
+     * Tests trimming of the cache by setting the maximum size, and size above which to trim, to 0. When the second,
+     * NUMERIC_TABLE, is updated, this should successfully trim the cache to empty, before adding the new entry.
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.reqExternalSetup)
+    public void testParameterMetaDataCacheTrim() throws Exception {
+        Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
+                .getDeclaredField("CACHE_SIZE");
+        Field maximumWeightedCapacity = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
+                .getDeclaredField("MAX_WEIGHTED_CAPACITY");
 
-            assertTrue(1 - (secondRun / firstRun) > threshold);
+        cacheSize.setAccessible(true);
+        maximumWeightedCapacity.setAccessible(true);
+
+        cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
+        maximumWeightedCapacity.set(
+                maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] charValues = createCharValues(false);
+            String[] numericValues = createNumericValues(false);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekAkv, charTable);
+            createTable(NUMERIC_TABLE_AE, cekAkv, numericTable);
+
+            populateCharNormalCase(charValues);
+            populateNumeric(numericValues);
+            populateCharNormalCase(charValues);
+            con.close();
         }
     }
 
@@ -79,8 +123,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
      * 
      * Tests that the enclave is retried when using secure enclaves (assuming the server supports this). This is done by
      * executing a query generating metadata in the cache, changing the column encryption type to make the metadata
-     * stale, and running the query again. The query should fail, but retry and pass. Currently disabled as secure
-     * enclaves are not supported.
+     * stale, and running the query again. The query should fail, but retry and pass.
      * 
      * @throws Exception
      */
@@ -96,43 +139,20 @@ public class ParameterMetaDataCacheTest extends AESetup {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(values);
-
-            String sql = "select * from " + CHAR_TABLE_AE;
-            ArrayList<String> results = new ArrayList<>();
-            try (ResultSet rs = stmt.executeQuery(sql)) {
-                while (rs.next()) {
-                    results.add(rs.getString(1));
-                }
-                rs.close();
-                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
-
-                try (ResultSet rs2 = stmt.executeQuery(sql)) {
-                    for (int i = 0; rs2.next(); i++) {
-                        assertTrue(rs2.getString(1).equals(results.get(i)));
-                    }
-                    rs2.close();
-                }
-            }
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            populateCharNormalCase(values);
             con.close();
         }
     }
 
     /**
-     * Used to time how long data retrieval from the server takes. This is turn is used to confirm that metadata is
-     * caching correctly.
+     * Dropping all CMKs and CEKs and any open resources. Technically, dropAll depends on the state of the class so it
+     * shouldn't be static, but the AfterAll annotation requires it to be static.
      * 
-     * @param tblName
-     *        the table to select data from
-     * @return the time in milliseconds, as a long
      * @throws SQLException
      */
-    private long timedTestSelect(String tblName) throws SQLException {
-        long timer = System.currentTimeMillis();
-        String sql = "select * from " + tblName;
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
-            pstmt.execute();
-            pstmt.close();
-        }
-        return System.currentTimeMillis() - timer;
+    @AfterAll
+    public static void cleanUp() throws Exception {
+        dropAll();
     }
 }

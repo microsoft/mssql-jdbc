@@ -150,9 +150,10 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            // Check the cache for metadata for Always Encrypted versions 1 and 3
-            if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || !enclaveSession
-                    .getMetaDataCache().getQueryMetadata(params, parameterNames, connection, statement)) {
+            // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
+            if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
+                    || params.length == 0 || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,
+                            connection, statement, userSql)) {
                 try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
                         preparedTypeDefinitions) : executeSDPEv2(stmt, userSql, preparedTypeDefinitions, vsmParams)) {
                     if (null == rs) {
@@ -161,7 +162,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                         return enclaveRequestedCEKs;
                     }
                     processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
-                            rs, enclaveRequestedCEKs, enclaveSession);
+                            rs, enclaveRequestedCEKs);
                     // Process the third resultset.
                     if (connection.isAEv2() && stmt.getMoreResults()) {
                         try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
