@@ -179,19 +179,18 @@ public class ParameterMetaDataCache {
         int cacheSizeCurrent = cache.getParamMap().size();
         if (cacheSizeCurrent > MAX_WEIGHTED_CAPACITY) {
             int entriesToRemove = cacheSizeCurrent - CACHE_SIZE;
-            ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> newMap = new Builder<String, ConcurrentLinkedHashMap<String, CryptoMetadata>>()
-                    .maximumWeightedCapacity(MAX_WEIGHTED_CAPACITY).build();
-            ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> oldMap = cache
-                    .getParamMap();
+            ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> map = cache.getParamMap();
+            
             int count = 0;
-
-            for (Map.Entry<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> entry : oldMap.entrySet()) {
-                if (count >= entriesToRemove) {
-                    newMap.put(entry.getKey(), entry.getValue());
+            for (Map.Entry<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> entry : map.entrySet()) {
+                if (count < entriesToRemove) {
+                    map.remove(entry.getKey(), entry.getValue());
+                } else {
+                    break;
                 }
                 count++;
             }
-            cache.replaceParamMap(newMap);
+            cache.replaceParamMap(map);
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
