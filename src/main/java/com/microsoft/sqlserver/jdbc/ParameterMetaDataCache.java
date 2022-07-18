@@ -57,10 +57,14 @@ public class ParameterMetaDataCache {
             CryptoMetadata foundData = metadataMap.get(parameterNames.get(i));
 
             /*
-             * It's fine for the cache to not contain a parameter. This means the parameter uses a plaintext encryption
-             * and its CryptoMetadata was never formed. It is NOT okat for there to be found data with an initialized
-             * algorithm, clear all metadata in the second case.
+             * A parameter could be missing, this means it uses plaintext encryption. A warning is logged in this
+             * case. If data is found with an initialized algorithm, all metadata is cleared, as this should never be
+             * the case.
              */
+            if (!metadataMap.containsKey(parameterNames.get(i)) 
+                && metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
+                metadataCacheLogger.finest("Parameter uses Plaintext (type 0) encryption.");
+            }
             if (foundData != null && foundData.isAlgorithmInitialized()) {
                 for (Parameter param : params) {
                     param.cryptoMeta = null;
