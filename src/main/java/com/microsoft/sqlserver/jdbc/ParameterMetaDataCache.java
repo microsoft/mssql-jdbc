@@ -187,7 +187,7 @@ class ParameterMetaDataCache {
                 }
                 count++;
             }
-            cache.replaceParamMap(map);
+            
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
