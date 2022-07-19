@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,7 +53,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                Statement stmt = con.createStatement()) {
             String[] charValues = createCharValues(false);
             String[] numericValues = createNumericValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
@@ -71,7 +72,6 @@ public class ParameterMetaDataCacheTest extends AESetup {
             if (!TestUtils.isAEv2(con)) {
                 assertTrue(1 - (secondRun / firstRun) > threshold);
             }
-            con.close();
         }
     }
 
@@ -101,7 +101,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
                 maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                Statement stmt = con.createStatement()) {
             String[] charValues = createCharValues(false);
             String[] numericValues = createNumericValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
@@ -112,7 +112,6 @@ public class ParameterMetaDataCacheTest extends AESetup {
             populateCharNormalCase(charValues);
             populateNumeric(numericValues);
             populateCharNormalCase(charValues);
-            con.close();
         }
     }
 
@@ -131,16 +130,15 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.reqExternalSetup)
     public void testRetryWithSecureCache() throws Exception {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
-                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+                Statement stmt = con.createStatement()) {
             String[] values = createCharValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(values);
             if (TestUtils.isRetrySupported(con)) {
-                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+                testAlterColumnEncryption((SQLServerStatement) stmt, CHAR_TABLE_AE, charTable, cekAkv);
             }
             populateCharNormalCase(values);
-            con.close();
         }
     }
 
