@@ -264,10 +264,6 @@ class CryptoCache {
         return paramMap;
     }
 
-    void replaceParamMap(ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> newMap) {
-        paramMap = newMap;
-    }
-
     ConcurrentLinkedHashMap<String, CryptoMetadata> getCacheEntry(String cacheLookupKey) {
         return paramMap.get(cacheLookupKey);
     }
