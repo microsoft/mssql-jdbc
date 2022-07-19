@@ -9,13 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 
-import com.microsoft.sqlserver.jdbc.*;import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -57,22 +60,16 @@ public class ParameterMetaDataCacheTest extends AESetup {
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             createTable(NUMERIC_TABLE_AE, cekAkv, numericTable);
 
-            final Field cacheHits = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
-                    .getDeclaredField("CACHE_HITS");
-            cacheHits.setAccessible(true);
-
-            // Success is measured by looking at the cache hits. For the second call to update CHAR_TABLE, if we
-            // successfully cached the first time, we will be able to read from the cache and cache hits should
-            // increase.
-            populateCharNormalCase(charValues);
+            // Success is measured by looking at execution time. The second update to the char table should be faster
+            // as it will copy values from the cache, instead of fetching them from the server.
+            long firstRun = timedCharUpdate(charValues);
             populateNumeric(numericValues);
-            int hitsBefore = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
-            populateCharNormalCase(charValues);
-            int hitsAfter = cacheHits.getInt(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache"));
-            
-            // AEv2 does not support caching, so the assertion would always be false.
+            long secondRun = timedCharUpdate(charValues);
+
+            double threshold = 0.15;
+            // AEv2 does not support caching
             if (!TestUtils.isAEv2(con)) {
-                assertTrue((hitsAfter - hitsBefore) == 1);
+                assertTrue(1 - (secondRun / firstRun) > threshold);
             }
             con.close();
         }
@@ -145,6 +142,12 @@ public class ParameterMetaDataCacheTest extends AESetup {
             populateCharNormalCase(values);
             con.close();
         }
+    }
+
+    private long timedCharUpdate(String[] values) throws SQLException {
+        long timer = System.currentTimeMillis();
+        populateCharNormalCase(values);
+        return System.currentTimeMillis() - timer;
     }
 
     /**

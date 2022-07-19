@@ -18,11 +18,10 @@ import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
  * reading from the cache is handled here, with the location of the cache being in the EnclaveSession.
  * 
  */
-public class ParameterMetaDataCache {
+class ParameterMetaDataCache {
 
     static int CACHE_SIZE = 2000; // Size of the cache in number of entries
     static int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
-    static int CACHE_HITS = 0; // Record of the number of cache hits, mainly for testing
     static CryptoCache cache = new CryptoCache();
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
@@ -120,7 +119,6 @@ public class ParameterMetaDataCache {
         if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
             metadataCacheLogger.finest("Cache Hit. Successfully retrieved metadata from cache.");
         }
-        CACHE_HITS++;
         return true;
     }
 
@@ -180,7 +178,6 @@ public class ParameterMetaDataCache {
         if (cacheSizeCurrent > MAX_WEIGHTED_CAPACITY) {
             int entriesToRemove = cacheSizeCurrent - CACHE_SIZE;
             ConcurrentLinkedHashMap<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> map = cache.getParamMap();
-            
             int count = 0;
             for (Map.Entry<String, ConcurrentLinkedHashMap<String, CryptoMetadata>> entry : map.entrySet()) {
                 if (count < entriesToRemove) {
