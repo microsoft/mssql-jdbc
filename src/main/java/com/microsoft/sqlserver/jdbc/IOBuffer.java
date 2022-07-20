@@ -7916,7 +7916,6 @@ abstract class TDSCommand implements Serializable {
      * After this call, the attention ack should no longer be expected.
      */
     final void onAttentionAck() {
-        assert attentionPending;
         attentionPending = false;
     }
 
