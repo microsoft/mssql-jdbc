@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Updated dependency versions of com.azure.azure-security-keyvault-keys and com.azure.azure-identity [1863](https://github.com/microsoft/mssql-jdbc/pull/1863)
-- Send TDS version 8 when in strict mode (encrypt=strict) [1870](https://github.com/microsoft/mssql-jdbc/pull/1870)
+- Send TDS version 8 in Login7 when in strict mode (encrypt=strict) [1870](https://github.com/microsoft/mssql-jdbc/pull/1870)
 ### Fixed issues
 - Fixed race condition with addressList which may result in IndexOutOfBoundsException when establishing multiple conntions [1855](https://github.com/microsoft/mssql-jdbc/pull/1855)
 - Fixed issue with serverName field validation [1853](https://github.com/microsoft/mssql-jdbc/pull/1853)
