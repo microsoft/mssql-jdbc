@@ -135,7 +135,7 @@ public class ParameterMetaDataCacheTest extends AESetup {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(values);
-            if (TestUtils.isRetrySupported(con)) {
+            if (TestUtils.doesServerSupportEnclaveRetry(con)) {
                 testAlterColumnEncryption((SQLServerStatement) stmt, CHAR_TABLE_AE, charTable, cekAkv);
             }
             populateCharNormalCase(values);

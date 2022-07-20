@@ -29,6 +29,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
@@ -134,14 +135,14 @@ public final class TestUtils {
     public static boolean isAEv2(Connection con) {
         return ((SQLServerConnection) con).isAEv2();
     }
-    
+
     /**
-    * Returns whether the server supports retrying a connection on failure
-    * 
-    * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#isRetrySupported()
-    */
-    public static boolean isRetrySupported(Connection con) {
-        return ((SQLServerConnection) con).isRetrySupported();
+     * Returns whether the server supports retrying a connection on failure
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#doesServerSupportEnclaveRetry()
+     */
+    public static boolean doesServerSupportEnclaveRetry(Connection con) {
+        return ((SQLServerConnection) con).doesServerSupportEnclaveRetry();
     }
 
     /**

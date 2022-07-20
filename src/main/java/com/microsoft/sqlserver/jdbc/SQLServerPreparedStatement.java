@@ -621,7 +621,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } catch (SQLException e) {
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
                     continue;
-                } else if (!inRetry && connection.isRetrySupported()) {
+                } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
                     // If we are AE_v3, remove the failed entry and try again.
                     ParameterMetaDataCache.removeCacheEntry(this, connection, preparedSQL);

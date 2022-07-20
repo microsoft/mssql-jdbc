@@ -855,9 +855,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     ColumnEncryptionVersion getServerColumnEncryptionVersion() {
         return serverColumnEncryptionVersion;
     }
-    
-    /** whether the server supports retrying a connection on failure */
-    private boolean serverSupportsRetry = false;
+
+    /** whether the server supports retrying an invalid enclave connection */
+    private boolean serverSupportsEnclaveRetry = false;
 
     /** whether server supports data classification */
     private boolean serverSupportsDataClassification = false;
@@ -5711,11 +5711,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (aeVersion < TDS.COLUMNENCRYPTION_VERSION2) {
                         throw new SQLServerException(SQLServerException.getErrString("R_enclaveNotSupported"), null);
                     } else {
-                        serverColumnEncryptionVersion = aeVersion == TDS.COLUMNENCRYPTION_VERSION3 
-                            ? ColumnEncryptionVersion.AE_V3 : ColumnEncryptionVersion.AE_V2;
+                        serverColumnEncryptionVersion = aeVersion == TDS.COLUMNENCRYPTION_VERSION3 ? ColumnEncryptionVersion.AE_V3
+                                                                                                   : ColumnEncryptionVersion.AE_V2;
                         enclaveType = new String(data, 2, data.length - 2, UTF_16LE);
                     }
-                    serverSupportsRetry = aeVersion == TDS.COLUMNENCRYPTION_VERSION3;
+                    serverSupportsEnclaveRetry = aeVersion == TDS.COLUMNENCRYPTION_VERSION3;
 
                     if (!EnclaveType.isValidEnclaveType(enclaveType)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_enclaveTypeInvalid"));
@@ -7678,9 +7678,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAEv2() {
         return (aeVersion >= TDS.COLUMNENCRYPTION_VERSION2);
     }
-    
-    boolean isRetrySupported() {
-        return serverSupportsRetry;
+
+    boolean doesServerSupportEnclaveRetry() {
+        return serverSupportsEnclaveRetry;
     }
 
     /** Enclave provider */
