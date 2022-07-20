@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [11.2.0] Preview Release
+## [11.2.0] Stable Release
 ### Added
 - Added support for caching parameter metadata for Always Encrypted with secure enclaves [1866](https://github.com/microsoft/mssql-jdbc/pull/1866)
 - Added explicit dependency for com.microsoft.azure.msal4j (was a transitive dependency in previous releases) [1863](https://github.com/microsoft/mssql-jdbc/pull/1863)
