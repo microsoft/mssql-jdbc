@@ -44,7 +44,7 @@ public class ReflectiveTests extends AbstractTest {
         String cs = ResiliencyUtils.setConnectionProps(connectionString.concat(";"), props);
         try (Connection c = ResiliencyUtils.getConnection(cs)) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 ResiliencyUtils.blockConnection(c);
                 startTime = System.currentTimeMillis();
                 s.executeQuery("SELECT 1");

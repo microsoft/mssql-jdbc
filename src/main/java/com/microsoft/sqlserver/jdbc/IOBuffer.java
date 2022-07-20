@@ -182,6 +182,14 @@ final class TDS {
     static final int TDS_SQLRESCOLSRCS = 0xa2;
     static final int TDS_SQLDATACLASSIFICATION = 0xa3;
 
+    // DONE status https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/3c06f110-98bd-4d5b-b836-b1ba66452cb7
+    static final int DONE_FINAL = 0x0000;
+    static final int DONE_MORE = 0x0001;
+    static final int DONE_COUNT = 0x0010;
+    static final int DONE_ERROR = 0x0002;
+    static final int DONE_ATTN = 0x0020;
+    static final int DONE_SRVERROR = 0x0100;
+
     // FedAuth
     static final byte TDS_FEATURE_EXT_FEDAUTH = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
