@@ -11,9 +11,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Updated dependency versions of com.azure.azure-security-keyvault-keys and com.azure.azure-identity [1863](https://github.com/microsoft/mssql-jdbc/pull/1863)
 - Send TDS version 8 in Login7 when in strict mode (encrypt=strict) [1870](https://github.com/microsoft/mssql-jdbc/pull/1870)
+- Validate that the serverName field of the connection string does not have an equal sign [1853](https://github.com/microsoft/mssql-jdbc/pull/1853)
 ### Fixed issues
 - Fixed race condition with addressList which may result in IndexOutOfBoundsException when establishing multiple connections [1855](https://github.com/microsoft/mssql-jdbc/pull/1855)
-- Validate that the serverName field of the connection string does not have an equal sign [1853](https://github.com/microsoft/mssql-jdbc/pull/1853)
 - Updated secure string usage to prepend Initialization Vector into the encrypted bytes so each IV is unique and preserved with its encrypted bytes for later decryption [1858](https://github.com/microsoft/mssql-jdbc/pull/1858)
 - Added check for DONE_ERROR status token which may occur from a killed session on the server [1857](https://github.com/microsoft/mssql-jdbc/pull/1857)
 - Fixed issue where the driver may assert when canceling a statement [1872](https://github.com/microsoft/mssql-jdbc/pull/1872)
