@@ -150,9 +150,11 @@ final class ExtendedSocketOptions {
 
 
 final class TDS {
-    // TDS protocol versions
-    static final String VER_TDS80 = "tds/8.0"; // TLS-first connections
+    // application protocol
+    static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
 
+    // TDS versions
+    static final int VER_TDS80 = 0x8000000; // TDS 8.0
     static final int VER_DENALI = 0x74000004; // TDS 7.4
     static final int VER_KATMAI = 0x730B0003; // TDS 7.3B(includes null bit compression)
     static final int VER_YUKON = 0x72090002; // TDS 7.2
@@ -180,6 +182,14 @@ final class TDS {
     static final int TDS_SQLRESCOLSRCS = 0xa2;
     static final int TDS_SQLDATACLASSIFICATION = 0xa3;
 
+    // DONE status https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/3c06f110-98bd-4d5b-b836-b1ba66452cb7
+    static final int DONE_FINAL = 0x0000;
+    static final int DONE_MORE = 0x0001;
+    static final int DONE_COUNT = 0x0010;
+    static final int DONE_ERROR = 0x0002;
+    static final int DONE_ATTN = 0x0020;
+    static final int DONE_SRVERROR = 0x0100;
+
     // FedAuth
     static final byte TDS_FEATURE_EXT_FEDAUTH = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
@@ -201,6 +211,7 @@ final class TDS {
     static final byte COLUMNENCRYPTION_NOT_SUPPORTED = 0x00; // column encryption not supported
     static final byte COLUMNENCRYPTION_VERSION1 = 0x01; // column encryption without enclave
     static final byte COLUMNENCRYPTION_VERSION2 = 0x02; // column encryption with enclave
+    static final byte COLUMNENCRYPTION_VERSION3 = 0x03; // column encryption with enclave, with retry
     static final int CUSTOM_CIPHER_ALGORITHM_ID = 0; // max version
     // 0x06 is for x_eFeatureExtensionId_LoginToken
     // 0x07 is for x_eFeatureExtensionId_ClientSideTelemetry
@@ -1768,7 +1779,7 @@ final class TDSChannel implements Serializable {
 
                 // set ALPN values
                 SSLParameters sslParam = sslSocket.getSSLParameters();
-                sslParam.setApplicationProtocols(new String[] {TDS.VER_TDS80});
+                sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
                 sslSocket.setSSLParameters(sslParam);
             } else {
                 // don't close proxy when SSL socket is closed
@@ -1793,9 +1804,9 @@ final class TDSChannel implements Serializable {
 
                 // check negotiated ALPN
                 if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
-                        && negotiatedProtocol.compareToIgnoreCase(TDS.VER_TDS80) != 0) {
+                        && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
-                    Object[] msgArgs = {TDS.VER_TDS80, negotiatedProtocol};
+                    Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
                     con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
                 }
             }

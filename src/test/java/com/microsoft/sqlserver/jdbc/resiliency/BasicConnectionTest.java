@@ -64,7 +64,7 @@ public class BasicConnectionTest extends AbstractTest {
     public void testGracefulClose() throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 c.close();
                 s.executeQuery("SELECT 1");
                 fail("Query execution did not throw an exception on a closed execution");
@@ -89,7 +89,7 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 return;
             }
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 while (rs.next()) {
                     actualDatabaseName = rs.getString(1);
@@ -116,7 +116,7 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 return;
             }
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 while (rs.next()) {
                     actualDatabaseName = rs.getString(1);
@@ -135,7 +135,7 @@ public class BasicConnectionTest extends AbstractTest {
         String actualLanguage = "";
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             s.execute("SET LANGUAGE " + expectedLanguage);
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT @@LANGUAGE")) {
                 while (rs.next()) {
                     actualLanguage = rs.getString(1);
@@ -154,7 +154,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("CREATE TABLE [" + tableName + "] (col1 varchar(1))");
             c.setAutoCommit(false);
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {
@@ -172,7 +172,7 @@ public class BasicConnectionTest extends AbstractTest {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("select 2")) {
                 rs.next();
-                ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 fail("Connection failed to clean up open resultset.");
@@ -190,7 +190,7 @@ public class BasicConnectionTest extends AbstractTest {
             c.close();
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
-            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.killConnection(c1, connectionString, 0);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
@@ -223,7 +223,7 @@ public class BasicConnectionTest extends AbstractTest {
             c.close();
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
-            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.killConnection(c1, connectionString, 0);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             rs = s1.executeQuery("SELECT db_name();");
             while (rs.next()) {
@@ -251,7 +251,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("SET LANGUAGE FRENCH;");
             c.close();
             try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
-                ResiliencyUtils.killConnection(c1, connectionString);
+                ResiliencyUtils.killConnection(c1, connectionString, 0);
                 ResiliencyUtils.minimizeIdleNetworkTracker(c1);
                 rs = s1.executeQuery("SELECT @@LANGUAGE;");
                 while (rs.next())
@@ -272,7 +272,7 @@ public class BasicConnectionTest extends AbstractTest {
             try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
                 for (int i2 = 0; i2 < 3; i2++) {
                     try (Statement s = c.createStatement()) {
-                        ResiliencyUtils.killConnection(c, connectionString);
+                        ResiliencyUtils.killConnection(c, connectionString, 0);
                         s.executeQuery("SELECT 1");
                     }
                 }

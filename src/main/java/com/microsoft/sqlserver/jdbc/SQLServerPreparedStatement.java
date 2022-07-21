@@ -568,6 +568,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
         boolean hasNewTypeDefinitions = true;
+        boolean inRetry = false; // Used to indicate if this execution is a retry
         if (!encryptionMetadataIsRetrieved) {
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
@@ -611,16 +612,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
 
-                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, command);
+                needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
+                        command);
 
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                 startResults();
                 getNextResult(true);
             } catch (SQLException e) {
-                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false))
+                if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
                     continue;
-                else
+                } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
+                    // We only want to retry once, so no retrying if we're already in the second pass.
+                    // If we are AE_v3, remove the failed entry and try again.
+                    ParameterMetaDataCache.removeCacheEntry(this, connection, preparedSQL);
+                    inRetry = true;
+                    doExecutePreparedStatement(command);
+                } else {
                     throw e;
+                }
             }
             break;
         }
@@ -1105,7 +1114,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (executeMethod == EXECUTE_BATCH) {
                         buildPrepParams(tdsWriter);
                         return needsPrepare;
-                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute the statement.
+                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute
+                             // the statement.
                         isSpPrepareExecuted = false;
                         doPrep(tdsWriter, command);
                         command.startRequest(TDS.PKT_RPC);
@@ -1125,7 +1135,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Executes sp_prepare to prepare a parameterized statement and sets the prepared statement handle
      *
-     * @param tdsWriter TDS writer to write sp_prepare params to
+     * @param tdsWriter
+     *        TDS writer to write sp_prepare params to
      * @throws SQLServerException
      */
     private void doPrep(TDSWriter tdsWriter, TDSCommand command) throws SQLServerException {
@@ -2879,7 +2890,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // the size of a batch's string parameter values changes such
                     // that repreparation is necessary.
                     ++numBatchesPrepared;
-                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions, batchCommand);
+                    needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
+                            batchCommand);
                     if (needsPrepare || numBatchesPrepared == numBatches) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
@@ -2904,7 +2916,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
                                     buildExecParams(tdsWriter);
                                     sendParamsByRPC(tdsWriter, batchParam);
-                                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                    ensureExecuteResultsReader(
+                                            batchCommand.startResponse(getIsResponseBufferingAdaptive()));
                                     startResults();
                                     if (!getNextResult(true))
                                         return;

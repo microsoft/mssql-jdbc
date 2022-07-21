@@ -38,7 +38,7 @@ public class PropertyTest extends AbstractTest {
         sb.append(connectionString).append(";").append(prop).append("=").append(val).append(";");
         try (Connection c = ResiliencyUtils.getConnection(sb.toString())) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 s.executeQuery("SELECT 1");
                 fail(TestResource.getResource("R_expectedExceptionNotThrown") + prop + "=" + val);
             }
