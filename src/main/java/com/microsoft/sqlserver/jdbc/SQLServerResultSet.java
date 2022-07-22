@@ -381,20 +381,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
-                int packetType = tdsReader.peekTokenType();
                 short status = tdsReader.peekStatusFlag();
-
-                if (TDS.TDS_DONE == packetType) {
-                    StreamDone doneToken = new StreamDone();
-                    doneToken.setFromTDS(tdsReader);
-                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                }
 
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
+
                 return false;
             }
         }
