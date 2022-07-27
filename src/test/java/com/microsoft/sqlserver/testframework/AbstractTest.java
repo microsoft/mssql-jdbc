@@ -121,6 +121,9 @@ public abstract class AbstractTest {
      */
     @BeforeAll
     public static void setup() throws Exception {
+        // Invoke fine logging...
+        invokeLogging();
+
         // get Properties from config file
         try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
             configProperties = new Properties();
@@ -128,9 +131,6 @@ public abstract class AbstractTest {
         } catch (FileNotFoundException | SecurityException e) {
             // no config file used
         }
-
-        // Invoke fine logging...
-        invokeLogging();
 
         connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
 
@@ -508,7 +508,7 @@ public abstract class AbstractTest {
 
             if (handler != null) {
                 handler.setLevel(Level.FINEST);
-                Logger.getLogger(Constants.MSSQL_JDBC_PACKAGE).addHandler(handler);
+                Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
 
             /*
