@@ -6224,7 +6224,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeShort((short) 0);
         tdsWriter.writeShort((short) 0);
 
-        if (tdsVersion >= TDS.VER_YUKON) {
+        if (tdsVersion >= TDS.VER_YUKON || tdsVersion == TDS.VER_TDS80) {
             // TDS 7.2: Password change
             tdsWriter.writeShort((short) 0);
             tdsWriter.writeShort((short) 0);
