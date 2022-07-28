@@ -1429,12 +1429,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     final boolean isKatmaiOrLater() {
         assert TDS.VER_UNKNOWN != tdsVersion;
-        assert tdsVersion >= TDS.VER_YUKON;
-        return tdsVersion >= TDS.VER_KATMAI;
+        return (tdsVersion >= TDS.VER_KATMAI || tdsVersion == TDS.VER_TDS80);
     }
 
     final boolean isDenaliOrLater() {
-        return tdsVersion >= TDS.VER_DENALI;
+        return (tdsVersion >= TDS.VER_DENALI || tdsVersion == TDS.VER_TDS80);
     }
 
     /** server major version */
@@ -6224,7 +6223,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         tdsWriter.writeShort((short) 0);
         tdsWriter.writeShort((short) 0);
 
-        if (tdsVersion >= TDS.VER_YUKON) {
+        if (tdsVersion >= TDS.VER_YUKON || tdsVersion == TDS.VER_TDS80) {
             // TDS 7.2: Password change
             tdsWriter.writeShort((short) 0);
             tdsWriter.writeShort((short) 0);
