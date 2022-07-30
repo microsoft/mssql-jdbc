@@ -541,7 +541,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    class SqlFedAuthInfo {
+    public static class SqlFedAuthInfo {
         String spn;
         String stsurl;
 
@@ -5433,6 +5433,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
+        SqlFedAuthTokenProvider authTokenProvider = SqlFedAuthTokenProviderFactory.INSTANCE.getOrCreateAuthTokenProvider(authenticationString);
         while (true) {
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
                 if (!msalContextExists()) {
