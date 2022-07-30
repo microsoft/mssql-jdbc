@@ -5439,18 +5439,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             break;
         }
         while (true) {
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-                if (!msalContextExists()) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
-                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
-                }
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        authenticationString);
-
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
                         cachedMsiTokenTtl);
