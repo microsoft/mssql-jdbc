@@ -281,8 +281,7 @@ enum IPAddressPreference {
             iptype = IPAddressPreference.IPv4First;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv6First.toString())) {
             iptype = IPAddressPreference.IPv6First;
-        } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
             iptype = IPAddressPreference.UsePlatformDefault;
 
         } else {
@@ -517,7 +516,7 @@ enum SQLServerDriverStringProperty {
 enum SQLServerDriverIntProperty {
     PACKET_SIZE("packetSize", TDS.DEFAULT_PACKET_SIZE),
     LOCK_TIMEOUT("lockTimeout", -1),
-    LOGIN_TIMEOUT("loginTimeout", 15, 0, 65535),
+    LOGIN_TIMEOUT("loginTimeout", 30, 0, 65535),
     QUERY_TIMEOUT("queryTimeout", -1),
     PORT_NUMBER("portNumber", 1433),
     SOCKET_TIMEOUT("socketTimeout", 0),
@@ -694,8 +693,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
                     SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
-                    new String[] {IPAddressPreference.IPv4First.toString(),
-                            IPAddressPreference.IPv6First.toString(),
+                    new String[] {IPAddressPreference.IPv4First.toString(), IPAddressPreference.IPv6First.toString(),
                             IPAddressPreference.UsePlatformDefault.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
@@ -777,8 +775,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue()), false,
-                    null),
+                    Integer.toString(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
