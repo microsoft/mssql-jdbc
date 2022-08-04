@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Send TDS version 8 in Login7 when in strict mode (encrypt=strict) [1870](https://github.com/microsoft/mssql-jdbc/pull/1870)
 - Validate that the serverName field of the connection string does not have an equal sign [1853](https://github.com/microsoft/mssql-jdbc/pull/1853)
 ### Fixed issues
-- Fixed intermittent null prepared statement handle error caused by sp_prepare when used with batch queries
+- Fixed intermittent null prepared statement handle error caused by sp_prepare when used with batch queries. [1886](https://github.com/microsoft/mssql-jdbc/pull/1886)
 - Fixed race condition with addressList which may result in IndexOutOfBoundsException when establishing multiple connections [1855](https://github.com/microsoft/mssql-jdbc/pull/1855)
 - Updated secure string usage to prepend Initialization Vector into the encrypted bytes so each IV is unique and preserved with its encrypted bytes for later decryption [1858](https://github.com/microsoft/mssql-jdbc/pull/1858)
 - Added check for DONE_ERROR status token which may occur from a killed session on the server [1857](https://github.com/microsoft/mssql-jdbc/pull/1857)
