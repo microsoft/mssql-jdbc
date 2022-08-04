@@ -2910,7 +2910,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 if (!getNextResult(true))
                                     return;
 
-                                if (isSpPrepareExecuted) {
+                                // If sp_prepare was executed, but a handle doesn't exist that means
+                                // the TDS response for sp_prepare has not been processed yet. Rather, it means
+                                // that another result was processed from a sp_execute query instead. Therefore, we
+                                // skip the if-block below and continue until the handle is set from the processed
+                                // sp_prepare TDS response.
+                                if (isSpPrepareExecuted && hasPreparedStatementHandle()) {
                                     isSpPrepareExecuted = false;
                                     resetForReexecute();
                                     tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
