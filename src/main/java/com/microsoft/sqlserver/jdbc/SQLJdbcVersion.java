@@ -15,5 +15,5 @@ final class SQLJdbcVersion {
      * 1. Set to "-preview" for preview release.
      * 2. Set to "" (empty String) for official release.
      */
-    static final String releaseExt = "-preview";
+    static final String releaseExt = "";
 }
