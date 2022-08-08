@@ -257,38 +257,6 @@ public class DateAndTimeTypeTest extends AbstractTest {
 
         assertEquals(expected, actual);
     }
-
-    /*
-     * Test to make sure that a Timestamp is treated as a datetime2 object.
-     */
-    @Test
-    public void testSendTimestampAsDatetimeoffset() throws Exception { 
-        String expected = "2010-02-03T23:59:59.7654321Z";
-        String actual = null;
-        String query = "SELECT CONVERT(VARCHAR(40), ?, 127) as [value]";
-
-
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetimeoffset"); 
-            PreparedStatement stmt = conn.prepareStatement(query)) {
-
-            Timestamp ts = Timestamp.valueOf("2010-02-03 23:59:59.7654321");
-
-            /*
-            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
-            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
-            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
-            */
-            stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                actual = rs.getString("value");
-            }
-
-        }
-
-        assertEquals(expected, actual);
-    }
     
     @BeforeAll
     public static void setupTests() throws Exception {

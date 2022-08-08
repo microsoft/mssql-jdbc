@@ -214,7 +214,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
         {"R_replicationPropertyDescription", "This setting tells the server if the connection is used for replication."},
         {"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
-        {"R_datetimeParameterTypePropertyDescription", "Determines the datatype to use for datetime and timestamp values. Valid options are: datetime, datetime2 or datetimeoffset"},
+        {"R_datetimeParameterTypePropertyDescription", "Determines the datatype to use for datetime and timestamp values. Valid options are: datetime or datetime2."},
         {"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
         {"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
         {"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},

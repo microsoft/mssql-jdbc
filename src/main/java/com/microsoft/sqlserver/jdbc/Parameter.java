@@ -914,13 +914,6 @@ final class Parameter {
                             datatype += "(" + scale + ")";
                         }
                         return datatype;
-                    case "datetimeoffset":
-                        datatype = SSType.DATETIMEOFFSET.toString();
-                        if (scale != null){
-                            datatype += "(" + scale + ")";
-                        }
-                        return datatype;
-
                     case "datetime":
                     default:
                         return SSType.DATETIME.toString();

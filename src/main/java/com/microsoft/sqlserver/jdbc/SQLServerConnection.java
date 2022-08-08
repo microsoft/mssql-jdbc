@@ -2233,7 +2233,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null == sPropValue) {
                     sPropValue = SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue();
                 }
-    
+
                 datetimeParameterType = DatetimeType.valueOfString(sPropValue);
                 activeConnectionProperties.setProperty(sPropKey, datetimeParameterType.toString());
 
@@ -6720,12 +6720,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setDatetimeParameterType(String datetimeParameterTypeValue) throws SQLServerException {
         // cast the value to lowercase, so the case in the connection string does not matter
-        if (datetimeParameterTypeValue != null){
+        if (datetimeParameterTypeValue != null) {
             datetimeParameterTypeValue = datetimeParameterTypeValue.toLowerCase();
         }
 
-        if (!isValidDatetimeParameterType(datetimeParameterTypeValue)){
-            String errorMessage = "The timestamp encoding value (i.e. " + datetimeParameterTypeValue.toString() + ") must be: datetime, datetime2 or datetimeoffset.";
+        if (!isValidDatetimeParameterType(datetimeParameterTypeValue)) {
+            String errorMessage = "The timestamp encoding value (i.e. " + datetimeParameterTypeValue.toString()
+                    + ") must be: datetime or datetime2.";
             SQLServerException newe = new SQLServerException(errorMessage, null);
             throw newe;
         }
@@ -6733,7 +6734,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private boolean isValidDatetimeParameterType(String datetimeParameterTypeValue) {
-        return (datetimeParameterTypeValue.equals("datetime") || datetimeParameterTypeValue.equals("datetime2") || datetimeParameterTypeValue.equals("datetimeoffset"));
+        return (datetimeParameterTypeValue.equals("datetime") || datetimeParameterTypeValue.equals("datetime2"));
     }
 
     @Override

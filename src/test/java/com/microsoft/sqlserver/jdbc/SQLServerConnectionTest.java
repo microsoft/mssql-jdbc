@@ -858,19 +858,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testSetDatetimeParameterTypeShouldAcceptDatetimeoffset() throws SQLException {
-        String expected = "datetimeoffset";
-        String actual = "";
-
-        try (SQLServerConnection conn = getConnection()) {
-            conn.setDatetimeParameterType("datetimeoffset");
-            actual = conn.getDatetimeParameterType();
-        }
-
-        assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
-    }
-
-    @Test
     public void testSetDatetimeParameterTypeThrowExceptionWhenBadValue() throws SQLException {
         try (SQLServerConnection conn = getConnection()) {
             assertThrows(SQLException.class, () -> {

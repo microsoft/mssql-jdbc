@@ -390,8 +390,7 @@ enum ApplicationIntent {
 
 enum DatetimeType {
     DATETIME("datetime"),
-    DATETIME2("datetime2"),
-    DATETIMEOFFSET("datetimeoffset");
+    DATETIME2("datetime2");
 
     // the value of the enum
     private final String value;
@@ -421,8 +420,6 @@ enum DatetimeType {
             datetimeType = DatetimeType.DATETIME;
         } else if (value.equalsIgnoreCase(DatetimeType.DATETIME2.toString())) {
             datetimeType = DatetimeType.DATETIME2;
-        } else if (value.equalsIgnoreCase(DatetimeType.DATETIMEOFFSET.toString())) {
-            datetimeType = DatetimeType.DATETIMEOFFSET;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDatetimeType"));
             Object[] msgArgs = {value};
@@ -777,8 +774,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
                     SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue(), false,
                     new String[] {DatetimeType.DATETIME.toString(), 
-                            DatetimeType.DATETIME2.toString(), 
-                            DatetimeType.DATETIMEOFFSET.toString()}),
+                            DatetimeType.DATETIME2.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),
                     SQLServerDriverStringProperty.USER.getDefaultValue(), true, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.WORKSTATION_ID.toString(),

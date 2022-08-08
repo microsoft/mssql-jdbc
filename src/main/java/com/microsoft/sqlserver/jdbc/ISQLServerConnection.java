@@ -237,11 +237,11 @@ public interface ISQLServerConnection extends java.sql.Connection {
     /**
      * Sets the value of the datetimeParameterType connection property. This controls how SQL Server 2008+
      * handles converting Java dates objects into SQL datatypes. By default, the value is set to "datetime2".
-     * Valid values are: datetime, datetime2 or datetimeoffset.
+     * Valid values are: datetime or datetime2.
      * 
      * @param datetimeParameterTypeValue
-     *        The datatype to use when encoding Java dates into SQL Server. Valid values are: 
-     *        datetime, datetime2 or datetimeoffset.
+     *        The datatype to use when encoding Java dates into SQL Server. Valid values are:
+     *        datetime or datetime2.
      * 
      * @throws SQLServerException
      *         if a database access error occurs
@@ -415,7 +415,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
-    
+
     /**
      * Sets the name of the preferred type of IP Address.
      * 
@@ -423,12 +423,12 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A String that contains the preferred type of IP Address.
      */
     void setIPAddressPreference(String iPAddressPreference);
-    
+
     /**
      * Gets the name of the preferred type of IP Address.
      * 
      * @return IPAddressPreference
-     *        A String that contains the preferred type of IP Address.
+     *         A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
 
