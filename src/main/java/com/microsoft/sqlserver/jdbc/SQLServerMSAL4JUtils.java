@@ -58,6 +58,11 @@ class SQLServerMSAL4JUtils {
                     .build());
 
             final IAuthenticationResult authenticationResult = future.get();
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+            }
+
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             // re-interrupt thread
@@ -87,6 +92,11 @@ class SQLServerMSAL4JUtils {
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+            }
+
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             // re-interrupt thread
@@ -124,6 +134,11 @@ class SQLServerMSAL4JUtils {
                             .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
 
             final IAuthenticationResult authenticationResult = future.get();
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+            }
+
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
             // re-interrupt thread
@@ -183,6 +198,10 @@ class SQLServerMSAL4JUtils {
 
                 future = pca.acquireToken(parameters);
                 authenticationResult = future.get();
+            }
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
