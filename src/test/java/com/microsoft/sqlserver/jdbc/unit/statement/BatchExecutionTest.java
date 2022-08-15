@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
@@ -67,6 +68,51 @@ public class BatchExecutionTest extends AbstractTest {
         testExecuteBatch1();
         testAddBatch1UseBulkCopyAPI();
         testExecuteBatch1UseBulkCopyAPI();
+    }
+
+    @Test
+    public void testBatchStatementCancellation() throws Exception {
+        try (Connection connection = PrepUtil.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "if object_id('test_table') is not null drop table test_table")) {
+                statement.execute();
+            }
+            connection.commit();
+
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "create table test_table (column_name bit)")) {
+                statement.execute();
+            }
+            connection.commit();
+
+            for (long delayInMilliseconds : new long[] { 1, 2, 4, 8, 16, 32, 64, 128 }) {
+                for (int numberOfCommands : new int[] { 1, 2, 4, 8, 16, 32, 64 }) {
+                    int parameterCount = 512;
+
+                    try (PreparedStatement statement = connection.prepareStatement(
+                            "insert into test_table values (?)" + repeat(",(?)", parameterCount - 1))) {
+
+                        for (int i = 0; i < numberOfCommands; i++) {
+                            for (int j = 0; j < parameterCount; j++) {
+                                statement.setBoolean(j + 1, true);
+                            }
+                            statement.addBatch();
+                        }
+
+                        Thread cancelThread = cancelAsync(statement, delayInMilliseconds);
+                        try {
+                            statement.executeBatch();
+                        } catch (SQLException e) {
+                            assertEquals(TestResource.getResource("R_queryCancelled"), e.getMessage());
+                        }
+                        cancelThread.join();
+                    }
+                    connection.commit();
+                }
+            }
+        }
     }
 
     /**
@@ -238,6 +284,29 @@ public class BatchExecutionTest extends AbstractTest {
         f1.set(con, true);
 
         con.setUseBulkCopyForBatchInsert(true);
+    }
+
+    private static String repeat(String string, int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append(string);
+        }
+        return sb.toString();
+    }
+
+    private static Thread cancelAsync(Statement statement, long delayInMilliseconds) {
+        Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(delayInMilliseconds);
+                statement.cancel();
+            } catch (SQLException | InterruptedException e) {
+                // does not/must not happen
+                e.printStackTrace();
+                throw new IllegalStateException(e);
+            }
+        });
+        thread.start();
+        return thread;
     }
 
     @BeforeAll
