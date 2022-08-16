@@ -7500,7 +7500,7 @@ abstract class TDSCommand implements Serializable {
     // Flag set to indicate that an interrupt has happened.
     private volatile boolean wasInterrupted = false;
 
-    public boolean wasInterrupted() {
+    boolean wasInterrupted() {
         return wasInterrupted;
     }
 
