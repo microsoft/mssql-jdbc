@@ -2873,8 +2873,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // cancellation request and then return.
                     //
                     // Otherwise, if we do continue processing the batch query, in the case where a query requires
-                    // prepexec/sp_prepare, the request will be sent regardless of query cancellation. This will
-                    // cause a TDS token error in the post processing when we close query.
+                    // prepexec/sp_prepare, the TDS request for prepexec/sp_prepare will be sent regardless of
+                    // query cancellation. This will cause a TDS token error in the post processing when we
+                    // close the query.
                     if (batchCommand.wasInterrupted()) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
                         startResults();
