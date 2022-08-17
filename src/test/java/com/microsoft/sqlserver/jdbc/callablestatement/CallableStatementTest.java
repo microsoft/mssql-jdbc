@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,6 +21,7 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -50,6 +52,9 @@ public class CallableStatementTest extends AbstractTest {
     private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
     private static String getObjectOffsetDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP");
     private static String procName = RandomUtil.getIdentifier("procedureTestCallableStatementSpPrepare");
+    private static String manyParamsTable = RandomUtil.getIdentifier("manyParam_Table");
+    private static String manyParamProc = RandomUtil.getIdentifier("manyParam_Procedure");
+    private static String manyParamUserDefinedType = RandomUtil.getIdentifier("manyParam_definedType");
 
     /**
      * Setup before test
@@ -67,13 +72,61 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName), stmt);
+            TestUtils.dropTypeIfExists(manyParamUserDefinedType, stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(manyParamProc), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(manyParamsTable), stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
             createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
             createGetObjectLocalDateTimeProcedure(stmt);
-            createGetObjectOffsetDateTimeProcedure(stmt);
+            createUserDefinedType();
+            createTableManyParams();
+            createProcedureManyParams();createGetObjectOffsetDateTimeProcedure(stmt);
+        }
+    }
+
+    @Test
+    public void testCallableStatementManyParameters() throws SQLException {
+        String dropLogin = "IF EXISTS (select * from syslogins where loginname = 'NewLogin') DROP LOGIN NewLogin";
+        String dropUser = "IF EXISTS (select * from sysusers where name = 'NewUser') DROP USER NewUser";
+        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'P4ssword', " +
+                "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
+        String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
+        String grantExecute = "GRANT EXECUTE ON " + AbstractSQLGenerator.escapeIdentifier(manyParamProc) + " TO NewUser;";
+
+        // Need to create a user with limited permissions in order to run through the code block we are testing
+        // The user created will execute sp_sproc_columns internally by the driver, which should not return all
+        // the column names as the user has limited permissions
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            Statement stmt = conn.createStatement();
+            stmt.execute(dropLogin);
+            stmt.execute(dropUser);
+            stmt.execute(createLogin);
+            stmt.execute(createUser);
+            stmt.execute(grantExecute);
+        }
+
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=P4ssword;")) {
+            BigDecimal money = new BigDecimal("9999.99");
+
+            // Should not throw an "Index is out of range error"
+            // Should not throw R_parameterNotDefinedForProcedure
+            try (CallableStatement callableStatement = conn.prepareCall(
+                    "{call " + AbstractSQLGenerator.escapeIdentifier(manyParamProc) + "(?,?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setObject("@p1", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p2", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p3", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p4", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p5", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p6", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p7", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p8", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p9", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p10", money, microsoft.sql.Types.MONEY);
+                callableStatement.execute();
+            }
         }
     }
 
@@ -328,5 +381,50 @@ public class CallableStatementTest extends AbstractTest {
                 + "(@p1 DATETIMEOFFSET OUTPUT, @p2 DATETIMEOFFSET OUTPUT) AS "
                 + "SELECT @p1 = '2018-01-02T11:22:33.123456700+12:34', @p2 = NULL";
         stmt.execute(sql);
+    }
+
+    private static void createProcedureManyParams() throws SQLException {
+        String type = AbstractSQLGenerator.escapeIdentifier(manyParamUserDefinedType);
+        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(manyParamProc)
+                + " @p1 " + type + ","
+                + " @p2 " + type + ","
+                + " @p3 " + type + ","
+                + " @p4 " + type + ","
+                + " @p5 " + type + ","
+                + " @p6 " + type + ","
+                + " @p7 " + type + ","
+                + " @p8 " + type + ","
+                + " @p9 " + type + ","
+                + " @p10 " + type
+                + " AS INSERT INTO "
+                + AbstractSQLGenerator.escapeIdentifier(manyParamsTable) + " VALUES(@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createTableManyParams() throws SQLException {
+        String type = AbstractSQLGenerator.escapeIdentifier(manyParamUserDefinedType);
+        String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(manyParamsTable) +
+                " (c1 " + type + " null, " +
+                "c2 " + type + " null, " +
+                "c3 " + type + " null, " +
+                "c4 " + type + " null, " +
+                "c5 " + type + " null, " +
+                "c6 " + type + " null, " +
+                "c7 " + type + " null, " +
+                "c8 " + type + " null, " +
+                "c9 " + type + " null, " +
+                "c10 " + type + " null);";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createUserDefinedType() throws SQLException {
+        String TVPCreateCmd = "CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(manyParamUserDefinedType) + " FROM MONEY";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(TVPCreateCmd);
+        }
     }
 }
