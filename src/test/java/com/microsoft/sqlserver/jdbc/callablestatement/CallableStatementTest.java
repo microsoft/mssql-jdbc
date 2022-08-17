@@ -87,7 +87,10 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    // Test Needs more work to be configured to run on azureDB as there are slight differences
+    // between the regular SQL Server vs. azureDB
     @Test
+    @Tag(Constants.xAzureSQLDB)
     public void testCallableStatementManyParameters() throws SQLException {
         String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
         String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
