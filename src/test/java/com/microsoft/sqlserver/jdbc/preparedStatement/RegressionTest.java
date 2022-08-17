@@ -5,9 +5,11 @@
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -363,6 +366,114 @@ public class RegressionTest extends AbstractTest {
                 fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+            }
+        }
+    }
+
+
+    /**
+     * Test that batch is cleared properly on failure.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void batchClearedOnError() throws Exception {
+        batchClearedOnErrorInternal("BatchInsert");
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void batchClearedOnErrorUseBulkCopyAPI() throws Exception {
+        batchClearedOnErrorInternal("BulkCopy");
+    }
+
+    private void batchClearedOnErrorInternal(String mode) throws Exception {
+        try (Connection con = getConnection()) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI((SQLServerConnection) con);
+            }
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+
+                con.setAutoCommit(false);
+
+                // create a table with two columns
+                boolean createPrimaryKey = true;
+                try {
+                    stmt.execute("if object_id('" + TestUtils.escapeSingleQuotes(tableName2)
+                            + "', 'U') is not null\ndrop table " + AbstractSQLGenerator.escapeIdentifier(tableName2));
+                    if (createPrimaryKey) {
+                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                                + " ( ID int, DATA nvarchar(max), primary key (ID) );");
+                    } else {
+                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                                + " ( ID int, DATA nvarchar(max) );");
+                    }
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                }
+
+                con.commit();
+
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " values (?,?)")) {
+                    // First batch should succeed
+                    // 0,a
+                    pstmt.setInt(1, 0);
+                    pstmt.setNString(2, "a");
+                    pstmt.addBatch();
+
+                    // 1,b
+                    pstmt.setInt(1, 1);
+                    pstmt.setNString(2, "b");
+                    pstmt.addBatch();
+
+                    pstmt.executeBatch();
+
+                    // Second batch should fail due to duplicate PK
+                    // 1,c
+                    pstmt.setInt(1, 1);
+                    pstmt.setNString(2, "c");
+                    pstmt.addBatch();
+
+                    // 2,d
+                    pstmt.setInt(1, 2);
+                    pstmt.setNString(2, "d");
+                    pstmt.addBatch();
+
+                    try {
+                        pstmt.executeBatch();
+                    } catch (BatchUpdateException e) {
+                        int[] numFails = e.getUpdateCounts();
+                        // JDBC spec allows either updateCounts to stop before
+                        // the first error, or to be the same length as the
+                        // batch but with EXECUTE_FAILED for the failing items
+                        assertTrue(numFails == null || numFails.length == 0
+                            || IntStream.of(numFails).filter(i -> i == Statement.EXECUTE_FAILED).count() == 1);
+                    }
+
+                    // Third batch should succeed - this is the key test for issue
+                    // #1767, third batch used to fail in "bulk copy" mode
+                    // 3,e
+                    pstmt.setInt(1, 3);
+                    pstmt.setNString(2, "e");
+                    pstmt.addBatch();
+
+                    // 4,f
+                    pstmt.setInt(1, 4);
+                    pstmt.setNString(2, "f");
+                    pstmt.addBatch();
+
+                    pstmt.executeBatch();
+
+                    con.commit();
+
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                } finally {
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+                }
             }
         }
     }
