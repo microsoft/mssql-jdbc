@@ -100,7 +100,7 @@ public class RegressionTest extends AbstractTest {
     }
 
     /**
-     * Test creating and dropping tabel with preparedStatement
+     * Test creating and dropping table with preparedStatement
      * 
      * @throws SQLException
      */
@@ -372,9 +372,10 @@ public class RegressionTest extends AbstractTest {
 
 
     /**
-     * Test that batch is cleared properly on failure.
+     * Tests that batch is cleared properly on failure.
      * 
-     * @throws SQLException
+     * @throws Exception
+     *         when an exception occurs
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
@@ -382,6 +383,12 @@ public class RegressionTest extends AbstractTest {
         batchClearedOnErrorInternal("BatchInsert");
     }
 
+    /**
+     * Tests that batch is cleared properly on failure, after using BulkCopy.
+     * 
+     * @throws Exception
+     *         when an exception occurs
+     */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void batchClearedOnErrorUseBulkCopyAPI() throws Exception {
@@ -389,9 +396,9 @@ public class RegressionTest extends AbstractTest {
     }
 
     private void batchClearedOnErrorInternal(String mode) throws Exception {
-        try (Connection con = getConnection()) {
+        try (SQLServerConnection con = getConnection()) {
             if (mode.equalsIgnoreCase("bulkcopy")) {
-                modifyConnectionForBulkCopyAPI((SQLServerConnection) con);
+                modifyConnectionForBulkCopyAPI(con);
             }
             try (Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
@@ -399,19 +406,11 @@ public class RegressionTest extends AbstractTest {
                 con.setAutoCommit(false);
 
                 // create a table with two columns
-                boolean createPrimaryKey = true;
                 try {
-                    stmt.execute("if object_id('" + TestUtils.escapeSingleQuotes(tableName2)
-                            + "', 'U') is not null\ndrop table " + AbstractSQLGenerator.escapeIdentifier(tableName2));
-                    if (createPrimaryKey) {
-                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
-                                + " ( ID int, DATA nvarchar(max), primary key (ID) );");
-                    } else {
-                        stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
-                                + " ( ID int, DATA nvarchar(max) );");
-                    }
-                } catch (Exception e) {
-                    fail(e.getMessage());
+                    stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " ( ID int, DATA nvarchar(max), primary key (ID) );");
+                } catch (SQLException e) {
+                    fail(TestResource.getResource("R_createDropTableFailed") + e.getMessage());
                 }
 
                 con.commit();
@@ -431,7 +430,7 @@ public class RegressionTest extends AbstractTest {
 
                     pstmt.executeBatch();
 
-                    // Second batch should fail due to duplicate PK
+                    // Second batch should fail due to duplicate primary key
                     // 1,c
                     pstmt.setInt(1, 1);
                     pstmt.setNString(2, "c");
@@ -453,8 +452,9 @@ public class RegressionTest extends AbstractTest {
                             || IntStream.of(numFails).filter(i -> i == Statement.EXECUTE_FAILED).count() == 1);
                     }
 
-                    // Third batch should succeed - this is the key test for issue
-                    // #1767, third batch used to fail in "bulk copy" mode
+                    // Third batch should succeed - this is the key test for 
+                    // https://github.com/microsoft/mssql-jdbc/issues/1767
+                    // third batch used to fail in "bulk copy" mode
                     // 3,e
                     pstmt.setInt(1, 3);
                     pstmt.setNString(2, "e");
@@ -471,8 +471,6 @@ public class RegressionTest extends AbstractTest {
 
                 } catch (Exception e) {
                     fail(e.getMessage());
-                } finally {
-                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
                 }
             }
         }
