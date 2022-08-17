@@ -386,16 +386,16 @@ public class CallableStatementTest extends AbstractTest {
     private static void createProcedureManyParams() throws SQLException {
         String type = AbstractSQLGenerator.escapeIdentifier(manyParamUserDefinedType);
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(manyParamProc)
-                + " @p1 " + type + ","
-                + " @p2 " + type + ","
-                + " @p3 " + type + ","
-                + " @p4 " + type + ","
-                + " @p5 " + type + ","
-                + " @p6 " + type + ","
-                + " @p7 " + type + ","
-                + " @p8 " + type + ","
-                + " @p9 " + type + ","
-                + " @p10 " + type
+                + " @p1 " + type
+                + ", @p2 " + type
+                + ", @p3 " + type
+                + ", @p4 " + type
+                + ", @p5 " + type
+                + ", @p6 " + type
+                + ", @p7 " + type
+                + ", @p8 " + type
+                + ", @p9 " + type
+                + ", @p10 " + type
                 + " AS INSERT INTO "
                 + AbstractSQLGenerator.escapeIdentifier(manyParamsTable) + " VALUES(@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)";
         try (Statement stmt = connection.createStatement()) {
