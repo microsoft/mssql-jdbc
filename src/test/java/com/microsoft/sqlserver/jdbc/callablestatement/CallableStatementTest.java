@@ -89,8 +89,8 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testCallableStatementManyParameters() throws SQLException {
-        String dropLogin = "IF EXISTS (select * from syslogins where loginname = 'NewLogin') DROP LOGIN NewLogin";
-        String dropUser = "IF EXISTS (select * from sysusers where name = 'NewUser') DROP USER NewUser";
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
         String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'P4ssword', " +
                 "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
         String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
