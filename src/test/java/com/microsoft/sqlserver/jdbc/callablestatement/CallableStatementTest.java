@@ -432,11 +432,4 @@ public class CallableStatementTest extends AbstractTest {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
-
-    private static void dropUserDefinedType() throws SQLException {
-        String TVPCreateCmd = "DROP TYPE " + manyParamUserDefinedType;
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate(TVPCreateCmd);
-        }
-    }
 }
