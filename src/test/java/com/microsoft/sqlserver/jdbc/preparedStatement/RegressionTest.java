@@ -370,7 +370,6 @@ public class RegressionTest extends AbstractTest {
         }
     }
 
-
     /**
      * Tests that batch is cleared properly on failure.
      * 
@@ -449,10 +448,10 @@ public class RegressionTest extends AbstractTest {
                         // the first error, or to be the same length as the
                         // batch but with EXECUTE_FAILED for the failing items
                         assertTrue(numFails == null || numFails.length == 0
-                            || IntStream.of(numFails).filter(i -> i == Statement.EXECUTE_FAILED).count() == 1);
+                                || IntStream.of(numFails).filter(i -> i == Statement.EXECUTE_FAILED).count() == 1);
                     }
 
-                    // Third batch should succeed - this is the key test for 
+                    // Third batch should succeed - this is the key test for
                     // https://github.com/microsoft/mssql-jdbc/issues/1767
                     // third batch used to fail in "bulk copy" mode
                     // 3,e
