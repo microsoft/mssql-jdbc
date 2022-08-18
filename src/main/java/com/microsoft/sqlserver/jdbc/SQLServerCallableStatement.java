@@ -1348,16 +1348,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         }
 
-        int parameterNamesSize = 0;
-
-        if (null != parameterNames) {
-            parameterNamesSize = parameterNames.size();
-        }
-
         // @RETURN_VALUE will always be in the parameterNames map, so parameterNamesSize will always be at least of size 1.
         // If the server didn't return anything (eg. the param names for the sproc), user might not have access.
         // So, parameterNamesSize must be of size 1.
-        if (parameterNamesSize == 1) {
+        if (null != parameterNames && parameterNames.size() == 1) {
             return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
         }
 
