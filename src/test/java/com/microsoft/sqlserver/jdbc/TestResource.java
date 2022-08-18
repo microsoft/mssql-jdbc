@@ -161,7 +161,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_cancellationFailed", "Cancellation failed."}, {"R_executionNotTimeout", "Execution did not timeout."},
             {"R_executionTooLong", "Execution took too long."},
             {"R_executionNotLong", "Execution did not take long enough."},
-            {"R_queryCancelled", "The query was canceled."},
+            {"R_queryCanceled", "The query was canceled."},
             {"R_statementShouldBeClosed", "statement should be closed since resultset is closed."},
             {"R_statementShouldBeOpened", "statement should be opened since resultset is opened."},
             {"R_shouldBeWrapper", "{0} should be a wrapper for {1}."},

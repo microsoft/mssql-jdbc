@@ -368,6 +368,11 @@ public final class TestUtils {
         dropObjectIfExists(typeName, "TT", stmt);
     }
 
+    public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
+        String sql = "IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName;
+        stmt.executeUpdate(sql);
+    }
+
     /**
      * mimic "DROP DATABASE ..."
      * 
