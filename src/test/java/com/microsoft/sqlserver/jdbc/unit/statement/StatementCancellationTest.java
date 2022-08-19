@@ -67,7 +67,7 @@ public class StatementCancellationTest extends AbstractTest {
                         stmt.execute("WAITFOR DELAY '00:00:" + (DELAY_WAIT_MILLISECONDS / 1000) + "'");
                     } catch (SQLException e) {
                         // The query was canceled"), "Unexpected error message
-                        assertTrue(e.getMessage().startsWith(TestResource.getResource("R_queryCancelled")),
+                        assertTrue(e.getMessage().startsWith(TestResource.getResource("R_queryCanceled")),
                                 TestResource.getResource("R_unexpectedExceptionContent"));
                     }
                 }

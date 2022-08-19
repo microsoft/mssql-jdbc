@@ -201,6 +201,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_objectNullOrEmpty", "The {0} is null or empty."},
             {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
             {"R_connectTimedOut", "connect timed out"},
-            {"R_queryCancelled", "The query was cancelled."},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"}};
 }
