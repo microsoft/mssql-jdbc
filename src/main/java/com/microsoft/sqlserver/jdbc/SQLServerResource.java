@@ -54,7 +54,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_noServerResponse", "SQL Server did not return a response. The connection has been closed."},
         {"R_truncatedServerResponse", "SQL Server returned an incomplete response. The connection has been closed."},
         {"R_queryTimedOut", "The query has timed out."},
-        {"R_queryCancelled", "The query was canceled."},
+        {"R_queryCanceled", "The query was canceled."},
         {"R_errorReadingStream", "An error occurred while reading the value from the stream object. Error: \"{0}\""},
         {"R_streamReadReturnedInvalidValue", "The stream read operation returned an invalid value for the amount of data read."},
         {"R_mismatchedStreamLength", "The stream value is not the specified length. The specified length was {0}, the actual length is {1}."},
