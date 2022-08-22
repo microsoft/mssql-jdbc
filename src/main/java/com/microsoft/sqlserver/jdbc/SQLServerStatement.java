@@ -1520,7 +1520,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     if (EXECUTE_BATCH != executeMethod) {
                         // Always return update counts from statements executed in stored procedure calls.
                         if (null != procedureName)
-                            return false;
+                            return true;
 
                         // Always return all update counts from statements executed through Statement.execute()
                         if (EXECUTE == executeMethod)
