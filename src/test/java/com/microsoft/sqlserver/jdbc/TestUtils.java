@@ -369,6 +369,17 @@ public final class TestUtils {
     }
 
     /**
+     * Drops user defined types
+     *
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName);
+    }
+
+    /**
      * mimic "DROP DATABASE ..."
      * 
      * @param databaseName
