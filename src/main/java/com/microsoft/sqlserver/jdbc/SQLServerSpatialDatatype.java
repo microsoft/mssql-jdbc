@@ -95,10 +95,10 @@ abstract class SQLServerSpatialDatatype {
 
     // WKT to CLR properties
     int currentWktPos = 0;
-    List<Point> pointList = new ArrayList<Point>();
-    List<Figure> figureList = new ArrayList<Figure>();
-    List<Shape> shapeList = new ArrayList<Shape>();
-    List<Segment> segmentList = new ArrayList<Segment>();
+    List<Point> pointList = new ArrayList<>();
+    List<Figure> figureList = new ArrayList<>();
+    List<Shape> shapeList = new ArrayList<>();
+    List<Segment> segmentList = new ArrayList<>();
     byte serializationProperties = 0;
 
     private final byte SEGMENT_LINE = 0;
@@ -113,7 +113,7 @@ abstract class SQLServerSpatialDatatype {
     private final byte isSingleLineSegmentMask = 0b00010000;
     private final byte isLargerThanHemisphereMask = 0b00100000;
 
-    private List<Integer> version_one_shape_indexes = new ArrayList<Integer>();
+    private List<Integer> version_one_shape_indexes = new ArrayList<>();
 
     private static final String FULLGLOBE = "FULLGLOBE";
     private static final String EMPTY = "EMPTY";

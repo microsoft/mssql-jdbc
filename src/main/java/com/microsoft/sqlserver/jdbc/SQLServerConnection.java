@@ -5771,7 +5771,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (1 == data[0]) {
                     serverSupportsDNSCaching = true;
                     if (null == dnsCache) {
-                        dnsCache = new ConcurrentHashMap<String, InetSocketAddress>();
+                        dnsCache = new ConcurrentHashMap<>();
                     }
                 } else {
                     serverSupportsDNSCaching = false;
@@ -6972,7 +6972,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalSCatalog = sCatalog;
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalSqlWarnings = sqlWarnings;
-                openStatements = new LinkedList<ISQLServerStatement>();
+                openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
                 originalDelayLoadingLobs = delayLoadingLobs;
                 requestStarted = true;

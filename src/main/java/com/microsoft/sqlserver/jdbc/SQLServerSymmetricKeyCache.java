@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -28,7 +27,7 @@ final class SQLServerSymmetricKeyCache {
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");
 
     private SQLServerSymmetricKeyCache() {
-        cache = new SimpleTtlCache<String, SQLServerSymmetricKey>();
+        cache = new SimpleTtlCache<>();
     }
 
     static SQLServerSymmetricKeyCache getInstance() {

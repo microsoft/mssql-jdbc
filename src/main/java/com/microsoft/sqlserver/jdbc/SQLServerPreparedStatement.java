@@ -2524,7 +2524,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Columns can have the form of c1, [c1] or "c1". It can escape ] or " by ]] or "".
         if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
             localUserSQL = localUserSQL.substring(1);
-            return parseUserSQLForColumnListDWHelper(new ArrayList<String>());
+            return parseUserSQLForColumnListDWHelper(new ArrayList<>());
         }
         return null;
     }
@@ -2635,7 +2635,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
                     localUserSQL = localUserSQL.substring(1);
-                    return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+                    return parseUserSQLForValueListDWHelper(new ArrayList<>());
                 }
             }
         } else {
@@ -2644,7 +2644,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             if (checkSQLLength(1) && "(".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
                 localUserSQL = localUserSQL.substring(1);
-                return parseUserSQLForValueListDWHelper(new ArrayList<String>());
+                return parseUserSQLForValueListDWHelper(new ArrayList<>());
             }
         }
 

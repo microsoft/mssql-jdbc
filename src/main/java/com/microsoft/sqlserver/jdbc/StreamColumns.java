@@ -244,7 +244,7 @@ final class StreamColumns extends StreamPacket {
 
         // get the label count
         int sensitivityLabelCount = tdsReader.readUnsignedShort();
-        List<Label> sensitivityLabels = new ArrayList<Label>(sensitivityLabelCount);
+        List<Label> sensitivityLabels = new ArrayList<>(sensitivityLabelCount);
 
         for (int i = 0; i < sensitivityLabelCount; i++) {
             sensitivityLabels.add(readSensitivityLabel(tdsReader));
@@ -253,7 +253,7 @@ final class StreamColumns extends StreamPacket {
         // get the information type count
         int informationTypeCount = tdsReader.readUnsignedShort();
 
-        List<InformationType> informationTypes = new ArrayList<InformationType>(informationTypeCount);
+        List<InformationType> informationTypes = new ArrayList<>(informationTypeCount);
         for (int i = 0; i < informationTypeCount; i++) {
             informationTypes.add(readSensitivityInformationType(tdsReader));
         }
@@ -273,12 +273,12 @@ final class StreamColumns extends StreamPacket {
         // get the per column classification data (corresponds to order of output columns for query)
         int numResultSetColumns = tdsReader.readUnsignedShort();
 
-        List<ColumnSensitivity> columnSensitivities = new ArrayList<ColumnSensitivity>(numResultSetColumns);
+        List<ColumnSensitivity> columnSensitivities = new ArrayList<>(numResultSetColumns);
         for (int columnNum = 0; columnNum < numResultSetColumns; columnNum++) {
 
             // get sensitivity properties for all the different sources which were used in generating the column output
             int numSensitivityProperties = tdsReader.readUnsignedShort();
-            List<SensitivityProperty> sensitivityProperties = new ArrayList<SensitivityProperty>(
+            List<SensitivityProperty> sensitivityProperties = new ArrayList<>(
                     numSensitivityProperties);
             for (int sourceNum = 0; sourceNum < numSensitivityProperties; sourceNum++) {
 

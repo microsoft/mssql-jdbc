@@ -902,7 +902,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
     private static List<String> getTrustedEndpoints() {
         Properties mssqlJdbcProperties = getMssqlJdbcProperties();
-        List<String> trustedEndpoints = new ArrayList<String>();
+        List<String> trustedEndpoints = new ArrayList<>();
         boolean append = true;
         if (null != mssqlJdbcProperties) {
             String endpoints = mssqlJdbcProperties.getProperty(AKV_TRUSTED_ENDPOINTS_KEYWORD);

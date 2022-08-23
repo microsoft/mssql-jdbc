@@ -124,7 +124,7 @@ final class ExtendedSocketOptions {
      *
      * @since 11
      */
-    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<Integer>("TCP_KEEPIDLE",
+    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<>("TCP_KEEPIDLE",
             Integer.class);
 
     /**
@@ -144,7 +144,7 @@ final class ExtendedSocketOptions {
      *
      * @since 11
      */
-    public static final SocketOption<Integer> TCP_KEEPINTERVAL = new ExtSocketOption<Integer>("TCP_KEEPINTERVAL",
+    public static final SocketOption<Integer> TCP_KEEPINTERVAL = new ExtSocketOption<>("TCP_KEEPINTERVAL",
             Integer.class);
 }
 
@@ -2326,7 +2326,7 @@ final class SocketFinder {
     // Thread pool - the values in the constructor are chosen based on the
     // explanation given in design_connection_director_multisubnet.doc
     private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 5,
-            TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+            TimeUnit.SECONDS, new SynchronousQueue<>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
     private static final int minTimeoutForParallelConnections = 1500;
