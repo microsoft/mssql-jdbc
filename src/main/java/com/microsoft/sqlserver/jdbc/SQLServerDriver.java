@@ -1051,7 +1051,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     String propertyValue = System.getProperty(propertyKeyName);
                     if (propertyValue != null && !propertyValue.isEmpty()) {
                         loggerExternal.log(Level.FINER, "System Property: " + propertyKeyName + " Value: "
-                                + System.getProperty(propertyKeyName.toString()));
+                                + System.getProperty(propertyKeyName));
                     }
                 }
             }
