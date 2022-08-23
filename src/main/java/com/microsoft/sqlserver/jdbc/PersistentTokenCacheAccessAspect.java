@@ -21,7 +21,7 @@ import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect {
     private static PersistentTokenCacheAccessAspect instance = new PersistentTokenCacheAccessAspect();
 
-    private PersistentTokenCacheAccessAspect() {};
+    private PersistentTokenCacheAccessAspect() {}
 
     static PersistentTokenCacheAccessAspect getInstance() {
         return instance;
