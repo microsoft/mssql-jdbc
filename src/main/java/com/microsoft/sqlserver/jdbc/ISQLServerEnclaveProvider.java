@@ -346,7 +346,7 @@ abstract class BaseAttestationRequest {
 
     byte[] getBytes() throws IOException {
         return null;
-    };
+    }
 
     byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
         if (serverResponse == null || serverResponse.length != ENCLAVE_LENGTH) {

@@ -1074,7 +1074,7 @@ final class TDSChannel implements Serializable {
         /**
          * Bytes that have been read by a poll(s).
          */
-        private int[] cachedBytes = new int[10];;
+        private int[] cachedBytes = new int[10];
 
         /**
          * How many bytes have been cached.

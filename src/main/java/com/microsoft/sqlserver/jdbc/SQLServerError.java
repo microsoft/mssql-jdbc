@@ -105,11 +105,11 @@ public final class SQLServerError extends StreamPacket implements Serializable {
 
         TransientError(int errNo) {
             this.errNo = errNo;
-        };
+        }
 
         public int getErrNo() {
             return errNo;
-        };
+        }
 
         public static boolean isTransientError(SQLServerError sqlServerError) {
             if (null == sqlServerError) {
@@ -125,7 +125,7 @@ public final class SQLServerError extends StreamPacket implements Serializable {
             }
             return false;
         }
-    };
+    }
 
     /**
      * Always update serialVersionUID when prompted

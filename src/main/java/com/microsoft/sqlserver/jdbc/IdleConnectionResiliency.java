@@ -413,7 +413,7 @@ final class ReconnectThread extends Thread {
      * instantiation as it doesn't make sense.
      */
     @SuppressWarnings("unused")
-    private ReconnectThread() {};
+    private ReconnectThread() {}
 
     ReconnectThread(SQLServerConnection sqlC, TDSCommand cmd) {
         this.con = sqlC;
