@@ -312,7 +312,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 throw new SQLServerException(form.format(msgArgs), e);
             }
         }
-    };
+    }
 
     // Handle to NTLM context
     private NTLMContext context = null;

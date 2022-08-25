@@ -89,7 +89,7 @@ class SQLServerFMTQuery {
 
     // Do not allow default instantiation, class must be used with sql query
     @SuppressWarnings("unused")
-    private SQLServerFMTQuery() {};
+    private SQLServerFMTQuery() {}
 
     SQLServerFMTQuery(String userSql) throws SQLServerException {
         if (null != userSql && 0 != userSql.length()) {

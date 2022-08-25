@@ -5907,7 +5907,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             j1 = (j1 & 0xf) << 4 | (j1 & 0xf0) >> 4 | (j1 & 0xf00) << 4 | (j1 & 0xf000) >> 4;
             byte b1 = (byte) ((j1 & 0xFF00) >> 8);
             data[(i1 * 2) + 1] = b1;
-            byte b2 = (byte) ((j1 & 0x00FF));
+            byte b2 = (byte) (j1 & 0x00FF);
             data[(i1 * 2) + 0] = b2;
         }
         return data;
