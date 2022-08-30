@@ -2042,112 +2042,111 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         discardLastExecutionResults();
 
-        int updateCounts[];
-
-        localUserSQL = userSQL;
-
         try {
-            if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
-                if (null == batchParamValues) {
-                    updateCounts = new int[0];
-                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts;
-                }
+            int updateCounts[];
 
-                // From the JDBC spec, section 9.1.4 - Making Batch Updates:
-                // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
-                // throw a BatchUpdateException if the stored procedure returns anything other than an
-                // update count or takes OUT or INOUT parameters.
-                //
-                // Non-update count results (e.g. ResultSets) are treated as individual batch errors
-                // when they are encountered in the response.
-                //
-                // OUT and INOUT parameter checking is done here, before executing the batch. If any
-                // OUT or INOUT are present, the entire batch fails.
-                for (Parameter[] paramValues : batchParamValues) {
-                    for (Parameter paramValue : paramValues) {
-                        if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(
-                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
-                        }
-                    }
-                }
+            localUserSQL = userSQL;
 
-                String tableName = parseUserSQLForTableNameDW(false, false, false, false);
-                ArrayList<String> columnList = parseUserSQLForColumnListDW();
-                ArrayList<String> valueList = parseUserSQLForValueListDW(false);
-
-                checkAdditionalQuery();
-
-                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
-                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
-                        stmtColumnEncriptionSetting);
-                        SQLServerResultSet rs = stmt
-                                .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '")) {
-                    if (null != columnList && columnList.size() > 0) {
-                        if (columnList.size() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    } else {
-                        if (rs.getColumnCount() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    }
-
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                            columnList, valueList, null);
-
-                    for (int i = 1; i <= rs.getColumnCount(); i++) {
-                        Column c = rs.getColumn(i);
-                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                        int jdbctype;
-                        TypeInfo ti = c.getTypeInfo();
-                        checkValidColumns(ti);
-                        if (null != cryptoMetadata) {
-                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                        } else {
-                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
-                        }
-                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
-                    }
-
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    option.setBulkCopyTimeout(queryTimeout);
-                    bcOperation.setBulkCopyOptions(option);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer(batchRecord);
-                    bcOperation.close();
-                    updateCounts = new int[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
-
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-                    return updateCounts;
-                }
-            }
-        } catch (SQLException e) {
-            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
-            throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        } catch (IllegalArgumentException e) {
-            // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
-        }
-
-        if (null == batchParamValues)
-            updateCounts = new int[0];
-        else
             try {
+                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                    if (null == batchParamValues) {
+                        updateCounts = new int[0];
+                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        return updateCounts;
+                    }
+
+                    // From the JDBC spec, section 9.1.4 - Making Batch Updates:
+                    // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
+                    // throw a BatchUpdateException if the stored procedure returns anything other than an
+                    // update count or takes OUT or INOUT parameters.
+                    //
+                    // Non-update count results (e.g. ResultSets) are treated as individual batch errors
+                    // when they are encountered in the response.
+                    //
+                    // OUT and INOUT parameter checking is done here, before executing the batch. If any
+                    // OUT or INOUT are present, the entire batch fails.
+                    for (Parameter[] paramValues : batchParamValues) {
+                        for (Parameter paramValue : paramValues) {
+                            if (paramValue.isOutput()) {
+                                throw new BatchUpdateException(
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            }
+                        }
+                    }
+
+                    String tableName = parseUserSQLForTableNameDW(false, false, false, false);
+                    ArrayList<String> columnList = parseUserSQLForColumnListDW();
+                    ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+
+                    checkAdditionalQuery();
+
+                    try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                            stmtColumnEncriptionSetting);
+                            SQLServerResultSet rs = stmt
+                                    .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
+                                            + Util.escapeSingleQuotes(tableName) + " '")) {
+                        if (null != columnList && columnList.size() > 0) {
+                            if (columnList.size() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
+                        } else {
+                            if (rs.getColumnCount() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
+                        }
+
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                                columnList, valueList, null);
+
+                        for (int i = 1; i <= rs.getColumnCount(); i++) {
+                            Column c = rs.getColumn(i);
+                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                            int jdbctype;
+                            TypeInfo ti = c.getTypeInfo();
+                            checkValidColumns(ti);
+                            if (null != cryptoMetadata) {
+                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                            } else {
+                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            }
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                        }
+
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer(batchRecord);
+                        bcOperation.close();
+                        updateCounts = new int[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
+
+                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        return updateCounts;
+                    }
+                }
+            } catch (SQLException e) {
+                // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+                throw new BatchUpdateException(e.getMessage(), null, 0, null);
+            } catch (IllegalArgumentException e) {
+                // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
+                if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                    getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+                    getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+                }
+            }
+
+            if (null == batchParamValues)
+                updateCounts = new int[0];
+            else {
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
                 // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
                 // throw a BatchUpdateException if the stored procedure returns anything other than an
@@ -2182,12 +2181,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             updateCounts);
 
                 }
-            } finally {
-                batchParamValues = null;
             }
 
-        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
-        return updateCounts;
+            loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+            return updateCounts;
+        } finally {
+            batchParamValues = null;
+        }
     }
 
     @Override
@@ -2199,112 +2199,111 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         discardLastExecutionResults();
 
-        long updateCounts[];
-
-        localUserSQL = userSQL;
-
         try {
-            if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
-                if (null == batchParamValues) {
-                    updateCounts = new long[0];
-                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                    return updateCounts;
-                }
+            long updateCounts[];
 
-                // From the JDBC spec, section 9.1.4 - Making Batch Updates:
-                // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
-                // throw a BatchUpdateException if the stored procedure returns anything other than an
-                // update count or takes OUT or INOUT parameters.
-                //
-                // Non-update count results (e.g. ResultSets) are treated as individual batch errors
-                // when they are encountered in the response.
-                //
-                // OUT and INOUT parameter checking is done here, before executing the batch. If any
-                // OUT or INOUT are present, the entire batch fails.
-                for (Parameter[] paramValues : batchParamValues) {
-                    for (Parameter paramValue : paramValues) {
-                        if (paramValue.isOutput()) {
-                            throw new BatchUpdateException(
-                                    SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
-                        }
-                    }
-                }
+            localUserSQL = userSQL;
 
-                String tableName = parseUserSQLForTableNameDW(false, false, false, false);
-                ArrayList<String> columnList = parseUserSQLForColumnListDW();
-                ArrayList<String> valueList = parseUserSQLForValueListDW(false);
-
-                checkAdditionalQuery();
-
-                try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
-                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
-                        stmtColumnEncriptionSetting);
-                        SQLServerResultSet rs = stmt
-                                .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                        + Util.escapeSingleQuotes(tableName) + " '")) {
-                    if (null != columnList && columnList.size() > 0) {
-                        if (columnList.size() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    } else {
-                        if (rs.getColumnCount() != valueList.size()) {
-                            throw new IllegalArgumentException(
-                                    "Number of provided columns does not match the table definition.");
-                        }
-                    }
-
-                    SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                            columnList, valueList, null);
-
-                    for (int i = 1; i <= rs.getColumnCount(); i++) {
-                        Column c = rs.getColumn(i);
-                        CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
-                        int jdbctype;
-                        TypeInfo ti = c.getTypeInfo();
-                        checkValidColumns(ti);
-                        if (null != cryptoMetadata) {
-                            jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
-                        } else {
-                            jdbctype = ti.getSSType().getJDBCType().getIntValue();
-                        }
-                        batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
-                    }
-
-                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                    SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                    option.setBulkCopyTimeout(queryTimeout);
-                    bcOperation.setBulkCopyOptions(option);
-                    bcOperation.setDestinationTableName(tableName);
-                    bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                    bcOperation.setDestinationTableMetadata(rs);
-                    bcOperation.writeToServer(batchRecord);
-                    bcOperation.close();
-                    updateCounts = new long[batchParamValues.size()];
-                    for (int i = 0; i < batchParamValues.size(); ++i) {
-                        updateCounts[i] = 1;
-                    }
-
-                    batchParamValues = null;
-                    loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-                    return updateCounts;
-                }
-            }
-        } catch (SQLException e) {
-            // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
-            throw new BatchUpdateException(e.getMessage(), null, 0, null);
-        } catch (IllegalArgumentException e) {
-            // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
-            if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
-                getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
-                getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
-            }
-        }
-
-        if (null == batchParamValues)
-            updateCounts = new long[0];
-        else
             try {
+                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                    if (null == batchParamValues) {
+                        updateCounts = new long[0];
+                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                        return updateCounts;
+                    }
+
+                    // From the JDBC spec, section 9.1.4 - Making Batch Updates:
+                    // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
+                    // throw a BatchUpdateException if the stored procedure returns anything other than an
+                    // update count or takes OUT or INOUT parameters.
+                    //
+                    // Non-update count results (e.g. ResultSets) are treated as individual batch errors
+                    // when they are encountered in the response.
+                    //
+                    // OUT and INOUT parameter checking is done here, before executing the batch. If any
+                    // OUT or INOUT are present, the entire batch fails.
+                    for (Parameter[] paramValues : batchParamValues) {
+                        for (Parameter paramValue : paramValues) {
+                            if (paramValue.isOutput()) {
+                                throw new BatchUpdateException(
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                            }
+                        }
+                    }
+
+                    String tableName = parseUserSQLForTableNameDW(false, false, false, false);
+                    ArrayList<String> columnList = parseUserSQLForColumnListDW();
+                    ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+
+                    checkAdditionalQuery();
+
+                    try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
+                            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
+                            stmtColumnEncriptionSetting);
+                            SQLServerResultSet rs = stmt
+                                    .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
+                                            + Util.escapeSingleQuotes(tableName) + " '")) {
+                        if (null != columnList && columnList.size() > 0) {
+                            if (columnList.size() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
+                        } else {
+                            if (rs.getColumnCount() != valueList.size()) {
+                                throw new IllegalArgumentException(
+                                        "Number of provided columns does not match the table definition.");
+                            }
+                        }
+
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
+                                columnList, valueList, null);
+
+                        for (int i = 1; i <= rs.getColumnCount(); i++) {
+                            Column c = rs.getColumn(i);
+                            CryptoMetadata cryptoMetadata = c.getCryptoMetadata();
+                            int jdbctype;
+                            TypeInfo ti = c.getTypeInfo();
+                            checkValidColumns(ti);
+                            if (null != cryptoMetadata) {
+                                jdbctype = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().getIntValue();
+                            } else {
+                                jdbctype = ti.getSSType().getJDBCType().getIntValue();
+                            }
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                        }
+
+                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
+                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                        option.setBulkCopyTimeout(queryTimeout);
+                        bcOperation.setBulkCopyOptions(option);
+                        bcOperation.setDestinationTableName(tableName);
+                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                        bcOperation.setDestinationTableMetadata(rs);
+                        bcOperation.writeToServer(batchRecord);
+                        bcOperation.close();
+                        updateCounts = new long[batchParamValues.size()];
+                        for (int i = 0; i < batchParamValues.size(); ++i) {
+                            updateCounts[i] = 1;
+                        }
+
+                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+                        return updateCounts;
+                    }
+                }
+            } catch (SQLException e) {
+                // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
+                throw new BatchUpdateException(e.getMessage(), null, 0, null);
+            } catch (IllegalArgumentException e) {
+                // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
+                if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                    getStatementLogger().fine("Parsing user's Batch Insert SQL Query failed: " + e.getMessage());
+                    getStatementLogger().fine("Falling back to the original implementation for Batch Insert.");
+                }
+            }
+
+            if (null == batchParamValues)
+                updateCounts = new long[0];
+            else {
                 // From the JDBC spec, section 9.1.4 - Making Batch Updates:
                 // The CallableStatement.executeBatch method (inherited from PreparedStatement) will
                 // throw a BatchUpdateException if the stored procedure returns anything other than an
@@ -2336,12 +2335,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (null != batchCommand.batchException) {
                     DriverJDBCVersion.throwBatchUpdateException(batchCommand.batchException, updateCounts);
                 }
-
-            } finally {
-                batchParamValues = null;
             }
-        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
-        return updateCounts;
+
+            loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", updateCounts);
+            return updateCounts;
+        } finally {
+            batchParamValues = null;
+        }
     }
 
     private void checkValidColumns(TypeInfo ti) throws SQLServerException {
