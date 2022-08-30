@@ -351,6 +351,24 @@ public class EnclaveTest extends AESetup {
         }
     }
 
+     /**
+     * Test connection against a server with none attestation protocol.
+     */
+     @ParameterizedTest
+     @MethodSource("enclaveParams")
+     public void testNoneAttestationProtocol(String serverName) throws Exception {
+         String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
+         setAEConnectionString(serverName, noneEnclaveAttestationUrl, "NONE");
+         
+         //Test insertion to confirm
+         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+             PreparedStatement prepareStmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+             prepareStmt.setString(1, "a");
+             prepareStmt.execute();
+         }
+     }
+
     @AfterAll
     public static void dropAll() throws Exception {
         try (Statement stmt = connection.createStatement()) {
