@@ -15,7 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.AfterAll;
+import com.nimbusds.openid.connect.sdk.assurance.evidences.Attestation;import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -54,6 +54,18 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
     }
+    
+    /**
+     * Specifically tests for NONE attestation in all cases.
+     */
+     @ParameterizedTest
+     @MethodSource("enclaveParams")
+     public void testNoneConnection(String serverName) throws Exception {
+         String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
+         String protocol = "NONE";
+         setAEConnectionString(serverName, noneEnclaveAttestationUrl, protocol);
+         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
+     }
 
     /**
      * Tests invalid connection property combinations.
@@ -350,24 +362,6 @@ public class EnclaveTest extends AESetup {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")), e.getMessage());
         }
     }
-
-     /**
-     * Test connection against a server with none attestation protocol.
-     */
-     @ParameterizedTest
-     @MethodSource("enclaveParams")
-     public void testNoneAttestationProtocol(String serverName) throws Exception {
-         String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
-         setAEConnectionString(serverName, noneEnclaveAttestationUrl, "NONE");
-         
-         //Test insertion to confirm
-         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-             PreparedStatement prepareStmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
-             prepareStmt.setString(1, "a");
-             prepareStmt.execute();
-         }
-     }
 
     @AfterAll
     public static void dropAll() throws Exception {
