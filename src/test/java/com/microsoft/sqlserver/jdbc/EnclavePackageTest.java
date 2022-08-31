@@ -487,7 +487,8 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                 
+                System.out.println("Enclave type: " + enclaveType);
+                System.out.println("1 index: " + rs.getString(1));
 
                 // HGS/NONE use only VBS, AAS can use either VBS or SGX
                 if (String.valueOf(AttestationProtocol.HGS).equals(protocol)
@@ -496,8 +497,6 @@ public class EnclavePackageTest extends AbstractTest {
                     System.out.println("Actual: " + Integer.parseInt(enclaveType));
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
-                    System.out.println("Actual: " + Integer.parseInt(enclaveType));
-                    System.out.println("Is equal to: " + EnclaveType.VBS.getValue() + " or " + EnclaveType.SGX.getValue() + "?");
                     assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
                             || Integer.parseInt(enclaveType) == EnclaveType.SGX.getValue());
                 } else {
