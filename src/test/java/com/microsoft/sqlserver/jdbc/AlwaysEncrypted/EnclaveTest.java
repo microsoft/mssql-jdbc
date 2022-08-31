@@ -15,7 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.nimbusds.openid.connect.sdk.assurance.evidences.Attestation;import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,17 +56,16 @@ public class EnclaveTest extends AESetup {
     }
     
     /**
-     * Specifically tests for NONE attestation in all cases.
+     * Tests for NONE attestation against URL provided in "noneEnclaveAttestationUrl". Uses enclaveServer provided
+     * by enclaveParams. In cases where the protocol is AA
      */
      @ParameterizedTest
      @MethodSource("enclaveParams")
      public void testNoneConnection(String serverName, String url, String protocol) throws Exception {
          String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
-         if (!protocol.equals("AAS")) {
-             protocol = "NONE";
-         }
-         setAEConnectionString(serverName, noneEnclaveAttestationUrl, protocol);
-         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
+         String noneProtocol = "NONE";
+         setAEConnectionString(serverName, noneEnclaveAttestationUrl, noneProtocol);
+         EnclavePackageTest.testBasicConnection(AETestConnectionString, noneProtocol);
      }
 
     /**

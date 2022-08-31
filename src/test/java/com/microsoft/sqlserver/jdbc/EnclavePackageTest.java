@@ -232,19 +232,15 @@ public class EnclavePackageTest extends AbstractTest {
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
                 Connection con3 = dsPool.getConnection(); Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
-                System.out.println("Connection: 1, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con1, protocol);
             }
             if (TestUtils.isAEv2(con2)) {
-                System.out.println("Connection: 2, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con2, protocol);
             }
             if (TestUtils.isAEv2(con3)) {
-                System.out.println("Connection: 3, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con3, protocol);
             }
             if (TestUtils.isAEv2(con4)) {
-                System.out.println("Connection: 4, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con4, protocol);
             }
         }
@@ -487,14 +483,10 @@ public class EnclavePackageTest extends AbstractTest {
                 "SELECT [name], [value], [value_in_use] FROM sys.configurations WHERE [name] = 'column encryption enclave type';")) {
             while (rs.next()) {
                 String enclaveType = rs.getString(2);
-                System.out.println("Enclave type: " + enclaveType);
-                System.out.println("1 index: " + rs.getString(1));
 
                 // HGS/NONE use only VBS, AAS can use either VBS or SGX
                 if (String.valueOf(AttestationProtocol.HGS).equals(protocol)
                         || String.valueOf(AttestationProtocol.NONE).equals(protocol)) {
-                    System.out.println("Expected: " + EnclaveType.VBS.getValue());
-                    System.out.println("Actual: " + Integer.parseInt(enclaveType));
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
                     assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()
