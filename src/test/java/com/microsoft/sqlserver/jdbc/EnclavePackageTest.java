@@ -487,6 +487,7 @@ public class EnclavePackageTest extends AbstractTest {
                 // HGS/NONE use only VBS, AAS can use either VBS or SGX
                 if (String.valueOf(AttestationProtocol.HGS).equals(protocol)
                         || String.valueOf(AttestationProtocol.NONE).equals(protocol)) {
+                    System.out.println("WE MADE IT HERE");
                     assertEquals(EnclaveType.VBS.getValue(), Integer.parseInt(enclaveType));
                 } else if (String.valueOf(AttestationProtocol.AAS).equals(protocol)) {
                     assertTrue(Integer.parseInt(enclaveType) == EnclaveType.VBS.getValue()

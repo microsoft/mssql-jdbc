@@ -56,16 +56,22 @@ public class EnclaveTest extends AESetup {
     }
     
     /**
-     * Tests for NONE attestation against URL provided in "noneEnclaveAttestationUrl". Uses enclaveServer provided
-     * by enclaveParams. In cases where the protocol is AA
+     * Intercepts the basic connection test for certain scenarios to test NONE attestation. For VBS enclave type only
+     * we want to test against the provided none attestation URL, along with NONE protocol. This means, for AAS, which
+     * can use SGX enclave, there is no change, otherwise, we use the new URL and NONE.
      */
      @ParameterizedTest
      @MethodSource("enclaveParams")
      public void testNoneConnection(String serverName, String url, String protocol) throws Exception {
          String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
          String noneProtocol = "NONE";
-         setAEConnectionString(noneEnclaveAttestationUrl, url, noneProtocol);
-         EnclavePackageTest.testBasicConnection(AETestConnectionString, noneProtocol);
+         
+         if (!protocol.equals("AAS")) {
+             url = noneEnclaveAttestationUrl;
+             protocol = noneProtocol;
+         }
+         setAEConnectionString(serverName, url, protocol);
+         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
      }
 
     /**
