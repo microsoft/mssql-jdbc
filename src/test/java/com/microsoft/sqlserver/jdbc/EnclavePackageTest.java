@@ -232,15 +232,19 @@ public class EnclavePackageTest extends AbstractTest {
         try (Connection con1 = dsLocal.getConnection(); Connection con2 = dsXA.getConnection();
                 Connection con3 = dsPool.getConnection(); Connection con4 = PrepUtil.getConnection(cString)) {
             if (TestUtils.isAEv2(con1)) {
+                System.out.println("Connection: 1, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con1, protocol);
             }
             if (TestUtils.isAEv2(con2)) {
+                System.out.println("Connection: 2, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con2, protocol);
             }
             if (TestUtils.isAEv2(con3)) {
+                System.out.println("Connection: 3, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con3, protocol);
             }
             if (TestUtils.isAEv2(con4)) {
+                System.out.println("Connection: 4, String: " + cString + ", Protocol: " + protocol);
                 verifyEnclaveEnabled(con4, protocol);
             }
         }
