@@ -463,6 +463,7 @@ public class EnclavePackageTest extends AbstractTest {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
+    
     /*
      * Test invalid properties
      */
