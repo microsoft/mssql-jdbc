@@ -4,8 +4,8 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -54,25 +54,23 @@ public class EnclaveTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
     }
-    
+
     /**
-     * Intercepts the basic connection test for certain scenarios to test NONE attestation. For VBS enclave type only
-     * we want to test against the provided none attestation URL, along with NONE protocol. This means, for AAS, which
-     * can use SGX enclave, there is no change, otherwise, we use the new URL and NONE.
+     * Uses the basic connection test, but modified to test NONE attestation with VBS enclaves. For VBS enclave type 
+     * only we want to test against the provided none attestation URL, along with NONE protocol. This means, for AAS, 
+     * which can use SGX enclave, there is no change, otherwise, we use the new URL and NONE.
      */
-     @ParameterizedTest
-     @MethodSource("enclaveParams")
-     public void testNoneConnection(String serverName, String url, String protocol) throws Exception {
-         String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
-         String noneProtocol = "NONE";
-         
-         if (!protocol.equals("AAS")) {
-             url = noneEnclaveAttestationUrl;
-             protocol = noneProtocol;
-         }
-         setAEConnectionString(serverName, url, protocol);
-         EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
-     }
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testNoneConnection(String serverName, String url, String protocol) throws Exception {
+        String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
+        String noneProtocol = "NONE";
+
+        if (!protocol.equals("AAS")) {
+            setAEConnectionString(serverName, noneEnclaveAttestationUrl, noneProtocol);
+            EnclavePackageTest.testBasicConnection(AETestConnectionString, noneProtocol);
+        }
+    }
 
     /**
      * Tests invalid connection property combinations.
