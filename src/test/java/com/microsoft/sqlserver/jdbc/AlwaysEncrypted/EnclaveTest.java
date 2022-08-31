@@ -60,9 +60,9 @@ public class EnclaveTest extends AESetup {
      */
      @ParameterizedTest
      @MethodSource("enclaveParams")
-     public void testNoneConnection(String serverName) throws Exception {
+     public void testNoneConnection(String serverName, String url, String protocol) throws Exception {
          String noneEnclaveAttestationUrl = getConfiguredProperty("noneEnclaveAttestationUrl");
-         String protocol = "NONE";
+         //String protocol = "NONE";
          setAEConnectionString(serverName, noneEnclaveAttestationUrl, protocol);
          EnclavePackageTest.testBasicConnection(AETestConnectionString, protocol);
      }
