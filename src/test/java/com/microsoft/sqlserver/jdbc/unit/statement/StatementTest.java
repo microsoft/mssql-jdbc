@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
@@ -1479,6 +1480,177 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        /**
+         * Tests result of math operation in prepared statement using subtraction
+         * 
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testMathBigDecimalSubtraction() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (test_column decimal(10,5))");
+                stmt.executeUpdate(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "select (test_column - ?), (test_column - ?), (test_column - ?), (test_column - ?) from "
+                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    BigDecimal value1 = new BigDecimal("1.5");
+                    pstmt.setObject(1, value1);
+                    BigDecimal value2 = new BigDecimal("0");
+                    pstmt.setObject(2, value2);
+                    BigDecimal value3 = new BigDecimal("99999.12345");
+                    pstmt.setObject(3, value3);
+                    BigDecimal value4 = new BigDecimal("99999.2");
+                    pstmt.setObject(4, value4);
+
+                    BigDecimal base = new BigDecimal("99999.12345");
+                    BigDecimal expected1 = base.subtract(value1);
+                    BigDecimal expected2 = base.subtract(value2);
+                    BigDecimal expected3 = base.subtract(value3);
+                    BigDecimal expected4 = base.subtract(value4);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        assert (expected1.equals(rs.getObject(1)));
+                        assert (expected2.equals(rs.getObject(2)));
+                        assert (expected3.equals(rs.getObject(3)));
+                        assert (expected4.equals(rs.getObject(4)));
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests result of math operation in prepared statement using addition
+         * 
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testMathBigDecimalAddition() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (test_column decimal(10,5))");
+                stmt.executeUpdate(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "select (test_column + ?), (test_column + ?), (test_column + ?), (test_column + ?) from "
+                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    BigDecimal value1 = new BigDecimal("1.5");
+                    pstmt.setObject(1, value1);
+                    BigDecimal value2 = new BigDecimal("0");
+                    pstmt.setObject(2, value2);
+                    BigDecimal value3 = new BigDecimal("99999.12345");
+                    pstmt.setObject(3, value3);
+                    BigDecimal value4 = new BigDecimal("99999.2");
+                    pstmt.setObject(4, value4);
+
+                    BigDecimal base = new BigDecimal("99999.12345");
+                    BigDecimal expected1 = base.add(value1);
+                    BigDecimal expected2 = base.add(value2);
+                    BigDecimal expected3 = base.add(value3);
+                    BigDecimal expected4 = base.add(value4);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        assert (expected1.equals(rs.getObject(1)));
+                        assert (expected2.equals(rs.getObject(2)));
+                        assert (expected3.equals(rs.getObject(3)));
+                        assert (expected4.equals(rs.getObject(4)));
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests result of math operation in prepared statement using multiplication
+         * 
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testMathBigDecimalMultiplication() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (test_column decimal(10,5))");
+                stmt.executeUpdate(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "select (test_column * ?), (test_column * ?), (test_column * ?), (test_column * ?) from "
+                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                    BigDecimal value1 = new BigDecimal("1.5");
+                    pstmt.setObject(1, value1);
+                    BigDecimal value2 = new BigDecimal("0");
+                    pstmt.setObject(2, value2);
+                    BigDecimal value3 = new BigDecimal("99999.12345");
+                    pstmt.setObject(3, value3);
+                    BigDecimal value4 = new BigDecimal("99999.2");
+                    pstmt.setObject(4, value4);
+
+                    BigDecimal base = new BigDecimal("99999.12345");
+                    BigDecimal expected1 = base.multiply(value1);
+                    BigDecimal expected2 = base.multiply(value2);
+                    BigDecimal expected3 = base.multiply(value3);
+                    BigDecimal expected4 = base.multiply(value4);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        assert (expected1.equals(rs.getObject(1)));
+                        assert (expected2.equals(rs.getObject(2)));
+                        assert (expected3.equals(rs.getObject(3)));
+                        assert (expected4.equals(rs.getObject(4)));
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests result of math operation in prepared statement using division
+         * 
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testMathBigDecimalDivision() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (test_column decimal(10,5))");
+                stmt.executeUpdate(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "select (test_column / ?), (test_column / ?), (test_column / ?), (test_column / ?) from "
+                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+
+                    /* Division has some unique properties in sql server math operations.
+                     * Notably in this case we cannot compare a result with an infinite trailing decimal
+                     * and the returned value has an expanded precision.
+                     */
+
+                    BigDecimal value1 = new BigDecimal("1.5");
+                    pstmt.setObject(1, value1);
+                    BigDecimal value2 = new BigDecimal("0.1");
+                    pstmt.setObject(2, value2);
+                    BigDecimal value3 = new BigDecimal("99999.12345");
+                    pstmt.setObject(3, value3);
+
+                    BigDecimal base = new BigDecimal("99999.12345");
+                    BigDecimal expected1 = base.divide(value1);
+                    BigDecimal expected2 = base.divide(value2);
+                    BigDecimal expected3 = base.divide(value3);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        assertEquals(0, expected1.compareTo((BigDecimal) rs.getObject(1)));
+                        assertEquals(0, expected2.compareTo((BigDecimal) rs.getObject(2)));
+                        assertEquals(0, expected3.compareTo((BigDecimal) rs.getObject(3)));
+                    }
+                }
+            }
+        }
+
+        
         /**
          * Verify proper handling of row errors in ResultSets.
          */
