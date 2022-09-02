@@ -1634,17 +1634,21 @@ public class StatementTest extends AbstractTest {
                     pstmt.setObject(2, value2);
                     BigDecimal value3 = new BigDecimal("99999.12345");
                     pstmt.setObject(3, value3);
+                    BigDecimal value4 = new BigDecimal("1");
+                    pstmt.setObject(4, value4);
 
                     BigDecimal base = new BigDecimal("99999.12345");
                     BigDecimal expected1 = base.divide(value1);
                     BigDecimal expected2 = base.divide(value2);
                     BigDecimal expected3 = base.divide(value3);
+                    BigDecimal expected4 = base.divide(value4);
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         rs.next();
                         assertEquals(0, expected1.compareTo((BigDecimal) rs.getObject(1)));
                         assertEquals(0, expected2.compareTo((BigDecimal) rs.getObject(2)));
                         assertEquals(0, expected3.compareTo((BigDecimal) rs.getObject(3)));
+                        assertEquals(0, expected4.compareTo((BigDecimal) rs.getObject(4)));
                     }
                 }
             }
