@@ -1483,11 +1483,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Tests result of math operation in prepared statement using subtraction
          * 
-         * @throws Exception
+         * @throws SQLException
          *         when an error occurs
          */
         @Test
-        public void testMathBigDecimalSubtraction() throws Exception {
+        public void testMathBigDecimalSubtraction() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (test_column decimal(10,5))");
@@ -1525,11 +1525,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Tests result of math operation in prepared statement using addition
          * 
-         * @throws Exception
+         * @throws SQLException
          *         when an error occurs
          */
         @Test
-        public void testMathBigDecimalAddition() throws Exception {
+        public void testMathBigDecimalAddition() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (test_column decimal(10,5))");
@@ -1567,11 +1567,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Tests result of math operation in prepared statement using multiplication
          * 
-         * @throws Exception
+         * @throws SQLException
          *         when an error occurs
          */
         @Test
-        public void testMathBigDecimalMultiplication() throws Exception {
+        public void testMathBigDecimalMultiplication() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (test_column decimal(10,5))");
@@ -1609,11 +1609,11 @@ public class StatementTest extends AbstractTest {
         /**
          * Tests result of math operation in prepared statement using division
          * 
-         * @throws Exception
+         * @throws SQLException
          *         when an error occurs
          */
         @Test
-        public void testMathBigDecimalDivision() throws Exception {
+        public void testMathBigDecimalDivision() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                         + " (test_column decimal(10,5))");
