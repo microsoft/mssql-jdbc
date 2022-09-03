@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.sql.Blob;
+import java.math.RoundingMode;import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -1484,9 +1484,9 @@ public class StatementTest extends AbstractTest {
          * Tests result of math operation in prepared statement using subtraction
          * 
          * @throws Exception
+         *         when an error occurs
          */
         @Test
-        @Tag(Constants.xAzureSQLDW)
         public void testMathBigDecimalSubtraction() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1526,9 +1526,9 @@ public class StatementTest extends AbstractTest {
          * Tests result of math operation in prepared statement using addition
          * 
          * @throws Exception
+         *         when an error occurs
          */
         @Test
-        @Tag(Constants.xAzureSQLDW)
         public void testMathBigDecimalAddition() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1568,9 +1568,9 @@ public class StatementTest extends AbstractTest {
          * Tests result of math operation in prepared statement using multiplication
          * 
          * @throws Exception
+         *         when an error occurs
          */
         @Test
-        @Tag(Constants.xAzureSQLDW)
         public void testMathBigDecimalMultiplication() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1610,9 +1610,9 @@ public class StatementTest extends AbstractTest {
          * Tests result of math operation in prepared statement using division
          * 
          * @throws Exception
+         *         when an error occurs
          */
         @Test
-        @Tag(Constants.xAzureSQLDW)
         public void testMathBigDecimalDivision() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -1638,10 +1638,10 @@ public class StatementTest extends AbstractTest {
                     pstmt.setObject(4, value4);
 
                     BigDecimal base = new BigDecimal("99999.12345");
-                    BigDecimal expected1 = base.divide(value1);
-                    BigDecimal expected2 = base.divide(value2);
-                    BigDecimal expected3 = base.divide(value3);
-                    BigDecimal expected4 = base.divide(value4);
+                    BigDecimal expected1 = base.divide(value1, RoundingMode.HALF_UP);
+                    BigDecimal expected2 = base.divide(value2, RoundingMode.HALF_UP);
+                    BigDecimal expected3 = base.divide(value3, RoundingMode.HALF_UP);
+                    BigDecimal expected4 = base.divide(value4, RoundingMode.HALF_UP);
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         rs.next();

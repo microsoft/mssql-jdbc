@@ -534,18 +534,14 @@ final class Parameter {
                         }
                     } else if (dtv.getJavaType() == JavaType.BIGDECIMAL
                             && (providedDecimal = (BigDecimal) dtv.getValue(dtv.getJdbcType(), scale, null, null,
-                                    typeInfo, cryptoMeta, null, null)) != null) {
-                        if (providedDecimal.precision() >= scale) {
-                            param.typeDefinition = "decimal(" + providedDecimal.precision() + "," + scale + ")";
-                        } else {
-                            param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
-                        }
+                                    typeInfo, cryptoMeta, null, null)) != null
+                            && providedDecimal.precision() >= scale) {
+                                param.typeDefinition = "decimal(" + providedDecimal.precision() + "," + scale + ")";
                     } else {
                         param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
                     }
 
                     break;
-                    
 
                 case MONEY:
                     param.typeDefinition = SSType.MONEY.toString();
