@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.2.1] HotFix & Stable Release
+### Fixed issues
+- Made com.microsoft.azure:msal4j an optional dependency again [1892](https://github.com/microsoft/mssql-jdbc/pull/1892)
+- Fixed query cancellation bug that intermittently occurs in batch queries [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
+
 ## [11.2.0] Stable Release
 ### Added
 - Added support for caching parameter metadata for Always Encrypted with secure enclaves [1866](https://github.com/microsoft/mssql-jdbc/pull/1866)

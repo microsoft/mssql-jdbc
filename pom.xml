@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>11.2.0</version>
+	<version>11.2.1</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -110,6 +110,7 @@
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>msal4j</artifactId>
 			<version>1.13.0</version>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- dependencies for ANTLR -->
