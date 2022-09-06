@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [11.2.1] HotFix & Stable Release
 ### Fixed issues
-- Made com.microsoft.azure:msal4j an optional dependency again [1892](https://github.com/microsoft/mssql-jdbc/pull/1892)
+- Made com.microsoft.azure:msal4j an optional dependency again [1893](https://github.com/microsoft/mssql-jdbc/pull/1893)
 - Fixed query cancellation bug that intermittently occurs in batch queries [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
 
 ## [11.2.0] Stable Release
