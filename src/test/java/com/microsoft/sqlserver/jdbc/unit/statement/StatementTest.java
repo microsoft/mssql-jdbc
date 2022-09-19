@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;import java.sql.Blob;
+import java.math.RoundingMode;
 import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
