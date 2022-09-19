@@ -1231,7 +1231,7 @@ public class StatementTest extends AbstractTest {
 
     @Nested
     public class TCStatementParam {
-        private final String tableName = RandomUtil.getIdentifier("TCStatementParam");
+        private final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
         private final String procName = RandomUtil.getIdentifier("TCStatementParam");
 
         /**
@@ -1357,15 +1357,11 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
                         + " where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
@@ -1393,15 +1389,11 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from " + tableName
                         + " where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
@@ -1426,23 +1418,23 @@ public class StatementTest extends AbstractTest {
         public void testFailedToResumeTransaction() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
-                stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(3)");
-                try (PreparedStatement ps = con.prepareStatement("BEGIN TRAN " + "Insert into "
-                        + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4) " + "ROLLBACK")) {}
+                stmt.executeUpdate("create table " + tableName + " (col1 int)");
+                stmt.executeUpdate("Insert into " + tableName + " values(0)");
+                stmt.executeUpdate("Insert into " + tableName + " values(1)");
+                stmt.executeUpdate("Insert into " + tableName + " values(2)");
+                stmt.executeUpdate("Insert into " + tableName + " values(3)");
+                try (PreparedStatement ps = con.prepareStatement("BEGIN TRAN " + "Insert into " + tableName 
+                    + " values(4) " + "ROLLBACK")) {}
                 con.setAutoCommit(false);
 
                 try (PreparedStatement ps2 = con.prepareStatement(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values('a')")) {
+                        "Insert into " + tableName + " values('a')")) {
                     try {
                         ps2.execute();
                     } catch (SQLException e) {}
                     try {
                         stmt.executeUpdate(
-                                "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(4)");
+                                "Insert into " + tableName + " values(4)");
                     } catch (SQLException ex) {}
                 }
             }
@@ -1458,12 +1450,9 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hello')");
-                stmt.executeUpdate(
-                        "Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0, 'hi')");
+                stmt.executeUpdate("create table " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hello')");
+                stmt.executeUpdate("Insert into " + tableName + " values(0, 'hi')");
                 String query = "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName)
                         + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * from somenonexistenttable where col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
@@ -1489,13 +1478,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalSubtraction() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (test_column decimal(10,5))");
-                stmt.executeUpdate(
-                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
-                try (PreparedStatement pstmt = con.prepareStatement(
-                        "select (test_column - ?), (test_column - ?), (test_column - ?), (test_column - ?) from "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement("select (test_column - ?), " 
+                    + "(test_column - ?), (test_column - ?), (test_column - ?) from " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1531,13 +1517,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalAddition() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (test_column decimal(10,5))");
-                stmt.executeUpdate(
-                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
-                try (PreparedStatement pstmt = con.prepareStatement(
-                        "select (test_column + ?), (test_column + ?), (test_column + ?), (test_column + ?) from "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement("select (test_column + ?), " 
+                    + "(test_column + ?), (test_column + ?), (test_column + ?) from " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1573,13 +1556,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalMultiplication() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (test_column decimal(10,5))");
-                stmt.executeUpdate(
-                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
-                try (PreparedStatement pstmt = con.prepareStatement(
-                        "select (test_column * ?), (test_column * ?), (test_column * ?), (test_column * ?) from "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement("select (test_column * ?), " 
+                    + "(test_column * ?), (test_column * ?), (test_column * ?) from " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1615,13 +1595,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalDivision() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (test_column decimal(10,5))");
-                stmt.executeUpdate(
-                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
-                try (PreparedStatement pstmt = con.prepareStatement(
-                        "select (test_column / ?), (test_column / ?), (test_column / ?), (test_column / ?) from "
-                                + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                try (PreparedStatement pstmt = con.prepareStatement("select (test_column / ?), " 
+                    + "(test_column / ?), (test_column / ?), (test_column / ?) from " + tableName)) {
 
                     /* Division has some unique properties in sql server math operations.
                      * Notably in this case we cannot compare a result with an infinite trailing decimal
@@ -1663,14 +1640,13 @@ public class StatementTest extends AbstractTest {
         public void testRowError() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " (ROWID int IDENTITY, col1 int)");
-                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(0)");
-                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(1)");
-                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values(2)");
+                stmt.executeUpdate("create table " + tableName + " (ROWID int IDENTITY, col1 int)");
+                stmt.executeUpdate("insert into " + tableName + " values(0)");
+                stmt.executeUpdate("insert into " + tableName + " values(1)");
+                stmt.executeUpdate("insert into " + tableName + " values(2)");
                 stmt.execute(
                         "create procedure " + AbstractSQLGenerator.escapeIdentifier(procName) + " @col1Value int AS "
-                                + " BEGIN " + "    SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " BEGIN " + "    SELECT col1 FROM " + tableName
                                 + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) ORDER BY ROWID" + " END");
 
                 // For the test, lock each row in the table, one by one, for update
@@ -1712,8 +1688,7 @@ public class StatementTest extends AbstractTest {
                                     stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
 
                                     try (CallableStatement cstmt2 = testConn2.prepareCall(
-                                            "SELECT col1 FROM " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                                                    + " WITH (UPDLOCK) ORDER BY ROWID")) {
+                                            "SELECT col1 FROM " + tableName + " WITH (UPDLOCK) ORDER BY ROWID")) {
 
                                         // Verify that the result set can be closed after
                                         // the lock timeout error
@@ -1752,7 +1727,7 @@ public class StatementTest extends AbstractTest {
         @AfterEach
         public void terminate() throws SQLException {
             try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
                 TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
             }
         }
