@@ -95,7 +95,7 @@ class IdleConnectionResiliency {
             short sessionStateId = (short) (data[bytesRead] & 0xFF);
             bytesRead++;
             int sessionStateLength;
-            byte byteLength = data[bytesRead];
+            int byteLength = data[bytesRead] & 0xFF;
             bytesRead++;
             if (byteLength == 0xFF) {
                 sessionStateLength = (int) (Util.readInt(data, bytesRead) & 0xFFFFFFFFL);
@@ -447,8 +447,7 @@ final class ReconnectThread extends Thread {
 
         if (command.getQueryTimeoutSeconds() > 0) {
             timer = SharedTimer.getTimer();
-            timeout = timer.schedule(new TDSTimeoutTask(command, null),
-                        command.getQueryTimeoutSeconds());
+            timeout = timer.schedule(new TDSTimeoutTask(command, null), command.getQueryTimeoutSeconds());
         }
 
         boolean keepRetrying = true;
