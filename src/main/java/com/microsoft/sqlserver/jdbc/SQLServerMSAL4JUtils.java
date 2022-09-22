@@ -168,6 +168,16 @@ class SQLServerMSAL4JUtils {
             // try to acquire token silently if user account found in cache
             try {
                 Set<IAccount> accountsInCache = pca.getAccounts().join();
+                if (logger.isLoggable(Level.FINE)) {
+                    StringBuilder acc = new StringBuilder();
+                    if (accountsInCache != null) {
+                        for (IAccount account : accountsInCache) {
+                            if (acc.length() != 0) acc.append(", ");
+                            acc.append(account.username());
+                        }
+                    }
+                    logger.fine(logger.toString() + "Accounts in cache = " + acc + ", size = " + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
+                }
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
                     if (null != account) {
@@ -182,6 +192,9 @@ class SQLServerMSAL4JUtils {
                 }
             } catch (MsalInteractionRequiredException e) {
                 // not an error, need to get token interactively
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, e, () -> logger.toString() + "Need to get token interactively");
+                }
             }
 
             if (null != future) {
@@ -221,7 +234,7 @@ class SQLServerMSAL4JUtils {
     private static IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
         if (!accounts.isEmpty()) {
             for (IAccount account : accounts) {
-                if (account.username().equals(username)) {
+                if (account.username().equalsIgnoreCase(username)) {
                     return account;
                 }
             }
