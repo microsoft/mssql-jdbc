@@ -1838,9 +1838,9 @@ public class SQLServerStatement implements ISQLServerStatement {
             for (int batchNum = 0; batchNum < batchSize; batchNum++)
                 updateCounts[batchNum] = Statement.EXECUTE_FAILED;
 
-            // Last exception thrown. If database errors are returned, then executeBatch throws a
+            // First exception thrown. If database errors are returned, then executeBatch throws a
             // BatchUpdateException with this exception and the update counts, including errors.
-            SQLServerException lastError = null;
+            SQLServerException firstError = null;
 
             for (int batchNum = 0; batchNum < batchSize; batchNum++) {
                 // NOTE:
@@ -1876,14 +1876,16 @@ public class SQLServerStatement implements ISQLServerStatement {
 
                     // Otherwise, the connection is OK and the transaction is still intact,
                     // so just record the failure for the particular batch item.
-                    lastError = e;
+                    if (null == firstError) {
+                        firstError = e;
+                    }
                 }
             }
 
             // If we had any errors then throw a BatchUpdateException with the partial results.
-            if (null != lastError) {
-                throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(),
-                        lastError.getErrorCode(), updateCounts);
+            if (null != firstError) {
+                throw new BatchUpdateException(firstError.getMessage(), firstError.getSQLState(),
+                        firstError.getErrorCode(), updateCounts);
             }
             loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
             return updateCounts;
