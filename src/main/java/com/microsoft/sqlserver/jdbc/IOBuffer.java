@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -694,6 +695,9 @@ final class TDSChannel implements Serializable {
 
     // Socket for SSL-encrypted communications with SQL Server
     private SSLSocket sslSocket;
+
+    // The byte array from the first finished message in the TLS handshake
+    static byte[] channelBindingInfo = null;
 
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
@@ -1813,6 +1817,8 @@ final class TDSChannel implements Serializable {
 
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
+            setChannelBindingInfo();
+
             // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Rewiring proxy streams after handshake");
@@ -1905,6 +1911,29 @@ final class TDSChannel implements Serializable {
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
+        }
+    }
+
+    private void setChannelBindingInfo() {
+        try {
+            Class<?> sslSocketImplClass = sslSocket.getClass();
+            Class<?> transportContextClass = Class.forName("sun.security.ssl.TransportContext");
+
+            Field tlsTransportContextField = sslSocketImplClass.getDeclaredField("conContext");
+            Field clientVerifyDataField = transportContextClass.getDeclaredField("clientVerifyData");
+
+            clientVerifyDataField.setAccessible(true);
+            tlsTransportContextField.setAccessible(true);
+
+            Object sslSocketTransportContext = tlsTransportContextField.get(sslSocket);
+            byte[] clientVerifyData = (byte[]) clientVerifyDataField.get(sslSocketTransportContext);
+
+            byte[] prefix = "tls-unique:".getBytes();
+            channelBindingInfo = Arrays.copyOf(prefix, prefix.length + clientVerifyData.length);
+            System.arraycopy(clientVerifyData, 0, channelBindingInfo, prefix.length, clientVerifyData.length);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

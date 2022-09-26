@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -20,6 +21,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import mssql.security.provider.MD4;
+
+import static com.microsoft.sqlserver.jdbc.TDSChannel.channelBindingInfo;
 
 
 /**
@@ -144,6 +147,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * NTLM_AVID_MSVAVTIMESTAMP       FILETIME structure that contains the server local time (ALWAYS present in CHALLENGE_MESSAGE
      * NTLM_AVID_MSVAVSINGLEHOST      Single Host Data structure  (not currently used)
      * NTLM_AVID_MSVAVTARGETNAME      SPN of the target server in unicode (not currently used)
+     * NTLM_AVID_MSVAVCHANNELBINDING  the MD5 hash of the channel binding info
      * </pre>
      */
     private static final short NTLM_AVID_MSVAVEOL = 0x0000;
@@ -156,6 +160,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVTIMESTAMP = 0x0007;
     private static final short NTLM_AVID_MSVAVSINGLEHOST = 0x0008;
     private static final short NTLM_AVID_MSVAVTARGETNAME = 0x0009;
+    private static final short NTLM_AVID_MSVAVCHANNELBINDING = 0x000a;
+
+    /**
+     * Section 2.2.2.1 AV_PAIR - MsvAvChannelBindings
+     *
+     * MD5 hashed channel bindings info. By default, an all zeroed byte array means absence of channel binding.
+     */
+    private static byte[] MsvAvChannelBindings = new byte[16];
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -544,7 +556,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length
                         + /* add MIC */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + NTLM_AVID_MSVAVFLAGS_LEN
-                        + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length)
+                        + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length
+                        + /* add channel binding */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + MsvAvChannelBindings.length)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -581,11 +594,34 @@ final class NTLMAuthentication extends SSPIAuthentication {
         token.putShort((short) context.spnUbytes.length);
         token.put(context.spnUbytes, 0, context.spnUbytes.length);
 
+        // Channel binding
+        calculateChannelBindingMD5Hash();
+        token.putShort(NTLM_AVID_MSVAVCHANNELBINDING);
+        token.putShort((short) MsvAvChannelBindings.length);
+        token.put(MsvAvChannelBindings, 0, MsvAvChannelBindings.length);
+
         // EOL
         token.putShort(NTLM_AVID_MSVAVEOL);
         token.putShort((short) 0);
 
         return token.array();
+    }
+
+    private void calculateChannelBindingMD5Hash() {
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.update(new byte[4]); // Initiator address
+            md5.update(new byte[4]); // Initiator address length
+            md5.update(new byte[4]); // Acceptor address
+            md5.update(new byte[4]); // Acceptor address length
+            md5.update(new byte[] {(byte) channelBindingInfo.length, (byte) 0, (byte) 0, (byte) 0});
+            md5.update(channelBindingInfo);
+
+            MsvAvChannelBindings = md5.digest();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

@@ -23,6 +23,10 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
+import org.ietf.jgss.ChannelBinding;
+
+import sun.security.jgss.krb5.internal.TlsChannelBindingImpl;
+import static com.microsoft.sqlserver.jdbc.TDSChannel.channelBindingInfo;
 
 
 /**
@@ -113,6 +117,10 @@ final class KerbAuthentication extends SSPIAuthentication {
 
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+
+                ChannelBinding cb = new TlsChannelBindingImpl(channelBindingInfo);
+                peerContext.setChannelBinding(cb);
+
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
                 peerContext.requestMutualAuth(true);
