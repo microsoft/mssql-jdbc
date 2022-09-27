@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -36,6 +37,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
@@ -74,6 +76,9 @@ import javax.net.ssl.X509TrustManager;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+import org.bouncycastle.jsse.BCSSLConnection;
+import org.bouncycastle.jsse.BCSSLSocket;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 
 
 /**
@@ -694,6 +699,9 @@ final class TDSChannel implements Serializable {
 
     // Socket for SSL-encrypted communications with SQL Server
     private SSLSocket sslSocket;
+
+    // The byte array from the first finished message in the TLS handshake
+    static byte[] channelBindingInfo = null;
 
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
@@ -1584,6 +1592,7 @@ final class TDSChannel implements Serializable {
         Provider ksProvider = null; // KeyStore provider
         String tmfDefaultAlgorithm = null; // Default algorithm (typically X.509) used by the TrustManagerFactory
         SSLHandhsakeState handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_NOT_STARTED;
+        Security.addProvider(new BouncyCastleJsseProvider());
 
         boolean isFips = false;
         String trustStoreType = null;
@@ -1724,7 +1733,7 @@ final class TDSChannel implements Serializable {
                         logger.finest(toString() + " Locating X.509 trust manager factory");
 
                     tmfDefaultAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-                    tmf = TrustManagerFactory.getInstance(tmfDefaultAlgorithm);
+                    tmf = TrustManagerFactory.getInstance(tmfDefaultAlgorithm, "BCJSSE");
                     tmfProvider = tmf.getProvider();
 
                     // Tell the TrustManagerFactory to give us TrustManagers that we can use to
@@ -1758,13 +1767,14 @@ final class TDSChannel implements Serializable {
             KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
                     .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
 
-            sslContext = SSLContext.getInstance(sslProtocol);
+            sslContext = SSLContext.getInstance(sslProtocol, "BCJSSE");
             sslContextProvider = sslContext.getProvider();
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(km, tm, null);
+            SecureRandom sr = new SecureRandom();
+            sslContext.init(km, tm, sr);
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
@@ -1812,6 +1822,8 @@ final class TDSChannel implements Serializable {
             }
 
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+
+            setChannelBindingInfo();
 
             // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
             if (logger.isLoggable(Level.FINEST))
@@ -1906,6 +1918,24 @@ final class TDSChannel implements Serializable {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
         }
+    }
+
+    private void setChannelBindingInfo() {
+        BCSSLConnection connection = ((BCSSLSocket) sslSocket).getConnection();
+        byte[] clientVerifyData = null;
+
+        if (null != connection) {
+            clientVerifyData = connection.getChannelBinding("tls-unique");
+        }
+
+        if (null == clientVerifyData) {
+            // Log or throw error because byte array from TLS finished message wasn't assigned
+            return;
+        }
+
+        byte[] prefix = "tls-unique:".getBytes();
+        channelBindingInfo = Arrays.copyOf(prefix, prefix.length + clientVerifyData.length);
+        System.arraycopy(clientVerifyData, 0, channelBindingInfo, prefix.length, clientVerifyData.length);
     }
 
     /**

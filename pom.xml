@@ -134,6 +134,11 @@
 			<version>${bcprov-jdk15on.version}</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bctls-jdk15on</artifactId>
+			<version>1.70</version>
+		</dependency>
 		<!-- dependencies for Client Certificate Authentication -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
