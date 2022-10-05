@@ -10,7 +10,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Provides timeout handling for basic and bulk TDS commands to use a shared timer class. SharedTimer provides a static
@@ -46,7 +47,7 @@ class SharedTimer implements Serializable {
     static final String CORE_THREAD_PREFIX = "mssql-jdbc-shared-timer-core-";
 
     private static final AtomicLong CORE_THREAD_COUNTER = new AtomicLong();
-    private static final Object lock = new Object();
+    private static final Lock LOCK = new ReentrantLock();
     /**
      * Unique ID of this SharedTimer
      */
@@ -85,7 +86,8 @@ class SharedTimer implements Serializable {
      * If the reference count reaches zero then the underlying executor will be shutdown so that its thread stops.
      */
     public void removeRef() {
-        synchronized (lock) {
+        LOCK.lock();
+        try {
             if (refCount.get() <= 0) {
                 throw new IllegalStateException("removeRef() called more than actual references");
             }
@@ -95,6 +97,8 @@ class SharedTimer implements Serializable {
                 executor = null;
                 instance = null;
             }
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -106,13 +110,16 @@ class SharedTimer implements Serializable {
      * When the caller is finished with the SharedTimer it must be released via {@link#removeRef}
      */
     public static SharedTimer getTimer() {
-        synchronized (lock) {
+        LOCK.lock();
+        try {
             if (instance == null) {
                 // No shared object exists so create a new one
                 instance = new SharedTimer();
             }
             instance.refCount.getAndIncrement();
             return instance;
+        } finally {
+            LOCK.unlock();
         }
     }
 

@@ -6,22 +6,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DriverPropertyInfo;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.RowIdLifetime;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
+import java.sql.*;
 import java.text.MessageFormat;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 
@@ -272,7 +263,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
-    private static LinkedHashMap<Integer, String> getImportedKeysDWColumns = null;
+    private static volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
+    private static final Lock LOCK = new ReentrantLock();
 
     /**
      * Returns the result from a simple query. This is to be used only for internal queries without any user input.
@@ -692,7 +684,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
              * when user provides a different catalog than the one they're currently connected to. Will throw exception
              * when it's different and do nothing if it's the same/null.
              */
-            synchronized (SQLServerDatabaseMetaData.class) {
+            LOCK.lock();
+            try {
                 if (null == getColumnsDWColumns) {
                     getColumnsDWColumns = new LinkedHashMap<>();
                     getColumnsDWColumns.put(1, TABLE_CAT);
@@ -732,6 +725,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
                     getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
                 }
+            } finally {
+                LOCK.unlock();
             }
 
             try (PreparedStatement storedProcPstmt = this.connection
@@ -1087,23 +1082,31 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             ResultSet userRs = null;
             PreparedStatement pstmt = null;
             StringBuilder azureDwSelectBuilder = new StringBuilder();
-            synchronized (SQLServerDatabaseMetaData.class) {
-                if (null == getImportedKeysDWColumns) {
-                    getImportedKeysDWColumns = new LinkedHashMap<>();
-                    getImportedKeysDWColumns.put(1, PKTABLE_CAT);
-                    getImportedKeysDWColumns.put(2, PKTABLE_SCHEM);
-                    getImportedKeysDWColumns.put(3, PKTABLE_NAME);
-                    getImportedKeysDWColumns.put(4, PKCOLUMN_NAME);
-                    getImportedKeysDWColumns.put(5, FKTABLE_CAT);
-                    getImportedKeysDWColumns.put(6, FKTABLE_SCHEM);
-                    getImportedKeysDWColumns.put(7, FKTABLE_NAME);
-                    getImportedKeysDWColumns.put(8, FKCOLUMN_NAME);
-                    getImportedKeysDWColumns.put(9, KEY_SEQ);
-                    getImportedKeysDWColumns.put(10, UPDATE_RULE);
-                    getImportedKeysDWColumns.put(11, DELETE_RULE);
-                    getImportedKeysDWColumns.put(12, FK_NAME);
-                    getImportedKeysDWColumns.put(13, PK_NAME);
-                    getImportedKeysDWColumns.put(14, DEFERRABILITY);
+
+            LinkedHashMap<Integer, String> importedKeysDWColumns = getImportedKeysDWColumns;
+            if (null == importedKeysDWColumns) {
+                LOCK.lock();
+                try {
+                    importedKeysDWColumns = getImportedKeysDWColumns;
+                    if (null == importedKeysDWColumns) {
+                        getImportedKeysDWColumns = importedKeysDWColumns = new LinkedHashMap<>(14, 1.0F);
+                        importedKeysDWColumns.put(1, PKTABLE_CAT);
+                        importedKeysDWColumns.put(2, PKTABLE_SCHEM);
+                        importedKeysDWColumns.put(3, PKTABLE_NAME);
+                        importedKeysDWColumns.put(4, PKCOLUMN_NAME);
+                        importedKeysDWColumns.put(5, FKTABLE_CAT);
+                        importedKeysDWColumns.put(6, FKTABLE_SCHEM);
+                        importedKeysDWColumns.put(7, FKTABLE_NAME);
+                        importedKeysDWColumns.put(8, FKCOLUMN_NAME);
+                        importedKeysDWColumns.put(9, KEY_SEQ);
+                        importedKeysDWColumns.put(10, UPDATE_RULE);
+                        importedKeysDWColumns.put(11, DELETE_RULE);
+                        importedKeysDWColumns.put(12, FK_NAME);
+                        importedKeysDWColumns.put(13, PK_NAME);
+                        importedKeysDWColumns.put(14, DEFERRABILITY);
+                    }
+                } finally {
+                    LOCK.unlock();
                 }
             }
             azureDwSelectBuilder.append(generateAzureDWEmptyRS(getImportedKeysDWColumns));

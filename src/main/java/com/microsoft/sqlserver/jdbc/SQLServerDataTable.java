@@ -9,16 +9,10 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Represents the data table for SQL Server.
@@ -31,6 +25,7 @@ public final class SQLServerDataTable {
     Set<String> columnNames = null;
     Map<Integer, Object[]> rows = null;
     private String tvpName = null;
+    private final Lock lock = new ReentrantLock();
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the type
@@ -49,12 +44,17 @@ public final class SQLServerDataTable {
     /**
      * Clears this data table.
      */
-    public synchronized void clear() {
-        rowCount = 0;
-        columnCount = 0;
-        columnMetadata.clear();
-        columnNames.clear();
-        rows.clear();
+    public void clear() {
+        lock.lock();
+        try {
+            rowCount = 0;
+            columnCount = 0;
+            columnMetadata.clear();
+            columnNames.clear();
+            rows.clear();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -62,11 +62,16 @@ public final class SQLServerDataTable {
      * 
      * @return an iterator on the rows of the data table.
      */
-    public synchronized Iterator<Entry<Integer, Object[]>> getIterator() {
-        if ((null != rows) && (null != rows.entrySet())) {
-            return rows.entrySet().iterator();
+    public Iterator<Entry<Integer, Object[]>> getIterator() {
+        lock.lock();
+        try {
+            if (null != rows) {
+                return rows.entrySet().iterator();
+            }
+            return null;
+        } finally {
+            lock.unlock();
         }
-        return null;
     }
 
     /**
@@ -79,10 +84,15 @@ public final class SQLServerDataTable {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public synchronized void addColumnMetadata(String columnName, int sqlType) throws SQLServerException {
-        // column names must be unique
-        Util.checkDuplicateColumnName(columnName, columnNames);
-        columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
+    public void addColumnMetadata(String columnName, int sqlType) throws SQLServerException {
+        lock.lock();
+        try {
+            // column names must be unique
+            Util.checkDuplicateColumnName(columnName, columnNames);
+            columnMetadata.put(columnCount++, new SQLServerDataColumn(columnName, sqlType));
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -93,10 +103,15 @@ public final class SQLServerDataTable {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public synchronized void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
-        // column names must be unique
-        Util.checkDuplicateColumnName(column.columnName, columnNames);
-        columnMetadata.put(columnCount++, column);
+    public void addColumnMetadata(SQLServerDataColumn column) throws SQLServerException {
+        lock.lock();
+        try {
+            // column names must be unique
+            Util.checkDuplicateColumnName(column.columnName, columnNames);
+            columnMetadata.put(columnCount++, column);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -107,7 +122,8 @@ public final class SQLServerDataTable {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public synchronized void addRow(Object... values) throws SQLServerException {
+    public void addRow(Object... values) throws SQLServerException {
+        lock.lock();
         try {
             int columnCount = columnMetadata.size();
 
@@ -136,8 +152,9 @@ public final class SQLServerDataTable {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
         } catch (ClassCastException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
+        } finally {
+            lock.unlock();
         }
-
     }
 
     /**
@@ -313,8 +330,13 @@ public final class SQLServerDataTable {
      * 
      * @return Map
      */
-    public synchronized Map<Integer, SQLServerDataColumn> getColumnMetadata() {
-        return columnMetadata;
+    public Map<Integer, SQLServerDataColumn> getColumnMetadata() {
+        lock.lock();
+        try {
+            return columnMetadata;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

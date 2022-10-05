@@ -5,23 +5,18 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.sql.Statement;
-import java.sql.Types;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+import java.sql.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.transaction.xa.XAException;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.Xid;
-
 
 /**
  * Implements Transaction id used to recover transactions.
@@ -155,7 +150,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     private int architectureMSSQL, architectureOS;
 
     private static boolean xaInitDone;
-    private static final Object xaInitLock;
+    private static final Lock xaInitLock = new ReentrantLock();
     private String sResourceManagerId;
     private int enlistedTransactionCount;
     final private Logger xaLogger;
@@ -176,9 +171,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
      * Variable that shows how many times we attempt the recovery, e.g in case of MSDTC restart
      */
     private int recoveryAttempt = 0;
-    static {
-        xaInitLock = new Object();
-    }
+    private final Lock lock = new ReentrantLock();
 
     @Override
     public String toString() {
@@ -211,73 +204,89 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     }
 
-    private synchronized SQLServerCallableStatement getXACallableStatementHandle(int number) throws SQLServerException {
-        assert number >= XA_START && number <= XA_FORGET_EX;
-        assert number < xaStatements.length;
-        if (null != xaStatements[number])
-            return xaStatements[number];
-
-        CallableStatement CS = null;
-
-        switch (number) {
-            case SQLServerXAResource.XA_START:
-                CS = controlConnection.prepareCall(
-                        "{call master..xp_sqljdbc_xa_start(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_END:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_end(?, ?, ?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_PREPARE:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare(?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_COMMIT:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_commit(?, ?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_ROLLBACK:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback(?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_FORGET:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget(?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_RECOVER:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_recover(?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_PREPARE_EX:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare_ex(?, ?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_ROLLBACK_EX:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback_ex(?, ?, ?, ?, ?, ?)}");
-                break;
-            case SQLServerXAResource.XA_FORGET_EX:
-                CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget_ex(?, ?, ?, ?, ?, ?)}");
-                break;
-            default:
-                assert false : "Bad handle request:" + number;
-                break;
-        }
-
-        xaStatements[number] = (SQLServerCallableStatement) CS;
-        return xaStatements[number];
-    }
-
-    private synchronized void closeXAStatements() throws SQLServerException {
-        for (int i = 0; i < xaStatements.length; i++)
-            if (null != xaStatements[i]) {
-                xaStatements[i].close();
-                xaStatements[i] = null;
-            }
-    }
-
-    final synchronized void close() throws SQLServerException {
+    private SQLServerCallableStatement getXACallableStatementHandle(int number) throws SQLServerException {
+        lock.lock();
         try {
-            closeXAStatements();
-        } catch (Exception e) {
-            if (xaLogger.isLoggable(Level.WARNING))
-                xaLogger.warning(toString() + "Closing exception ignored: " + e);
-        }
+            assert number >= XA_START && number <= XA_FORGET_EX;
+            assert number < xaStatements.length;
+            if (null != xaStatements[number])
+                return xaStatements[number];
 
-        if (null != controlConnection)
-            controlConnection.close();
+            CallableStatement CS = null;
+
+            switch (number) {
+                case SQLServerXAResource.XA_START:
+                    CS = controlConnection.prepareCall(
+                            "{call master..xp_sqljdbc_xa_start(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_END:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_end(?, ?, ?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_PREPARE:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare(?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_COMMIT:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_commit(?, ?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_ROLLBACK:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback(?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_FORGET:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget(?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_RECOVER:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_recover(?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_PREPARE_EX:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare_ex(?, ?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_ROLLBACK_EX:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback_ex(?, ?, ?, ?, ?, ?)}");
+                    break;
+                case SQLServerXAResource.XA_FORGET_EX:
+                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget_ex(?, ?, ?, ?, ?, ?)}");
+                    break;
+                default:
+                    assert false : "Bad handle request:" + number;
+                    break;
+            }
+
+            xaStatements[number] = (SQLServerCallableStatement) CS;
+            return xaStatements[number];
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void closeXAStatements() throws SQLServerException {
+        lock.lock();
+        try {
+            for (int i = 0; i < xaStatements.length; i++) {
+                if (null != xaStatements[i]) {
+                    xaStatements[i].close();
+                    xaStatements[i] = null;
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    final void close() throws SQLServerException {
+        lock.lock();
+        try {
+            try {
+                closeXAStatements();
+            } catch (Exception e) {
+                if (xaLogger.isLoggable(Level.WARNING))
+                    xaLogger.warning(toString() + "Closing exception ignored: " + e);
+            }
+
+            if (null != controlConnection)
+                controlConnection.close();
+        } finally {
+            lock.unlock();
+        }
     }
 
     // Returns displayable representation of XID flags for logging purposes.
@@ -387,10 +396,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
         SQLServerCallableStatement cs = null;
         try {
-            synchronized (this) {
+            lock.lock();
+            try {
                 if (!xaInitDone) {
                     try {
-                        synchronized (xaInitLock) {
+                        xaInitLock.lock();
+                        try {
                             SQLServerCallableStatement initCS = null;
 
                             initCS = (SQLServerCallableStatement) controlConnection
@@ -441,6 +452,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                     xaLogger.finer(toString() + " exception:" + xex);
                                 throw xex;
                             }
+                        } finally {
+                            xaInitLock.unlock();
                         }
                     } catch (SQLServerException e1) {
                         MessageFormat form = new MessageFormat(
@@ -452,6 +465,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     }
                     xaInitDone = true;
                 }
+            } finally {
+                lock.unlock();
             }
 
             switch (nType) {
