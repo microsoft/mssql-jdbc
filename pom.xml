@@ -363,12 +363,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre18</id>
+			<id>jre19</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre18${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre19${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -378,8 +378,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>18</source>
-							<target>18</target>
+							<source>19</source>
+							<target>19</target>
 						</configuration>
 					</plugin>
 					<plugin>
