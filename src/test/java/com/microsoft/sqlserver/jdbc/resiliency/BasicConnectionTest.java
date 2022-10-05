@@ -44,6 +44,7 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.fedAuth)
     public void testBasicConnectionAAD() throws SQLException {
         String azureServer = getConfiguredProperty("azureServer");
         String azureDatabase = getConfiguredProperty("azureDatabase");
