@@ -503,7 +503,7 @@ class EnclaveSession {
         return sessionSecret;
     }
 
-    synchronized long getCounter() {
+    long getCounter() {
         return counter.getAndIncrement();
     }
 }
