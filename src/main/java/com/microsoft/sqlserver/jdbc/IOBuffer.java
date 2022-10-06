@@ -37,6 +37,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -2038,7 +2039,7 @@ final class TDSChannel implements Serializable {
 
     /**
      * Attempts to poll the input stream to see if the network socket is still connected.
-     * 
+     *
      * @return
      */
     final Boolean networkSocketStillConnected() {
@@ -3173,8 +3174,7 @@ final class SocketConnector implements Runnable {
 
     // a counter used to give unique IDs to each connector thread.
     // this will have the id of the thread that was last created.
-    private static long lastThreadID = 0;
-    private static final Lock LOCK = new ReentrantLock();
+    private static final AtomicLong lastThreadID = new AtomicLong();
 
     /**
      * Constructs a new SocketConnector object with the associated socket and socketFinder
@@ -3233,19 +3233,15 @@ final class SocketConnector implements Runnable {
      * Generates the next unique thread id.
      */
     private static long nextThreadID() {
-        LOCK.lock();
-        try {
-            if (lastThreadID == Long.MAX_VALUE) {
+        return lastThreadID.updateAndGet(threadId -> {
+            if (threadId == Long.MAX_VALUE) {
                 if (logger.isLoggable(Level.FINER))
                     logger.finer("Resetting the Id count");
-                lastThreadID = 1;
+                return 1;
             } else {
-                lastThreadID++;
+                return threadId + 1;
             }
-            return lastThreadID;
-        } finally {
-            LOCK.unlock();
-        }
+        });
     }
 }
 
