@@ -5,11 +5,22 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
 
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
+import java.util.StringTokenizer;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,8 +28,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.getCachedParsedSQL;
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.parseAndCacheSQL;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 
 
 /**

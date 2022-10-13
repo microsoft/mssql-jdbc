@@ -5,22 +5,41 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
-import mssql.googlecode.cityhash.CityHash;
-import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
-import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
-import org.ietf.jgss.GSSCredential;
+import static java.nio.charset.StandardCharsets.UTF_16LE;
 
-import javax.sql.XAConnection;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.*;
-import java.sql.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -30,7 +49,16 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
+import javax.sql.XAConnection;
+
+import org.ietf.jgss.GSSCredential;
+
+import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
+
+import mssql.googlecode.cityhash.CityHash;
+import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
+import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
 
 
 /**
@@ -1099,7 +1127,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         lock.lock();
         try {
             // Check for a connection-level provider first
-            if (null != connectionColumnEncryptionKeyStoreProvider && connectionColumnEncryptionKeyStoreProvider.size() > 0) {
+            if (null != connectionColumnEncryptionKeyStoreProvider
+                    && connectionColumnEncryptionKeyStoreProvider.size() > 0) {
                 // If any connection-level providers are registered, we don't fall back to system/global providers
                 if (connectionColumnEncryptionKeyStoreProvider.containsKey(providerName)) {
                     return connectionColumnEncryptionKeyStoreProvider.get(providerName);
