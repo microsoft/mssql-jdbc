@@ -40,7 +40,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
-    private static final String SLASH_DEFAULT = "/.default";
+    static final String SLASH_DEFAULT = "/.default";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");

@@ -201,9 +201,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setPrepareMethod(stringPropValue);
         assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setMsiTokenCacheTtl(intPropValue);
-        assertEquals(intPropValue, ds.getMsiTokenCacheTtl(), TestResource.getResource("R_valuesAreDifferent"));
-
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
 

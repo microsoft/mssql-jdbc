@@ -221,9 +221,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** encrypted truststore password */
     byte[] encryptedTrustStorePassword = null;
 
-    /** cached MSI token time-to-live */
-    private int cachedMsiTokenTtl = 0;
-
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
      *
@@ -517,6 +514,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
                 case "ACTIVEDIRECTORYMSI":
                     this.authentication = SqlAuthentication.ActiveDirectoryMSI;
+                    break;
+                case "ACTIVEDIRECTORYMANAGEDIDENTITY":
+                    this.authentication = SqlAuthentication.ActiveDirectoryManagedIdentity;
                     break;
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
                     this.authentication = SqlAuthentication.ActiveDirectoryServicePrincipal;
@@ -2324,6 +2324,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString()) &&
+                        ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
+                                || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                    // Throw exception, DefaultAzureCredential doesn't require username or password to be explicitly set in the connection string
+                }
+
                 if (integratedSecurity
                         && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
                     throw new SQLServerException(
@@ -2348,7 +2354,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                if ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
+                        authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString()))
                         && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (!activeConnectionProperties
@@ -2639,26 +2646,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                }
-
-                cachedMsiTokenTtl = SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue();
-                sPropValue = activeConnectionProperties
-                        .getProperty(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString());
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    try {
-                        cachedMsiTokenTtl = Integer.parseInt(sPropValue);
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                    if (cachedMsiTokenTtl < 0) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidMsiTokenCacheTtl"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
                 }
 
                 sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
@@ -4666,6 +4653,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
                         case ActiveDirectoryMSI:
+                        case ActiveDirectoryManagedIdentity:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
                             break;
                         case ActiveDirectoryInteractive:
@@ -4884,6 +4872,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
                         || authenticationString
@@ -5405,6 +5394,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
                 || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())
                                 && fedAuthRequiredPreLoginResponse);
@@ -5445,10 +5435,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
+                    authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
-                        cachedMsiTokenTtl);
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -5567,6 +5557,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
+
             }
         }
 
@@ -7485,16 +7477,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (null != parameterMetadataCache)
             parameterMetadataCache.setCapacity(value);
-    }
-
-    @Override
-    public int getMsiTokenCacheTtl() {
-        return cachedMsiTokenTtl;
-    }
-
-    @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-        this.cachedMsiTokenTtl = timeToLive;
     }
 
     /**

@@ -66,8 +66,10 @@ enum SqlAuthentication {
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
     ActiveDirectoryMSI,
+    ActiveDirectoryManagedIdentity,
     ActiveDirectoryServicePrincipal,
-    ActiveDirectoryInteractive;
+    ActiveDirectoryInteractive,
+    DefaultAzureCredential;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -84,12 +86,17 @@ enum SqlAuthentication {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
             method = SqlAuthentication.ActiveDirectoryMSI;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
+            method = SqlAuthentication.ActiveDirectoryManagedIdentity;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
             method = SqlAuthentication.ActiveDirectoryServicePrincipal;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
             method = SqlAuthentication.ActiveDirectoryInteractive;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
+            method = SqlAuthentication.DefaultAzureCredential;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -524,8 +531,7 @@ enum SQLServerDriverIntProperty {
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
-    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
-    MSI_TOKEN_CACHE_TTL("msiTokenCacheTtl", 3600, 0, Integer.MAX_VALUE);
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
 
     private final String name;
     private final int defaultValue;
@@ -742,6 +748,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
                             SqlAuthentication.ActiveDirectoryMSI.toString(),
+                            SqlAuthentication.ActiveDirectoryManagedIdentity.toString(),
                             SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
                             SqlAuthentication.ActiveDirectoryInteractive.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
@@ -774,8 +781,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),

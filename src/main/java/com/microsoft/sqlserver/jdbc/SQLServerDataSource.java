@@ -1188,17 +1188,6 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
     }
 
-    @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(), timeToLive);
-    }
-
-    @Override
-    public int getMsiTokenCacheTtl() {
-        return getIntProperty(connectionProps, SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
-                SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue());
-    }
-
     /**
      * Sets a property string value.
      *

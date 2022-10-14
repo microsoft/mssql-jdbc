@@ -630,14 +630,4 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public String getIPAddressPreference() {
         return wrappedConnection.getIPAddressPreference();
     }
-
-    @Override
-    public int getMsiTokenCacheTtl() {
-        return wrappedConnection.getMsiTokenCacheTtl();
-    }
-
-    @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-        wrappedConnection.setMsiTokenCacheTtl(timeToLive);
-    }
 }
