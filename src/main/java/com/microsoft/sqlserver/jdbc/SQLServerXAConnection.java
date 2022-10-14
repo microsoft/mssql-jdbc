@@ -31,9 +31,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      */
     private volatile SQLServerXAResource XAResource;
 
-    /**
-     * physical connection
-     */
+    /** physical connection */
     private SQLServerConnection physicalControlConnection;
     
     /** logger */

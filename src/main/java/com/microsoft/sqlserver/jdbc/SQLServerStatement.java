@@ -2487,7 +2487,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     boolean hasColumnEncryptionKeyStoreProvidersRegistered() {
         lock.lock();
         try {
-            return null != statementColumnEncryptionKeyStoreProviders && statementColumnEncryptionKeyStoreProviders.size() > 0;
+            return null != statementColumnEncryptionKeyStoreProviders
+                    && statementColumnEncryptionKeyStoreProviders.size() > 0;
         } finally {
             lock.unlock();
         }
