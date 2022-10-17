@@ -53,11 +53,14 @@ public class MSITest extends AESetup {
     @Test
     public void testMSIAuth() throws SQLException {
         String connStr = connectionString;
+
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+        System.out.println("testMSIAuth: connStr: " +connStr);
+        System.out.println("testMSIAuth: AETestConnectionString: " +AETestConnectionString);
 
         testSimpleConnect(connStr);
 
@@ -93,6 +96,8 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
 
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+        System.out.println("testMSIAuthWithMSIClientId: connStr: " +connStr);
+        System.out.println("testMSIAuthWithMSIClientId: AETestConnectionString: " +AETestConnectionString);
 
         testSimpleConnect(connStr);
 
