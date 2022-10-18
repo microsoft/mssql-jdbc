@@ -59,7 +59,7 @@ public class MSITest extends AESetup {
 
         testSimpleConnect(connStr);
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
         testSimpleConnect(connStr);
     }
@@ -87,7 +87,7 @@ public class MSITest extends AESetup {
 
         testSimpleConnect(connStr);
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         testSimpleConnect(connStr);
     }
 
@@ -110,7 +110,7 @@ public class MSITest extends AESetup {
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
-        ds.setAuthentication("ActiveDirectoryManagedIdentity");
+        ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
@@ -136,7 +136,7 @@ public class MSITest extends AESetup {
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
-        ds.setAuthentication("ActiveDirectoryManagedIdentity");
+        ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
