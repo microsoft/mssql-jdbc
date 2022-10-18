@@ -26,8 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.identity.*;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 
 
@@ -46,6 +45,9 @@ class SQLServerSecurityUtility {
     static final int NETWORK_CONNECT_TIMEOUT_ERROR = 599;
 
     static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
+
+    // Environment variable for intellij keepass database path
+    private static final String INTELLIJ_KEEPASS_PASS = "INTELLIJ_KEEPASS_PATH";
 
     /**
      * Give the hash of given plain text
@@ -320,7 +322,7 @@ class SQLServerSecurityUtility {
     }
 
     /**
-     * Get Managed Identity Authentication token
+     * Get Managed Identity Authentication token through a ManagedIdentityCredential
      * 
      * @param resource
      *        token resource
@@ -329,7 +331,7 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId) {
+    static SqlFedAuthToken getManagedIdentityCredAuthToken(String resource, String msiClientId) {
         ManagedIdentityCredential mic = null;
 
         if (null != msiClientId && !msiClientId.isEmpty()) {
@@ -350,7 +352,54 @@ class SQLServerSecurityUtility {
 
         if (!accessTokenOptional.isPresent()) {
             if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
-                connectionlogger.fine("Access token is not present");
+                connectionlogger.fine("Access token not present.");
+            }
+        } else {
+            AccessToken accessToken = accessTokenOptional.get();
+            sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+        }
+
+        return sqlFedAuthToken;
+    }
+
+    /**
+     * Get Managed Identity Authentication token through the DefaultAzureCredential
+     *
+     * @param resource
+     *        token resource
+     * @param msiClientId
+     *        Managed Identity or User Assigned Managed Identity
+     * @return fedauth token
+     * @throws SQLServerException
+     */
+    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource, String msiClientId) {
+        String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
+        DefaultAzureCredentialBuilder dacBuilder = new DefaultAzureCredentialBuilder();
+        DefaultAzureCredential dac = null;
+
+        if (null != msiClientId && !msiClientId.isEmpty()) {
+            dacBuilder.managedIdentityClientId(msiClientId);
+        }
+
+        if (null != intellijKeepassPath && !intellijKeepassPath.isEmpty()) {
+            dacBuilder.intelliJKeePassDatabasePath(intellijKeepassPath);
+        }
+
+        dac = dacBuilder.build();
+
+        TokenRequestContext tokenRequestContext = new TokenRequestContext();
+        String scope = resource.endsWith(SQLServerMSAL4JUtils.SLASH_DEFAULT) ? resource : resource + SQLServerMSAL4JUtils.SLASH_DEFAULT;
+        tokenRequestContext.setScopes(Arrays.asList(scope));
+
+        SqlFedAuthToken sqlFedAuthToken = null;
+
+        Optional<AccessToken> accessTokenOptional = dac
+                .getToken(tokenRequestContext)
+                .blockOptional();
+
+        if (!accessTokenOptional.isPresent()) {
+            if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
+                connectionlogger.fine("Access token is not present.");
             }
         } else {
             AccessToken accessToken = accessTokenOptional.get();

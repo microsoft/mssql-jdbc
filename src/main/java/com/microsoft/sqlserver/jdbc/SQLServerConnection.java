@@ -518,6 +518,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case "ACTIVEDIRECTORYMANAGEDIDENTITY":
                     this.authentication = SqlAuthentication.ActiveDirectoryManagedIdentity;
                     break;
+                case "DEFAULTAZURECREDENTIAL":
+                    this.authentication = SqlAuthentication.DefaultAzureCredential;
+                    break;
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
                     this.authentication = SqlAuthentication.ActiveDirectoryServicePrincipal;
                     break;
@@ -4656,6 +4659,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ActiveDirectoryManagedIdentity:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
                             break;
+                        case DefaultAzureCredential:
+                            workflow = TDS.ADALWORKFLOW_DEFAULTAZURECREDENTIAL;
+                            break;
                         case ActiveDirectoryInteractive:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
                             break;
@@ -4873,6 +4879,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
                         || authenticationString
@@ -5437,7 +5444,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
                     authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
-                fedAuthToken = SQLServerSecurityUtility.getMSIAuthToken(fedAuthInfo.spn,
+                fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
@@ -5558,7 +5565,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
-
+                if (!msalContextExists()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+                }
+                fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                break;
             }
         }
 
