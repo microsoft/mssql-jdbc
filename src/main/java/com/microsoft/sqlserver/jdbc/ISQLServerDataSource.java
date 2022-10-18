@@ -109,16 +109,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setEncrypt(String encryptOption);
 
     /**
-     * Sets the option whether TLS encryption is used.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
-     * @param encryptOption
-     *        TLS encrypt option. Default is true
-     */
-    @Deprecated
-    void setEncrypt(boolean encryptOption);
-
-    /**
      * Returns the TLS encryption option.
      * 
      * @return the TLS encrypt option
@@ -788,28 +778,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
-     * 
-     * @param configurationName
-     *        the configuration name
-     */
-    @Deprecated
-    void setJASSConfigurationName(String configurationName);
-
-    /**
-     * Returns the login configuration file for Kerberos authentication.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
-     * 
-     * @return login configuration file name
-     */
-    @Deprecated
-    String getJASSConfigurationName();
-
-    /**
-     * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
-     * SQLJDBCDriver </i>
-     * 
      * 
      * @param configurationName
      *        the configuration name
@@ -1115,37 +1083,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
-
-    /**
-     * Returns the value for the connection property 'AADSecurePrincipalId'.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
-     *
-     * @return 'AADSecurePrincipalId' property value.
-     */
-    @Deprecated
-    String getAADSecurePrincipalId();
-
-    /**
-     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
-     * @param AADSecurePrincipalId
-     *        Active Directory Service Principal Id.
-     */
-    @Deprecated
-    void setAADSecurePrincipalId(String AADSecurePrincipalId);
-
-    /**
-     * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
-     * authentication.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
-     * @param AADSecurePrincipalSecret
-     *        Active Directory Service Principal secret.
-     */
-    @Deprecated
-    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 
     /**
      * Returns value of 'maxResultBuffer' from Connection String.

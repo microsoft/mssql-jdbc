@@ -39,23 +39,6 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
     // threads
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerClob");
 
-    /**
-     * Constructs a SQLServerClob.
-     *
-     * @param connection
-     *        the database connection this blob is implemented on
-     * @param data
-     *        the CLOB's data
-     * @deprecated Use {@link SQLServerConnection#createClob()} instead.
-     */
-    @Deprecated
-    public SQLServerClob(SQLServerConnection connection, String data) {
-        super(connection, data, (null == connection) ? null : connection.getDatabaseCollation(), logger, null);
-
-        if (null == data)
-            throw new NullPointerException(SQLServerException.getErrString("R_cantSetNull"));
-    }
-
     SQLServerClob(SQLServerConnection connection) {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
     }

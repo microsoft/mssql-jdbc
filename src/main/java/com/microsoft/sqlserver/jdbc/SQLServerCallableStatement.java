@@ -542,19 +542,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    @Deprecated
-    @Override
-    public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getBigDecimal", new Object[] {parameterName, scale});
-        checkClosed();
-        BigDecimal value = (BigDecimal) getValue(findColumn(parameterName), JDBCType.DECIMAL);
-        if (null != value)
-            value = value.setScale(scale, BigDecimal.ROUND_DOWN);
-        loggerExternal.exiting(getClassNameLogging(), "getBigDecimal", value);
-        return value;
-    }
-
     @Override
     public boolean getBoolean(int index) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getBoolean", index);

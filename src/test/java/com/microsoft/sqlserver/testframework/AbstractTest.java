@@ -302,6 +302,7 @@ public abstract class AbstractTest {
                             break;
                         case Constants.USER:
                         case Constants.USER_NAME:
+                        case Constants.AAD_SECURE_PRINCIPAL_ID:
                             ds.setUser(value);
                             break;
                         case Constants.PORT:
@@ -309,6 +310,7 @@ public abstract class AbstractTest {
                             ds.setPortNumber(Integer.parseInt(value));
                             break;
                         case Constants.PASSWORD:
+                        case Constants.AAD_SECURE_PRINCIPAL_SECRET:
                             ds.setPassword(value);
                             break;
                         case Constants.DOMAIN:
@@ -387,12 +389,6 @@ public abstract class AbstractTest {
                             break;
                         case Constants.CLIENT_KEY_PASSWORD:
                             ds.setClientKeyPassword(value);
-                            break;
-                        case Constants.AAD_SECURE_PRINCIPAL_ID:
-                            ds.setAADSecurePrincipalId(value);
-                            break;
-                        case Constants.AAD_SECURE_PRINCIPAL_SECRET:
-                            ds.setAADSecurePrincipalSecret(value);
                             break;
                         case Constants.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY:
                             ds.setSendTemporalDataTypesAsStringForBulkCopy(Boolean.parseBoolean(value));

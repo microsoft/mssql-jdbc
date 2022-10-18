@@ -311,13 +311,6 @@ public class SQLServerDataSource
     }
 
     @Override
-    @Deprecated
-    public void setEncrypt(boolean encryptOption) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
-                Boolean.toString(encryptOption));
-    }
-
-    @Override
     public String getEncrypt() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
                 SQLServerDriverStringProperty.ENCRYPT.getDefaultValue());
@@ -982,20 +975,6 @@ public class SQLServerDataSource
     }
 
     @Override
-    @Deprecated
-    public void setJASSConfigurationName(String configurationName) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                configurationName);
-    }
-
-    @Override
-    @Deprecated
-    public String getJASSConfigurationName() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
-                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
-    }
-
-    @Override
     public void setJAASConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 configurationName);
@@ -1107,27 +1086,6 @@ public class SQLServerDataSource
     @Override
     public void setClientKeyPassword(String password) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
-    }
-
-    @Override
-    @Deprecated
-    public String getAADSecurePrincipalId() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
-                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
-    }
-
-    @Override
-    @Deprecated
-    public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
-                AADSecurePrincipalId);
-    }
-
-    @Override
-    @Deprecated
-    public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                AADSecurePrincipalSecret);
     }
 
     @Override
