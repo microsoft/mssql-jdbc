@@ -2330,7 +2330,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString()) &&
                         ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
                                 || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    // Throw exception, DefaultAzureCredential doesn't require username or password to be explicitly set in the connection string
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
                 if (integratedSecurity
@@ -2363,8 +2364,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .isEmpty())
                                 || (!activeConnectionProperties
                                         .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"),
-                            null);
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                    throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
                 if (authenticationString
