@@ -53,25 +53,15 @@ public class MSITest extends AESetup {
     @Test
     public void testMSIAuth() throws SQLException {
         String connStr = connectionString;
-
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
-        System.out.println("testMSIAuth: connStr: " +connStr);
-        System.out.println("testMSIAuth: AETestConnectionString: " +AETestConnectionString);
-
         testSimpleConnect(connStr);
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
-                Integer.toString(Integer.MAX_VALUE));
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
 
         testSimpleConnect(connStr);
-
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
-
-        testSimpleConnect(connStr); // This call will use a cached token
     }
 
     private void testSimpleConnect(String connStr) {
@@ -95,20 +85,10 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
-        System.out.println("testMSIAuthWithMSIClientId: connStr: " +connStr);
-        System.out.println("testMSIAuthWithMSIClientId: AETestConnectionString: " +AETestConnectionString);
-
         testSimpleConnect(connStr);
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
-                Integer.toString(Integer.MAX_VALUE));
-
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
         testSimpleConnect(connStr);
-
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
-
-        testSimpleConnect(connStr); // This call will use a cached token
     }
 
     /*
@@ -128,7 +108,12 @@ public class MSITest extends AESetup {
         ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
 
-        testSimpleConnect(connStr);
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+
+        ds.setAuthentication("ActiveDirectoryManagedIdentity");
+        AbstractTest.updateDataSource(connStr, ds);
+
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
 
     /*
@@ -149,7 +134,12 @@ public class MSITest extends AESetup {
         ds.setMSIClientId(msiClientId);
         AbstractTest.updateDataSource(connStr, ds);
 
-        testSimpleConnect(connStr);
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+
+        ds.setAuthentication("ActiveDirectoryManagedIdentity");
+        AbstractTest.updateDataSource(connStr, ds);
+
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
 
     /*
