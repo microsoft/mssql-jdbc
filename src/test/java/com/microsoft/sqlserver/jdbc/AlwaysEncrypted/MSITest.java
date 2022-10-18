@@ -142,6 +142,52 @@ public class MSITest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
 
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testDefaultAzureCredentialAuth() throws SQLException{
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "DefaultAzureCredential");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
+
+        // With msiClientId
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr)) {}
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, "");
+
+        // Without msiClientId
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr)) {}
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testDefaultAzureCredentialAuthDS() throws SQLException {
+        String connStr = connectionString;
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setAuthentication("DefaultAzureCredential");
+        ds.setMSIClientId(msiClientId);
+        AbstractTest.updateDataSource(connStr, ds);
+
+        // With msiClientId
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+
+        // Without msiClientId
+        ds.setMSIClientId("");
+        AbstractTest.updateDataSource(connStr, ds);
+
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+    }
+
     /*
      * Test AKV with MSI using datasource
      */
