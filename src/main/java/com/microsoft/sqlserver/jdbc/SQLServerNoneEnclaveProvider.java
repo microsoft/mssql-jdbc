@@ -5,48 +5,50 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.UTF_16LE;
-
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
+import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PSSParameterSpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Hashtable;
 
 
 /**
  * 
- * Provides the implementation of the NONE Enclave Provider. This enclave provider does not use attestation.
+ * Provides the implementation of the VSM Enclave Provider. The enclave provider encapsulates the client-side
+ * implementation details of the enclave attestation protocol.
  *
  */
 public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 
-    private static final EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
-
+    private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
     private NoneAttestationParameters noneParams = null;
     private NoneAttestationResponse noneResponse = null;
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
 
-    /**
-     * default constructor
-     */
-    public SQLServerNoneEnclaveProvider() {}
-
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
         if (null == noneParams) {
             attestationUrl = url;
-            try {
-                noneParams = new NoneAttestationParameters(attestationUrl);
-            } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
-            }
+            noneParams = new NoneAttestationParameters();
         }
     }
 
@@ -54,12 +56,6 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-
-        /*
-         * for None attestation: enclave does not send public key, and sends an empty attestation info. The only
-         * non-trivial content it sends is the session setup info (DH pubkey of enclave).
-         */
-
         // Check if the session exists in our cache
         StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
                 .append(attestationUrl);
@@ -73,6 +69,8 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
         if (connection.enclaveEstablished()) {
             return b;
         } else if (null != noneResponse && !connection.enclaveEstablished()) {
+
+            // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(noneResponse.getSessionID(),
                         noneParams.createSessionSecret(noneResponse.getDHpublicKey()));
@@ -100,16 +98,6 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private void validateAttestationResponse() throws SQLServerException {
-        if (null != noneResponse) {
-            try {
-                noneResponse.validateDHPublicKey();
-            } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
-            }
-        }
-    }
-
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
@@ -124,17 +112,15 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                     if (null == rs) {
                         // No results. Meaning no parameter.
                         // Should never happen.
-                        return enclaveRequestedCEKs;
+                        return enclaveRequestedCEKs; 
                     }
                     processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
                             rs, enclaveRequestedCEKs);
-                    // Process the third result set.
+                    // Process the third resultset.
                     if (connection.isAEv2() && stmt.getMoreResults()) {
-                        try (ResultSet hgsRs = stmt.getResultSet()) {
-                            if (hgsRs.next()) {
-                                noneResponse = new NoneAttestationResponse(hgsRs.getBytes(1));
-                                // This validates and establishes the enclave session if valid
-                                validateAttestationResponse();
+                        try (ResultSet noneRs = (SQLServerResultSet) stmt.getResultSet()) {
+                            if (noneRs.next()) {
+                                noneResponse = new NoneAttestationResponse(noneRs.getBytes(1));
                             } else {
                                 SQLServerException.makeFromDriverError(null, this,
                                         SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0",
@@ -157,30 +143,12 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 }
 
 
-/**
- * 
- * Represents the serialization of the request the client sends to the SQL Server while setting up a session.
- *
- */
 class NoneAttestationParameters extends BaseAttestationRequest {
-
     // Type 2 is NONE, sent as Little Endian 0x20000000
-    private static final byte[] ENCLAVE_TYPE = new byte[] {0x2, 0x0, 0x0, 0x0};
-    // Nonce length is always 256
-    private static final byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
-    private final byte[] nonce = new byte[256];
+    private static byte ENCLAVE_TYPE[] = new byte[] {0x2, 0x0, 0x0, 0x0};
 
-    NoneAttestationParameters(String attestationUrl) throws SQLServerException, IOException {
-        byte[] attestationUrlBytes = (attestationUrl + '\0').getBytes(UTF_16LE);
-
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(attestationUrlBytes.length).array());
-        os.write(attestationUrlBytes);
-        os.write(NONCE_LENGTH);
-        new SecureRandom().nextBytes(nonce);
-        os.write(nonce);
-        enclaveChallenge = os.toByteArray();
-
+    NoneAttestationParameters() throws SQLServerException {
+        enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};
         initBcryptECDH();
     }
 
@@ -188,7 +156,6 @@ class NoneAttestationParameters extends BaseAttestationRequest {
     byte[] getBytes() throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(ENCLAVE_TYPE);
-        os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(enclaveChallenge.length).array());
         os.write(enclaveChallenge);
         os.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(ENCLAVE_LENGTH).array());
         os.write(ECDH_MAGIC);
@@ -196,59 +163,39 @@ class NoneAttestationParameters extends BaseAttestationRequest {
         os.write(y);
         return os.toByteArray();
     }
-
-    byte[] getNonce() {
-        return nonce;
-    }
 }
 
 
-/**
- * 
- * Represents the deserialization of the byte payload the client receives from the SQL Server while setting up a
- * session.
- *
- */
+@SuppressWarnings("unused")
 class NoneAttestationResponse extends BaseAttestationResponse {
-
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
-         * Protocol format:
-         * 1. Total Size of the attestation blob as UINT
-         * 2. Size of Enclave RSA public key as UINT
-         * 3. Size of Attestation token as UINT
-         * 4. Enclave Type as UINT
-         * 5. Enclave RSA public key (raw key, of length #2)
-         * 6. Attestation token (of length #3)
-         * 7. Size of Session ID was UINT
-         * 8. Session id value
-         * 9. Size of enclave ECDH public key
-         * 10. Enclave ECDH public key (of length #9)
-        */
-        ByteBuffer response = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
-        this.totalSize = response.getInt();
-        this.identitySize = response.getInt();
-        this.attestationTokenSize = response.getInt();
-        this.enclaveType = response.getInt(); // 1 for VBS, 2 for SGX
+         * Parse the attestation response.
+         * 
+         * Total Size of the response - 4B
+         * Session Info Size - 4B
+         * Session ID - 8B
+         * DH Public Key Size - 4B
+         * DH Public Key Signature Size - 4B
+         * DH Public Key - DHPKsize bytes
+         * DH Public Key Signature - DHPKSsize bytes
+         */
+        ByteBuffer response = (null != b) ? ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN) : null;
+        if (null != response) {
+            this.totalSize = response.getInt();
+            this.sessionInfoSize = response.getInt();
+            response.get(sessionID, 0, 8);
+            this.DHPKsize = response.getInt();
+            this.DHPKSsize = response.getInt();
 
-        enclavePK = new byte[identitySize];
-        byte[] attestationToken = new byte[attestationTokenSize];
+            DHpublicKey = new byte[DHPKsize];
+            publicKeySig = new byte[DHPKSsize];
 
-        response.get(enclavePK, 0, identitySize);
-        response.get(attestationToken, 0, attestationTokenSize);
+            response.get(DHpublicKey, 0, DHPKsize);
+            response.get(publicKeySig, 0, DHPKSsize);
+        }
 
-        this.sessionInfoSize = response.getInt();
-        response.get(sessionID, 0, 8);
-        this.DHPKsize = response.getInt();
-        this.DHPKSsize = response.getInt();
-
-        DHpublicKey = new byte[DHPKsize];
-        publicKeySig = new byte[DHPKSsize];
-
-        response.get(DHpublicKey, 0, DHPKsize);
-        response.get(publicKeySig, 0, DHPKSsize);
-
-        if (0 != response.remaining()) {
+        if (null == response || 0 != response.remaining()) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_EnclaveResponseLengthError"), "0", false);
         }
