@@ -5473,6 +5473,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
             if (null != fetchBufferTokenHandler.getDatabaseError()) {
+                if (!fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
+                    System.out.println("THIS IS THE PROBLEM!!!");
+                }
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
