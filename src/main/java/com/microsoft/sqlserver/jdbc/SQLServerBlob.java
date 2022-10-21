@@ -70,6 +70,36 @@ public final class SQLServerBlob extends SQLServerLob implements java.sql.Blob, 
         return BASE_ID.incrementAndGet();
     }
 
+    /**
+     * Create a new BLOB
+     *
+     * @param connection
+     *        the database connection this blob is implemented on
+     * @param data
+     *        the BLOB's data
+     * @deprecated Use {@link SQLServerConnection#createBlob()} instead.
+     */
+    @Deprecated
+    public SQLServerBlob(SQLServerConnection connection, byte[] data) {
+        traceID = this.getClass().getSimpleName() + nextInstanceID();
+        con = connection;
+
+        // Disallow Blobs with internal null values. We throw a
+        // NullPointerException here
+        // because the method signature of the public constructor does not
+        // permit a SQLException
+        // to be thrown.
+        if (null == data)
+            throw new NullPointerException(SQLServerException.getErrString(R_CANT_SET_NULL));
+
+        value = data;
+
+        if (_LOGGER.isLoggable(Level.FINE)) {
+            String loggingInfo = (null != connection) ? connection.toString() : "null connection";
+            _LOGGER.fine(this.toString() + " created by (" + loggingInfo + ")");
+        }
+    }
+
     SQLServerBlob(SQLServerConnection connection) {
         traceID = this.getClass().getSimpleName() + nextInstanceID();
         con = connection;

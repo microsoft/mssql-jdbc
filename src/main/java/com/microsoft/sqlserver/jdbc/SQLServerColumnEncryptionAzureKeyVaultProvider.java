@@ -263,6 +263,30 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     }
 
     /**
+     * Constructs a SQLServerColumnEncryptionAzureKeyVaultProvider with a callback function to authenticate to AAD. This
+     * is used by KeyVault client at runtime to authenticate to Azure Key Vault.
+     *
+     * This constructor is present to maintain backwards compatibility with 8.0 version of the driver. Deprecated for
+     * removal in next stable release.
+     * 
+     * @param authenticationCallback
+     *        - Callback function used for authenticating to AAD.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    public SQLServerColumnEncryptionAzureKeyVaultProvider(
+            SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
+        if (null == authenticationCallback) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString(NULL_VALUE));
+            Object[] msgArgs1 = {"SQLServerKeyVaultAuthenticationCallback"};
+            throw new SQLServerException(form.format(msgArgs1), null);
+        }
+
+        keyVaultTokenCredential = new KeyVaultTokenCredential(authenticationCallback);
+        keyVaultPipeline = new KeyVaultHttpPipelineBuilder().credential(keyVaultTokenCredential).buildPipeline();
+    }
+
+    /**
      * Sets the credential that will be used for authenticating requests to Key Vault service.
      * 
      * @param credential

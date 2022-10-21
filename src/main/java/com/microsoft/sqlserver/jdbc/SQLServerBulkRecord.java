@@ -15,7 +15,8 @@ import java.util.Map.Entry;
  * Abstract class that implements ISQLServerBulkRecord
  *
  */
-abstract class SQLServerBulkRecord implements ISQLServerBulkData {
+@SuppressWarnings("deprecation")
+abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
 
     /**
      * Update serialVersionUID when making changes to this file
@@ -69,6 +70,13 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkData {
     static java.util.logging.Logger loggerExternal = java.util.logging.Logger
             .getLogger("com.microsoft.jdbc.SQLServerBulkRecord");
 
+    @Override
+    public void addColumnMetadata(int positionInSource, String name, int jdbcType, int precision, int scale,
+            DateTimeFormatter dateTimeFormatter) throws SQLServerException {
+        addColumnMetadataInternal(positionInSource, name, jdbcType, precision, scale, dateTimeFormatter);
+    }
+
+    @Override
     public void addColumnMetadata(int positionInSource, String name, int jdbcType, int precision,
             int scale) throws SQLServerException {
         addColumnMetadataInternal(positionInSource, name, jdbcType, precision, scale, null);
@@ -95,6 +103,39 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkData {
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {}
 
+    @Override
+    public void setTimestampWithTimezoneFormat(String dateTimeFormat) {
+        loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat", dateTimeFormat);
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
+        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimestampWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "setTimestampWithTimezoneFormat",
+                    new Object[] {dateTimeFormatter});
+        }
+        this.dateTimeFormatter = dateTimeFormatter;
+        loggerExternal.exiting(loggerPackageName, "setTimestampWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(String timeFormat) {
+        loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", timeFormat);
+        this.timeFormatter = DateTimeFormatter.ofPattern(timeFormat);
+        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
+    }
+
+    @Override
+    public void setTimeWithTimezoneFormat(DateTimeFormatter dateTimeFormatter) {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "setTimeWithTimezoneFormat", new Object[] {dateTimeFormatter});
+        }
+        this.timeFormatter = dateTimeFormatter;
+        loggerExternal.exiting(loggerPackageName, "setTimeWithTimezoneFormat");
+    }
+
     /**
      * Helper method to throw a SQLServerExeption with the invalidArgument message and given argument.
      */
@@ -120,6 +161,7 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkData {
         }
     }
 
+    @Override
     public DateTimeFormatter getColumnDateTimeFormatter(int column) {
         return columnMetadata.get(column).dateTimeFormatter;
     }
@@ -149,4 +191,8 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkData {
         return columnMetadata.get(column).scale;
     }
 
+    @Override
+    public boolean isAutoIncrement(int column) {
+        return false;
+    }
 }

@@ -131,6 +131,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     /*
+     * Test bad Azure Key Vault using SQLServerKeyVaultAuthenticationCallback
+     */
+    @SuppressWarnings("unused")
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testBadAkvCallback(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    (SQLServerKeyVaultAuthenticationCallback) null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")), e.getMessage());
+        }
+    }
+
+    /*
      * Test bad Azure Key Vault using TokenCredential
      */
     @SuppressWarnings("unused")
@@ -2250,6 +2268,24 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    public void testAkvNameWithAuthCallback(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try {
+            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
+                    authenticationCallback);
+            String keystoreName = "keystoreName";
+            akv.setName(keystoreName);
+            assertTrue(akv.getName().equals(keystoreName),
+                    "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
     public void testAkvNameWithTokenCredential(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -2265,6 +2301,37 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testAkvBadEncryptColumnEncryptionKeyWithAuthCallback(String serverName, String url,
+            String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
+        try {
+            akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(authenticationCallback);
+        } catch (SQLServerException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+
+        // null encryptedColumnEncryptionKey
+        try {
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")), e.getMessage());
+        }
+        // empty encryptedColumnEncryptionKey
+        try {
+            byte[] emptyCek = new byte[0];
+            akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")), e.getMessage());
         }
     }
 

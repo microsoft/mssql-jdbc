@@ -48,7 +48,9 @@ public class ParserUtils {
         assertEquals(expected, extractedTableName);
     }
 
+    @SuppressWarnings("deprecation")
     private static void invokeANTLRMethods(SQLServerLexer s) {
+        s.getTokenNames();
         s.getVocabulary();
         s.getGrammarFileName();
         s.getRuleNames();
