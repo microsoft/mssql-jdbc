@@ -25,7 +25,7 @@ import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.platform.runner.JUnitPlatform;
+import org.junit.jupiter.api.Test;import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -216,6 +216,12 @@ public class AESetup extends AbstractTest {
             param[i][0] = serverName;
             param[i][1] = url;
             param[i][2] = protocol;
+            
+            if (serverName.equalsIgnoreCase("drivers-ae-vbs-none.database.windows.net")) {
+                connectionString = TestUtils.addOrOverrideProperty(connectionString, "databaseName", "TestDb");
+            } else {
+                connectionString = TestUtils.addOrOverrideProperty(connectionString, "databaseName", "master");
+            }
 
             setAEConnectionString(serverName, url, protocol);
 
