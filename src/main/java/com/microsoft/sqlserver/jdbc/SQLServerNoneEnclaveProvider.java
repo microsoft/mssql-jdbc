@@ -5,29 +5,15 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Signature;
-import java.security.SignatureException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.MGF1ParameterSpec;
-import java.security.spec.PSSParameterSpec;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Hashtable;
 
 
 /**
@@ -112,13 +98,13 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                     if (null == rs) {
                         // No results. Meaning no parameter.
                         // Should never happen.
-                        return enclaveRequestedCEKs; 
+                        return enclaveRequestedCEKs;
                     }
                     processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
                             rs, enclaveRequestedCEKs);
                     // Process the third resultset.
                     if (connection.isAEv2() && stmt.getMoreResults()) {
-                        try (ResultSet noneRs = (SQLServerResultSet) stmt.getResultSet()) {
+                        try (ResultSet noneRs = stmt.getResultSet()) {
                             if (noneRs.next()) {
                                 noneResponse = new NoneAttestationResponse(noneRs.getBytes(1));
                             } else {
@@ -133,10 +119,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
         } catch (SQLException | IOException e) {
             if (e instanceof SQLServerException) {
                 throw (SQLServerException) e;
-            } else {
-                throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null,
-                        0, e);
             }
+            throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0,
+                    e);
         }
         return enclaveRequestedCEKs;
     }
@@ -166,7 +151,6 @@ class NoneAttestationParameters extends BaseAttestationRequest {
 }
 
 
-@SuppressWarnings("unused")
 class NoneAttestationResponse extends BaseAttestationResponse {
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
