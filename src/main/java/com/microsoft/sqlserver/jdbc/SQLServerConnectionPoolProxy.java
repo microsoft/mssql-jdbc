@@ -11,6 +11,7 @@ import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -629,5 +630,19 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public String getIPAddressPreference() {
         return wrappedConnection.getIPAddressPreference();
+    }
+
+
+    @Deprecated
+    @Override
+    public int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException  {
+        SQLServerException.throwFeatureNotSupportedException();
+        return 0;
+    }
+
+    @Deprecated
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 }

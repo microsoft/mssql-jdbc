@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.UUID;
 
@@ -407,4 +408,27 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
+
+    /**
+     * This is deprecated. The new managed identity token logic doesn't
+     * require this anymore.
+     *
+     * Gets the time-to-live for the cached MSI token.
+     *
+     * @return time-to-live for the cached MSI token
+     */
+    @Deprecated
+    int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException;
+
+    /**
+     * This is deprecated. The new managed identity token logic doesn't
+     * require this anymore.
+     *
+     * Sets time-to-live for the cached MSI token
+     *
+     * @param timeToLive
+     *        Changes the setting as per description
+     */
+    @Deprecated
+    void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException;
 }

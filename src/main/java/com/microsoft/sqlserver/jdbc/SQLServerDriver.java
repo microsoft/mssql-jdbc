@@ -66,7 +66,6 @@ enum SqlAuthentication {
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
     ActiveDirectoryMSI,
-    ActiveDirectoryManagedIdentity,
     ActiveDirectoryServicePrincipal,
     ActiveDirectoryInteractive,
     DefaultAzureCredential;
@@ -84,10 +83,10 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
+                value.toLowerCase(Locale.US).equalsIgnoreCase(SQLServerDriver
+                        .getNormalizedPropertyValueName(SqlAuthentication.ActiveDirectoryMSI.toString()))) {
             method = SqlAuthentication.ActiveDirectoryMSI;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
-            method = SqlAuthentication.ActiveDirectoryManagedIdentity;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
             method = SqlAuthentication.ActiveDirectoryServicePrincipal;
@@ -748,7 +747,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
                             SqlAuthentication.ActiveDirectoryMSI.toString(),
-                            SqlAuthentication.ActiveDirectoryManagedIdentity.toString(),
                             SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
                             SqlAuthentication.ActiveDirectoryInteractive.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
@@ -832,6 +830,10 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
+
+    private static final String driverPropertyValuesSynonyms[][] = {
+            {"ActiveDirectoryManagedIdentity", SqlAuthentication.ActiveDirectoryMSI.toString()}};
+
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
                                                                       // logging
 
@@ -1010,6 +1012,31 @@ public final class SQLServerDriver implements java.sql.Driver {
 
         if (logger.isLoggable(Level.FINER))
             logger.finer("Unknown property" + name);
+        return null;
+    }
+
+    /**
+     * Returns the normalized the property value name.
+     *
+     * @param name
+     *        name to normalize
+     *
+     * @return the normalized property value name
+     */
+    static String getNormalizedPropertyValueName(String name) {
+        if (null == name)
+            return name;
+
+        for (String[] driverPropertyValueSynonym : driverPropertyValuesSynonyms) {
+            if (driverPropertyValueSynonym[0].equalsIgnoreCase(name)) {
+                return driverPropertyValueSynonym[1];
+            }
+        }
+
+        if (parentLogger.isLoggable(Level.FINER)) {
+            parentLogger.finer("Unknown property value: " + name);
+        }
+
         return null;
     }
 

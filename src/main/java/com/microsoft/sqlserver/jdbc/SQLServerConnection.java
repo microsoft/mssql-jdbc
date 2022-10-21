@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -514,9 +515,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
                 case "ACTIVEDIRECTORYMSI":
                     this.authentication = SqlAuthentication.ActiveDirectoryMSI;
-                    break;
-                case "ACTIVEDIRECTORYMANAGEDIDENTITY":
-                    this.authentication = SqlAuthentication.ActiveDirectoryManagedIdentity;
                     break;
                 case "DEFAULTAZURECREDENTIAL":
                     this.authentication = SqlAuthentication.DefaultAzureCredential;
@@ -2358,8 +2356,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             null);
                 }
 
-                if ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
-                        authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString()))
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
                         && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (!activeConnectionProperties
@@ -4657,7 +4654,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
                         case ActiveDirectoryMSI:
-                        case ActiveDirectoryManagedIdentity:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMSI;
                             break;
                         case DefaultAzureCredential:
@@ -4879,7 +4875,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
@@ -5402,7 +5397,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
                 || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())
                                 && fedAuthRequiredPreLoginResponse);
@@ -5443,8 +5437,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
-                    authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
                 fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
@@ -7491,6 +7484,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (null != parameterMetadataCache)
             parameterMetadataCache.setCapacity(value);
+    }
+
+    @Deprecated
+    @Override
+    public int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException {
+        SQLServerException.throwFeatureNotSupportedException();
+        return 0;
+    }
+
+    @Deprecated
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException {
+        SQLServerException.throwFeatureNotSupportedException();
     }
 
     /**

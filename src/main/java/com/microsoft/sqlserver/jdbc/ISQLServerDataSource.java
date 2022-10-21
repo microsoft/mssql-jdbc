@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 
 import org.ietf.jgss.GSSCredential;
 
+import java.sql.SQLFeatureNotSupportedException;
+
 
 /**
  * Provides a factory to create connections to the data source represented by this object. This interface was added in
@@ -1206,4 +1208,27 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return prepare method
      */
     String getPrepareMethod();
+
+    /**
+     * This is deprecated. The new managed identity token logic doesn't
+     * require this anymore.
+     *
+     * Sets time-to-live for the cached MSI token
+     *
+     * @param timeToLive
+     *        Changes the setting as per description
+     */
+    @Deprecated
+    void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException;
+
+    /**
+     * This is deprecated. The new managed identity token logic doesn't
+     * require this anymore.
+     *
+     * Gets the time-to-live for the cached MSI token
+     *
+     * @return time-to-live for the cached MSI token
+     */
+    @Deprecated
+    int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException;
 }
