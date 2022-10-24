@@ -1007,11 +1007,28 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
+    /**
+     * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
+     *
+     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     *
+     * @param msiClientId
+     *        Client ID of User Assigned Managed Identity
+     */
+    @Deprecated
     @Override
     public void setMSIClientId(String msiClientId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
     }
 
+    /**
+     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
+     *
+     * Returns the value for the connection property 'msiClientId'.
+     *
+     * @return msiClientId property value
+     */
+    @Deprecated
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),

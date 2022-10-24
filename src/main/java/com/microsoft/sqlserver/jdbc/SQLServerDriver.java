@@ -84,8 +84,8 @@ enum SqlAuthentication {
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString()) ||
-                value.toLowerCase(Locale.US).equalsIgnoreCase(SQLServerDriver
-                        .getNormalizedPropertyValueName(SqlAuthentication.ActiveDirectoryMSI.toString()))) {
+                SQLServerDriver.getNormalizedPropertyValueName(value).toLowerCase(Locale.US)
+                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
             method = SqlAuthentication.ActiveDirectoryMSI;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {

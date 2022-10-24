@@ -329,7 +329,7 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getManagedIdentityCredAuthToken(String resource, String msiClientId) {
+    static SqlFedAuthToken getManagedIdentityCredAuthToken(String resource, String msiClientId) throws SQLServerException {
         ManagedIdentityCredential mic = null;
 
         if (null != msiClientId && !msiClientId.isEmpty()) {
@@ -352,6 +352,10 @@ class SQLServerSecurityUtility {
             if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
                 connectionlogger.fine("Access token is not present.");
             }
+
+            throw new SQLServerException(SQLServerException
+                    .getErrString("R_ManagedIdentityTokenAcquisitionFail"), null);
+
         } else {
             AccessToken accessToken = accessTokenOptional.get();
             sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
@@ -370,7 +374,7 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource, String msiClientId) {
+    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource, String msiClientId) throws SQLServerException {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
         String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
 
@@ -405,6 +409,10 @@ class SQLServerSecurityUtility {
             if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
                 connectionlogger.fine("Access token is not present.");
             }
+
+            throw new SQLServerException(SQLServerException
+                    .getErrString("R_ManagedIdentityTokenAcquisitionFail"), null);
+
         } else {
             AccessToken accessToken = accessTokenOptional.get();
             sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());

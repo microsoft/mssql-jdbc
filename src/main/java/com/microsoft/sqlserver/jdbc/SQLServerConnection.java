@@ -2325,9 +2325,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString()) &&
-                        ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty())
-                                || (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                        (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -2356,11 +2355,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())
-                        && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                                .isEmpty())
-                                || (!activeConnectionProperties
-                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithUserPassword"));
+                        && (!activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -5437,6 +5434,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+
+                String managedIdentityClientId = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.USER.toString());
+
+                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                            managedIdentityClientId);
+                    break;
+                }
+
                 fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
@@ -5562,8 +5569,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
                 }
+
+                String managedIdentityClientId = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.USER.toString());
+
+                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                    fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                            managedIdentityClientId);
+                    break;
+                }
+
                 fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+
                 break;
             }
         }
