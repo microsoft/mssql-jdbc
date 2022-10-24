@@ -15,7 +15,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -7488,15 +7487,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Deprecated
     @Override
-    public int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException {
-        SQLServerException.throwFeatureNotSupportedException();
+    public int getMsiTokenCacheTtl() {
         return 0;
     }
 
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException {
-        SQLServerException.throwFeatureNotSupportedException();
+    public void setMsiTokenCacheTtl(int timeToLive) {
     }
 
     /**

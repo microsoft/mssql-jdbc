@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import org.ietf.jgss.GSSCredential;
 
-import java.sql.SQLFeatureNotSupportedException;
 
 
 /**
@@ -1210,8 +1209,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getPrepareMethod();
 
     /**
-     * This is deprecated. The new managed identity token logic doesn't
-     * require this anymore.
+     * This is a deprecated method that has no effect.
      *
      * Sets time-to-live for the cached MSI token
      *
@@ -1219,16 +1217,15 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Changes the setting as per description
      */
     @Deprecated
-    void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException;
+    void setMsiTokenCacheTtl(int timeToLive);
 
     /**
-     * This is deprecated. The new managed identity token logic doesn't
-     * require this anymore.
+     * This is a deprecated method that has no effect.
      *
      * Gets the time-to-live for the cached MSI token
      *
      * @return time-to-live for the cached MSI token
      */
     @Deprecated
-    int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException;
+    int getMsiTokenCacheTtl();
 }

@@ -44,6 +44,9 @@ class SQLServerSecurityUtility {
     // Environment variable for intellij keepass database path
     private static final String INTELLIJ_KEEPASS_PASS = "INTELLIJ_KEEPASS_PATH";
 
+    // Environment variable for additionally allowed tenants. The tenantIds are comma delimited
+    private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
+
     /**
      * Give the hash of given plain text
      * 
@@ -347,7 +350,7 @@ class SQLServerSecurityUtility {
 
         if (!accessTokenOptional.isPresent()) {
             if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
-                connectionlogger.fine("Access token not present.");
+                connectionlogger.fine("Access token is not present.");
             }
         } else {
             AccessToken accessToken = accessTokenOptional.get();
@@ -369,6 +372,8 @@ class SQLServerSecurityUtility {
      */
     static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource, String msiClientId) {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
+        String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
+
         DefaultAzureCredentialBuilder dacBuilder = new DefaultAzureCredentialBuilder();
         DefaultAzureCredential dac = null;
 
@@ -378,6 +383,10 @@ class SQLServerSecurityUtility {
 
         if (null != intellijKeepassPath && !intellijKeepassPath.isEmpty()) {
             dacBuilder.intelliJKeePassDatabasePath(intellijKeepassPath);
+        }
+
+        if (additionallyAllowedTenants.length != 0) {
+            dacBuilder.additionallyAllowedTenants(additionallyAllowedTenants);
         }
 
         dac = dacBuilder.build();
@@ -402,5 +411,9 @@ class SQLServerSecurityUtility {
         }
 
         return sqlFedAuthToken;
+    }
+
+    private static String[] getAdditonallyAllowedTenants() {
+        return System.getenv(ADDITIONALLY_ALLOWED_TENANTS).split(",");
     }
 }

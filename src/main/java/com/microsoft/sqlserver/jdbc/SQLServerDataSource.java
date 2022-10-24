@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1191,14 +1190,12 @@ public class SQLServerDataSource
 
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) throws SQLFeatureNotSupportedException {
-        SQLServerException.throwFeatureNotSupportedException();
+    public void setMsiTokenCacheTtl(int timeToLive) {
     }
 
     @Deprecated
     @Override
-    public int getMsiTokenCacheTtl() throws SQLFeatureNotSupportedException {
-        SQLServerException.throwFeatureNotSupportedException();
+    public int getMsiTokenCacheTtl() {
         return 0;
     }
 
