@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.azure.identity.CredentialUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -80,16 +81,29 @@ public class MSITest extends AESetup {
     @Test
     public void testMSIAuthWithMSIClientId() throws SQLException {
         String connStr = connectionString;
+
+        // Test with user=<managed-identity-client-id>
+        try {
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, msiClientId);
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
+
+            // Set msiClientId to incorrect managed identity client ID. Since "User" is set with the ID, "User" should override msiClientId
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, "incorrect-managed-identity-client-id");
+            try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
+            try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
+        } catch (CredentialUnavailableException ce) {
+            fail("\"User\" was overrided by incorrect managed identity client ID set in \"msiClientId\"");
+        }
+
+        // Test with msiClientId=<managed-identity-client-id>
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
-
-        testSimpleConnect(connStr);
-
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
-        
-        testSimpleConnect(connStr);
+        try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
     }
 
     /*
@@ -102,18 +116,17 @@ public class MSITest extends AESetup {
     @Test
     public void testDSMSIAuth() throws SQLException {
         String connStr = connectionString;
+
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
-
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
+
+        ds.setAuthentication("ActiveDirectoryMSI");
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
         ds.setAuthentication("ActiveDirectoryManagedIdentity");
-
-        AbstractTest.updateDataSource(connStr, ds);
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
@@ -128,19 +141,23 @@ public class MSITest extends AESetup {
     @Test
     public void testDSMSIAuthWithMSIClientId() throws SQLException {
         String connStr = connectionString;
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+
+        // Test with user=<managed-identity-client-id>
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, msiClientId);
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
 
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setAuthentication("ActiveDirectoryMSI");
-        ds.setMSIClientId(msiClientId);
         AbstractTest.updateDataSource(connStr, ds);
-
+        ds.setAuthentication("ActiveDirectoryMSI");
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+        ds.setAuthentication("ActiveDirectoryManagedIdentity");
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
+        // Test with msiClientId=<managed-identity-client-id>
+        ds.setMSIClientId(msiClientId);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
         ds.setAuthentication("ActiveDirectoryManagedIdentity");
-        AbstractTest.updateDataSource(connStr, ds);
-
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
 
