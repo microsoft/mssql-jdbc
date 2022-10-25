@@ -2324,9 +2324,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString()) &&
-                        (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
+                        && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty())) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -2355,9 +2357,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
-                        && (!activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
+                        && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty())) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -4870,7 +4873,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          */
         if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                        || authenticationString
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
@@ -5392,7 +5396,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
                 || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                        || authenticationString
+                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())
                                 && fedAuthRequiredPreLoginResponse);
@@ -5421,8 +5426,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // No:of milliseconds to sleep for the initial back off.
         int sleepInterval = 100;
 
-        if (!msalContextExists() && !authenticationString
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
+        if (!msalContextExists()
+                && !authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
             throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
         }
@@ -5435,7 +5440,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
+            } else if (authenticationString
+                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
 
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
@@ -7508,8 +7514,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-    }
+    public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
      * Prepares the cache handle.

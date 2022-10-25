@@ -1018,7 +1018,8 @@ public class SQLServerDataSource
     @Deprecated
     @Override
     public void setMSIClientId(String managedIdentityClientId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), managedIdentityClientId);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
+                managedIdentityClientId);
     }
 
     /**
@@ -1205,15 +1206,13 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
     }
 
-
     /**
      * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
      * This method will always return 0 and is for backwards compatibility only.
      */
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-    }
+    public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
      * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.

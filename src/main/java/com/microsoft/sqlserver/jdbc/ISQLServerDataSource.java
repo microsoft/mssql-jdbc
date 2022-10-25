@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import org.ietf.jgss.GSSCredential;
 
 
-
 /**
  * Provides a factory to create connections to the data source represented by this object. This interface was added in
  * SQL Server JDBC Driver 3.0.

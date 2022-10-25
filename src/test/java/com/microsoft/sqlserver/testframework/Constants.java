@@ -122,7 +122,7 @@ public final class Constants {
     public static final String FALSE = "FALSE";
     public static final String TRUE = "TRUE";
     public static final String STRICT = "STRICT";
-    
+
     // Start: Connection Properties parsed in AbstractTest class for creating DataSource.
     public static final String INTEGRATED_SECURITY = "INTEGRATEDSECURITY";
     public static final String USER = "USER";

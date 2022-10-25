@@ -368,7 +368,8 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource, String managedIdentityClientId) throws SQLServerException {
+    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource,
+            String managedIdentityClientId) throws SQLServerException {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
         String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
 

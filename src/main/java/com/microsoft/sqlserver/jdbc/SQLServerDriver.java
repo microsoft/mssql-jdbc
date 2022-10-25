@@ -84,8 +84,9 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString()) ||
-                SQLServerDriver.getNormalizedPropertyValueName(value).toLowerCase(Locale.US)
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                || SQLServerDriver.getNormalizedPropertyValueName(value).toLowerCase(Locale.US)
                         .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
             method = SqlAuthentication.ActiveDirectoryManagedIdentity;
         } else if (value.toLowerCase(Locale.US)
@@ -94,8 +95,7 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
             method = SqlAuthentication.ActiveDirectoryInteractive;
-        } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
             method = SqlAuthentication.DefaultAzureCredential;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));

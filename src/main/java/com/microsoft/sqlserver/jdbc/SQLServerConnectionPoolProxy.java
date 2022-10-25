@@ -623,7 +623,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
-        
+
     }
 
     @Override
@@ -647,6 +647,5 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      */
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-    }
+    public void setMsiTokenCacheTtl(int timeToLive) {}
 }

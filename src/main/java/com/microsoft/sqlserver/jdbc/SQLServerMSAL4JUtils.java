@@ -60,7 +60,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -94,7 +95,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -136,7 +138,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -201,7 +204,8 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
