@@ -18,6 +18,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -37,6 +39,7 @@ final class Util {
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
+    private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
         return SYSTEM_JRE.startsWith("IBM");
@@ -952,27 +955,32 @@ final class Util {
     // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
-        Date now = new Date();
+    static boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
+        LOCK.lock();
+        try {
+            Date now = new Date();
 
-        // if the token's expiration is within the next 45 mins
-        // 45 mins * 60 sec/min * 1000 millisec/sec
-        if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
+            // if the token's expiration is within the next 45 mins
+            // 45 mins * 60 sec/min * 1000 millisec/sec
+            if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
 
-            // within the next 10 mins
-            if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
-                return true;
-            } else {
-                // check if another thread is already updating the access token
-                if (connection.attemptRefreshTokenLocked) {
-                    return false;
-                } else {
-                    connection.attemptRefreshTokenLocked = true;
+                // within the next 10 mins
+                if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
                     return true;
+                } else {
+                    // check if another thread is already updating the access token
+                    if (connection.attemptRefreshTokenLocked) {
+                        return false;
+                    } else {
+                        connection.attemptRefreshTokenLocked = true;
+                        return true;
+                    }
                 }
             }
+            return false;
+        } finally {
+            LOCK.unlock();
         }
-        return false;
     }
 
     @SuppressWarnings("unchecked")
