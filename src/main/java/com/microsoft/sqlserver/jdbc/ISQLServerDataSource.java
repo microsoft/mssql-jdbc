@@ -935,13 +935,13 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * This method is deprecated. Use {@link ISQLServerDataSource#setUser(String user)} instead.
      *
-     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
-     * @param msiClientId
-     *        Client ID of User Assigned Managed Identity
+     * @param managedIdentityClientId
+     *        Client ID of the user-assigned Managed Identity.
      */
     @Deprecated
-    void setMSIClientId(String msiClientId);
+    void setMSIClientId(String managedIdentityClientId);
 
     /**
      * This method is deprecated. Use {@link ISQLServerDataSource#getUser()} instead.
@@ -1223,7 +1223,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * This method will always return 0 and is for backwards compatibility only.
      */
     @Deprecated
     int getMsiTokenCacheTtl();

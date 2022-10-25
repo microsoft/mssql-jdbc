@@ -52,7 +52,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Test
-    public void testMSIAuth() throws SQLException {
+    public void testManagedIdentityAuth() throws SQLException {
         String connStr = connectionString;
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
@@ -72,34 +72,35 @@ public class MSITest extends AESetup {
     }
 
     /*
-     * Test MSI auth with msiClientId
+     * Test Managed Identity auth with Managed Identity client ID
      */
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Test
-    public void testMSIAuthWithMSIClientId() throws SQLException {
+    public void testManagedIdentityAuthWithManagedIdentityClientId() throws SQLException {
         String connStr = connectionString;
 
         // Test with user=<managed-identity-client-id>
         try {
-            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, msiClientId);
+            connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, managedIdentityClientId);
             connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
             connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
-            // Set msiClientId to incorrect managed identity client ID. Since "User" is set with the ID, "User" should override msiClientId
+            // Set msiClientId to incorrect managed identity client ID. Since "User" is set with the ID, "User" should override msiClientId.
+            // Otherwise, test should fail with the incorrect "msiClientId" property value because "User" was not overrided
             connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, "incorrect-managed-identity-client-id");
             try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
             connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
             try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
         } catch (CredentialUnavailableException ce) {
-            fail("\"User\" was overrided by incorrect managed identity client ID set in \"msiClientId\"");
+            fail("\"User\" was overrided by incorrect managed identity client ID set in \"msiClientId\" property.");
         }
 
         // Test with msiClientId=<managed-identity-client-id>
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, managedIdentityClientId);
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
         try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
@@ -107,14 +108,14 @@ public class MSITest extends AESetup {
     }
 
     /*
-     * Test MSI auth using datasource
+     * Test Managed Identity auth using datasource
      */
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Test
-    public void testDSMSIAuth() throws SQLException {
+    public void testDSManagedIdentityAuth() throws SQLException {
         String connStr = connectionString;
 
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
@@ -132,18 +133,18 @@ public class MSITest extends AESetup {
     }
 
     /*
-     * Test MSI auth with msiClientId using datasource
+     * Test Managed Identity auth with a Managed Identity client ID using datasource
      */
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Test
-    public void testDSMSIAuthWithMSIClientId() throws SQLException {
+    public void testDSManagedIdentityAuthWithManagedIdentityClientId() throws SQLException {
         String connStr = connectionString;
 
         // Test with user=<managed-identity-client-id>
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, msiClientId);
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, managedIdentityClientId);
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
 
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -154,7 +155,8 @@ public class MSITest extends AESetup {
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
         // Test with msiClientId=<managed-identity-client-id>
-        ds.setMSIClientId(msiClientId);
+        ds.setUser("");
+        ds.setMSIClientId(managedIdentityClientId);
         ds.setAuthentication("ActiveDirectoryMSI");
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
         ds.setAuthentication("ActiveDirectoryManagedIdentity");
@@ -168,17 +170,15 @@ public class MSITest extends AESetup {
     @Test
     public void testDefaultAzureCredentialAuth() throws SQLException{
         String connStr = connectionString;
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, managedIdentityClientId);
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "DefaultAzureCredential");
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
 
-        // With msiClientId
+        // With Managed Identity client ID
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr)) {}
 
-        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, "");
-
-        // Without msiClientId
+        // Without Managed Identity client ID
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connStr)) {}
     }
 
@@ -194,17 +194,22 @@ public class MSITest extends AESetup {
 
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setAuthentication("DefaultAzureCredential");
-        ds.setMSIClientId(msiClientId);
+        ds.setMSIClientId(managedIdentityClientId);
         AbstractTest.updateDataSource(connStr, ds);
 
-        // With msiClientId
+        // With msiClientId property
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
-        // Without msiClientId
+        // Without msiClientId property
         ds.setMSIClientId("");
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
-        AbstractTest.updateDataSource(connStr, ds);
+        // With user property
+        ds.setUser(managedIdentityClientId);
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
+        // Without user property
+        ds.setUser("");
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
     }
 

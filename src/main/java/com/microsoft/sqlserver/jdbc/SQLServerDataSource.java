@@ -1010,15 +1010,15 @@ public class SQLServerDataSource
     /**
      * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
      *
-     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      *
-     * @param msiClientId
-     *        Client ID of User Assigned Managed Identity
+     * @param managedIdentityClientId
+     *        Client ID of the user-assigned Managed Identity.
      */
     @Deprecated
     @Override
-    public void setMSIClientId(String msiClientId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
+    public void setMSIClientId(String managedIdentityClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), managedIdentityClientId);
     }
 
     /**
@@ -1205,11 +1205,20 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
     }
 
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     */
     @Deprecated
     @Override
     public void setMsiTokenCacheTtl(int timeToLive) {
     }
 
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     */
     @Deprecated
     @Override
     public int getMsiTokenCacheTtl() {
