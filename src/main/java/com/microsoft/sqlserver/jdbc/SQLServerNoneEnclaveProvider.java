@@ -18,17 +18,21 @@ import java.util.ArrayList;
 
 /**
  * 
- * Provides the implementation of the VSM Enclave Provider. The enclave provider encapsulates the client-side
- * implementation details of the enclave attestation protocol.
+ * Provides the implementation of the NONE Enclave Provider. This enclave provider does not use attestation.
  *
  */
 public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 
-    private static EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
+    private static final EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
     private NoneAttestationParameters noneParams = null;
     private NoneAttestationResponse noneResponse = null;
     private String attestationUrl = null;
     private EnclaveSession enclaveSession = null;
+
+    /**
+     * default constructor
+     */
+    public SQLServerNoneEnclaveProvider() {}
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
@@ -42,6 +46,12 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+        
+        /*
+         * for None attestation: enclave does not send public key, and sends an empty attestation info. The only
+         * non-trivial content it sends is the session setup info (DH pubkey of enclave).
+         */
+        
         // Check if the session exists in our cache
         StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
                 .append(attestationUrl);
@@ -55,8 +65,6 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
         if (connection.enclaveEstablished()) {
             return b;
         } else if (null != noneResponse && !connection.enclaveEstablished()) {
-
-            // If not, set it up
             try {
                 enclaveSession = new EnclaveSession(noneResponse.getSessionID(),
                         noneParams.createSessionSecret(noneResponse.getDHpublicKey()));
@@ -102,7 +110,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                     }
                     processSDPEv1(userSql, preparedTypeDefinitions, params, parameterNames, connection, statement, stmt,
                             rs, enclaveRequestedCEKs);
-                    // Process the third resultset.
+                    // Process the third result set.
                     if (connection.isAEv2() && stmt.getMoreResults()) {
                         try (ResultSet noneRs = stmt.getResultSet()) {
                             if (noneRs.next()) {
@@ -128,6 +136,11 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 }
 
 
+/**
+ * 
+ * Represents the serialization of the request the client sends to the SQL Server while setting up a session.
+ *
+ */
 class NoneAttestationParameters extends BaseAttestationRequest {
     // Type 2 is NONE, sent as Little Endian 0x20000000
     private static byte ENCLAVE_TYPE[] = new byte[] {0x2, 0x0, 0x0, 0x0};
@@ -151,7 +164,14 @@ class NoneAttestationParameters extends BaseAttestationRequest {
 }
 
 
+/**
+ * 
+ * Represents the deserialization of the byte payload the client receives from the SQL Server while setting up a
+ * session.
+ *
+ */
 class NoneAttestationResponse extends BaseAttestationResponse {
+    
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
          * Parse the attestation response.
