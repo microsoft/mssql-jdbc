@@ -25,7 +25,7 @@ import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;import org.junit.platform.runner.JUnitPlatform;
+import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomData;
@@ -151,7 +151,7 @@ public class AESetup extends AbstractTest {
             "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
     // junit test parameters: serverName, enclaveAttestationUrl, enclaveAttestationProtocol
-    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 0
+    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 1
                                                                              : AbstractTest.enclaveServer.length)][3];
 
     /**
