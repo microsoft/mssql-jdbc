@@ -24,6 +24,7 @@ import java.util.ArrayList;
 public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 
     private static final EnclaveSessionCache enclaveCache = new EnclaveSessionCache();
+
     private NoneAttestationParameters noneParams = null;
     private NoneAttestationResponse noneResponse = null;
     private String attestationUrl = null;
@@ -46,12 +47,12 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        
+
         /*
          * for None attestation: enclave does not send public key, and sends an empty attestation info. The only
          * non-trivial content it sends is the session setup info (DH pubkey of enclave).
          */
-        
+
         // Check if the session exists in our cache
         StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
                 .append(attestationUrl);
@@ -171,7 +172,7 @@ class NoneAttestationParameters extends BaseAttestationRequest {
  *
  */
 class NoneAttestationResponse extends BaseAttestationResponse {
-    
+
     NoneAttestationResponse(byte[] b) throws SQLServerException {
         /*-
          * Parse the attestation response.
