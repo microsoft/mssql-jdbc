@@ -2503,6 +2503,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     accessTokenInByte = sPropValue.getBytes(UTF_16LE);
+                } else if (null != SQLServerDataSource.accessTokenCallback) {
+                    accessTokenInByte = SQLServerDataSource.accessTokenCallback.getAccessToken().getBytes(UTF_16LE);
                 }
 
                 if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {

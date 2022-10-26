@@ -1226,4 +1226,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     @Deprecated
     int getMsiTokenCacheTtl();
+
+    void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback);
+
+    SQLServerAccessTokenCallback getAccessTokenCallback();
 }

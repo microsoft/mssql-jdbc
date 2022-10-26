@@ -72,6 +72,11 @@ public class SQLServerDataSource
     final private String traceID;
 
     /**
+     * Callback method for returning an access token
+     */
+    static SQLServerAccessTokenCallback accessTokenCallback = null;
+
+    /**
      * Constructs a SQLServerDataSource.
      */
     public SQLServerDataSource() {
@@ -1222,6 +1227,16 @@ public class SQLServerDataSource
     @Override
     public int getMsiTokenCacheTtl() {
         return 0;
+    }
+
+    @Override
+    public void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback) {
+        this.accessTokenCallback = accessTokenCallback;
+    }
+
+    @Override
+    public SQLServerAccessTokenCallback getAccessTokenCallback() {
+        return accessTokenCallback;
     }
 
     /**

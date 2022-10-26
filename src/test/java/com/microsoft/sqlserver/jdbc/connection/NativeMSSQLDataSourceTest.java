@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.connection;
 
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,7 +17,13 @@ import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import com.microsoft.aad.msal4j.*;
 import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -64,6 +71,50 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
         try (Connection conn = ds.getConnection()) {}
         ds = testSerial(ds);
         try (Connection conn = ds.getConnection()) {}
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Test
+    public void testPooledConnectionAccessTokenCallback() throws SQLException {
+        SQLServerAccessTokenCallback callback = new SQLServerAccessTokenCallback() {
+            @Override
+            public String getAccessToken() {
+                String scope = spn + "/.default";
+                Set<String> scopes = new HashSet<>();
+                scopes.add(scope);
+
+                try {
+                    ExecutorService executorService = Executors.newSingleThreadExecutor();
+                    IClientCredential credential = ClientCredentialFactory.createFromSecret(accessTokenSecret);
+                    ConfidentialClientApplication clientApplication = ConfidentialClientApplication
+                            .builder(accessTokenClientId, credential).executorService(executorService).authority(accessTokenStsUrl).build();
+                    CompletableFuture<IAuthenticationResult> future = clientApplication
+                            .acquireToken(ClientCredentialParameters.builder(scopes).build());
+
+                    IAuthenticationResult authenticationResult = future.get();
+                    String accessToken = authenticationResult.accessToken();
+
+                    return accessToken;
+
+                } catch (Exception e) {
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                }
+                return null;
+            }
+        };
+
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+        ds.setUser("");
+        ds.setPassword("");
+        ds.setAccessTokenCallback(callback);
+
+        // Callback should provide valid token on connection open for all new connections
+        try (Connection conn1 = (SQLServerConnection) ds.getConnection()) {}
+        try (Connection conn2 = (SQLServerConnection) ds.getConnection()) {}
     }
 
     @Test
