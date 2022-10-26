@@ -143,6 +143,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
  *
  */
 class NoneAttestationParameters extends BaseAttestationRequest {
+
     // Type 2 is NONE, sent as Little Endian 0x20000000
     private static byte ENCLAVE_TYPE[] = new byte[] {0x2, 0x0, 0x0, 0x0};
 
