@@ -122,7 +122,7 @@ public final class Constants {
     public static final String FALSE = "FALSE";
     public static final String TRUE = "TRUE";
     public static final String STRICT = "STRICT";
-    
+
     // Start: Connection Properties parsed in AbstractTest class for creating DataSource.
     public static final String INTEGRATED_SECURITY = "INTEGRATEDSECURITY";
     public static final String USER = "USER";
@@ -156,7 +156,6 @@ public final class Constants {
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
 
     public static final String MSICLIENTID = "MSICLIENTID";
-    public static final String MSITOKENCACHETTL = "MSITOKENCACHETTL";
     public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
     public static final String KEYSTORE_AUTHENTICATION = "KEYSTOREAUTHENTICATION";

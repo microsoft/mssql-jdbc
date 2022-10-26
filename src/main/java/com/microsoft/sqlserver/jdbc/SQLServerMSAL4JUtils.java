@@ -40,7 +40,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
-    private static final String SLASH_DEFAULT = "/.default";
+    static final String SLASH_DEFAULT = "/.default";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
@@ -60,7 +60,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -94,7 +95,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -136,7 +138,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -201,7 +204,8 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + "Access token expires on the following date: " + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + " Access token expires on the following date: "
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
