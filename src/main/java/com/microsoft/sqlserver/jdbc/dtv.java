@@ -3358,13 +3358,8 @@ final class ServerDTVImpl extends DTVImpl {
                         tempPLP.close();
                 } catch (IOException e) {
                     tdsReader.getConnection().terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage());
-                } catch (Exception otherEx) {
-                    System.out.println("caught other exceptions: "+otherEx.getMessage());
-                    tdsReader.getConnection().terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, otherEx.getMessage());
                 }
             } else {
-                if (valueLength <0)
-                System.out.println("valueLength is < 0!!"+valueLength);
                 assert valueLength >= 0;
                 tdsReader.skip(valueLength); // jump over the value data
             }

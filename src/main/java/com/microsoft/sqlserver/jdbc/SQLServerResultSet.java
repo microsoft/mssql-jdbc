@@ -1779,7 +1779,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // If we don't have a fetch buffer yet then there are no rows to fetch
         if (null == tdsReader)
             return false;
-        
+
         // We do have a fetch buffer. So discard the current row in the fetch buffer and ...
         discardCurrentRow();
 
@@ -1795,10 +1795,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             currentRow = AFTER_LAST_ROW;
             rowErrorException = e;
             throw e;
-        } catch (Exception otherEx) {
-            System.out.println("other exception: "+otherEx.getMessage());
-            currentRow = AFTER_LAST_ROW;
-            throw otherEx;
         } finally {
             lastColumnIndex = 0;
             resultSetCurrentRowType = fetchBufferCurrentRowType;
@@ -5380,18 +5376,17 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 ensureStartMark();
 
                 short status = tdsReader.peekStatusFlag();
-                
+
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
-                
+
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
                 stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
-                
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
                 // another DONE token to follow.
@@ -5487,9 +5482,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
             if (null != fetchBufferTokenHandler.getDatabaseError()) {
-                if (!fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
-                    System.out.println("THIS IS THE PROBLEM!!!");
-                }
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
