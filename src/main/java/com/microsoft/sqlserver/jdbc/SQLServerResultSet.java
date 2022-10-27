@@ -5382,7 +5382,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 short status = tdsReader.peekStatusFlag();
                 
-                System.out.println("in onDone here");
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status};
