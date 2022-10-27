@@ -501,7 +501,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setIPAddressPreference");
         verifiedMethodNames.add("getMsiTokenCacheTtl");
         verifiedMethodNames.add("setMsiTokenCacheTtl");
-
         return verifiedMethodNames;
     }
 }

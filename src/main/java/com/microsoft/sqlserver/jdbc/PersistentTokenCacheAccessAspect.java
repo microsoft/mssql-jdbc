@@ -8,6 +8,9 @@ package com.microsoft.sqlserver.jdbc;
 import com.microsoft.aad.msal4j.ITokenCacheAccessAspect;
 import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * Access aspect for accessing the token cache.
@@ -21,6 +24,8 @@ import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect {
     private static PersistentTokenCacheAccessAspect instance = new PersistentTokenCacheAccessAspect();
 
+    private final Lock lock = new ReentrantLock();
+
     private PersistentTokenCacheAccessAspect() {}
 
     static PersistentTokenCacheAccessAspect getInstance() {
@@ -33,17 +38,27 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
     private String cache = null;
 
     @Override
-    public synchronized void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
-        if (null != cache && null != iTokenCacheAccessContext && null != iTokenCacheAccessContext.tokenCache()) {
-            iTokenCacheAccessContext.tokenCache().deserialize(cache);
+    public void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+        lock.lock();
+        try {
+            if (null != cache && null != iTokenCacheAccessContext && null != iTokenCacheAccessContext.tokenCache()) {
+                iTokenCacheAccessContext.tokenCache().deserialize(cache);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
-    public synchronized void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
-        if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged()
-                && null != iTokenCacheAccessContext.tokenCache())
-            cache = iTokenCacheAccessContext.tokenCache().serialize();
+    public void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+        lock.lock();
+        try {
+            if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged() && null != iTokenCacheAccessContext.tokenCache())
+                cache = iTokenCacheAccessContext.tokenCache().serialize();
+        } finally {
+            lock.unlock();
+        }
+
     }
 
     /**

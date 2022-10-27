@@ -5,14 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * 
@@ -20,7 +20,7 @@ import java.util.List;
  *
  */
 final class SQLServerSymmetricKeyCache {
-    static final Object lock = new Object();
+    static final Lock lock = new ReentrantLock();
     private final SimpleTtlCache<String, SQLServerSymmetricKey> cache;
     private static final SQLServerSymmetricKeyCache instance = new SQLServerSymmetricKeyCache();
 
@@ -49,7 +49,8 @@ final class SQLServerSymmetricKeyCache {
      */
     SQLServerSymmetricKey getKey(EncryptionKeyInfo keyInfo, SQLServerConnection connection) throws SQLServerException {
         SQLServerSymmetricKey encryptionKey = null;
-        synchronized (lock) {
+        lock.lock();
+        try {
             String serverName = connection.getTrustedServerNameAE();
             assert null != serverName : "serverName should not be null in getKey.";
 
@@ -114,7 +115,9 @@ final class SQLServerSymmetricKeyCache {
             } else {
                 encryptionKey = cache.get(keyLookupValue);
             }
+            return encryptionKey;
+        } finally {
+            lock.unlock();
         }
-        return encryptionKey;
     }
 }

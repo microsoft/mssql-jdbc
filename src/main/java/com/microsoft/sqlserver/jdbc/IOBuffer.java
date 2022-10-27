@@ -60,6 +60,10 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -197,8 +201,9 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
-    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
+    static final byte ADALWORKFLOW_DEFAULTAZURECREDENTIAL = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
                                                                            // closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
@@ -716,7 +721,9 @@ final class TDSChannel implements Serializable {
     // the SSL socket above. They wrap the underlying TCP streams.
     // For unencrypted connections, they are just the TCP streams themselves.
     private ProxyInputStream inputStream;
+    private final Lock inputStreamLock = new ReentrantLock();
     private OutputStream outputStream;
+    private final Lock outputStreamLock = new ReentrantLock();
 
     /** TDS packet payload logger */
     private static Logger packetLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.DATA");
@@ -729,6 +736,8 @@ final class TDSChannel implements Serializable {
     // Number of TDS messages sent to and received from the server
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
+
+    private final Lock lock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -797,73 +806,79 @@ final class TDSChannel implements Serializable {
     /**
      * Disables SSL on this TDS channel.
      */
-    synchronized void disableSSL() {
-        if (logger.isLoggable(Level.FINER))
+    void disableSSL() {
+        if (logger.isLoggable(Level.FINER)) {
             logger.finer(toString() + " Disabling SSL...");
-
-        // Guard in case of disableSSL being called before enableSSL
-        if (proxySocket == null) {
-            if (logger.isLoggable(Level.INFO))
-                logger.finer(toString() + " proxySocket is null, exit early");
-            return;
         }
 
-        /*
-         * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
-         * socket and streams. The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown
-         * I/O over the TCP/IP streams that are bound to the socket proxy, resulting in a not responding and confusing
-         * SQL Server. Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams.
-         * SSLSocket sees that the streams are already closed and does not attempt to do any further I/O on them before
-         * closing itself.
-         */
-
-        // Create a couple of cheap closed streams
-        InputStream is = new ByteArrayInputStream(new byte[0]);
+        lock.lock();
         try {
-            is.close();
-        } catch (IOException e) {
-            // No reason to expect a brand new ByteArrayInputStream not to close,
-            // but just in case...
-            logger.fine("Ignored error closing InputStream: " + e.getMessage());
+            // Guard in case of disableSSL being called before enableSSL
+            if (proxySocket == null) {
+                if (logger.isLoggable(Level.INFO))
+                    logger.finer(toString() + " proxySocket is null, exit early");
+                return;
+            }
+
+            /*
+             * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
+             * socket and streams. The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown
+             * I/O over the TCP/IP streams that are bound to the socket proxy, resulting in a not responding and confusing
+             * SQL Server. Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams.
+             * SSLSocket sees that the streams are already closed and does not attempt to do any further I/O on them before
+             * closing itself.
+             */
+
+            // Create a couple of cheap closed streams
+            InputStream is = new ByteArrayInputStream(new byte[0]);
+            try {
+                is.close();
+            } catch (IOException e) {
+                // No reason to expect a brand new ByteArrayInputStream not to close,
+                // but just in case...
+                logger.fine("Ignored error closing InputStream: " + e.getMessage());
+            }
+
+            OutputStream os = new ByteArrayOutputStream();
+            try {
+                os.close();
+            } catch (IOException e) {
+                // No reason to expect a brand new ByteArrayOutputStream not to close,
+                // but just in case...
+                logger.fine("Ignored error closing OutputStream: " + e.getMessage());
+            }
+
+            // Rewire the proxy socket to the closed streams
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Rewiring proxy streams for SSL socket close");
+            proxySocket.setStreams(is, os);
+
+            // Now close the SSL socket. It will see that the proxy socket's streams
+            // are closed and not try to do any further I/O over them.
+            try {
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Closing SSL socket");
+
+                sslSocket.close();
+            } catch (IOException e) {
+                // Don't care if we can't close the SSL socket. We're done with it anyway.
+                logger.fine("Ignored error closing SSLSocket: " + e.getMessage());
+            }
+
+            // Do not close the proxy socket. Doing so would close our TCP socket
+            // to which the proxy socket is bound. Instead, just null out the reference
+            // to free up the few resources it holds onto.
+            proxySocket = null;
+
+            // Finally, with all of the SSL support out of the way, put the TDSChannel
+            // back to using the TCP/IP socket and streams directly.
+            inputStream = tcpInputStream;
+            outputStream = tcpOutputStream;
+            channelSocket = tcpSocket;
+            sslSocket = null;
+        } finally {
+            lock.unlock();
         }
-
-        OutputStream os = new ByteArrayOutputStream();
-        try {
-            os.close();
-        } catch (IOException e) {
-            // No reason to expect a brand new ByteArrayOutputStream not to close,
-            // but just in case...
-            logger.fine("Ignored error closing OutputStream: " + e.getMessage());
-        }
-
-        // Rewire the proxy socket to the closed streams
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(toString() + " Rewiring proxy streams for SSL socket close");
-        proxySocket.setStreams(is, os);
-
-        // Now close the SSL socket. It will see that the proxy socket's streams
-        // are closed and not try to do any further I/O over them.
-        try {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Closing SSL socket");
-
-            sslSocket.close();
-        } catch (IOException e) {
-            // Don't care if we can't close the SSL socket. We're done with it anyway.
-            logger.fine("Ignored error closing SSLSocket: " + e.getMessage());
-        }
-
-        // Do not close the proxy socket. Doing so would close our TCP socket
-        // to which the proxy socket is bound. Instead, just null out the reference
-        // to free up the few resources it holds onto.
-        proxySocket = null;
-
-        // Finally, with all of the SSL support out of the way, put the TDSChannel
-        // back to using the TCP/IP socket and streams directly.
-        inputStream = tcpInputStream;
-        outputStream = tcpOutputStream;
-        channelSocket = tcpSocket;
-        sslSocket = null;
 
         if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " SSL disabled");
@@ -1096,8 +1111,9 @@ final class TDSChannel implements Serializable {
          * @throws IOException
          *         If an I/O exception occurs.
          */
-        public synchronized boolean poll() {
-            synchronized (this) {
+        public boolean poll() {
+            lock.lock();
+            try {
                 int b;
                 try {
                     b = filteredStream.read();
@@ -1130,6 +1146,8 @@ final class TDSChannel implements Serializable {
                 cachedLength++;
 
                 return true;
+            } finally {
+                lock.unlock();
             }
         }
 
@@ -1144,7 +1162,8 @@ final class TDSChannel implements Serializable {
         }
 
         public long skip(long n) throws IOException {
-            synchronized (this) {
+            lock.lock();
+            try {
                 long bytesSkipped = 0;
 
                 if (logger.isLoggable(Level.FINEST))
@@ -1163,6 +1182,8 @@ final class TDSChannel implements Serializable {
                     logger.finest(toString() + " Skipped " + n + " bytes");
 
                 return bytesSkipped;
+            } finally {
+                lock.unlock();
             }
         }
 
@@ -1195,7 +1216,8 @@ final class TDSChannel implements Serializable {
         }
 
         private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
-            synchronized (this) {
+            lock.lock();
+            try {
                 int bytesRead;
 
                 if (logger.isLoggable(Level.FINEST))
@@ -1242,6 +1264,8 @@ final class TDSChannel implements Serializable {
                     logger.finest(toString() + " Read " + bytesRead + " bytes");
 
                 return bytesRead;
+            } finally {
+                lock.unlock();
             }
         }
 
@@ -1255,20 +1279,27 @@ final class TDSChannel implements Serializable {
         }
 
         public void mark(int readLimit) {
-            synchronized (this) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Marking next " + readLimit + " bytes");
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Marking next " + readLimit + " bytes");
 
+            lock.lock();
+            try {
                 filteredStream.mark(readLimit);
+            } finally {
+                lock.unlock();
             }
         }
 
         public void reset() throws IOException {
-            synchronized (this) {
-                if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Resetting to previous mark");
+            if (logger.isLoggable(Level.FINEST))
+                logger.finest(toString() + " Resetting to previous mark");
+
+            lock.lock();
+            try {
 
                 filteredStream.reset();
+            } finally {
+                lock.unlock();
             }
         }
 
@@ -2045,13 +2076,15 @@ final class TDSChannel implements Serializable {
 
     /**
      * Attempts to poll the input stream to see if the network socket is still connected.
-     * 
+     *
      * @return
      */
     final Boolean networkSocketStillConnected() {
         int origSoTimeout;
-        synchronized (inputStream) {
-            synchronized (outputStream) {
+        inputStreamLock.lock();
+        try {
+            outputStreamLock.lock();
+            try {
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.finest(toString() + "(networkSocketStillConnected) Checking for socket disconnect.");
                 }
@@ -2089,15 +2122,22 @@ final class TDSChannel implements Serializable {
                     }
                     return false;
                 }
+            } finally {
+                outputStreamLock.unlock();
             }
+        } finally {
+            inputStreamLock.unlock();
         }
     }
 
     final int read(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            synchronized (inputStream) {
+            inputStreamLock.lock();
+            try {
                 con.idleNetworkTracker.markNetworkActivity();
                 return inputStream.read(data, offset, length);
+            } finally {
+                inputStreamLock.unlock();
             }
         } catch (Exception e) {
             System.out.println("read failed: "+e.getMessage());
@@ -2116,9 +2156,12 @@ final class TDSChannel implements Serializable {
 
     final void write(byte[] data, int offset, int length) throws SQLServerException {
         try {
-            synchronized (outputStream) {
+            outputStreamLock.lock();
+            try {
                 con.idleNetworkTracker.markNetworkActivity();
                 outputStream.write(data, offset, length);
+            } finally {
+                outputStreamLock.unlock();
             }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINER))
@@ -2334,11 +2377,12 @@ final class SocketFinder {
 
     // lock used for synchronization while updating
     // data within a socketFinder object
-    private final Object socketFinderlock = new Object();
+    private final Lock socketFinderlock = new ReentrantLock();
 
     // lock on which the parent thread would wait
     // after spawning threads.
-    private final Object parentThreadLock = new Object();
+    private final Lock parentThreadLock = new ReentrantLock();
+    private final Condition parentCondition = parentThreadLock.newCondition();
 
     // indicates whether the socketFinder has succeeded or failed
     // in finding a socket or is still trying to find a socket
@@ -2372,6 +2416,7 @@ final class SocketFinder {
 
     // list of addresses for ip selection by type preference
     private static ArrayList<InetAddress> addressList = new ArrayList<>();
+    private static final Lock ADDRESS_LIST_LOCK = new ReentrantLock();
 
     /**
      * Constructs a new SocketFinder object with appropriate traceId
@@ -2474,13 +2519,16 @@ final class SocketFinder {
             // for both IPv4 and IPv6.
             // Using double-checked locking for performance reasons.
             if (result.equals(Result.UNKNOWN)) {
-                synchronized (socketFinderlock) {
+                socketFinderlock.lock();
+                try {
                     if (result.equals(Result.UNKNOWN)) {
                         result = Result.FAILURE;
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer(this.toString() + " The parent thread updated the result to failure");
                         }
                     }
+                } finally {
+                    socketFinderlock.unlock();
                 }
             }
 
@@ -2717,7 +2765,8 @@ final class SocketFinder {
      */
     private InetSocketAddress getInetAddressByIPPreference(String hostName,
             int portNumber) throws IOException, SQLServerException {
-        synchronized (addressList) {
+        ADDRESS_LIST_LOCK.lock();
+        try {
             InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
             for (int i = 0; i < addressList.size(); i++) {
                 addr = new InetSocketAddress(addressList.get(i), portNumber);
@@ -2725,6 +2774,8 @@ final class SocketFinder {
                     return addr;
             }
             return addr;
+        } finally {
+            ADDRESS_LIST_LOCK.unlock();
         }
     }
 
@@ -2808,7 +2859,8 @@ final class SocketFinder {
      *        Boolean switch for IPv6 first
      */
     private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
-        synchronized (addressList) {
+        ADDRESS_LIST_LOCK.lock();
+        try {
             addressList.clear();
             if (ipv6first) {
                 for (InetAddress addr : addresses) {
@@ -2823,6 +2875,8 @@ final class SocketFinder {
                     }
                 }
             }
+        } finally {
+            ADDRESS_LIST_LOCK.unlock();
         }
     }
 
@@ -2868,7 +2922,8 @@ final class SocketFinder {
             }
 
             // acquire parent lock and spawn all threads
-            synchronized (parentThreadLock) {
+            parentThreadLock.lock();
+            try {
                 for (SocketConnector sc : socketConnectors) {
                     threadPoolExecutor.execute(sc);
                 }
@@ -2900,7 +2955,7 @@ final class SocketFinder {
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
 
-                    parentThreadLock.wait(timeRemaining);
+                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
 
                     if (logger.isLoggable(Level.FINER)) {
                         logger.finer(this.toString() + " The parent thread wokeup.");
@@ -2908,7 +2963,8 @@ final class SocketFinder {
 
                     timerNow = System.currentTimeMillis();
                 }
-
+            } finally {
+                parentThreadLock.unlock();
             }
 
         } finally {
@@ -3002,7 +3058,8 @@ final class SocketFinder {
                 logger.finer("The following child thread is waiting for socketFinderLock:" + threadId);
             }
 
-            synchronized (socketFinderlock) {
+            socketFinderlock.lock();
+            try {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("The following child thread acquired socketFinderLock:" + threadId);
                 }
@@ -3059,12 +3116,15 @@ final class SocketFinder {
                         logger.finer("The following child thread is waiting for parentThreadLock:" + threadId);
                     }
 
-                    synchronized (parentThreadLock) {
+                    parentThreadLock.lock();
+                    try {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer("The following child thread acquired parentThreadLock:" + threadId);
                         }
 
-                        parentThreadLock.notifyAll();
+                        parentCondition.signalAll();
+                    } finally {
+                        parentThreadLock.unlock();
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
@@ -3073,6 +3133,8 @@ final class SocketFinder {
                                         + threadId);
                     }
                 }
+            } finally {
+                socketFinderlock.unlock();
             }
 
             if (logger.isLoggable(Level.FINER)) {
@@ -3150,7 +3212,7 @@ final class SocketConnector implements Runnable {
 
     // a counter used to give unique IDs to each connector thread.
     // this will have the id of the thread that was last created.
-    private static long lastThreadID = 0;
+    private static final AtomicLong lastThreadID = new AtomicLong();
 
     /**
      * Constructs a new SocketConnector object with the associated socket and socketFinder
@@ -3208,15 +3270,16 @@ final class SocketConnector implements Runnable {
     /**
      * Generates the next unique thread id.
      */
-    private static synchronized long nextThreadID() {
-        if (lastThreadID == Long.MAX_VALUE) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer("Resetting the Id count");
-            lastThreadID = 1;
-        } else {
-            lastThreadID++;
-        }
-        return lastThreadID;
+    private static long nextThreadID() {
+        return lastThreadID.updateAndGet(threadId -> {
+            if (threadId == Long.MAX_VALUE) {
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer("Resetting the Id count");
+                return 1;
+            } else {
+                return threadId + 1;
+            }
+        });
     }
 }
 
@@ -6649,6 +6712,7 @@ final class TDSReader implements Serializable {
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
+    private final Lock lock = new ReentrantLock();
 
     private ColumnEncryptionVersion columnEncryptionVersion;
 
@@ -6770,114 +6834,119 @@ final class TDSReader implements Serializable {
      * This method is synchronized to guard against simultaneously reading packets from one thread that is processing
      * the response and another thread that is trying to buffer it with TDSCommand.detach().
      */
-    synchronized final boolean readPacket() throws SQLServerException {
-        if (null != command && !command.readingResponse())
-            return false;
+    final boolean readPacket() throws SQLServerException {
+        lock.lock();
+        try {
+            if (null != command && !command.readingResponse())
+                return false;
 
-        // Number of packets in should always be less than number of packets out.
-        // If the server has been notified for an interrupt, it may be less by
-        // more than one packet.
-        assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
-                + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
+            // Number of packets in should always be less than number of packets out.
+            // If the server has been notified for an interrupt, it may be less by
+            // more than one packet.
+            assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
+                    + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-        TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
-        if (null != command) {
-            // if cancelQueryTimeout is set, we should wait for the total amount of
-            // queryTimeout + cancelQueryTimeout to
-            // terminate the connection.
-            if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
-                // if a timeout is configured with this object, add it to the timeout poller
-                int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
-                this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);
+            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+            if (null != command) {
+                // if cancelQueryTimeout is set, we should wait for the total amount of
+                // queryTimeout + cancelQueryTimeout to
+                // terminate the connection.
+                if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
+                    // if a timeout is configured with this object, add it to the timeout poller
+                    int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
+                    this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);
+                }
             }
-        }
-        // First, read the packet header.
-        for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
-            int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead,
-                    TDS.PACKET_HEADER_SIZE - headerBytesRead);
-            if (bytesRead < 0) {
-                if (logger.isLoggable(Level.FINER))
-                    logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum + " headerBytesRead:"
-                            + headerBytesRead);
+            // First, read the packet header.
+            for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
+                int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead,
+                        TDS.PACKET_HEADER_SIZE - headerBytesRead);
+                if (bytesRead < 0) {
+                    if (logger.isLoggable(Level.FINER))
+                        logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum + " headerBytesRead:"
+                                + headerBytesRead);
 
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        ((0 == packetNum && 0 == headerBytesRead) ? SQLServerException.getErrString(
-                                "R_noServerResponse") : SQLServerException.getErrString("R_truncatedServerResponse")));
+                    con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+                            ((0 == packetNum && 0 == headerBytesRead) ? SQLServerException.getErrString(
+                                    "R_noServerResponse") : SQLServerException.getErrString("R_truncatedServerResponse")));
+                }
+
+                headerBytesRead += bytesRead;
             }
 
-            headerBytesRead += bytesRead;
-        }
-
-        // if execution was subject to timeout then stop timing
-        if (this.timeout != null) {
-            this.timeout.cancel(false);
-            this.timeout = null;
-        }
-        // Header size is a 2 byte unsigned short integer in big-endian order.
-        int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
-
-        // Make header size is properly bounded and compute length of the packet payload.
-        if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength
-                        + "; packet size:" + con.getTDSPacketSize());
+            // if execution was subject to timeout then stop timing
+            if (this.timeout != null) {
+                this.timeout.cancel(false);
+                this.timeout = null;
             }
-            throwInvalidTDS();
+            // Header size is a 2 byte unsigned short integer in big-endian order.
+            int packetLength = Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_MESSAGE_LENGTH);
+
+            // Make header size is properly bounded and compute length of the packet payload.
+            if (packetLength < TDS.PACKET_HEADER_SIZE || packetLength > con.getTDSPacketSize()) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning(toString() + " TDS header contained invalid packet length:" + packetLength
+                            + "; packet size:" + con.getTDSPacketSize());
+                }
+                throwInvalidTDS();
+            }
+
+            newPacket.payloadLength = packetLength - TDS.PACKET_HEADER_SIZE;
+
+            // Just grab the SPID for logging (another big-endian unsigned short).
+            tdsChannel.setSPID(Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_SPID));
+
+            // Packet header looks good enough.
+            // When logging, copy the packet header to the log buffer.
+            byte[] logBuffer = null;
+            if (tdsChannel.isLoggingPackets()) {
+                logBuffer = new byte[packetLength];
+                System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE);
+            }
+
+            // if messageType is RPC or QUERY, then increment Counter's state
+            if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
+                command.getCounter().increaseCounter(packetLength);
+            }
+
+            // Now for the payload...
+            for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
+                int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
+                        newPacket.payloadLength - payloadBytesRead);
+                if (bytesRead < 0)
+                    con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
+                            SQLServerException.getErrString("R_truncatedServerResponse"));
+
+                payloadBytesRead += bytesRead;
+            }
+
+            ++packetNum;
+
+            lastPacket.next = newPacket;
+            lastPacket = newPacket;
+
+            // When logging, append the payload to the log buffer and write out the whole thing.
+            if (tdsChannel.isLoggingPackets() && logBuffer != null) {
+                System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                tdsChannel.logPacket(logBuffer, 0, packetLength,
+                        this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
+            }
+
+            // If end of message, then bump the count of messages received and disable
+            // interrupts. If an interrupt happened prior to disabling, then expect
+            // to read the attention ack packet as well.
+            if (newPacket.isEOM()) {
+                ++tdsChannel.numMsgsRcvd;
+
+                // Notify the command (if any) that we've reached the end of the response.
+                if (null != command)
+                    command.onResponseEOM();
+            }
+
+            return true;
+        } finally {
+            lock.unlock();
         }
-
-        newPacket.payloadLength = packetLength - TDS.PACKET_HEADER_SIZE;
-
-        // Just grab the SPID for logging (another big-endian unsigned short).
-        tdsChannel.setSPID(Util.readUnsignedShortBigEndian(newPacket.header, TDS.PACKET_HEADER_SPID));
-
-        // Packet header looks good enough.
-        // When logging, copy the packet header to the log buffer.
-        byte[] logBuffer = null;
-        if (tdsChannel.isLoggingPackets()) {
-            logBuffer = new byte[packetLength];
-            System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE);
-        }
-
-        // if messageType is RPC or QUERY, then increment Counter's state
-        if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC()) {
-            command.getCounter().increaseCounter(packetLength);
-        }
-
-        // Now for the payload...
-        for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
-            int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
-                    newPacket.payloadLength - payloadBytesRead);
-            if (bytesRead < 0)
-                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                        SQLServerException.getErrString("R_truncatedServerResponse"));
-
-            payloadBytesRead += bytesRead;
-        }
-
-        ++packetNum;
-
-        lastPacket.next = newPacket;
-        lastPacket = newPacket;
-
-        // When logging, append the payload to the log buffer and write out the whole thing.
-        if (tdsChannel.isLoggingPackets() && logBuffer != null) {
-            System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
-            tdsChannel.logPacket(logBuffer, 0, packetLength,
-                    this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
-        }
-
-        // If end of message, then bump the count of messages received and disable
-        // interrupts. If an interrupt happened prior to disabling, then expect
-        // to read the attention ack packet as well.
-        if (newPacket.isEOM()) {
-            ++tdsChannel.numMsgsRcvd;
-
-            // Notify the command (if any) that we've reached the end of the response.
-            if (null != command)
-                command.onResponseEOM();
-        }
-
-        return true;
     }
 
     final TDSReaderMark mark() {
@@ -7479,7 +7548,7 @@ abstract class TDSCommand implements Serializable {
 
     // Lock to ensure atomicity when manipulating more than one of the following
     // shared interrupt state variables below.
-    private final Object interruptLock = new Object();
+    private final Lock interruptLock = new ReentrantLock();
 
     // Flag set when this command starts execution, indicating that it is
     // ready to respond to interrupts; and cleared when its last response packet is
@@ -7493,8 +7562,11 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected void setInterruptsEnabled(boolean interruptsEnabled) {
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             this.interruptsEnabled = interruptsEnabled;
+        } finally {
+            interruptLock.unlock();
         }
     }
 
@@ -7519,8 +7591,11 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected void setRequestComplete(boolean requestComplete) {
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             this.requestComplete = requestComplete;
+        } finally {
+            interruptLock.unlock();
         }
     }
 
@@ -7543,8 +7618,11 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected void setProcessedResponse(boolean processedResponse) {
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             this.processedResponse = processedResponse;
+        } finally {
+            interruptLock.unlock();
         }
     }
 
@@ -7769,7 +7847,8 @@ abstract class TDSCommand implements Serializable {
     void interrupt(String reason) throws SQLServerException {
         // Multiple, possibly simultaneous, interrupts may occur.
         // Only the first one should be recognized and acted upon.
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             if (interruptsEnabled && !wasInterrupted()) {
                 if (logger.isLoggable(Level.FINEST))
                     logger.finest(this + ": Raising interrupt for reason:" + reason);
@@ -7783,6 +7862,8 @@ abstract class TDSCommand implements Serializable {
                     this.correspondingThread = null;
                 }
             }
+        } finally {
+            interruptLock.unlock();
         }
     }
 
@@ -7831,7 +7912,8 @@ abstract class TDSCommand implements Serializable {
      * completes after being interrupted (0 or more packets sent with no EOM bit).
      */
     final void onRequestComplete() throws SQLServerException {
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             assert !requestComplete;
 
             if (logger.isLoggable(Level.FINEST))
@@ -7865,6 +7947,8 @@ abstract class TDSCommand implements Serializable {
                 assert !processedResponse;
                 readingResponse = true;
             }
+        } finally {
+            interruptLock.unlock();
         }
     }
 
@@ -7884,7 +7968,8 @@ abstract class TDSCommand implements Serializable {
 
         // Atomically disable interrupts and check for a previous interrupt requiring
         // an attention ack to be read.
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             if (interruptsEnabled) {
                 if (logger.isLoggable(Level.FINEST))
                     logger.finest(this + ": disabling interrupts");
@@ -7898,6 +7983,8 @@ abstract class TDSCommand implements Serializable {
 
                 interruptsEnabled = false;
             }
+        } finally {
+            interruptLock.unlock();
         }
 
         // If an attention packet needs to be read then read it. This should
@@ -7957,7 +8044,8 @@ abstract class TDSCommand implements Serializable {
         // (Re)initialize this command's interrupt state for its current execution.
         // To ensure atomically consistent behavior, do not leave the interrupt lock
         // until interrupts have been (re)enabled.
-        synchronized (interruptLock) {
+        interruptLock.lock();
+        try {
             requestComplete = false;
             readingResponse = false;
             processedResponse = false;
@@ -7965,6 +8053,8 @@ abstract class TDSCommand implements Serializable {
             wasInterrupted = false;
             interruptReason = null;
             interruptsEnabled = true;
+        } finally {
+            interruptLock.unlock();
         }
 
         return tdsWriter;
