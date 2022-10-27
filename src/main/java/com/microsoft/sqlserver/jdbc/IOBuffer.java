@@ -2099,7 +2099,8 @@ final class TDSChannel implements Serializable {
                 con.idleNetworkTracker.markNetworkActivity();
                 return inputStream.read(data, offset, length);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.out.println("read failed: "+e.getMessage());
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
 

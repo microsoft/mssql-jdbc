@@ -190,6 +190,9 @@ class TDSTokenHandler {
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
 
     final SQLServerError getDatabaseError() {
+        if (databaseError != null) {
+            System.out.println("there is a database error!!");
+        }
         return databaseError;
     }
 
