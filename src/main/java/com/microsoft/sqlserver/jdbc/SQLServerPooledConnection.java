@@ -92,7 +92,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
      * @throws SQLException
      */
     private SQLServerConnection createNewConnection() throws SQLException {
-        return factoryDataSource.getConnectionInternal(factoryUser, factoryPassword, this);
+        return factoryDataSource.getConnectionInternal(factoryUser, factoryPassword, this, null);
     }
 
     /**

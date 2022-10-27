@@ -74,7 +74,9 @@ public class SQLServerDataSource
     /**
      * Callback method for returning an access token
      */
-    static SQLServerAccessTokenCallback accessTokenCallback = null;
+    private SQLServerAccessTokenCallback accessTokenCallback = null;
+
+    static final String ACCESSTOKEN_CALLBACK = "accessTokenCallback";
 
     /**
      * Constructs a SQLServerDataSource.
@@ -99,7 +101,7 @@ public class SQLServerDataSource
     @Override
     public Connection getConnection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConnection");
-        Connection con = getConnectionInternal(null, null, null);
+        Connection con = getConnectionInternal(null, null, null, accessTokenCallback);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
     }
@@ -109,7 +111,7 @@ public class SQLServerDataSource
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getConnection",
                     new Object[] {username, "Password not traced"});
-        Connection con = getConnectionInternal(username, password, null);
+        Connection con = getConnectionInternal(username, password, null, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
     }
@@ -1375,7 +1377,7 @@ public class SQLServerDataSource
      * connection pooling.
      */
     SQLServerConnection getConnectionInternal(String username, String password,
-            SQLServerPooledConnection pooledConnection) throws SQLServerException {
+            SQLServerPooledConnection pooledConnection, SQLServerAccessTokenCallback callback) throws SQLServerException {
         Properties userSuppliedProps;
         Properties mergedProps;
         // Trust store password stripped and this object got created via
@@ -1415,6 +1417,10 @@ public class SQLServerDataSource
             mergedProps = SQLServerDriver.mergeURLAndSuppliedProperties(urlProps, userSuppliedProps);
         } else {
             mergedProps = userSuppliedProps;
+        }
+
+        if (null != callback) {
+            mergedProps.put(ACCESSTOKEN_CALLBACK, callback);
         }
 
         // Create new connection and connect.

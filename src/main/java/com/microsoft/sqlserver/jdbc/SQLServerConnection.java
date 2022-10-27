@@ -2501,10 +2501,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties.get(SQLServerDataSource.ACCESSTOKEN_CALLBACK);
                 if (null != sPropValue) {
                     accessTokenInByte = sPropValue.getBytes(UTF_16LE);
-                } else if (null != SQLServerDataSource.accessTokenCallback) {
-                    accessTokenInByte = SQLServerDataSource.accessTokenCallback.getAccessToken().getBytes(UTF_16LE);
+                } else if (null != callback) {
+                    accessTokenInByte = callback.getAccessToken().getBytes(UTF_16LE);
                 }
 
                 if ((null != accessTokenInByte) && 0 == accessTokenInByte.length) {
