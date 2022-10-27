@@ -5375,16 +5375,17 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
+                StreamDone doneToken = new StreamDone();
                 short status = tdsReader.peekStatusFlag();
 
-                if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                doneToken.setFromTDS(tdsReader);
+
+                if (doneToken.isFinal() && doneToken.isError()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                StreamDone doneToken = new StreamDone();
-                doneToken.setFromTDS(tdsReader);
                 stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
@@ -5541,6 +5542,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsReader = responseTDSReader;
             discardFetchBuffer();
         }
+
     }
 
     /**

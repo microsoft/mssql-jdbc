@@ -2139,7 +2139,7 @@ final class TDSChannel implements Serializable {
             } finally {
                 inputStreamLock.unlock();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             if (logger.isLoggable(Level.FINE))
                 logger.fine(toString() + " read failed:" + e.getMessage());
 
