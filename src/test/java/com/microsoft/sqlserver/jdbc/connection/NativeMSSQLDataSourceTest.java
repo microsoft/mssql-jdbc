@@ -23,8 +23,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.microsoft.aad.msal4j.*;
-import com.microsoft.sqlserver.jdbc.*;
+import com.microsoft.aad.msal4j.IClientCredential;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -77,8 +87,10 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
     @Test
-    public void testPooledConnectionAccessTokenCallback() throws SQLException {
+    public void testDSPooledConnectionAccessTokenCallback() throws SQLException {
         SQLServerAccessTokenCallback callback = new SQLServerAccessTokenCallback() {
             @Override
             public String getAccessToken() {
@@ -90,7 +102,8 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
                     ExecutorService executorService = Executors.newSingleThreadExecutor();
                     IClientCredential credential = ClientCredentialFactory.createFromSecret(accessTokenSecret);
                     ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                            .builder(accessTokenClientId, credential).executorService(executorService).authority(accessTokenStsUrl).build();
+                            .builder(accessTokenClientId, credential).executorService(executorService)
+                            .authority(accessTokenStsUrl).build();
                     CompletableFuture<IAuthenticationResult> future = clientApplication
                             .acquireToken(ClientCredentialParameters.builder(scopes).build());
 

@@ -947,33 +947,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         null, 0, false);
             }
 
-        if (null != globalCustomColumnEncryptionKeyStoreProviders
-                && !globalCustomColumnEncryptionKeyStoreProviders.isEmpty()) {
-            throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"), null,
-                    0, false);
-        }
-
-        globalCustomColumnEncryptionKeyStoreProviders = new HashMap<>();
-
-        for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
-            String providerName = entry.getKey();
-            if (null == providerName || 0 == providerName.trim().length()) {
-                throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"),
+            if (null != globalCustomColumnEncryptionKeyStoreProviders
+                    && !globalCustomColumnEncryptionKeyStoreProviders.isEmpty()) {
+                throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderSetOnce"),
                         null, 0, false);
             }
-            if ((providerName.substring(0, 6).equalsIgnoreCase(RESERVED_PROVIDER_NAME_PREFIX))) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_InvalidCustomKeyStoreProviderName"));
-                Object[] msgArgs = {providerName, RESERVED_PROVIDER_NAME_PREFIX};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
 
-            SQLServerColumnEncryptionKeyStoreProvider provider = entry.getValue();
-            if (null == provider) {
-                throw new SQLServerException(null, String
-                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
-                        null, 0, false);
-            }
+            globalCustomColumnEncryptionKeyStoreProviders = new HashMap<>();
+
+            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders
+                    .entrySet()) {
+                String providerName = entry.getKey();
+                if (null == providerName || 0 == providerName.trim().length()) {
+                    throw new SQLServerException(null,
+                            SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"), null, 0, false);
+                }
+                if ((providerName.substring(0, 6).equalsIgnoreCase(RESERVED_PROVIDER_NAME_PREFIX))) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_InvalidCustomKeyStoreProviderName"));
+                    Object[] msgArgs = {providerName, RESERVED_PROVIDER_NAME_PREFIX};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+
+                SQLServerColumnEncryptionKeyStoreProvider provider = entry.getValue();
+                if (null == provider) {
+                    throw new SQLServerException(null, String
+                            .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                            null, 0, false);
+                }
 
                 // Global providers should not use their own CEK caches.
                 provider.setColumnEncryptionCacheTtl(Duration.ZERO);
@@ -1013,8 +1014,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerColumnEncryptionKeyStoreProvider getGlobalSystemColumnEncryptionKeyStoreProvider(String providerName) {
         lock.lock();
         try {
-            return (null != globalSystemColumnEncryptionKeyStoreProviders && globalSystemColumnEncryptionKeyStoreProviders.containsKey(
-                    providerName)) ? globalSystemColumnEncryptionKeyStoreProviders.get(providerName) : null;
+            return (null != globalSystemColumnEncryptionKeyStoreProviders
+                    && globalSystemColumnEncryptionKeyStoreProviders.containsKey(providerName))
+                                                                                                ? globalSystemColumnEncryptionKeyStoreProviders
+                                                                                                        .get(providerName)
+                                                                                                : null;
         } finally {
             lock.unlock();
         }
@@ -1023,8 +1027,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String getAllGlobalCustomSystemColumnEncryptionKeyStoreProviders() {
         lock.lock();
         try {
-            return (null != globalCustomColumnEncryptionKeyStoreProviders)
-                    ? globalCustomColumnEncryptionKeyStoreProviders.keySet().toString() : null;
+            return (null != globalCustomColumnEncryptionKeyStoreProviders) ? globalCustomColumnEncryptionKeyStoreProviders
+                    .keySet().toString() : null;
         } finally {
             lock.unlock();
         }
@@ -1038,8 +1042,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 keyStores = systemColumnEncryptionKeyStoreProvider.keySet().toString();
             }
             if (0 != SQLServerConnection.globalSystemColumnEncryptionKeyStoreProviders.size()) {
-                keyStores += "," + SQLServerConnection.globalSystemColumnEncryptionKeyStoreProviders.keySet()
-                        .toString();
+                keyStores += ","
+                        + SQLServerConnection.globalSystemColumnEncryptionKeyStoreProviders.keySet().toString();
             }
             return keyStores;
         } finally {
@@ -1050,8 +1054,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerColumnEncryptionKeyStoreProvider getGlobalCustomColumnEncryptionKeyStoreProvider(String providerName) {
         lock.lock();
         try {
-            return (null != globalCustomColumnEncryptionKeyStoreProviders && globalCustomColumnEncryptionKeyStoreProviders.containsKey(
-                    providerName)) ? globalCustomColumnEncryptionKeyStoreProviders.get(providerName) : null;
+            return (null != globalCustomColumnEncryptionKeyStoreProviders
+                    && globalCustomColumnEncryptionKeyStoreProviders.containsKey(providerName))
+                                                                                                ? globalCustomColumnEncryptionKeyStoreProviders
+                                                                                                        .get(providerName)
+                                                                                                : null;
         } finally {
             lock.unlock();
         }
@@ -1060,8 +1067,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     SQLServerColumnEncryptionKeyStoreProvider getSystemColumnEncryptionKeyStoreProvider(String providerName) {
         lock.lock();
         try {
-            return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider.containsKey(
-                    providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
+            return (null != systemColumnEncryptionKeyStoreProvider && systemColumnEncryptionKeyStoreProvider
+                    .containsKey(providerName)) ? systemColumnEncryptionKeyStoreProvider.get(providerName) : null;
         } finally {
             lock.unlock();
         }
@@ -1103,7 +1110,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean hasConnectionColumnEncryptionKeyStoreProvidersRegistered() {
         lock.lock();
         try {
-            return null != connectionColumnEncryptionKeyStoreProvider && connectionColumnEncryptionKeyStoreProvider.size() > 0;
+            return null != connectionColumnEncryptionKeyStoreProvider
+                    && connectionColumnEncryptionKeyStoreProvider.size() > 0;
         } finally {
             lock.unlock();
         }
@@ -1154,7 +1162,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Registers connection-level key store providers, replacing all existing providers.
      *
      * @param clientKeyStoreProviders
-     *         a map containing the store providers information.
+     *        a map containing the store providers information.
      * @throws SQLServerException
      *         when an error occurs
      */
@@ -1171,7 +1179,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             connectionColumnEncryptionKeyStoreProvider.clear();
 
-            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
+            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders
+                    .entrySet()) {
                 String providerName = entry.getKey();
                 if (null == providerName || 0 == providerName.trim().length()) {
                     throw new SQLServerException(null,
@@ -1187,9 +1196,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (null == entry.getValue()) {
-                    throw new SQLServerException(null,
-                            String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"),
-                                    providerName), null, 0, false);
+                    throw new SQLServerException(null, String
+                            .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                            null, 0, false);
                 }
 
                 connectionColumnEncryptionKeyStoreProvider.put(entry.getKey(), entry.getValue());
@@ -2501,7 +2510,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties.get(SQLServerDataSource.ACCESSTOKEN_CALLBACK);
+                SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
+                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
                 if (null != sPropValue) {
                     accessTokenInByte = sPropValue.getBytes(UTF_16LE);
                 } else if (null != callback) {
@@ -7435,8 +7445,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             TimeUnit unit) throws SQLServerException {
         LOCK.lock();
         try {
-            if (columnEncryptionKeyCacheTTL < 0 || unit.equals(TimeUnit.MILLISECONDS) || unit.equals(
-                    TimeUnit.MICROSECONDS) || unit.equals(TimeUnit.NANOSECONDS)) {
+            if (columnEncryptionKeyCacheTTL < 0 || unit.equals(TimeUnit.MILLISECONDS)
+                    || unit.equals(TimeUnit.MICROSECONDS) || unit.equals(TimeUnit.NANOSECONDS)) {
                 throw new SQLServerException(null, SQLServerException.getErrString("R_invalidCEKCacheTtl"), null, 0,
                         false);
             }

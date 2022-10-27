@@ -72,13 +72,6 @@ public class SQLServerDataSource
     final private String traceID;
 
     /**
-     * Callback method for returning an access token
-     */
-    private SQLServerAccessTokenCallback accessTokenCallback = null;
-
-    static final String ACCESSTOKEN_CALLBACK = "accessTokenCallback";
-
-    /**
      * Constructs a SQLServerDataSource.
      */
     public SQLServerDataSource() {
@@ -101,7 +94,7 @@ public class SQLServerDataSource
     @Override
     public Connection getConnection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConnection");
-        Connection con = getConnectionInternal(null, null, null, accessTokenCallback);
+        Connection con = getConnectionInternal(null, null, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
     }
@@ -111,7 +104,7 @@ public class SQLServerDataSource
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getConnection",
                     new Object[] {username, "Password not traced"});
-        Connection con = getConnectionInternal(username, password, null, null);
+        Connection con = getConnectionInternal(username, password, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
     }
@@ -1233,12 +1226,15 @@ public class SQLServerDataSource
 
     @Override
     public void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback) {
-        this.accessTokenCallback = accessTokenCallback;
+        setObjectProperty(connectionProps, SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                accessTokenCallback);
     }
 
     @Override
     public SQLServerAccessTokenCallback getAccessTokenCallback() {
-        return accessTokenCallback;
+        return (SQLServerAccessTokenCallback) getObjectProperty(connectionProps,
+                SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue());
     }
 
     /**
@@ -1377,7 +1373,7 @@ public class SQLServerDataSource
      * connection pooling.
      */
     SQLServerConnection getConnectionInternal(String username, String password,
-            SQLServerPooledConnection pooledConnection, SQLServerAccessTokenCallback callback) throws SQLServerException {
+            SQLServerPooledConnection pooledConnection) throws SQLServerException {
         Properties userSuppliedProps;
         Properties mergedProps;
         // Trust store password stripped and this object got created via
@@ -1417,10 +1413,6 @@ public class SQLServerDataSource
             mergedProps = SQLServerDriver.mergeURLAndSuppliedProperties(urlProps, userSuppliedProps);
         } else {
             mergedProps = userSuppliedProps;
-        }
-
-        if (null != callback) {
-            mergedProps.put(ACCESSTOKEN_CALLBACK, callback);
         }
 
         // Create new connection and connect.

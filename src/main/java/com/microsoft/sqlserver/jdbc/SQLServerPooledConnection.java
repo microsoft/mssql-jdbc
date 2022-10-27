@@ -18,6 +18,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
+
 /**
  * Represents a physical database connection in a connection pool. If provides methods for the connection pool manager
  * to manage the connection pool. Applications typically do not instantiate these connections directly.
@@ -92,7 +93,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
      * @throws SQLException
      */
     private SQLServerConnection createNewConnection() throws SQLException {
-        return factoryDataSource.getConnectionInternal(factoryUser, factoryPassword, this, null);
+        return factoryDataSource.getConnectionInternal(factoryUser, factoryPassword, this);
     }
 
     /**
@@ -225,7 +226,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
         try {
             // First close the last proxy
             if (null != lastProxyConnection)
-            // use internal close so there wont be an event due to us closing the connection, if not closed already.
+                // use internal close so there wont be an event due to us closing the connection, if not closed already.
                 lastProxyConnection.internalClose();
             if (null != physicalConnection) {
                 physicalConnection.DetachFromPool();
