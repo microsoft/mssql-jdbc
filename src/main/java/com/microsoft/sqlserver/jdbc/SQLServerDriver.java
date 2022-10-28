@@ -65,7 +65,6 @@ enum SqlAuthentication {
     SqlPassword,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI,
     ActiveDirectoryManagedIdentity,
     ActiveDirectoryServicePrincipal,
     ActiveDirectoryInteractive,

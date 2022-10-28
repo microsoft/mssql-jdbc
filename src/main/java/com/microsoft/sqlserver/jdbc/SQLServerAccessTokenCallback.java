@@ -1,8 +1,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * Provides an access token callback to be implemented by client code.
+ * Provides SqlAuthenticationToken callback to be implemented by client code.
  */
 public interface SQLServerAccessTokenCallback {
-    String getAccessToken();
+    SqlAuthenticationToken getAccessToken(String stsurl, String spn);
 }

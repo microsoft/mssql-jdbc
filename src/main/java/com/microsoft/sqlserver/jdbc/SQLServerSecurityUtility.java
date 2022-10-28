@@ -328,7 +328,7 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getManagedIdentityCredAuthToken(String resource,
+    static SqlAuthenticationToken getManagedIdentityCredAuthToken(String resource,
             String managedIdentityClientId) throws SQLServerException {
         ManagedIdentityCredential mic = null;
 
@@ -343,7 +343,7 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        SqlFedAuthToken sqlFedAuthToken = null;
+        SqlAuthenticationToken sqlFedAuthToken = null;
 
         Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).blockOptional();
 
@@ -352,7 +352,7 @@ class SQLServerSecurityUtility {
                     null);
         } else {
             AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
         }
 
         return sqlFedAuthToken;
@@ -368,7 +368,7 @@ class SQLServerSecurityUtility {
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource,
+    static SqlAuthenticationToken getDefaultAzureCredAuthToken(String resource,
             String managedIdentityClientId) throws SQLServerException {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
         String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
@@ -395,7 +395,7 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        SqlFedAuthToken sqlFedAuthToken = null;
+        SqlAuthenticationToken sqlFedAuthToken = null;
 
         Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional();
 
@@ -404,7 +404,7 @@ class SQLServerSecurityUtility {
                     null);
         } else {
             AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
         }
 
         return sqlFedAuthToken;

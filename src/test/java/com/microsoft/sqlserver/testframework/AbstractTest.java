@@ -87,9 +87,7 @@ public abstract class AbstractTest {
 
     // properties for access token callback testing
     protected static String accessTokenClientId = null;
-    protected static String accessTokenStsUrl = null;
     protected static String accessTokenSecret = null;
-    protected static String spn = null;
 
     protected static String keyStorePrincipalId = null;
     protected static String keyStoreSecret = null;
@@ -147,8 +145,6 @@ public abstract class AbstractTest {
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
-        accessTokenStsUrl = getConfiguredProperty("accessTokenStsUrl");
-        spn = getConfiguredProperty("spn");
 
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);

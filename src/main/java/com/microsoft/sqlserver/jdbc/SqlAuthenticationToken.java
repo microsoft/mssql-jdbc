@@ -10,18 +10,19 @@ import java.util.Date;
 
 
 /**
- * Provides an implementation of a FedAuth token
+ * Provides an implementation of a SqlAuthenticationToken
  */
-class SqlFedAuthToken implements Serializable {
+public class SqlAuthenticationToken implements Serializable {
+
     /**
      * Always update serialVersionUID when prompted
      */
     private static final long serialVersionUID = -1343105491285383937L;
 
-    final Date expiresOn;
-    final String accessToken;
+    private final Date expiresOn;
+    private final String accessToken;
 
-    SqlFedAuthToken(String accessToken, long expiresIn) {
+    public SqlAuthenticationToken(String accessToken, long expiresIn) {
         this.accessToken = accessToken;
 
         Date now = new Date();
@@ -29,9 +30,17 @@ class SqlFedAuthToken implements Serializable {
         this.expiresOn = now;
     }
 
-    SqlFedAuthToken(String accessToken, Date expiresOn) {
+    public SqlAuthenticationToken(String accessToken, Date expiresOn) {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
+    }
+
+    public Date getExpiresOn() {
+        return expiresOn;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
     }
 
     public String toString() {

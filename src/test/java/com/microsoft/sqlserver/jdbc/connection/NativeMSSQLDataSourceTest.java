@@ -28,13 +28,7 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
-import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -93,7 +87,7 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
     public void testDSPooledConnectionAccessTokenCallback() throws SQLException {
         SQLServerAccessTokenCallback callback = new SQLServerAccessTokenCallback() {
             @Override
-            public String getAccessToken() {
+            public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
                 String scope = spn + "/.default";
                 Set<String> scopes = new HashSet<>();
                 scopes.add(scope);
@@ -103,14 +97,15 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
                     IClientCredential credential = ClientCredentialFactory.createFromSecret(accessTokenSecret);
                     ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                             .builder(accessTokenClientId, credential).executorService(executorService)
-                            .authority(accessTokenStsUrl).build();
+                            .authority(stsurl).build();
                     CompletableFuture<IAuthenticationResult> future = clientApplication
                             .acquireToken(ClientCredentialParameters.builder(scopes).build());
 
                     IAuthenticationResult authenticationResult = future.get();
                     String accessToken = authenticationResult.accessToken();
+                    long expiresOn = authenticationResult.expiresOnDate().getTime();
 
-                    return accessToken;
+                    return new SqlAuthenticationToken(accessToken, expiresOn);
 
                 } catch (Exception e) {
                     fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
