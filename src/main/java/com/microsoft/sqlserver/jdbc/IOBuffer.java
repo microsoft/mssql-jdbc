@@ -6863,12 +6863,15 @@ final class TDSReader implements Serializable {
                         TDS.PACKET_HEADER_SIZE - headerBytesRead);
                 if (bytesRead < 0) {
                     if (logger.isLoggable(Level.FINER))
-                        logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum + " headerBytesRead:"
-                                + headerBytesRead);
+                        logger.finer(toString() + " Premature EOS in response. packetNum:" + packetNum
+                                + " headerBytesRead:" + headerBytesRead);
 
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
-                            ((0 == packetNum && 0 == headerBytesRead) ? SQLServerException.getErrString(
-                                    "R_noServerResponse") : SQLServerException.getErrString("R_truncatedServerResponse")));
+                            ((0 == packetNum && 0 == headerBytesRead)
+                                                                      ? SQLServerException
+                                                                              .getErrString("R_noServerResponse")
+                                                                      : SQLServerException.getErrString(
+                                                                              "R_truncatedServerResponse")));
                 }
 
                 headerBytesRead += bytesRead;

@@ -352,7 +352,8 @@ class SQLServerSecurityUtility {
                     null);
         } else {
             AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
+                    accessToken.getExpiresAt().toEpochSecond());
         }
 
         return sqlFedAuthToken;
@@ -404,7 +405,8 @@ class SQLServerSecurityUtility {
                     null);
         } else {
             AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
+                    accessToken.getExpiresAt().toEpochSecond());
         }
 
         return sqlFedAuthToken;
