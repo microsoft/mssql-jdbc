@@ -2428,6 +2428,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     ntlmAuthentication = true;
                 }
 
+                SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
+                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
+
+                if (null != callback && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
+                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
+                }
+
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -2439,7 +2447,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty())) {
                     MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
+                            SQLServerException.getErrString("R_ManagedIdentityAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -2471,7 +2479,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty())) {
                     MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_MSIAuthenticationWithPassword"));
+                            SQLServerException.getErrString("R_ManagedIdentityAuthenticationWithPassword"));
                     throw new SQLServerException(form.format(new Object[] {authenticationString}), null);
                 }
 
@@ -5547,7 +5555,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
                 .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
-        if (null != callback) {
+        if (authenticationString.equals(SqlAuthentication.NotSpecified.toString())
+                && null != callback) {
             fedAuthToken = callback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
         } else {
             fedAuthToken = getFedAuthToken(fedAuthInfo);
