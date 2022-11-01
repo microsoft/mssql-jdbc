@@ -385,8 +385,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
-                    Object[] msgArgs = {status};
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
@@ -5376,13 +5377,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 ensureStartMark();
 
                 StreamDone doneToken = new StreamDone();
-                short status = tdsReader.peekStatusFlag();
-
                 doneToken.setFromTDS(tdsReader);
 
                 if (doneToken.isFinal() && doneToken.isError()) {
+                    short status = tdsReader.peekStatusFlag();
+                    SQLServerError databaseError = getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
-                    Object[] msgArgs = {status};
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
