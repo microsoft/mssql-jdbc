@@ -181,7 +181,7 @@ class StreamDone extends StreamPacket {
      * @return true if error
      */
     /* L0 */ final boolean isError() {
-        return (status & TDS.DONE_ERROR) != 0;
+        return (((status & TDS.DONE_ERROR) != 0) || ((status & TDS.DONE_SRVERROR) != 0));
     }
 
     /**
