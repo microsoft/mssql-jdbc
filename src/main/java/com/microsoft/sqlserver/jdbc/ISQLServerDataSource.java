@@ -1218,7 +1218,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * This method is a no-op for backwards compatibility only.
      *
      * @param timeToLive
-     *        - Time-to-live is no longer supported.
+     *        Time-to-live is no longer supported.
      */
     @Deprecated
     void setMsiTokenCacheTtl(int timeToLive);
