@@ -3,11 +3,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.1.0] Stable Release
+### Added
+- Added support for access token callback [1940](https://github.com/microsoft/mssql-jdbc/pull/1940)
+- Added support for DefaultAzureCredential [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
+- Added support for Java 19 [1929](https://github.com/microsoft/mssql-jdbc/pull/1929)
+### Changed
+- Driver is Loom friendly [1931](https://github.com/microsoft/mssql-jdbc/pull/1931)
+### Fixed issues
+- Fixed check for DONE token when fetching result sets [1943](https://github.com/microsoft/mssql-jdbc/pull/1943)
+- Fixed race condition in secure string utility [1948](https://github.com/microsoft/mssql-jdbc/pull/1948)
+- Fixed attestation NONE protocol bug to work with all servers and enclave types [1779](https://github.com/microsoft/mssql-jdbc/pull/1779)
+ 
 ## [11.2.0] Stable Release
 ### Added
 - Added support for caching parameter metadata for Always Encrypted with secure enclaves [1866](https://github.com/microsoft/mssql-jdbc/pull/1866)
 - Added explicit dependency for com.microsoft.azure.msal4j (was a transitive dependency in previous releases) [1863](https://github.com/microsoft/mssql-jdbc/pull/1863)
-
 ### Changed
 - Changed default loginTimeout value to 30s [1885](https://github.com/microsoft/mssql-jdbc/pull/1885)
 - Updated dependency versions of com.azure.azure-security-keyvault-keys and com.azure.azure-identity [1863](https://github.com/microsoft/mssql-jdbc/pull/1863)
