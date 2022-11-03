@@ -2415,7 +2415,7 @@ final class SocketFinder {
 
     // list of addresses for ip selection by type preference
     private static ArrayList<InetAddress> addressList = new ArrayList<>();
-    private static final Lock ADDRESS_LIST_LOCK = new ReentrantLock();
+    private static final Lock addressListLock = new ReentrantLock();
 
     /**
      * Constructs a new SocketFinder object with appropriate traceId
@@ -2764,7 +2764,7 @@ final class SocketFinder {
      */
     private InetSocketAddress getInetAddressByIPPreference(String hostName,
             int portNumber) throws IOException, SQLServerException {
-        ADDRESS_LIST_LOCK.lock();
+        addressListLock.lock();
         try {
             InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
             for (int i = 0; i < addressList.size(); i++) {
@@ -2774,7 +2774,7 @@ final class SocketFinder {
             }
             return addr;
         } finally {
-            ADDRESS_LIST_LOCK.unlock();
+            addressListLock.unlock();
         }
     }
 
@@ -2837,7 +2837,7 @@ final class SocketFinder {
         // Note that Socket(host, port) throws an UnknownHostException if the host name
         // cannot be resolved, but that InetSocketAddress(host, port) does not - it sets
         // the returned InetSocketAddress as unresolved.
-        if (addr.isUnresolved()) {
+        if (addr != null && addr.isUnresolved()) {
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(this.toString() + "Failed to resolve host name: " + hostName
                         + ". Using IP address from DNS cache.");
@@ -2858,7 +2858,7 @@ final class SocketFinder {
      *        Boolean switch for IPv6 first
      */
     private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
-        ADDRESS_LIST_LOCK.lock();
+        addressListLock.lock();
         try {
             addressList.clear();
             if (ipv6first) {
@@ -2875,7 +2875,7 @@ final class SocketFinder {
                 }
             }
         } finally {
-            ADDRESS_LIST_LOCK.unlock();
+            addressListLock.unlock();
         }
     }
 
@@ -4154,7 +4154,7 @@ final class TDSWriter {
         int charsCopied = 0;
         int length = value.length();
         while (charsCopied < length) {
-            long bytesToCopy = 2 * (length - charsCopied);
+            long bytesToCopy = 2 * ((long) length - charsCopied);
 
             if (bytesToCopy > valueBytes.length)
                 bytesToCopy = valueBytes.length;
@@ -6052,7 +6052,8 @@ final class TDSWriter {
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
             // Scale nanos since midnight to the desired scale, rounding the value as necessary
-            long divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
+            long divisor = Nanos.PER_MAX_SCALE_INTERVAL
+                    * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - (double) scale);
 
             // The scaledNanos variable represents the fractional seconds of the value at the scale
             // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
@@ -6194,7 +6195,8 @@ final class TDSWriter {
                     + 60 * 60 * cal.get(Calendar.HOUR_OF_DAY);
 
             // Scale nanos since midnight to the desired scale, rounding the value as necessary
-            divisor = Nanos.PER_MAX_SCALE_INTERVAL * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - scale);
+            divisor = Nanos.PER_MAX_SCALE_INTERVAL
+                    * (long) Math.pow(10, TDS.MAX_FRACTIONAL_SECONDS_SCALE - (double) scale);
 
             // The scaledNanos variable represents the fractional seconds of the value at the scale
             // indicated by the scale variable. So, for example, scaledNanos = 3 means 300 nanoseconds
