@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added support for Java 19 [1929](https://github.com/microsoft/mssql-jdbc/pull/1929)
 ### Changed
 - Driver is Loom friendly [1931](https://github.com/microsoft/mssql-jdbc/pull/1931)
+- Managed Identity authentication is achieved with Azure Identity instead [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
 ### Fixed issues
 - Fixed check for DONE token when fetching result sets [1943](https://github.com/microsoft/mssql-jdbc/pull/1943)
 - Fixed race condition in secure string utility [1948](https://github.com/microsoft/mssql-jdbc/pull/1948)
