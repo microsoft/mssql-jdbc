@@ -289,10 +289,10 @@ final class Util {
                         String property = result.toString().trim();
 
                         if (property.contains("=")) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorServerName"));
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_errorServerName"));
                             Object[] msgArgs = {property};
-                            SQLServerException.makeFromDriverError(null, null,
-                                    form.format(msgArgs), null, true);
+                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                         }
 
                         if (property.length() > 0) {
@@ -840,13 +840,12 @@ final class Util {
 
         switch (jdbcType) {
             case MONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_MONEY)) && (-1 != bd.compareTo(SSType.MIN_VALUE_MONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_MONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_MONEY) < 0)) {
                     return;
                 }
                 break;
             case SMALLMONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY))
-                        && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_SMALLMONEY) < 0)) {
                     return;
                 }
                 break;

@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 /**
  * Provides JDBC connections that can participate in distributed (XA) transactions.
  */
@@ -33,9 +34,11 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
 
     /** physical connection */
     private SQLServerConnection physicalControlConnection;
-    
+
     /** logger */
     private Logger xaLogger;
+
+    /** reentrant lock */
     private final Lock lock = new ReentrantLock();
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {
