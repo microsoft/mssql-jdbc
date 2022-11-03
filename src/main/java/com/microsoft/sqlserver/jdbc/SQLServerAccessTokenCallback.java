@@ -14,6 +14,8 @@ public interface SQLServerAccessTokenCallback {
      *        - Security token service URL.
      * @param spn
      *        - Service principal name.
+     *
+     * @return Returns a {@link SqlAuthenticationToken}.
      */
     SqlAuthenticationToken getAccessToken(String stsurl, String spn);
 }

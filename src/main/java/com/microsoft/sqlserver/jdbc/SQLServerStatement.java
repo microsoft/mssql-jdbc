@@ -2413,6 +2413,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /** This is a per-statement store provider. */
     Map<String, SQLServerColumnEncryptionKeyStoreProvider> statementColumnEncryptionKeyStoreProviders = new HashMap<>();
+
+    /** Reentrant lock. **/
     private final Lock lock = new ReentrantLock();
 
     /**

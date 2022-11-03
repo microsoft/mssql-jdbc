@@ -30,16 +30,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -5649,7 +5640,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
 
                         String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-                        fedAuthToken = new SqlAuthenticationToken(accessToken, dllInfo.expiresIn);
+                        Date now = new Date();
+                        now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
+                        fedAuthToken = new SqlAuthenticationToken(accessToken, now);
 
                         // Break out of the retry loop in successful case.
                         break;

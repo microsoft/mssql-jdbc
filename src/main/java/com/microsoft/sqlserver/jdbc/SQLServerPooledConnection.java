@@ -53,7 +53,11 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     // Unique id generator for each PooledConnection instance (used for logging).
     static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);
+
+    /** Reentrant lock. **/
     private final Lock lock = new ReentrantLock();
+
+    /** Connection event listener lock. **/
     private final Lock listenersLock = new ReentrantLock();
 
     SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {

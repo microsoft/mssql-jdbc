@@ -36,6 +36,8 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     
     /** logger */
     private Logger xaLogger;
+
+    /** Reentrant lock **/
     private final Lock lock = new ReentrantLock();
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {

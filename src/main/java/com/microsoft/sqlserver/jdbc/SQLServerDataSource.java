@@ -1224,12 +1224,23 @@ public class SQLServerDataSource
         return 0;
     }
 
+    /**
+     * Sets the {@link SQLServerAccessTokenCallback} delegate.
+     *
+     * @param accessTokenCallback
+     *        - Access token callback delegate.
+     */
     @Override
     public void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback) {
         setObjectProperty(connectionProps, SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
                 accessTokenCallback);
     }
 
+    /**
+     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback delegate.
+     *
+     * @return Access token callback delegate.
+     */
     @Override
     public SQLServerAccessTokenCallback getAccessTokenCallback() {
         return (SQLServerAccessTokenCallback) getObjectProperty(connectionProps,

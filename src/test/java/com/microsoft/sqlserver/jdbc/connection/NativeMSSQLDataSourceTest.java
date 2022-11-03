@@ -101,9 +101,9 @@ public class NativeMSSQLDataSourceTest extends AbstractTest {
 
                 try {
                     ExecutorService executorService = Executors.newSingleThreadExecutor();
-                    IClientCredential credential = ClientCredentialFactory.createFromSecret(accessTokenSecret);
+                    IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
                     ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                            .builder(accessTokenClientId, credential).executorService(executorService)
+                            .builder(applicationClientID, credential).executorService(executorService)
                             .authority(stsurl).build();
                     CompletableFuture<IAuthenticationResult> future = clientApplication
                             .acquireToken(ClientCredentialParameters.builder(scopes).build());
