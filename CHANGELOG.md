@@ -11,10 +11,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Changed
 - Driver is Loom friendly [1931](https://github.com/microsoft/mssql-jdbc/pull/1931)
 - Managed Identity authentication is achieved with Azure Identity instead [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
+- Updated MSAL and jackson-databind versions [1947](https://github.com/microsoft/mssql-jdbc/pull/1947)
+- Updated Azure-Identity version [1941](https://github.com/microsoft/mssql-jdbc/pull/1941)
+- Made MSAL an optional dependency [1893](https://github.com/microsoft/mssql-jdbc/pull/1893)
+- Added FINE logging for token expiry [1875](https://github.com/microsoft/mssql-jdbc/pull/1875)
+- Upgraded junit jupiter [1895](https://github.com/microsoft/mssql-jdbc/pull/1895)
 ### Fixed issues
+- Ensure that batchParamValues is cleared in all cases when executing a batch [1869](https://github.com/microsoft/mssql-jdbc/pull/1869)
+- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
+- Fixed callable statement index out of bounds error [1898](https://github.com/microsoft/mssql-jdbc/pull/1898)
+- Fixed sonartype warnings [1950](https://github.com/microsoft/mssql-jdbc/pull/1950)
 - Fixed check for DONE token when fetching result sets [1943](https://github.com/microsoft/mssql-jdbc/pull/1943)
 - Fixed race condition in secure string utility [1948](https://github.com/microsoft/mssql-jdbc/pull/1948)
 - Fixed attestation NONE protocol bug to work with all servers and enclave types [1942](https://github.com/microsoft/mssql-jdbc/pull/1942)
+- Fixed signed byte comparison [1920](https://github.com/microsoft/mssql-jdbc/pull/1920)
 
 ## [11.2.0] Stable Release
 ### Added
