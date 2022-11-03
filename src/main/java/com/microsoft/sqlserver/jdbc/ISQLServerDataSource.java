@@ -1236,7 +1236,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the {@link SQLServerAccessTokenCallback} delegate.
      *
      * @param accessTokenCallback
-     *        - Access token callback delegate.
+     *        Access token callback delegate.
      */
     void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback);
 

@@ -422,7 +422,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * This method is a no-op for backwards compatibility only.
      *
      * @param timeToLive
-     *        - Time-to-live is no longer supported.
+     *        Time-to-live is no longer supported.
      */
     @Deprecated
     void setMsiTokenCacheTtl(int timeToLive);

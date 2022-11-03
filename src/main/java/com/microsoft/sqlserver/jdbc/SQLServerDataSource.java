@@ -1228,7 +1228,7 @@ public class SQLServerDataSource
      * Sets the {@link SQLServerAccessTokenCallback} delegate.
      *
      * @param accessTokenCallback
-     *        - Access token callback delegate.
+     *        Access token callback delegate.
      */
     @Override
     public void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback) {

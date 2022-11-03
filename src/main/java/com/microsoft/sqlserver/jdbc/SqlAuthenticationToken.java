@@ -28,9 +28,9 @@ public class SqlAuthenticationToken implements Serializable {
      * Contructs a SqlAuthentication token.
      *
      * @param accessToken
-     *        - The access token string.
+     *        The access token string.
      * @param expiresOn
-     *        - The expiration date in seconds since the unix epoch.
+     *        The expiration date in seconds since the unix epoch.
      */
     public SqlAuthenticationToken(String accessToken, long expiresOn) {
         this.accessToken = accessToken;
@@ -41,9 +41,9 @@ public class SqlAuthenticationToken implements Serializable {
      * Contructs a SqlAuthentication token.
      *
      * @param accessToken
-     *        - The access token string.
+     *        The access token string.
      * @param expiresOn
-     *        - The expiration date.
+     *        The expiration date.
      */
     public SqlAuthenticationToken(String accessToken, Date expiresOn) {
         this.accessToken = accessToken;
