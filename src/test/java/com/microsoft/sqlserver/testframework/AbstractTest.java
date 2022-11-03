@@ -84,6 +84,11 @@ public abstract class AbstractTest {
 
     // properties needed for Managed Identity
     protected static String managedIdentityClientId = null;
+
+    // properties for access token callback testing
+    protected static String accessTokenClientId = null;
+    protected static String accessTokenSecret = null;
+
     protected static String keyStorePrincipalId = null;
     protected static String keyStoreSecret = null;
 
@@ -137,6 +142,9 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
+
+        accessTokenClientId = getConfiguredProperty("accessTokenClientId");
+        accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);

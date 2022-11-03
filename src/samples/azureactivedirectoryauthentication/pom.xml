@@ -34,6 +34,22 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>AzureActiveDirectoryAccessTokenCallback</id>
+			<build>
+				<finalName>AzureActiveDirectoryAccessTokenCallback</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.2.1</version>
+						<configuration>
+							<mainClass>azureactivedirectoryauthentication.src.main.java.AzureActiveDirectoryAccessTokenCallback</mainClass>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 	<build>
 		<plugins>
