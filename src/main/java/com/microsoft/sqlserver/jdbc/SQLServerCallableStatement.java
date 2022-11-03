@@ -1365,7 +1365,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        Integer matchPos = parameterNames.get(columnNameWithSign);
+        Integer matchPos = (parameterNames != null) ? parameterNames.get(columnNameWithSign) : null;
         if (null == matchPos) {
             matchPos = insensitiveParameterNames.get(columnNameWithSign);
         }

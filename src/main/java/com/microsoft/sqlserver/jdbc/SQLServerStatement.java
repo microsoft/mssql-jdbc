@@ -2414,7 +2414,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** This is a per-statement store provider. */
     Map<String, SQLServerColumnEncryptionKeyStoreProvider> statementColumnEncryptionKeyStoreProviders = new HashMap<>();
 
-    /** Reentrant lock. **/
+    /** reentrant lock */
     private final Lock lock = new ReentrantLock();
 
     /**
@@ -2441,7 +2441,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             statementColumnEncryptionKeyStoreProviders.clear();
 
-            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
+            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders
+                    .entrySet()) {
                 String providerName = entry.getKey();
                 if (null == providerName || 0 == providerName.trim().length()) {
                     throw new SQLServerException(null,
@@ -2457,9 +2458,9 @@ public class SQLServerStatement implements ISQLServerStatement {
                 }
 
                 if (null == entry.getValue()) {
-                    throw new SQLServerException(null,
-                            String.format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"),
-                                    providerName), null, 0, false);
+                    throw new SQLServerException(null, String
+                            .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                            null, 0, false);
                 }
 
                 statementColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
