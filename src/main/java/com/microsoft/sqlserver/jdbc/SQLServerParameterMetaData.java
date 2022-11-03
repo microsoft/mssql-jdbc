@@ -327,7 +327,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                     // Process ResultSet Procedure Metadata for API usage
                     while (rsProcedureMeta.next()) {
-                        HashMap<String, Object> map = new HashMap<String, Object>();
+                        HashMap<String, Object> map = new HashMap<>();
                         map.put(DATA_TYPE, rsProcedureMeta.getShort(DATA_TYPE));
                         map.put(COLUMN_TYPE, rsProcedureMeta.getInt(COLUMN_TYPE));
                         map.put(TYPE_NAME, rsProcedureMeta.getString(TYPE_NAME));
