@@ -382,13 +382,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 rowCount = 0;
 
                 short status = tdsReader.peekStatusFlag();
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
-                    Object[] msgArgs = {status};
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
+
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 return false;
             }
@@ -1788,8 +1789,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         RowType fetchBufferCurrentRowType = RowType.UNKNOWN;
         try {
             fetchBufferCurrentRowType = fetchBuffer.nextRow();
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
+            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
                 return false;
+            }
         } catch (SQLServerException e) {
             currentRow = AFTER_LAST_ROW;
             rowErrorException = e;
@@ -5376,6 +5378,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                if (doneToken.isFinal() && doneToken.isError()) {
+                    short status = tdsReader.peekStatusFlag();
+                    SQLServerError databaseError = getDatabaseError();
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+                }
+
                 stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
@@ -5472,8 +5482,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             while (null != tdsReader && !done && fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
-                    && null != fetchBufferTokenHandler.getDatabaseError()) {
+            if (null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
@@ -5533,6 +5542,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsReader = responseTDSReader;
             discardFetchBuffer();
         }
+
     }
 
     /**

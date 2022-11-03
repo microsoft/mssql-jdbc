@@ -247,7 +247,8 @@ public class EnclavePackageTest extends AbstractTest {
     }
 
     /**
-     * Tests invalid connection property combinations.
+     * Tests invalid connection property combinations. NONE protocol is allowed without an attestation URL, and so
+     * an exclusion is defined for NONE.
      * 
      * @throws Exception
      */
@@ -262,9 +263,11 @@ public class EnclavePackageTest extends AbstractTest {
         testInvalidProperties(TestUtils.removeProperty(connectionStringEnclave, "enclaveAttestationProtocol"),
                 "R_enclavePropertiesError");
 
-        // enclaveAttestationProtocol without enclaveAttestationUrl
-        testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl", ""),
-                "R_enclavePropertiesError");
+        // enclaveAttestationProtocol without enclaveAttestationUrl (given that it is not NONE)
+        if (!String.valueOf(AttestationProtocol.NONE).equals(protocol)) {
+            testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl", ""),
+                    "R_enclavePropertiesError");
+        }
 
         // bad enclaveAttestationProtocol
         testInvalidProperties(

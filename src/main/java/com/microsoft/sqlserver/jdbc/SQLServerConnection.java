@@ -227,10 +227,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * lock instance for "this"
      **/
     private final Lock lock = new ReentrantLock();
+
     /**
      * static lock instance for the class
      **/
-    private static final Lock LOCK = new ReentrantLock();
+    private static final Lock sLock = new ReentrantLock();
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -947,7 +948,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "registerColumnEncryptionKeyStoreProviders",
                 "Registering Column Encryption Key Store Providers");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             if (null == clientKeyStoreProviders) {
                 throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"),
@@ -988,7 +989,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 globalCustomColumnEncryptionKeyStoreProviders.put(providerName, provider);
             }
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
 
         loggerExternal.exiting(loggingClassNameBase, "registerColumnEncryptionKeyStoreProviders",
@@ -1004,14 +1005,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "unregisterColumnEncryptionKeyStoreProviders",
                 "Removing Column Encryption Key Store Provider");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             if (null != globalCustomColumnEncryptionKeyStoreProviders) {
                 globalCustomColumnEncryptionKeyStoreProviders.clear();
                 globalCustomColumnEncryptionKeyStoreProviders = null;
             }
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
 
         loggerExternal.exiting(loggingClassNameBase, "unregisterColumnEncryptionKeyStoreProviders",
@@ -1233,7 +1234,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "setColumnEncryptionTrustedMasterKeyPaths",
                 "Setting Trusted Master Key Paths");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             // Use upper case for server and instance names.
             columnEncryptionTrustedMasterKeyPaths.clear();
@@ -1241,7 +1242,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 columnEncryptionTrustedMasterKeyPaths.put(entry.getKey().toUpperCase(), entry.getValue());
             }
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
 
         loggerExternal.exiting(loggingClassNameBase, "setColumnEncryptionTrustedMasterKeyPaths",
@@ -1260,12 +1261,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "updateColumnEncryptionTrustedMasterKeyPaths",
                 "Updating Trusted Master Key Paths");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             // Use upper case for server and instance names.
             columnEncryptionTrustedMasterKeyPaths.put(server.toUpperCase(), trustedKeyPaths);
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
 
         loggerExternal.exiting(loggingClassNameBase, "updateColumnEncryptionTrustedMasterKeyPaths",
@@ -1282,12 +1283,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "removeColumnEncryptionTrustedMasterKeyPaths",
                 "Removing Trusted Master Key Paths");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             // Use upper case for server and instance names.
             columnEncryptionTrustedMasterKeyPaths.remove(server.toUpperCase());
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
 
         loggerExternal.exiting(loggingClassNameBase, "removeColumnEncryptionTrustedMasterKeyPaths",
@@ -1303,7 +1304,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         loggerExternal.entering(loggingClassNameBase, "getColumnEncryptionTrustedMasterKeyPaths",
                 "Getting Trusted Master Key Paths");
 
-        LOCK.lock();
+        sLock.lock();
         try {
             Map<String, List<String>> masterKeyPathCopy = new HashMap<>();
 
@@ -1316,12 +1317,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             return masterKeyPathCopy;
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
     }
 
     static List<String> getColumnEncryptionTrustedMasterKeyPaths(String server, Boolean[] hasEntry) {
-        LOCK.lock();
+        sLock.lock();
         try {
             if (columnEncryptionTrustedMasterKeyPaths.containsKey(server)) {
                 hasEntry[0] = true;
@@ -1331,7 +1332,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return null;
             }
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
     }
 
@@ -1340,11 +1341,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * request to acquire an access token.
      */
     public static void clearUserTokenCache() {
-        LOCK.lock();
+        sLock.lock();
         try {
             PersistentTokenCacheAccessAspect.clearUserTokenCache();
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
     }
 
@@ -7478,7 +7479,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public static void setColumnEncryptionKeyCacheTtl(int columnEncryptionKeyCacheTTL,
             TimeUnit unit) throws SQLServerException {
-        LOCK.lock();
+        sLock.lock();
         try {
             if (columnEncryptionKeyCacheTTL < 0 || unit.equals(TimeUnit.MILLISECONDS)
                     || unit.equals(TimeUnit.MICROSECONDS) || unit.equals(TimeUnit.NANOSECONDS)) {
@@ -7488,16 +7489,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             columnEncryptionKeyCacheTtl = TimeUnit.SECONDS.convert(columnEncryptionKeyCacheTTL, unit);
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
     }
 
     static long getColumnEncryptionKeyCacheTtl() {
-        LOCK.lock();
+        sLock.lock();
         try {
             return columnEncryptionKeyCacheTtl;
         } finally {
-            LOCK.unlock();
+            sLock.unlock();
         }
     }
 
