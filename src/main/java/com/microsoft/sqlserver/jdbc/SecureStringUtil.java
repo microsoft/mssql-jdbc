@@ -3,6 +3,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -43,6 +45,8 @@ final class SecureStringUtil {
     /* singleton instance */
     private static SecureStringUtil instance;
 
+    private static final Lock LOCK = new ReentrantLock();
+
     /**
      * Get reference to SecureStringUtil instance
      * 
@@ -53,7 +57,14 @@ final class SecureStringUtil {
      */
     static SecureStringUtil getInstance() throws SQLServerException {
         if (instance == null) {
-            instance = new SecureStringUtil();
+            LOCK.lock();
+            try {
+                if (instance == null) {
+                    instance = new SecureStringUtil();
+                }
+            } finally {
+                LOCK.unlock();
+            }
         }
         return instance;
     }

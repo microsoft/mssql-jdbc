@@ -25,7 +25,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -80,79 +79,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 
-/**
- * ExtendedSocketOptions provides methods to keep track of keep alive and socket information.
- *
- */
-final class ExtendedSocketOptions {
-    private static class ExtSocketOption<T> implements SocketOption<T> {
-        private final String name;
-        private final Class<T> type;
-
-        ExtSocketOption(String name, Class<T> type) {
-            this.name = name;
-            this.type = type;
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public Class<T> type() {
-            return type;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    private ExtendedSocketOptions() {}
-
-    /**
-     * Keep-Alive idle time.
-     *
-     * <p>
-     * The value of this socket option is an {@code Integer} that is the number of seconds of idle time before
-     * keep-alive initiates a probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol.
-     * The exact semantics of this socket option are system dependent.
-     *
-     * <p>
-     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
-     * connection that has been idle for some amount of time. The default value for this idle period is system
-     * dependent, but is typically 2 hours. The {@code TCP_KEEPIDLE} option can be used to affect this value for a given
-     * socket.
-     *
-     * @since 11
-     */
-    public static final SocketOption<Integer> TCP_KEEPIDLE = new ExtSocketOption<Integer>("TCP_KEEPIDLE",
-            Integer.class);
-
-    /**
-     * Keep-Alive retransmission interval time.
-     *
-     * <p>
-     * The value of this socket option is an {@code Integer} that is the number of seconds to wait before retransmitting
-     * a keep-alive probe. The socket option is specific to stream-oriented sockets using the TCP/IP protocol. The exact
-     * semantics of this socket option are system dependent.
-     *
-     * <p>
-     * When the {@link java.net.StandardSocketOptions#SO_KEEPALIVE SO_KEEPALIVE} option is enabled, TCP probes a
-     * connection that has been idle for some amount of time. If the remote system does not respond to a keep-alive
-     * probe, TCP retransmits the probe after some amount of time. The default value for this retransmission interval is
-     * system dependent, but is typically 75 seconds. The {@code TCP_KEEPINTERVAL} option can be used to affect this
-     * value for a given socket.
-     *
-     * @since 11
-     */
-    public static final SocketOption<Integer> TCP_KEEPINTERVAL = new ExtSocketOption<Integer>("TCP_KEEPINTERVAL",
-            Integer.class);
-}
-
-
 final class TDS {
     // application protocol
     static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
@@ -204,6 +130,7 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
     static final byte ADALWORKFLOW_DEFAULTAZURECREDENTIAL = 0x03;
+    static final byte ADALWORKFLOW_ACCESSTOKENCALLBACK = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
                                                                            // closest we have.
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed

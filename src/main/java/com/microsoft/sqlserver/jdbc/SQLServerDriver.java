@@ -65,7 +65,6 @@ enum SqlAuthentication {
     SqlPassword,
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI,
     ActiveDirectoryManagedIdentity,
     ActiveDirectoryServicePrincipal,
     ActiveDirectoryInteractive,
@@ -395,7 +394,8 @@ enum ApplicationIntent {
 
 
 enum SQLServerDriverObjectProperty {
-    GSS_CREDENTIAL("gsscredential", null);
+    GSS_CREDENTIAL("gsscredential", null),
+    ACCESS_TOKEN_CALLBACK("accessTokenCallback", null);
 
     private final String name;
     private final String defaultValue;

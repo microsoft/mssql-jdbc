@@ -45,7 +45,7 @@ class SQLServerMSAL4JUtils {
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
-    static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
+    static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -64,7 +64,7 @@ class SQLServerMSAL4JUtils {
                         + authenticationResult.expiresOnDate());
             }
 
-            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
@@ -77,7 +77,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlFedAuthToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
+    static SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
@@ -99,7 +99,7 @@ class SQLServerMSAL4JUtils {
                         + authenticationResult.expiresOnDate());
             }
 
-            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
@@ -112,7 +112,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+    static SqlAuthenticationToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -142,7 +142,7 @@ class SQLServerMSAL4JUtils {
                         + authenticationResult.expiresOnDate());
             }
 
-            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
@@ -155,7 +155,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
+    static SqlAuthenticationToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -208,7 +208,7 @@ class SQLServerMSAL4JUtils {
                         + authenticationResult.expiresOnDate());
             }
 
-            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
