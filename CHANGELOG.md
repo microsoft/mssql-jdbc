@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [12.1.0] Stable Release
+## [12.1.0] Preview Release
 ### Added
 - Added support for access token callback [1940](https://github.com/microsoft/mssql-jdbc/pull/1940)
 - Added support for DefaultAzureCredential [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
