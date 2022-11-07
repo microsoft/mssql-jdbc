@@ -135,9 +135,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** discardedPreparedStatementHandle count */
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
-    /** keystore provider */
-    private SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
-
     /** fedAuth required by user flag */
     private boolean fedAuthRequiredByUser = false;
 
@@ -301,9 +298,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)// checks if hash is equal,
-                                                                                      // short-circuitting;
-                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));// checks if string is equal
+            // checks if hash is equal, short-circuitting and if string is equal
+            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)
+                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));
         }
 
         public int hashCode() {
@@ -1085,6 +1082,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     SQLServerColumnEncryptionKeyStoreProvider getSystemOrGlobalColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
+        SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
+
         lock.lock();
         try {
             // check for global system providers
@@ -5540,6 +5539,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sendFedAuthToken(this, sqlFedAuthToken, tdsTokenHandler);
             return true;
         }
+
+        /**
+         * Send the access token to the server.
+         */
+        private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlAuthenticationToken fedAuthToken,
+                TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+            assert null != fedAuthToken;
+            assert null != fedAuthToken.getAccessToken();
+
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.fine(toString() + " Sending federated authentication token.");
+            }
+
+            TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
+
+            byte[] accessToken = fedAuthToken.getAccessToken().getBytes(UTF_16LE);
+
+            // Send total length (length of token plus 4 bytes for the token length field)
+            // If we were sending a nonce, this would include that length as well
+            tdsWriter.writeInt(accessToken.length + 4);
+
+            // Send length of token
+            tdsWriter.writeInt(accessToken.length);
+
+            // Send federated authentication access token.
+            tdsWriter.writeBytes(accessToken, 0, accessToken.length);
+
+            TDSReader tdsReader;
+            tdsReader = fedAuthCommand.startResponse();
+
+            federatedAuthenticationRequested = true;
+
+            TDSParser.parse(tdsReader, tdsTokenHandler);
+        }
     }
 
     /**
@@ -5579,8 +5612,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlAuthenticationToken getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        SqlAuthenticationToken fedAuthToken = null;
-
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
 
@@ -5756,40 +5787,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return false;
         }
         return true;
-    }
-
-    /**
-     * Send the access token to the server.
-     */
-    private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlAuthenticationToken fedAuthToken,
-            TDSTokenHandler tdsTokenHandler) throws SQLServerException {
-        assert null != fedAuthToken;
-        assert null != fedAuthToken.getAccessToken();
-
-        if (connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.fine(toString() + " Sending federated authentication token.");
-        }
-
-        TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
-
-        byte[] accessToken = fedAuthToken.getAccessToken().getBytes(UTF_16LE);
-
-        // Send total length (length of token plus 4 bytes for the token length field)
-        // If we were sending a nonce, this would include that length as well
-        tdsWriter.writeInt(accessToken.length + 4);
-
-        // Send length of token
-        tdsWriter.writeInt(accessToken.length);
-
-        // Send federated authentication access token.
-        tdsWriter.writeBytes(accessToken, 0, accessToken.length);
-
-        TDSReader tdsReader;
-        tdsReader = fedAuthCommand.startResponse();
-
-        federatedAuthenticationRequested = true;
-
-        TDSParser.parse(tdsReader, tdsTokenHandler);
     }
 
     final void processFeatureExtAck(TDSReader tdsReader) throws SQLServerException {

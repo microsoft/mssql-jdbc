@@ -2881,10 +2881,11 @@ final class SocketFinder {
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
 
-                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+                    boolean signaled = parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
 
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " The parent thread wokeup.");
+                        logger.finer(this.toString() + " The parent thread wokeup: "
+                                + ((signaled == true) ? "signaled or interrupted" : "time elapsed"));
                     }
 
                     timerNow = System.currentTimeMillis();
