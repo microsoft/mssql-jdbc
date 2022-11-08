@@ -168,26 +168,26 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
         // verify encrypt=true options
-        ds.setEncrypt(EncryptOption.Mandatory.toString());
+        ds.setEncrypt(EncryptOption.MANDATORY.toString());
         assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
-        ds.setEncrypt(EncryptOption.True.toString());
+        ds.setEncrypt(EncryptOption.TRUE.toString());
         assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
         // verify encrypt=false options
-        ds.setEncrypt(EncryptOption.Optional.toString());
+        ds.setEncrypt(EncryptOption.OPTIONAL.toString());
         assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
-        ds.setEncrypt(EncryptOption.False.toString());
+        ds.setEncrypt(EncryptOption.FALSE.toString());
         assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
-        ds.setEncrypt(EncryptOption.No.toString());
+        ds.setEncrypt(EncryptOption.NO.toString());
         assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
         // verify enrypt=strict options
-        ds.setEncrypt(EncryptOption.Strict.toString());
+        ds.setEncrypt(EncryptOption.STRICT.toString());
         assertEquals("Strict", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 

@@ -62,7 +62,7 @@ final class SQLServerDriverPropertyInfo {
 
 enum SqlAuthentication {
     NOT_SPECIFIED,
-    SqlPassword,
+    SQLPASSWORD,
     ACTIVE_DIRECTORY_PASSWORD,
     ACTIVE_DIRECTORY_INTEGRATED,
     ACTIVE_DIRECTORY_MANAGED_IDENTITY,
@@ -75,8 +75,8 @@ enum SqlAuthentication {
 
         if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())) {
             method = SqlAuthentication.NOT_SPECIFIED;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())) {
-            method = SqlAuthentication.SqlPassword;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())) {
+            method = SqlAuthentication.SQLPASSWORD;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
             method = SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD;
@@ -129,25 +129,25 @@ enum ColumnEncryptionSetting {
 
 
 enum EncryptOption {
-    False,
-    No,
-    Optional,
-    True,
-    Mandatory,
-    Strict;
+    FALSE,
+    NO,
+    OPTIONAL,
+    TRUE,
+    MANDATORY,
+    STRICT;
 
     static EncryptOption valueOfString(String value) throws SQLServerException {
         EncryptOption option = null;
 
         String val = value.toLowerCase(Locale.US);
-        if (val.equalsIgnoreCase(EncryptOption.False.toString()) || val.equalsIgnoreCase(EncryptOption.No.toString())
-                || val.equalsIgnoreCase(EncryptOption.Optional.toString())) {
-            option = EncryptOption.False;
-        } else if (val.equalsIgnoreCase(EncryptOption.True.toString())
-                || val.equalsIgnoreCase(EncryptOption.Mandatory.toString())) {
-            option = EncryptOption.True;
-        } else if (val.equalsIgnoreCase(EncryptOption.Strict.toString())) {
-            option = EncryptOption.Strict;
+        if (val.equalsIgnoreCase(EncryptOption.FALSE.toString()) || val.equalsIgnoreCase(EncryptOption.NO.toString())
+                || val.equalsIgnoreCase(EncryptOption.OPTIONAL.toString())) {
+            option = EncryptOption.FALSE;
+        } else if (val.equalsIgnoreCase(EncryptOption.TRUE.toString())
+                || val.equalsIgnoreCase(EncryptOption.MANDATORY.toString())) {
+            option = EncryptOption.TRUE;
+        } else if (val.equalsIgnoreCase(EncryptOption.STRICT.toString())) {
+            option = EncryptOption.STRICT;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"EncryptOption", value};
@@ -266,9 +266,9 @@ enum SSLProtocol {
 
 
 enum IPAddressPreference {
-    IPv4First("IPv4First"),
-    IPv6First("IPv6First"),
-    UsePlatformDefault("UsePlatformDefault");
+    IPV4_FIRST("IPv4First"),
+    IPV6_FIRST("IPv6First"),
+    USE_PLATFORM_DEFAULT("UsePlatformDefault");
 
     private final String name;
 
@@ -284,12 +284,12 @@ enum IPAddressPreference {
     static IPAddressPreference valueOfString(String value) throws SQLServerException {
         IPAddressPreference iptype = null;
 
-        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv4First.toString())) {
-            iptype = IPAddressPreference.IPv4First;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPv6First.toString())) {
-            iptype = IPAddressPreference.IPv6First;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.UsePlatformDefault.toString())) {
-            iptype = IPAddressPreference.UsePlatformDefault;
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPV4_FIRST.toString())) {
+            iptype = IPAddressPreference.IPV4_FIRST;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.IPV6_FIRST.toString())) {
+            iptype = IPAddressPreference.IPV6_FIRST;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(IPAddressPreference.USE_PLATFORM_DEFAULT.toString())) {
+            iptype = IPAddressPreference.USE_PLATFORM_DEFAULT;
 
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidIPAddressPreference"));
@@ -302,21 +302,21 @@ enum IPAddressPreference {
 
 
 enum KeyStoreAuthentication {
-    JavaKeyStorePassword,
-    KeyVaultClientSecret,
-    KeyVaultManagedIdentity;
+    JAVA_KEYSTORE_PASSWORD,
+    KEYVAULT_CLIENT_SECRET,
+    KEYVAULT_MANAGED_IDENTITY;
 
     static KeyStoreAuthentication valueOfString(String value) throws SQLServerException {
         KeyStoreAuthentication method = null;
 
-        if (value.toLowerCase(Locale.US).equalsIgnoreCase(KeyStoreAuthentication.JavaKeyStorePassword.toString())) {
-            method = KeyStoreAuthentication.JavaKeyStorePassword;
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(KeyStoreAuthentication.JAVA_KEYSTORE_PASSWORD.toString())) {
+            method = KeyStoreAuthentication.JAVA_KEYSTORE_PASSWORD;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultClientSecret.toString())) {
-            method = KeyStoreAuthentication.KeyVaultClientSecret;
+                .equalsIgnoreCase(KeyStoreAuthentication.KEYVAULT_CLIENT_SECRET.toString())) {
+            method = KeyStoreAuthentication.KEYVAULT_CLIENT_SECRET;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(KeyStoreAuthentication.KeyVaultManagedIdentity.toString())) {
-            method = KeyStoreAuthentication.KeyVaultManagedIdentity;
+                .equalsIgnoreCase(KeyStoreAuthentication.KEYVAULT_MANAGED_IDENTITY.toString())) {
+            method = KeyStoreAuthentication.KEYVAULT_MANAGED_IDENTITY;
 
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
@@ -329,19 +329,19 @@ enum KeyStoreAuthentication {
 
 
 enum AuthenticationScheme {
-    nativeAuthentication,
-    ntlm,
-    javaKerberos;
+    NATIVE_AUTHENTICATION,
+    NTLM,
+    JAVA_KERBEROS;
 
     static AuthenticationScheme valueOfString(String value) throws SQLServerException {
         AuthenticationScheme scheme;
-        if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.javaKerberos.toString())) {
-            scheme = AuthenticationScheme.javaKerberos;
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.JAVA_KERBEROS.toString())) {
+            scheme = AuthenticationScheme.JAVA_KERBEROS;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(AuthenticationScheme.nativeAuthentication.toString())) {
-            scheme = AuthenticationScheme.nativeAuthentication;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.ntlm.toString())) {
-            scheme = AuthenticationScheme.ntlm;
+                .equalsIgnoreCase(AuthenticationScheme.NATIVE_AUTHENTICATION.toString())) {
+            scheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(AuthenticationScheme.NTLM.toString())) {
+            scheme = AuthenticationScheme.NTLM;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidAuthenticationScheme"));
             Object[] msgArgs = {value};
@@ -467,7 +467,7 @@ enum SQLServerDriverStringProperty {
     SELECT_METHOD("selectMethod", "direct"),
     DOMAIN("domain", ""),
     SERVER_NAME("serverName", ""),
-    IPADDRESS_PREFERENCE("iPAddressPreference", IPAddressPreference.IPv4First.toString()),
+    IPADDRESS_PREFERENCE("iPAddressPreference", IPAddressPreference.IPV4_FIRST.toString()),
     SERVER_SPN("serverSpn", ""),
     REALM("realm", ""),
     SOCKET_FACTORY_CLASS("socketFactoryClass", ""),
@@ -479,7 +479,7 @@ enum SQLServerDriverStringProperty {
     TRUST_MANAGER_CONSTRUCTOR_ARG("trustManagerConstructorArg", ""),
     USER("user", ""),
     WORKSTATION_ID("workstationID", Util.WSIDNotAvailable),
-    AUTHENTICATION_SCHEME("authenticationScheme", AuthenticationScheme.nativeAuthentication.toString()),
+    AUTHENTICATION_SCHEME("authenticationScheme", AuthenticationScheme.NATIVE_AUTHENTICATION.toString()),
     AUTHENTICATION("authentication", SqlAuthentication.NOT_SPECIFIED.toString()),
     ACCESS_TOKEN("accessToken", ""),
     COLUMN_ENCRYPTION("columnEncryptionSetting", ColumnEncryptionSetting.DISABLED.toString()),
@@ -499,7 +499,7 @@ enum SQLServerDriverStringProperty {
     AAD_SECURE_PRINCIPAL_ID("AADSecurePrincipalId", ""),
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
-    ENCRYPT("encrypt", EncryptOption.True.toString()),
+    ENCRYPT("encrypt", EncryptOption.TRUE.toString()),
     SERVER_CERTIFICATE("serverCertificate", "");
 
     private final String name;
@@ -639,9 +639,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {"true"}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCRYPT.toString(),
                     SQLServerDriverStringProperty.ENCRYPT.getDefaultValue(), false,
-                    new String[] {EncryptOption.False.toString(), EncryptOption.No.toString(),
-                            EncryptOption.Optional.toString(), EncryptOption.True.toString(),
-                            EncryptOption.Mandatory.toString(), EncryptOption.Strict.toString()}),
+                    new String[] {EncryptOption.FALSE.toString(), EncryptOption.NO.toString(),
+                            EncryptOption.OPTIONAL.toString(), EncryptOption.TRUE.toString(),
+                            EncryptOption.MANDATORY.toString(), EncryptOption.STRICT.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(),
                     SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
@@ -658,7 +658,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue(), false,
-                    new String[] {KeyStoreAuthentication.JavaKeyStorePassword.toString()}),
+                    new String[] {KeyStoreAuthentication.JAVA_KEYSTORE_PASSWORD.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_LOCATION.toString(),
@@ -700,8 +700,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
                     SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue(), false,
-                    new String[] {IPAddressPreference.IPv4First.toString(), IPAddressPreference.IPv6First.toString(),
-                            IPAddressPreference.UsePlatformDefault.toString()}),
+                    new String[] {IPAddressPreference.IPV4_FIRST.toString(), IPAddressPreference.IPV6_FIRST.toString(),
+                            IPAddressPreference.USE_PLATFORM_DEFAULT.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SERVER_SPN.toString(),
                     SQLServerDriverStringProperty.SERVER_SPN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.REALM.toString(),
@@ -740,12 +740,12 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.XOPEN_STATES.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.getDefaultValue(), false,
-                    new String[] {AuthenticationScheme.javaKerberos.toString(),
-                            AuthenticationScheme.nativeAuthentication.toString(),
-                            AuthenticationScheme.ntlm.toString()}),
+                    new String[] {AuthenticationScheme.JAVA_KERBEROS.toString(),
+                            AuthenticationScheme.NATIVE_AUTHENTICATION.toString(),
+                            AuthenticationScheme.NTLM.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
-                    new String[] {SqlAuthentication.NOT_SPECIFIED.toString(), SqlAuthentication.SqlPassword.toString(),
+                    new String[] {SqlAuthentication.NOT_SPECIFIED.toString(), SqlAuthentication.SQLPASSWORD.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString(),

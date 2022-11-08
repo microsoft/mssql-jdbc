@@ -50,16 +50,6 @@ import javax.crypto.KeyAgreement;
  */
 interface ISQLServerEnclaveProvider {
     /**
-     * sp_describe_parameter_encryption stored procedure with 2 params
-     */
-    static final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
-
-    /**
-     * sp_describe_parameter_encryption stored procedure with 3 params
-     */
-    static final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
-
-    /**
      * Get the Enclave package
      * 
      * @param userSQL

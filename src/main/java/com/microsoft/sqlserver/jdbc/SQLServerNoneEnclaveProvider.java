@@ -97,7 +97,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
+        try (PreparedStatement stmt = connection
+                .prepareStatement(connection.enclaveEstablished() ? SQLServerAASEnclaveProvider.SDPE1
+                                                                  : SQLServerAASEnclaveProvider.SDPE2)) {
             // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
             if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
                     || params.length == 0 || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,

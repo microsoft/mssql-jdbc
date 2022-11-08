@@ -585,6 +585,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
     }
 
+    final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
+
     /**
      * Denotes the state of the SqlServerConnection.
      */
@@ -598,7 +600,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private final static float TIMEOUTSTEP = 0.08F; // fraction of timeout to use for fast failover connections
     private final static float TIMEOUTSTEP_TNIR = 0.125F;
-    final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
 
     /**
      * Connection state variables. NB If new state is added then logical connections derived from a physical connection
@@ -1358,7 +1359,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte[] ntlmPasswordHash = null;
 
     /** integrated authentication scheme */
-    private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
+    private AuthenticationScheme intAuthScheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
 
     /** impersonated user credential */
     private GSSCredential impersonatedUserCred;
@@ -1864,13 +1865,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } else {
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
-                case JavaKeyStorePassword:
+                case JAVA_KEYSTORE_PASSWORD:
                     setKeyStoreSecretAndLocation(keyStoreSecret, keyStoreLocation);
                     break;
-                case KeyVaultClientSecret:
+                case KEYVAULT_CLIENT_SECRET:
                     this.setKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
-                case KeyVaultManagedIdentity:
+                case KEYVAULT_MANAGED_IDENTITY:
                     setKeyVaultProvider(keyStorePrincipalId);
                     break;
                 default:
@@ -2240,11 +2241,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
-                if (encryptOption.compareToIgnoreCase(EncryptOption.False.toString()) == 0) {
+                if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_OFF;
-                } else if (encryptOption.compareToIgnoreCase(EncryptOption.True.toString()) == 0) {
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.TRUE.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_ON;
-                } else if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
                     // this is necessary so we don't encrypt again
                     requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
 
@@ -2402,13 +2403,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
 
-                if (intAuthScheme == AuthenticationScheme.javaKerberos) {
+                if (intAuthScheme == AuthenticationScheme.JAVA_KERBEROS) {
                     sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                     if (activeConnectionProperties.containsKey(sPropKey)) {
                         impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                         isUserCreatedCredential = true;
                     }
-                } else if (intAuthScheme == AuthenticationScheme.ntlm) {
+                } else if (intAuthScheme == AuthenticationScheme.NTLM) {
                     String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
                     String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
                     if (null == sPropValueDomain) {
@@ -2515,7 +2516,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())
                         && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (activeConnectionProperties
@@ -2932,10 +2933,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } finally {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
-            if (!state.equals(State.OPENED)) {
-                // if connection is not closed, close it
-                if (!state.equals(State.CLOSED))
-                    this.close();
+            if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
+                this.close();
             }
 
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
@@ -3906,15 +3905,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final void terminate(int driverErrorCode, String message, Throwable throwable) throws SQLServerException {
-        String state = this.state.equals(State.OPENED) ? SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE
-                                                       : SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH;
+        String st = this.state.equals(State.OPENED) ? SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE
+                                                    : SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH;
 
         if (!xopenStates)
-            state = SQLServerException.mapFromXopen(state);
+            st = SQLServerException.mapFromXopen(st);
 
         SQLServerException ex = new SQLServerException(this,
-                SQLServerException.checkAndAppendClientConnId(message, this), state, // X/Open or SQL99
-                                                                                     // SQLState
+                SQLServerException.checkAndAppendClientConnId(message, this), st, // X/Open or SQL99
+                                                                                  // SQLState
                 0, // database error number (0 -> driver error)
                 true); // include stack trace in log
 
@@ -4989,10 +4988,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SSPIAuthentication authentication = null;
 
         if (integratedSecurity) {
-            if (AuthenticationScheme.nativeAuthentication == intAuthScheme) {
+            if (AuthenticationScheme.NATIVE_AUTHENTICATION == intAuthScheme) {
                 authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
-            } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
+            } else if (AuthenticationScheme.JAVA_KERBEROS == intAuthScheme) {
                 if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
@@ -6217,7 +6216,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // TDS version 8 if strict mode
         // Denali --> TDS 7.4, Katmai (10.0) & later 7.3B, Prelogin disconnects anything older
-        if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+        if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
             tdsVersion = TDS.VER_TDS80;
         } else if (serverMajorVersion >= 11) {
             tdsVersion = TDS.VER_DENALI;

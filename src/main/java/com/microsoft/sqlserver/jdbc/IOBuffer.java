@@ -2788,7 +2788,7 @@ final class SocketFinder {
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
         IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
         switch (pref) {
-            case IPv6First:
+            case IPV6_FIRST:
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, true);
                 addr = getInetAddressByIPPreference(hostName, portNumber);
@@ -2800,7 +2800,7 @@ final class SocketFinder {
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
-            case IPv4First:
+            case IPV4_FIRST:
                 // Try to connect to first choice of IP address type
                 fillAddressList(addresses, false);
                 addr = getInetAddressByIPPreference(hostName, portNumber);
@@ -2812,7 +2812,7 @@ final class SocketFinder {
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
-            case UsePlatformDefault:
+            case USE_PLATFORM_DEFAULT:
                 for (InetAddress address : addresses) {
                     addr = new InetSocketAddress(address, portNumber);
                     if (!addr.isUnresolved())

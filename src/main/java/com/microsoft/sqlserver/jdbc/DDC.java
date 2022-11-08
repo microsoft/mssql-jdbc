@@ -888,7 +888,7 @@ final class DDC {
      * @return a Java object of the desired type.
      */
     static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
-            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
+            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
         // use the path below instead to optimize performance.
@@ -1033,7 +1033,9 @@ final class DDC {
             }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         int localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
@@ -1095,7 +1097,10 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
@@ -1189,17 +1194,22 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
     private static Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, int daysSinceBaseDate,
-            long ticksSinceMidnight, int fractionalSecondsScale) {
+            long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
         int subSecondNanos;
 
         // In cases where Timezone values don't need to be considered, use LocalDateTime go avoid
@@ -1251,7 +1261,9 @@ final class DDC {
             }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         switch (jdbcType.category) {
@@ -1279,7 +1291,10 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
@@ -1330,12 +1345,17 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
@@ -1546,8 +1566,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     private final Reader containedReader;
     private final Charset asciiCharSet;
 
-    static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm,
-            Reader rd) throws SQLServerException {
+    static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
