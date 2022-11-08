@@ -4,21 +4,27 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
+import java.sql.BatchUpdateException;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
@@ -112,6 +118,74 @@ public class BatchExecutionTest extends AbstractTest {
                     connection.commit();
                 }
             }
+        }
+    }
+
+    @Test
+    public void testBatchedSpCallTimeout() throws Exception {
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            connection.setAutoCommit(false);
+
+            TestUtils.dropTableIfExists("test_table", connection.createStatement());
+
+            try (PreparedStatement statement = connection.prepareStatement("create table test_table (column_name int)")) {
+                statement.execute();
+            }
+
+            TestUtils.dropProcedureIfExists("test_table_insert", connection.createStatement());
+
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "CREATE PROCEDURE test_table_insert\n" +
+                            "@value int,\n" +
+                            "@duration varchar(8)\n" +
+                            "AS\n" +
+                            "BEGIN\n" +
+                            "    WAITFOR DELAY @duration;\n" +
+                            "    INSERT INTO test_table VALUES (@value);\n" +
+                            "END")) {
+                statement.execute();
+            }
+            connection.commit();
+
+            connection.setEnablePrepareOnFirstPreparedStatementCall(true);
+            try (CallableStatement cs = connection.prepareCall("test_table_insert @duration=?, @value=?")) {
+                cs.setQueryTimeout(2);
+
+                cs.setString(1, "00:00:00");
+                cs.setInt(2, 1);
+                cs.addBatch();
+                cs.setString(1, "00:00:00");
+                cs.setInt(2, 2);
+                cs.addBatch();
+                cs.setString(1, "00:00:00");
+                cs.setInt(2, 3);
+                cs.addBatch();
+                cs.setString(1, "00:00:05");
+                cs.setInt(2, 4);
+                cs.addBatch();
+                cs.setString(1, "00:00:00");
+                cs.setInt(2, 5);
+                cs.addBatch();
+
+                BatchUpdateException ex = assertThrows(BatchUpdateException.class, new Executable() {
+                    @Override
+                    public void execute() throws Throwable {
+                        cs.executeLargeBatch();
+                    }
+                });
+                assertArrayEquals(new long[]{1, 1, -1, -3, -3}, ex.getLargeUpdateCounts(), "updateCounts " + Arrays.toString(ex.getLargeUpdateCounts()));
+                connection.commit();
+            }
+
+            int c = 0;
+            try (var ps = connection.prepareStatement("select * from test_table order by 1")) {
+                try (var rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        assertEquals(++c, rs.getInt(1));
+                    }
+                }
+            }
+            assertEquals(3, c);
         }
     }
 
