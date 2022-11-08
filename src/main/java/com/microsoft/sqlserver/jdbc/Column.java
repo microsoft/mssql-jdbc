@@ -243,9 +243,9 @@ final class Column {
         // if jdbcType is char or varchar, check if the column is actually char/varchar or nchar/nvarchar
         // in order to make updateString() work with encrypted Nchar typpes
         if (null != cryptoMetadata && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType)
-                && JDBCType.NVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
-                || JDBCType.NCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
-                || JDBCType.LONGNVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()) {
+                && (JDBCType.NVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
+                        || JDBCType.NCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
+                        || JDBCType.LONGNVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType())) {
             jdbcType = cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType();
         }
 
@@ -264,9 +264,10 @@ final class Column {
                 // for update encrypted nchar or nvarchar value on result set, must double the value length,
                 // otherwise, the data is truncated.
                 if (null != cryptoMetadata
-                        && JDBCType.NCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
-                        || JDBCType.NVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
-                        || JDBCType.LONGNVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()) {
+                        && (JDBCType.NCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
+                                || JDBCType.NVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType()
+                                || JDBCType.LONGNVARCHAR == cryptoMetadata.getBaseTypeInfo().getSSType()
+                                        .getJDBCType())) {
                     this.valueLength = valueLength * 2;
                 }
             }
