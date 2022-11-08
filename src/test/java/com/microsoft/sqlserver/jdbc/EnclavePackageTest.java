@@ -203,7 +203,7 @@ public class EnclavePackageTest extends AbstractTest {
      */
     public static void setAEConnectionString(String url, String protocol) throws Exception {
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting",
-                ColumnEncryptionSetting.Enabled.toString());
+                ColumnEncryptionSetting.ENABLED.toString());
 
         connectionStringEnclave = TestUtils.addOrOverrideProperty(connectionStringEnclave, "enclaveAttestationUrl",
                 (null != url) ? url : "http://blah");
@@ -257,7 +257,7 @@ public class EnclavePackageTest extends AbstractTest {
 
         // enclaveAttestationUrl and enclaveAttestationProtocol without "columnEncryptionSetting"
         testInvalidProperties(TestUtils.addOrOverrideProperty(connectionStringEnclave, "columnEncryptionSetting",
-                ColumnEncryptionSetting.Disabled.toString()), "R_enclavePropertiesError");
+                ColumnEncryptionSetting.DISABLED.toString()), "R_enclavePropertiesError");
 
         // enclaveAttestationUrl without enclaveAttestationProtocol
         testInvalidProperties(TestUtils.removeProperty(connectionStringEnclave, "enclaveAttestationProtocol"),
