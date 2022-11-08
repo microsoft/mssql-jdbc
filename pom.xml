@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.1.0</version>
+	<version>9.2.0</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -43,43 +43,41 @@
 		<!-- Allowed values for excluded Groups here - - - - - - - - - - - - - 
 			xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications 
 			xGradle - - - - - - For tests not compatible with Gradle Script - - - - - 
-			xSQLv11 - - - - - - For tests not compatible with SQL Server 2012 - - - - 
 			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
 			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
 			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup - For tests requiring external setup (excluded by default) 
-			clientCertAuth - - For tests requiring client certificate authentication 
-			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
+			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
+			reqExternalSetup  - For tests requiring external setup (excluded by default)
+			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 
-		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt>-preview</releaseExt>
+		<!-- Use -preview for preview release, leave empty for official release.-->
+		<releaseExt></releaseExt>
 
 		<!-- Driver Dependencies -->
-		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.5.1</azure-security-keyvault-keys.version>
-		<azure-identity.version>1.7.0-beta.2</azure-identity.version>
-		<msal.version>1.13.3</msal.version>
-		<org.osgi.compendium.version>5.0.0</org.osgi.compendium.version>
-		<antlr-runtime.version>4.9.3</antlr-runtime.version>
-		<com.google.code.gson.version>2.9.0</com.google.code.gson.version>
-		<bcprov-jdk15on.version>1.70</bcprov-jdk15on.version>
-		<bcpkix-jdk15on.version>1.70</bcpkix-jdk15on.version>
+		<azure.keyvault.version>4.2.1</azure.keyvault.version>
+		<azure.identity.version>1.1.3</azure.identity.version>
+		<osgi.core.version>6.0.0</osgi.core.version>
+		<osgi.comp.version>5.0.0</osgi.comp.version>
+		<antlr.runtime.version>4.7.2</antlr.runtime.version>
+		<google.gson.version>2.8.6</google.gson.version>
+		<bouncycastle.bcprov.version>1.65</bouncycastle.bcprov.version>
+		<bouncycastle.bcpkix.version>1.65</bouncycastle.bcpkix.version>
 
 		<!-- JUnit Test Dependencies -->
-		<junit.platform.version>[1.3.2, 1.9.0]</junit.platform.version>
-		<junit.jupiter.version>5.8.2</junit.jupiter.version>
+		<azure.adal4j.version>1.6.5</azure.adal4j.version>
+		<junit.platform.version>[1.3.2, 1.5.2]</junit.platform.version>
+		<junit.jupiter.version>5.5.2</junit.jupiter.version>
 		<hikaricp.version>3.4.2</hikaricp.version>
 		<dbcp2.version>2.7.0</dbcp2.version>
 		<slf4j.nop.version>1.7.30</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
-		<h2.version>2.1.210</h2.version>
+		<h2.version>1.4.200</h2.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -90,13 +88,13 @@
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-keys</artifactId>
-			<version>${azure-security-keyvault-keys.version}</version>
+			<version>${azure.keyvault.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
-			<version>${azure-identity.version}</version>
+			<version>${azure.identity.version}</version>
 			<optional>true</optional>
 			<exclusions>
 				<exclusion>
@@ -106,18 +104,11 @@
 			</exclusions>
 		</dependency>
 
-		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>msal4j</artifactId>
-			<version>1.13.3</version>
-			<optional>true</optional>
-		</dependency>
-
 		<!-- dependencies for ANTLR -->
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
-			<version>${antlr-runtime.version}</version>
+			<version>${antlr.runtime.version}</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -125,37 +116,43 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>${com.google.code.gson.version}</version>
+			<version>${google.gson.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>${bcprov-jdk15on.version}</version>
+			<version>${bouncycastle.bcprov.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies for Client Certificate Authentication -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>${bcpkix-jdk15on.version}</version>
+			<version>${bouncycastle.bcpkix.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies provided by an OSGi-Framework -->
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
-			<version>${org.osgi.core.version}</version>
+			<version>${osgi.core.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.compendium</artifactId>
-			<version>${org.osgi.compendium.version}</version>
+			<version>${osgi.comp.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<!-- dependencies for running tests -->
+		<dependency>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>adal4j</artifactId>
+			<version>${azure.adal4j.version}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-console</artifactId>
@@ -254,15 +251,8 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerConnection43.java</exclude>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
-							<testExcludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/connection/ConnectionWrapper43Test.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/connection/RequestBoundaryMethodsTest.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/JDBC43Test.java</exclude>
-							</testExcludes>
 							<source>1.8</source>
 							<target>1.8</target>
 						</configuration>
@@ -291,6 +281,8 @@
 						<configuration>
 							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
+							<!-- needs to be overridden as illegal-access and MaxPermSize=256m not valid in java 8 -->
+							<argLine>-Xmx1024m -Djava.library.path=${dllPath}</argLine>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -330,45 +322,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre17</id>
-			<build>
-				<finalName>${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.8.0</version>
-						<configuration>
-							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
-							</excludes>
-							<source>17</source>
-							<target>17</target>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.1.1</version>
-						<configuration>
-							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-								<manifestEntries>
-									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
-								</manifestEntries>
-							</archive>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>jre19</id>
+			<id>jre15</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre19${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre15${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -378,8 +337,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>19</source>
-							<target>19</target>
+							<source>15</source>
+							<target>15</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -463,7 +422,8 @@
 				<configuration>
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
-					<argLine>${argLine} -Xmx1024m -Djava.library.path=${dllPath}
+					<argLine>${argLine} --illegal-access=permit -Xmx1024m
+						-XX:MaxPermSize=256m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
@@ -512,10 +472,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.0.0</version>
 				<configuration>
 					<failOnError>true</failOnError>
-					<excludePackageNames>mssql.*</excludePackageNames>
+					<excludePackageNames>mssql.googlecode.*:mssql.security.provider.MD4</excludePackageNames>
 				</configuration>
 				<executions>
 					<execution>
@@ -539,7 +499,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.8</version>
+				<version>0.8.6</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>
@@ -548,23 +508,19 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>default-report</id>
-						<phase>prepare-package</phase>
+						<id>report</id>
+						<phase>test</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
 					</execution>
 				</executions>
 				<configuration>
-					<excludes>
-						<exclude>**/mssql/googlecode/**/*</exclude>
-						<exclude>**/mssql/security/**/*</exclude>
-					</excludes>
 					<fileSets>
 						<fileSet>
 							<directory>jacoco-execs/</directory>
 							<includes>
-								<include>**/*.exec</include>
+								<include>*.exec</include>
 							</includes>
 						</fileSet>
 					</fileSets>

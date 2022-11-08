@@ -12,8 +12,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import com.microsoft.sqlserver.jdbc.TestUtils;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -30,11 +28,6 @@ public class ErrorMessageTest extends FedauthCommon {
 
     String badUserName = "abc" + azureUserName;
     String connectionUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase;
-
-    @BeforeAll
-    public static void setupTests() throws Exception {
-        setConnection();
-    }
 
     @Test
     public void testWrongAccessTokenWithConnectionStringUserName() throws SQLException {
@@ -821,6 +814,29 @@ public class ErrorMessageTest extends FedauthCommon {
             }
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
                     e.getMessage().startsWith("The authentication value") && e.getMessage().endsWith("is not valid."));
+        }
+    }
+
+    @Test
+    public void testInteractiveAuthTimeout() throws SQLException {
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName(azureServer);
+            ds.setUser(azureUserName);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAuthentication("ActiveDirectoryInteractive");
+
+            ds.setEncrypt(false);
+            ds.setTrustServerCertificate(true);
+            try (Connection connection = ds.getConnection()) {}
+            fail(EXPECTED_EXCEPTION_NOT_THROWN);
+        } catch (Exception e) {
+            if (!(e instanceof SQLServerException)) {
+                fail(EXPECTED_EXCEPTION_NOT_THROWN);
+            }
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage() + "," + e.getCause(),
+                    e.getMessage().contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
+                            + " in Active Directory (Authentication=ActiveDirectoryInteractive)."));
         }
     }
 }

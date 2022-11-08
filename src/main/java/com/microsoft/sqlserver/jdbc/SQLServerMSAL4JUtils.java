@@ -40,12 +40,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
-    static final String SLASH_DEFAULT = "/.default";
+    private static final String SLASH_DEFAULT = "/.default";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
-    static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
+    static SqlFedAuthToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -58,17 +58,8 @@ class SQLServerMSAL4JUtils {
                     .build());
 
             final IAuthenticationResult authenticationResult = future.get();
-
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + " Access token expires on the following date: "
-                        + authenticationResult.expiresOnDate());
-            }
-
-            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
-            // re-interrupt thread
-            Thread.currentThread().interrupt();
-
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
@@ -77,7 +68,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
+    static SqlFedAuthToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
@@ -93,17 +84,8 @@ class SQLServerMSAL4JUtils {
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
-
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + " Access token expires on the following date: "
-                        + authenticationResult.expiresOnDate());
-            }
-
-            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException e) {
-            // re-interrupt thread
-            Thread.currentThread().interrupt();
-
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
@@ -112,7 +94,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+    static SqlFedAuthToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -136,17 +118,8 @@ class SQLServerMSAL4JUtils {
                             .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
 
             final IAuthenticationResult authenticationResult = future.get();
-
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + " Access token expires on the following date: "
-                        + authenticationResult.expiresOnDate());
-            }
-
-            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (InterruptedException | IOException e) {
-            // re-interrupt thread
-            Thread.currentThread().interrupt();
-
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, "", authenticationString);
@@ -155,7 +128,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
+    static SqlFedAuthToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -203,16 +176,8 @@ class SQLServerMSAL4JUtils {
                 authenticationResult = future.get();
             }
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + " Access token expires on the following date: "
-                        + authenticationResult.expiresOnDate());
-            }
-
-            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+            return new SqlFedAuthToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
         } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
-            // re-interrupt thread
-            Thread.currentThread().interrupt();
-
             throw new SQLServerException(e.getMessage(), e);
         } catch (ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
@@ -235,24 +200,23 @@ class SQLServerMSAL4JUtils {
 
     private static SQLServerException getCorrectedException(ExecutionException e, String user,
             String authenticationString) {
+        if (logger.isLoggable(Level.SEVERE)) {
+            logger.fine(logger.toString() + " MSAL exception:" + e.getMessage());
+        }
+
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-
             // The case when Future's outcome has no AuthenticationResult but Exception.
             return new SQLServerException(form.format(msgArgs), null);
         } else {
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
-             * correct format. Also replace {} which confuses MessageFormat
+             * correct format
              */
-            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n")
-                    .replaceAll("\\{", "\"").replaceAll("\\}", "\"");
-
+            String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n");
             RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
-            MessageFormat form = new MessageFormat(
-                    SQLServerException.getErrString("R_MSALExecution") + " " + correctedErrorMessage);
 
             /*
              * SQLServerException is caused by ExecutionException, which is caused by AuthenticationException to match

@@ -96,8 +96,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_connectionNotClosedWithPoolClose", "Connection is not closed with pool close"},
             {"R_connectionNotClosedWithPoolClose", "Unexpected: ClientConnectionId is null from Pool"},
             {"R_idFromPoolNotSame", "ClientConnection Ids from pool are not the same."},
-            {"R_protocolNotSupported", "protocol version is not enabled or not supported by the client."},
-            {"R_protocolInappropriate", "No appropriate protocol"},
+            {"R_noProtocolVersion", "protocol version is not enabled or not supported by the client."},
             {"R_protocolException", "Any protocol other than TLSv1, TLSv1.1, and TLSv1.2 should throw Exception"},
             {"R_invalidProtocolLabel",
                     "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
@@ -161,7 +160,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_cancellationFailed", "Cancellation failed."}, {"R_executionNotTimeout", "Execution did not timeout."},
             {"R_executionTooLong", "Execution took too long."},
             {"R_executionNotLong", "Execution did not take long enough."},
-            {"R_queryCanceled", "The query was canceled."},
+            {"R_queryCancelled", "The query was canceled."},
             {"R_statementShouldBeClosed", "statement should be closed since resultset is closed."},
             {"R_statementShouldBeOpened", "statement should be opened since resultset is opened."},
             {"R_shouldBeWrapper", "{0} should be a wrapper for {1}."},
@@ -196,10 +195,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_socketClosed", "Socket closed"}, {"R_aeStreamReadError", "The multi-part identifier"},
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."},
             {"R_maxResultBufferExceeded", "MaxResultBuffer exceeded {0}."},
-            {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"},
-            {"R_AKVProviderNull", "The Azure key store provider is null."},
-            {"R_objectNullOrEmpty", "The {0} is null or empty."},
-            {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
-            {"R_connectTimedOut", "connect timed out"},
-            {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"}};
+            {"R_databaseNotFound", "Database {0} not found."}};
 }
