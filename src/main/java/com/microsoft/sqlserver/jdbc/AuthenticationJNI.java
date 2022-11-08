@@ -82,9 +82,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL, String servicePrincipalName,
             String clientConnectionId, String clientId, long expirationFileTime) throws DLLException {
-        FedAuthDllInfo dllInfo = ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName,
-                clientConnectionId, clientId, expirationFileTime, authLogger);
-        return dllInfo;
+        return ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId,
+                expirationFileTime, authLogger);
     }
 
     // InitDNSName should be called to initialize the DNSName before calling this function

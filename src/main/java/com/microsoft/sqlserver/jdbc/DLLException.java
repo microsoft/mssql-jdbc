@@ -44,19 +44,19 @@ class DLLException extends Exception {
         this.param3 = param3;
     }
 
-    int GetCategory() {
+    int getCategory() {
         return this.category;
     }
 
-    int GetStatus() {
+    int getStatus() {
         return this.status;
     }
 
-    int GetState() {
+    int getState() {
         return this.state;
     }
 
-    int GetErrCode() {
+    int getErrCode() {
         return this.errCode;
     }
 

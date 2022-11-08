@@ -166,6 +166,7 @@ enum SSType {
         this.jdbcType = jdbcType;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -321,6 +322,7 @@ enum StreamType {
         this.name = name;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -425,6 +427,7 @@ enum JavaType {
 
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
+        @Override
         JDBCType getJDBCType(SSType ssType, JDBCType jdbcTypeFromApp) {
             JDBCType jdbcType;
 
@@ -530,10 +533,9 @@ enum JavaType {
             for (JavaType javaType : VALUES)
                 // if JVM version is prior to Java 8, the javaClass variable can be
                 // null if the java type is introduced in Java 8
-                if (null != javaType.javaClass) {
-                    if (javaType.javaClass.isInstance(obj))
-                        return javaType;
-                }
+                if (null != javaType.javaClass && javaType.javaClass.isInstance(obj))
+                    return javaType;
+
         }
 
         return JavaType.OBJECT;

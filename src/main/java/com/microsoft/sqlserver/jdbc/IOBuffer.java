@@ -862,6 +862,7 @@ final class TDSChannel implements Serializable {
             }
         }
 
+        @Override
         public long skip(long n) throws IOException {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Skipping " + n + " bytes...");
@@ -886,6 +887,7 @@ final class TDSChannel implements Serializable {
 
         private final byte oneByte[] = new byte[1];
 
+        @Override
         public int read() throws IOException {
             int bytesRead;
 
@@ -895,10 +897,12 @@ final class TDSChannel implements Serializable {
             return 1 == bytesRead ? oneByte[0] : -1;
         }
 
+        @Override
         public int read(byte[] b) throws IOException {
             return readInternal(b, 0, b.length);
         }
 
+        @Override
         public int read(byte b[], int offset, int maxBytes) throws IOException {
             return readInternal(b, offset, maxBytes);
         }
@@ -940,6 +944,7 @@ final class TDSChannel implements Serializable {
             this.logContext = tdsChannel.toString() + " (SSLHandshakeOutputStream):";
         }
 
+        @Override
         public void flush() throws IOException {
             // It seems that the security provider implementation in some JVMs
             // (notably SunJSSE in the 6.0 JVM) likes to add spurious calls to
@@ -968,15 +973,18 @@ final class TDSChannel implements Serializable {
 
         private final byte singleByte[] = new byte[1];
 
+        @Override
         public void write(int b) throws IOException {
             singleByte[0] = (byte) (b & 0xFF);
             writeInternal(singleByte, 0, singleByte.length);
         }
 
+        @Override
         public void write(byte[] b) throws IOException {
             writeInternal(b, 0, b.length);
         }
 
+        @Override
         public void write(byte[] b, int off, int len) throws IOException {
             writeInternal(b, off, len);
         }
@@ -1052,7 +1060,7 @@ final class TDSChannel implements Serializable {
                 }
 
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(toString() + "poll() - read() returned " + b);
+                    logger.finest(super.toString() + "poll() - read() returned " + b);
                 }
 
                 if (b == -1) // end-of-stream
@@ -1088,13 +1096,14 @@ final class TDSChannel implements Serializable {
             return result;
         }
 
+        @Override
         public long skip(long n) throws IOException {
             lock.lock();
             try {
                 long bytesSkipped = 0;
 
                 if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Skipping " + n + " bytes");
+                    logger.finest(super.toString() + " Skipping " + n + " bytes");
 
                 while (cachedLength > 0 && bytesSkipped < n) {
                     bytesSkipped++;
@@ -1106,7 +1115,7 @@ final class TDSChannel implements Serializable {
                 }
 
                 if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Skipped " + n + " bytes");
+                    logger.finest(super.toString() + " Skipped " + n + " bytes");
 
                 return bytesSkipped;
             } finally {
@@ -1114,17 +1123,19 @@ final class TDSChannel implements Serializable {
             }
         }
 
+        @Override
         public int available() throws IOException {
             int bytesAvailable = filteredStream.available() + cachedLength;
 
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " " + bytesAvailable + " bytes available");
+                logger.finest(super.toString() + " " + bytesAvailable + " bytes available");
 
             return bytesAvailable;
         }
 
         private final byte oneByte[] = new byte[1];
 
+        @Override
         public int read() throws IOException {
             int bytesRead;
 
@@ -1134,10 +1145,12 @@ final class TDSChannel implements Serializable {
             return 1 == bytesRead ? oneByte[0] : -1;
         }
 
+        @Override
         public int read(byte[] b) throws IOException {
             return readInternal(b, 0, b.length);
         }
 
+        @Override
         public int read(byte[] b, int offset, int maxBytes) throws IOException {
             return readInternal(b, offset, maxBytes);
         }
@@ -1148,7 +1161,7 @@ final class TDSChannel implements Serializable {
                 int bytesRead;
 
                 if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Reading " + maxBytes + " bytes");
+                    logger.finest(super.toString() + " Reading " + maxBytes + " bytes");
 
                 // Optimize for nothing cached
                 if (cachedLength == 0) {
@@ -1156,7 +1169,7 @@ final class TDSChannel implements Serializable {
                         bytesRead = filteredStream.read(b, offset, maxBytes);
                     } catch (IOException e) {
                         if (logger.isLoggable(Level.FINER))
-                            logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                            logger.finer(super.toString() + " Reading bytes threw exception:" + e.getMessage());
                         throw e;
                     }
                 } else {
@@ -1180,7 +1193,7 @@ final class TDSChannel implements Serializable {
                             System.arraycopy(bytesFromStream, 0, b, bytesFromCache.length, bytesReadFromStream);
                     } catch (IOException e) {
                         if (logger.isLoggable(Level.FINER))
-                            logger.finer(toString() + " " + e.getMessage());
+                            logger.finer(super.toString() + " " + e.getMessage());
 
                         logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
                         throw e;
@@ -1188,7 +1201,7 @@ final class TDSChannel implements Serializable {
                 }
 
                 if (logger.isLoggable(Level.FINEST))
-                    logger.finest(toString() + " Read " + bytesRead + " bytes");
+                    logger.finest(super.toString() + " Read " + bytesRead + " bytes");
 
                 return bytesRead;
             } finally {
@@ -1196,18 +1209,20 @@ final class TDSChannel implements Serializable {
             }
         }
 
+        @Override
         public boolean markSupported() {
             boolean markSupported = filteredStream.markSupported();
 
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Returning markSupported: " + markSupported);
+                logger.finest(super.toString() + " Returning markSupported: " + markSupported);
 
             return markSupported;
         }
 
+        @Override
         public void mark(int readLimit) {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Marking next " + readLimit + " bytes");
+                logger.finest(super.toString() + " Marking next " + readLimit + " bytes");
 
             lock.lock();
             try {
@@ -1217,9 +1232,10 @@ final class TDSChannel implements Serializable {
             }
         }
 
+        @Override
         public void reset() throws IOException {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Resetting to previous mark");
+                logger.finest(super.toString() + " Resetting to previous mark");
 
             lock.lock();
             try {
@@ -1230,9 +1246,10 @@ final class TDSChannel implements Serializable {
             }
         }
 
+        @Override
         public void close() throws IOException {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Closing");
+                logger.finest(super.toString() + " Closing");
 
             filteredStream.close();
         }
@@ -1255,38 +1272,43 @@ final class TDSChannel implements Serializable {
             filteredStream = os;
         }
 
+        @Override
         public void close() throws IOException {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Closing");
+                logger.finest(super.toString() + " Closing");
 
             filteredStream.close();
         }
 
+        @Override
         public void flush() throws IOException {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Flushing");
+                logger.finest(super.toString() + " Flushing");
 
             filteredStream.flush();
         }
 
         private final byte singleByte[] = new byte[1];
 
+        @Override
         public void write(int b) throws IOException {
             singleByte[0] = (byte) (b & 0xFF);
             writeInternal(singleByte, 0, singleByte.length);
         }
 
+        @Override
         public void write(byte[] b) throws IOException {
             writeInternal(b, 0, b.length);
         }
 
+        @Override
         public void write(byte[] b, int off, int len) throws IOException {
             writeInternal(b, off, len);
         }
 
         private void writeInternal(byte[] b, int off, int len) throws IOException {
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Writing " + len + " bytes");
+                logger.finest(super.toString() + " Writing " + len + " bytes");
 
             filteredStream.write(b, off, len);
         }
@@ -1328,6 +1350,7 @@ final class TDSChannel implements Serializable {
             proxyOutputStream.setFilteredStream(os);
         }
 
+        @Override
         public InputStream getInputStream() throws IOException {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Getting input stream");
@@ -1335,6 +1358,7 @@ final class TDSChannel implements Serializable {
             return proxyInputStream;
         }
 
+        @Override
         public OutputStream getOutputStream() throws IOException {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Getting output stream");
@@ -1343,105 +1367,130 @@ final class TDSChannel implements Serializable {
         }
 
         // Allow methods that should just forward to the underlying TCP socket or return fixed values
+        @Override
         public InetAddress getInetAddress() {
             return tdsChannel.tcpSocket.getInetAddress();
         }
 
+        @Override
         public boolean getKeepAlive() throws SocketException {
             return tdsChannel.tcpSocket.getKeepAlive();
         }
 
+        @Override
         public InetAddress getLocalAddress() {
             return tdsChannel.tcpSocket.getLocalAddress();
         }
 
+        @Override
         public int getLocalPort() {
             return tdsChannel.tcpSocket.getLocalPort();
         }
 
+        @Override
         public SocketAddress getLocalSocketAddress() {
             return tdsChannel.tcpSocket.getLocalSocketAddress();
         }
 
+        @Override
         public boolean getOOBInline() throws SocketException {
             return tdsChannel.tcpSocket.getOOBInline();
         }
 
+        @Override
         public int getPort() {
             return tdsChannel.tcpSocket.getPort();
         }
 
+        @Override
         public int getReceiveBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getReceiveBufferSize();
         }
 
+        @Override
         public SocketAddress getRemoteSocketAddress() {
             return tdsChannel.tcpSocket.getRemoteSocketAddress();
         }
 
+        @Override
         public boolean getReuseAddress() throws SocketException {
             return tdsChannel.tcpSocket.getReuseAddress();
         }
 
+        @Override
         public int getSendBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getSendBufferSize();
         }
 
+        @Override
         public int getSoLinger() throws SocketException {
             return tdsChannel.tcpSocket.getSoLinger();
         }
 
+        @Override
         public int getSoTimeout() throws SocketException {
             return tdsChannel.tcpSocket.getSoTimeout();
         }
 
+        @Override
         public boolean getTcpNoDelay() throws SocketException {
             return tdsChannel.tcpSocket.getTcpNoDelay();
         }
 
+        @Override
         public int getTrafficClass() throws SocketException {
             return tdsChannel.tcpSocket.getTrafficClass();
         }
 
+        @Override
         public boolean isBound() {
             return true;
         }
 
+        @Override
         public boolean isClosed() {
             return false;
         }
 
+        @Override
         public boolean isConnected() {
             return true;
         }
 
+        @Override
         public boolean isInputShutdown() {
             return false;
         }
 
+        @Override
         public boolean isOutputShutdown() {
             return false;
         }
 
+        @Override
         public String toString() {
             return tdsChannel.tcpSocket.toString();
         }
 
+        @Override
         public SocketChannel getChannel() {
             return null;
         }
 
         // Disallow calls to methods that would change the underlying TCP socket
+        @Override
         public void bind(SocketAddress bindPoint) throws IOException {
             logger.finer(logContext + " Disallowed call to bind.  Throwing IOException.");
             throw new IOException();
         }
 
+        @Override
         public void connect(SocketAddress endpoint) throws IOException {
             logger.finer(logContext + " Disallowed call to connect (without timeout).  Throwing IOException.");
             throw new IOException();
         }
 
+        @Override
         public void connect(SocketAddress endpoint, int timeout) throws IOException {
             logger.finer(logContext + " Disallowed call to connect (with timeout).  Throwing IOException.");
             throw new IOException();
@@ -1449,63 +1498,76 @@ final class TDSChannel implements Serializable {
 
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
+        @Override
         public void close() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(logContext + " Ignoring close");
         }
 
+        @Override
         public void setReceiveBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
         }
 
+        @Override
         public void setSendBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
         }
 
+        @Override
         public void setReuseAddress(boolean on) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setReuseAddress");
         }
 
+        @Override
         public void setSoLinger(boolean on, int linger) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setSoLinger");
         }
 
+        @Override
         public void setSoTimeout(int timeout) throws SocketException {
             tdsChannel.tcpSocket.setSoTimeout(timeout);
         }
 
+        @Override
         public void setTcpNoDelay(boolean on) throws SocketException {
             tdsChannel.tcpSocket.setTcpNoDelay(on);
         }
 
+        @Override
         public void setTrafficClass(int tc) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setTrafficClass");
         }
 
+        @Override
         public void shutdownInput() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring shutdownInput");
         }
 
+        @Override
         public void shutdownOutput() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring shutdownOutput");
         }
 
+        @Override
         public void sendUrgentData(int data) throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring sendUrgentData");
         }
 
+        @Override
         public void setKeepAlive(boolean on) throws SocketException {
             tdsChannel.tcpSocket.setKeepAlive(on);
         }
 
+        @Override
         public void setOOBInline(boolean on) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setOOBInline");
@@ -2299,7 +2361,7 @@ final class SocketFinder {
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
-    private static final int minTimeoutForParallelConnections = 1500;
+    private static final int MIN_TIMEOUT_FOR_PARRALLEL_CONNECTIONS = 1500;
 
     // lock used for synchronization while updating
     // data within a socketFinder object
@@ -2335,7 +2397,7 @@ final class SocketFinder {
     private final String traceID;
 
     // maximum number of IP Addresses supported
-    private static final int ipAddressLimit = 64;
+    private static final int IP_ADDRESS_LIMIT = 64;
 
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
@@ -2379,8 +2441,8 @@ final class SocketFinder {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
                 if (useTnir && isTnirFirstAttempt) {
-                    return getSocketByIPPreference(hostName, portNumber, SQLServerConnection.TnirFirstAttemptTimeoutMs,
-                            iPAddressPreference);
+                    return getSocketByIPPreference(hostName, portNumber,
+                            SQLServerConnection.TNIR_FIRST_ATTEMPT_TIMEOUT_MS, iPAddressPreference);
                 } else if (!useTnir) {
                     return getSocketByIPPreference(hostName, portNumber, timeoutInMilliSeconds, iPAddressPreference);
                 }
@@ -2392,7 +2454,7 @@ final class SocketFinder {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
                 inetAddrs = InetAddress.getAllByName(hostName);
 
-                if ((useTnir) && (inetAddrs.length > ipAddressLimit)) {
+                if ((useTnir) && (inetAddrs.length > IP_ADDRESS_LIMIT)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
                 }
@@ -2413,10 +2475,10 @@ final class SocketFinder {
                 logger.finer(loggingString.toString());
             }
 
-            if (inetAddrs.length > ipAddressLimit) {
+            if (inetAddrs.length > IP_ADDRESS_LIMIT) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
-                Object[] msgArgs = {Integer.toString(ipAddressLimit)};
+                Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
                 String errorStr = form.format(msgArgs);
                 // we do not want any retry to happen here. So, terminate the connection
                 // as the config is unsupported.
@@ -2427,7 +2489,7 @@ final class SocketFinder {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
-            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, minTimeoutForParallelConnections);
+            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARRALLEL_CONNECTIONS);
             if (Util.isIBM()) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
@@ -2881,11 +2943,10 @@ final class SocketFinder {
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
 
-                    boolean signaled = parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
 
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer(this.toString() + " The parent thread wokeup: "
-                                + ((signaled == true) ? "signaled or interrupted" : "time elapsed"));
+                        logger.finer(this.toString() + " The parent thread wokeup.");
                     }
 
                     timerNow = System.currentTimeMillis();
