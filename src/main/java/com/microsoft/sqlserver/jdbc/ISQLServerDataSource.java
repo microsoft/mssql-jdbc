@@ -101,23 +101,47 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getLastUpdateCount();
 
     /**
-     * Sets a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @param encrypt
-     *        true if the Secure Sockets Layer (SSL) encryption is enabled between the client and the SQL Server.
-     *        Otherwise, false.
+     * @param encryptOption
+     *        TLS encrypt option. Default is "true"
      */
-    void setEncrypt(boolean encrypt);
+    void setEncrypt(String encryptOption);
 
     /**
-     * Returns a Boolean value that indicates if the encrypt property is enabled.
+     * Sets the option whether TLS encryption is used.
      * 
-     * @return true if encrypt is enabled. Otherwise, false.
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
+     * @param encryptOption
+     *        TLS encrypt option. Default is true
      */
-    boolean getEncrypt();
+    @Deprecated
+    void setEncrypt(boolean encryptOption);
 
     /**
-     * Sets the value to enable/disable Transparent Netowrk IP Resolution (TNIR). Beginning in version 6.0 of the
+     * Returns the TLS encryption option.
+     * 
+     * @return the TLS encrypt option
+     */
+    String getEncrypt();
+
+    /**
+     * Returns the path to the server certificate.
+     *
+     * @return serverCertificate property value
+     */
+    String getServerCertificate();
+
+    /**
+     * Sets the connection property 'serverCertificate' on the connection.
+     *
+     * @param cert
+     *        The path to the server certificate.
+     */
+    void setServerCertificate(String cert);
+
+    /**
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
      * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
      * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
      * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address
@@ -143,18 +167,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
      * @param e
      *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
-     *        communication layer is encrypted using SSL. Otherwise, false.
+     *        communication layer is encrypted using SSL. false, if server SLL certificate should not be trusted
+     *        certificate location, if encrypt=strict
      */
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a Boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
      * 
-     * @return true if trustServerCertificate is enabled. Otherwise, false.
+     * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
+     *         certificate location
      */
     boolean getTrustServerCertificate();
 
@@ -285,6 +311,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getResponseBuffering();
 
     /**
+     * Sets the value to enable/disable the replication connection property.
+     * 
+     * @param replication
+     *        A Boolean value. When true, tells the server that the connection is used for replication.
+     */
+    void setReplication(boolean replication);
+
+    /**
+     * Returns the value of the replication connection property.
+     * 
+     * @return true if the connection is to be used for replication. Otherwise false.
+     */
+    boolean getReplication();
+
+    /**
      * Sets the value to enable/disable the sendTimeAsDatetime connection property.
      * 
      * @param sendTimeAsDatetime
@@ -346,6 +387,22 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return A String that contains the server name or null if no value is set.
      */
     String getServerName();
+
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *         A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
 
     /**
      * Sets the name of the failover server that is used in a database mirroring configuration.
@@ -489,6 +546,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return the authentication value
      */
     String getAuthentication();
+
+    /**
+     * Sets the realm for Kerberos authentication.
+     * 
+     * @param realm
+     *        A String that contains the realm
+     */
+    void setRealm(String realm);
+
+    /**
+     * Returns the realm for Kerberos authentication.
+     * 
+     * @return A String that contains the realm
+     */
+    String getRealm();
 
     /**
      * Sets the server spn.
@@ -716,17 +788,40 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
+     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
+     * 
      * @param configurationName
      *        the configuration name
      */
+    @Deprecated
     void setJASSConfigurationName(String configurationName);
+
+    /**
+     * Returns the login configuration file for Kerberos authentication.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     * 
+     * @return login configuration file name
+     */
+    @Deprecated
+    String getJASSConfigurationName();
+
+    /**
+     * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
+     * SQLJDBCDriver </i>
+     * 
+     * 
+     * @param configurationName
+     *        the configuration name
+     */
+    void setJAASConfigurationName(String configurationName);
 
     /**
      * Returns the login configuration file for Kerberos authentication.
      * 
      * @return login configuration file name
      */
-    String getJASSConfigurationName();
+    String getJAASConfigurationName();
 
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
@@ -837,18 +932,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * This method is deprecated. Use {@link ISQLServerDataSource#setUser(String user)} instead.
+     *
+     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
-     * @param msiClientId
-     *        Client ID of User Assigned Managed Identity
+     * @param managedIdentityClientId
+     *        Client ID of the user-assigned Managed Identity.
      */
-    void setMSIClientId(String msiClientId);
+    @Deprecated
+    void setMSIClientId(String managedIdentityClientId);
 
     /**
+     * This method is deprecated. Use {@link ISQLServerDataSource#getUser()} instead.
+     *
      * Returns the value for the connection property 'msiClientId'.
      * 
      * @return msiClientId property value
      */
+    @Deprecated
     String getMSIClientId();
 
     /**
@@ -1006,9 +1107,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      */
     boolean getDelayLoadingLobs();
 
-    /*
+    /**
      * Returns the current flag for value sendTemporalDataTypesAsStringForBulkCopy
-     * 
+     *
      * @return 'sendTemporalDataTypesAsStringForBulkCopy' property value.
      */
     boolean getSendTemporalDataTypesAsStringForBulkCopy();
@@ -1023,33 +1124,33 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value for the connection property 'AADSecurePrincipalId'.
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
      *
      * @return 'AADSecurePrincipalId' property value.
      */
+    @Deprecated
     String getAADSecurePrincipalId();
 
     /**
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      * @param AADSecurePrincipalId
      *        Active Directory Service Principal Id.
      */
+    @Deprecated
     void setAADSecurePrincipalId(String AADSecurePrincipalId);
-
-    /**
-     * Returns the value for the connection property 'AADSecurePrincipalSecret'.
-     *
-     * @return 'AADSecurePrincipalSecret' property value.
-     */
-    String getAADSecurePrincipalSecret();
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
-     *
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      * @param AADSecurePrincipalSecret
      *        Active Directory Service Principal secret.
      */
+    @Deprecated
     void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 
     /**
@@ -1060,10 +1161,89 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getMaxResultBuffer();
 
     /**
-     * Specifies value for 'maxResultBuffer' property
+     * Sets the value for 'maxResultBuffer' property
      *
      * @param maxResultBuffer
      *        String value for 'maxResultBuffer'
      */
     void setMaxResultBuffer(String maxResultBuffer);
+
+    /**
+     * Sets the maximum number of attempts to reestablish a broken connection.
+     *
+     * @param connectRetryCount
+     *        maximum number of attempts
+     */
+    void setConnectRetryCount(int connectRetryCount);
+
+    /**
+     * Returns the maximum number of attempts set to reestablish a broken connection.
+     *
+     * @return maximum number of attempts
+     */
+    int getConnectRetryCount();
+
+    /**
+     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @param connectRetryInterval
+     *        interval in seconds
+     */
+    void setConnectRetryInterval(int connectRetryInterval);
+
+    /**
+     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     *
+     * @return interval in seconds
+     */
+    int getConnectRetryInterval();
+
+    /**
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
+     *
+     * @param prepareMethod
+     *        Changes the setting as per description
+     */
+    void setPrepareMethod(String prepareMethod);
+
+    /**
+     * Returns the value indicating the prepare method. {@link PrepareMethod}
+     *
+     * @return prepare method
+     */
+    String getPrepareMethod();
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     *
+     * @param timeToLive
+     *        Time-to-live is no longer supported.
+     */
+    @Deprecated
+    void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     *
+     * @return Method will always return 0.
+     */
+    @Deprecated
+    int getMsiTokenCacheTtl();
+
+    /**
+     * Sets the {@link SQLServerAccessTokenCallback} delegate.
+     *
+     * @param accessTokenCallback
+     *        Access token callback delegate.
+     */
+    void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback);
+
+    /**
+     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback delegate.
+     *
+     * @return Access token callback delegate.
+     */
+    SQLServerAccessTokenCallback getAccessTokenCallback();
 }

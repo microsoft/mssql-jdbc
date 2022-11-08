@@ -7,9 +7,6 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -63,6 +60,7 @@ import microsoft.sql.DateTimeOffset;
  *
  */
 @RunWith(Parameterized.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
@@ -91,7 +89,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     javaKeyPath, new char[1]);
             String keystoreName = "keystoreName";
             jksp.setName(keystoreName);
-            assertTrue(jksp.getName().equals(keystoreName));
+            assertTrue(jksp.getName().equals(keystoreName),
+                    "JKS name: " + jksp.getName() + " keystoreName: " + keystoreName);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
@@ -110,7 +109,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 applicationClientID, applicationKey);
         String keystoreName = "keystoreName";
         akv.setName(keystoreName);
-        assertTrue(akv.getName().equals(keystoreName));
+        assertTrue(akv.getName().equals(keystoreName), "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
     }
 
     /*
@@ -127,7 +126,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")), e.getMessage());
         }
     }
 
@@ -145,7 +144,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     (SQLServerKeyVaultAuthenticationCallback) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")), e.getMessage());
         }
     }
 
@@ -163,7 +162,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     (TokenCredential) null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullValue")), e.getMessage());
         }
     }
 
@@ -188,7 +187,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.encryptColumnEncryptionKey(null, null, null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")), e.getMessage());
         }
 
         // empty cek
@@ -197,7 +196,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.encryptColumnEncryptionKey(javaKeyPath, Constants.CEK_ALGORITHM, emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyColumnEncryptionKey")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyColumnEncryptionKey")), e.getMessage());
         }
     }
 
@@ -218,7 +217,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")), e.getMessage());
         }
 
         // empty encryptedColumnEncryptionKey
@@ -227,7 +226,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")), e.getMessage());
         }
     }
 
@@ -252,7 +251,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.decryptColumnEncryptionKey(null, null, null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidMasterKeyDetails")), e.getMessage());
         }
 
         // bad keystore
@@ -261,7 +260,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.decryptColumnEncryptionKey("keypath", "algorithm", emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_KeyStoreNotFound")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_KeyStoreNotFound")), e.getMessage());
         }
 
         try {
@@ -276,7 +275,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             jksp.decryptColumnEncryptionKey(javaKeyAliases, "RSA_OAEP", badCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidKeyStoreFile")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidKeyStoreFile")), e.getMessage());
         }
     }
 
@@ -297,7 +296,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey(null, "", null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVPathNull")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVPathNull")), e.getMessage());
         }
 
         // invalid akvpath
@@ -305,7 +304,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey("keypath", "", null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVMasterKeyPathInvalid")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVMasterKeyPathInvalid")), e.getMessage());
         }
 
         // invalid akvpath url
@@ -313,7 +312,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey("http:///^[!#$&-;=?-[]_a-", "", null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")), e.getMessage());
         }
 
         // null encryptedColumnEncryptionKey
@@ -321,7 +320,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullEncryptedColumnEncryptionKey")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullEncryptedColumnEncryptionKey")),
+                    e.getMessage());
         }
 
         // empty encryptedColumnEncryptionKey
@@ -330,7 +330,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyEncryptedColumnEncryptionKey")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyEncryptedColumnEncryptionKey")),
+                    e.getMessage());
         }
 
         // invalid algorithm
@@ -339,7 +340,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey(keyIDs[0], "invalidAlgo", badCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidKeyEncryptionAlgorithm")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidKeyEncryptionAlgorithm")),
+                    e.getMessage());
         }
 
         // bad encryptedColumnEncryptionKey
@@ -348,7 +350,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, badCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEcryptionAlgorithmVersion")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEcryptionAlgorithmVersion")),
+                    e.getMessage());
         }
     }
 
@@ -1563,7 +1566,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     + "?,?,?," + "?,?,?," + "?,?,?" + ")";
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
-                assertTrue(pmd.getParameterCount() == 48);
+                assertTrue(pmd.getParameterCount() == 48, "parameter count: " + pmd.getParameterCount());
             }
         }
     }
@@ -2273,7 +2276,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     authenticationCallback);
             String keystoreName = "keystoreName";
             akv.setName(keystoreName);
-            assertTrue(akv.getName().equals(keystoreName));
+            assertTrue(akv.getName().equals(keystoreName),
+                    "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
@@ -2293,27 +2297,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     credential);
             String keystoreName = "keystoreName";
             akv.setName(keystoreName);
-            assertTrue(akv.getName().equals(keystoreName));
-        } catch (SQLServerException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
-    /**
-     * This tests callback implemented using ADAL lib
-     */
-    @ParameterizedTest
-    @MethodSource("enclaveParams")
-    @Tag(Constants.reqExternalSetup)
-    public void testAkvNameWithAuthCallback_ADAL(String serverName, String url, String protocol) throws Exception {
-        setAEConnectionString(serverName, url, protocol);
-
-        try {
-            SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    authenticationCallback_ADAL);
-            String keystoreName = "keystoreName";
-            akv.setName(keystoreName);
-            assertTrue(akv.getName().equals(keystoreName));
+            assertTrue(akv.getName().equals(keystoreName),
+                    "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
         } catch (SQLServerException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
@@ -2338,7 +2323,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_NullColumnEncryptionKey")), e.getMessage());
         }
         // empty encryptedColumnEncryptionKey
         try {
@@ -2346,31 +2331,9 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.encryptColumnEncryptionKey(keyIDs[0], Constants.CEK_ALGORITHM, emptyCek);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_EmptyCEK")), e.getMessage());
         }
     }
-
-    /**
-     * This tests the callback implemented using the ADAL library
-     */
-    SQLServerKeyVaultAuthenticationCallback authenticationCallback_ADAL = new SQLServerKeyVaultAuthenticationCallback() {
-        // @Override
-        ExecutorService service = Executors.newFixedThreadPool(2);
-
-        public String getAccessToken(String authority, String resource, String scope) {
-
-            AuthenticationResult result = null;
-            try {
-                AuthenticationContext context = new AuthenticationContext(authority, false, service);
-                ClientCredential cred = new ClientCredential(applicationClientID, applicationKey);
-                Future<AuthenticationResult> future = context.acquireToken(resource, cred, null);
-                result = future.get();
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-            return result.getAccessToken();
-        }
-    };
 
     SQLServerKeyVaultAuthenticationCallback authenticationCallback = new SQLServerKeyVaultAuthenticationCallback() {
         @Override

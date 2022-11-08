@@ -10,7 +10,7 @@ import java.text.MessageFormat;
 
 /**
  * Provides an implementation of JDBC Interface java.sql.Savepoint. A savepoint is checkpoint to which a transaction can
- * be rolled back. Savepoints are defined relative to a connection.
+ * be rolled back. Savepoints are defined relative to a connection.F
  * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
@@ -22,8 +22,13 @@ public final class SQLServerSavepoint implements ISQLServerSavepoint {
      */
     private static final long serialVersionUID = 1857415943191289598L;
 
+    /** sName */
     private final String sName;
+
+    /** nID */
     private final int nId;
+
+    /** connection */
     private final SQLServerConnection con;
 
     /**

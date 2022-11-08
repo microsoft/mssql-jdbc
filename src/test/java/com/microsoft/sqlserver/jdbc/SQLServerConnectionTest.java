@@ -12,11 +12,15 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +31,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -48,11 +53,18 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     String randomServer = RandomUtil.getIdentifier("Server");
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
+
     /**
      * Test connection properties with SQLServerDataSource
+     * 
+     * @throws SQLServerException
      */
     @Test
-    public void testDataSource() {
+    public void testDataSource() throws SQLServerException {
         SQLServerDataSource ds = new SQLServerDataSource();
         String stringPropValue = "stringPropValue";
         boolean booleanPropValue = true;
@@ -75,6 +87,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setPortNumber(intPropValue);
         assertEquals(intPropValue, ds.getPortNumber(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setIPAddressPreference(stringPropValue);
+        assertEquals(stringPropValue, ds.getIPAddressPreference(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setURL(stringPropValue);
         assertEquals(stringPropValue, ds.getURL(), TestResource.getResource("R_valuesAreDifferent"));
@@ -117,8 +132,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseBulkCopyForBatchInsert(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setJASSConfigurationName(stringPropValue);
-        assertEquals(stringPropValue, ds.getJASSConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setJAASConfigurationName(stringPropValue);
+        assertEquals(stringPropValue, ds.getJAASConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setMSIClientId(stringPropValue);
         assertEquals(stringPropValue, ds.getMSIClientId(), TestResource.getResource("R_valuesAreDifferent"));
@@ -152,8 +167,39 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
+        // verify encrypt=true options
+        ds.setEncrypt(EncryptOption.Mandatory.toString());
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.True.toString());
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        // verify encrypt=false options
+        ds.setEncrypt(EncryptOption.Optional.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.False.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setEncrypt(EncryptOption.No.toString());
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        // verify enrypt=strict options
+        ds.setEncrypt(EncryptOption.Strict.toString());
+        assertEquals("Strict", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setEncrypt(booleanPropValue);
-        assertEquals(booleanPropValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
+        assertEquals(Boolean.toString(booleanPropValue), ds.getEncrypt(),
+                TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setServerCertificate(stringPropValue);
+        assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setPrepareMethod(stringPropValue);
+        assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -170,6 +216,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setApplicationIntent(stringPropValue);
         assertEquals(stringPropValue, ds.getApplicationIntent(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setReplication(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getReplication(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setSendTimeAsDatetime(booleanPropValue);
         assertEquals(booleanPropValue, ds.getSendTimeAsDatetime(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -185,6 +234,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setServerName(stringPropValue);
         assertEquals(stringPropValue, ds.getServerName(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setRealm(stringPropValue);
+        assertEquals(stringPropValue, ds.getRealm(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setServerSpn(stringPropValue);
         assertEquals(stringPropValue, ds.getServerSpn(), TestResource.getResource("R_valuesAreDifferent"));
@@ -265,8 +317,12 @@ public class SQLServerConnectionTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setApplicationName("User");
         ds.setURL(connectionString);
-        ds.setEncrypt(true);
-        ds.setTrustServerCertificate(true);
+        if (encrypt == null) {
+            ds.setEncrypt(Constants.TRUE);
+        }
+        if (trustServerCertificate == null) {
+            ds.setTrustServerCertificate(true);
+        }
         ds.setPacketSize(8192);
         try (Connection con = ds.getConnection()) {}
     }
@@ -297,7 +353,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     /**
      * Attach the Event listener and listen for connection events, fatal errors should not close the pooled connection
      * objects
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -585,8 +641,13 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertTrue(e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongDB"));
+            assertTrue(
+                    (e.getMessage().indexOf("ClientConnectionId") != -1)
+                            || ((isSqlAzure() || isSqlAzureDW())
+                                                                 ? e.getMessage().contains(
+                                                                         TestResource.getResource("R_connectTimedOut"))
+                                                                 : false),
+                    TestResource.getResource("R_unexpectedWrongDB") + ": " + e.getMessage());
         }
 
         // Non-existent host, ClientConnectionId should not be available in error message
@@ -595,8 +656,13 @@ public class SQLServerConnectionTest extends AbstractTest {
             conn.close();
 
         } catch (SQLException e) {
-            assertEquals(false, e.getMessage().indexOf("ClientConnectionId") != -1,
-                    TestResource.getResource("R_unexpectedWrongHost"));
+            assertTrue(
+                    (!(e.getMessage().indexOf("ClientConnectionId") != -1))
+                            || ((isSqlAzure() || isSqlAzureDW())
+                                                                 ? e.getMessage().contains(
+                                                                         TestResource.getResource("R_connectTimedOut"))
+                                                                 : false),
+                    TestResource.getResource("R_unexpectedWrongHost") + ": " + e.getMessage());
         }
     }
 
@@ -621,7 +687,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }
@@ -759,11 +825,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    static Boolean isInterrupted = false;
-
     /**
      * Test thread's interrupt status is not cleared.
-     * 
+     *
      * @throws InterruptedException
      */
     @Test
@@ -776,10 +840,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(5);
-
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {
-                    isInterrupted = Thread.currentThread().isInterrupted();
-                }
+                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
 
@@ -789,13 +850,11 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(1000);
 
         // interrupt the thread in the Runnable
-        future.cancel(true);
-
+        boolean status = future.cancel(true);
         Thread.sleep(8000);
-
         executor.shutdownNow();
 
-        assertTrue(isInterrupted, TestResource.getResource("R_threadInterruptNotSet"));
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
     /**
@@ -878,5 +937,97 @@ public class SQLServerConnectionTest extends AbstractTest {
         persistentTokenAspect.afterCacheAccess(tokenCacheAccessContext);
         persistentTokenAspect.beforeCacheAccess(tokenCacheAccessContext);
         PersistentTokenCacheAccessAspect.clearUserTokenCache();
+    }
+
+    /**
+     * test bad serverCertificate property
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testBadServerCert() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setServerCertificate("badCert");
+        ds.setEncrypt(Constants.STRICT);
+        ds.setTrustServerCertificate(false);
+
+        // test using datasource
+        try (Connection con = ds.getConnection()) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
+            // available
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+        }
+
+        // test connection string
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";encrypt=strict;trustServerCertificate=false;serverCertificate=badCert")) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
+            // available
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+        }
+    }
+
+    /**
+     * Test to make sure parameter metadata denials are handled correctly.
+     * 
+     * @throws SQLException
+     * 
+     * @throws SQLServerException
+     */
+    @Test
+    public void testParameterMetadataAccessDenial() throws SQLException {
+        try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
+            CryptoCache cache = new CryptoCache();
+            String userSql = "";
+            Map<Integer, CekTableEntry> cekList = new HashMap<>();
+            Parameter[] params = {new Parameter(false)};
+            ArrayList<String> parameterNames = new ArrayList<>(1);
+            parameterNames.add("testParameter");
+            // Both will always return false
+            try {
+                ParameterMetaDataCache.addQueryMetadata(params, parameterNames, connection, stmt, userSql);
+            } catch (SQLException e) {
+                assertEquals(TestResource.getResource("R_CryptoCacheInaccessible"), e.getMessage(),
+                        TestResource.getResource("R_wrongExceptionMessage"));
+            }
+
+            try {
+                ParameterMetaDataCache.getQueryMetadata(params, parameterNames, connection, stmt, userSql);
+            } catch (SQLException e) {
+                assertEquals(TestResource.getResource("R_CryptoCacheInaccessible"), e.getMessage(),
+                        TestResource.getResource("R_wrongExceptionMessage"));
+            }
+        }
+    }
+
+    @Test
+    public void testServerNameField() throws SQLException {
+        String subProtocol = "jdbc:sqlserver://";
+        int indexOfFirstDelimiter = connectionString.indexOf(";");
+        int indexOfLastDelimiter = connectionString.lastIndexOf(";");
+
+        String[] serverNameAndPort = connectionString.substring(subProtocol.length(), indexOfFirstDelimiter).split(":");
+        String connectionProperties = connectionString.substring(indexOfFirstDelimiter, indexOfLastDelimiter + 1);
+        String loginTimeout = "loginTimout=15";
+
+        // Server name field is empty but serverName connection property is set, should pass
+        String emptyServerNameField = subProtocol + connectionProperties + "serverName=" + serverNameAndPort[0] + ";";
+
+        // A loginTimeout connection property is passed into the server name field, should fail
+        String invalidServerNameField = subProtocol + loginTimeout + connectionProperties;
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(emptyServerNameField)) {}
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
+                .getConnection(invalidServerNameField)) {} catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
+        }
     }
 }

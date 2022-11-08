@@ -754,6 +754,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
@@ -795,7 +796,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void setupTable() throws SQLException {
+    public static void setupTable() throws Exception {
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");

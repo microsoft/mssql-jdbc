@@ -76,7 +76,9 @@ public class BulkCopyCSVTest extends AbstractTest {
      * Create connection, statement and generate path of resource file
      */
     @BeforeAll
-    public static void setUpConnection() {
+    public static void setUpConnection() throws Exception {
+        setConnection();
+
         con = new DBConnection(connectionString);
         stmt = con.createStatement();
         filePath = TestUtils.getCurrentClassPath();
@@ -192,6 +194,8 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
             }
+
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 

@@ -5,13 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.SQLException;
-import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAResource;
+import java.sql.SQLException;
+import java.util.Properties;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -24,13 +25,21 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      */
     private static final long serialVersionUID = -8154621218821899459L;
 
-    // NB These instances are not used by applications, only by the app server who is
-    // providing the connection pool and transactional processing to the application.
-    // That app server is the one who should restrict commit/rollback on the connections
-    // it issues to applications, not the driver. These instances can and must commit/rollback
-    private SQLServerXAResource XAResource;
+    /**
+     * NB These instances are not used by applications, only by the app server who is providing the connection pool and
+     * transactional processing to the application. That app server is the one who should restrict commit/rollback on
+     * the connections it issues to applications, not the driver. These instances can and must commit/rollback
+     */
+    private volatile SQLServerXAResource XAResource;
+
+    /** physical connection */
     private SQLServerConnection physicalControlConnection;
+
+    /** logger */
     private Logger xaLogger;
+
+    /** reentrant lock */
+    private final Lock lock = new ReentrantLock();
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {
         super(ds, user, pwd);
@@ -85,11 +94,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Creating an internal control connection for" + toString());
         physicalControlConnection = null;
-        if (Util.use43Wrapper()) {
-            physicalControlConnection = new SQLServerConnection43(toString());
-        } else {
-            physicalControlConnection = new SQLServerConnection(toString());
-        }
+        physicalControlConnection = DriverJDBCVersion.getSQLServerConnection(toString());
         physicalControlConnection.connect(controlConnectionProperties, null);
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer("Created an internal control connection" + physicalControlConnection.toString() + " for "
@@ -100,13 +105,23 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     }
 
     @Override
-    public synchronized XAResource getXAResource() throws java.sql.SQLException {
+    public XAResource getXAResource() throws java.sql.SQLException {
         // All connections handed out from this physical connection have a common XAResource
         // for transaction control. IE the XAResource is one to one with the physical connection.
-
-        if (XAResource == null)
-            XAResource = new SQLServerXAResource(getPhysicalConnection(), physicalControlConnection, toString());
-        return XAResource;
+        SQLServerXAResource result = XAResource;
+        if (result == null) {
+            lock.lock();
+            try {
+                result = XAResource;
+                if (result == null) {
+                    XAResource = result = new SQLServerXAResource(getPhysicalConnection(), physicalControlConnection,
+                            toString());
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        return result;
     }
 
     /**
@@ -114,7 +129,8 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      */
     @Override
     public void close() throws SQLException {
-        synchronized (this) {
+        lock.lock();
+        try {
             if (XAResource != null) {
                 XAResource.close();
                 XAResource = null;
@@ -123,6 +139,8 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
                 physicalControlConnection.close();
                 physicalControlConnection = null;
             }
+        } finally {
+            lock.unlock();
         }
         super.close();
     }

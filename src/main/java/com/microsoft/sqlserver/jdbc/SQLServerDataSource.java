@@ -32,7 +32,13 @@ public class SQLServerDataSource
             .getLogger("com.microsoft.sqlserver.jdbc.DataSource");
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc");
+
+    /** logging class name */
     final private String loggingClassName;
+
+    /**
+     * trustStorePasswordStripped flag
+     */
     private boolean trustStorePasswordStripped = false;
 
     /**
@@ -40,20 +46,29 @@ public class SQLServerDataSource
      */
     private static final long serialVersionUID = 654861379544314296L;
 
-    private Properties connectionProps; // Properties passed to
-                                        // SQLServerConnection class.
-    private String dataSourceURL; // URL for datasource.
-    private String dataSourceDescription; // Description for datasource.
-    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0); // Unique
-                                                                                // id
-                                                                                // generator
-                                                                                // for
-                                                                                // each
-                                                                                // DataSource
-                                                                                // instance
-                                                                                // (used
-                                                                                // for
-                                                                                // logging).
+    /**
+     * Properties passed to SQLServerConnection class
+     */
+    private Properties connectionProps;
+
+    /**
+     * URL for datasource
+     */
+    private String dataSourceURL;
+
+    /**
+     * Description for datasource.
+     */
+    private String dataSourceDescription;
+
+    /**
+     * Unique id generator for each DataSource instance (used for logging).
+     */
+    static private final AtomicInteger baseDataSourceID = new AtomicInteger(0);
+
+    /**
+     * trace ID
+     */
     final private String traceID;
 
     /**
@@ -61,11 +76,8 @@ public class SQLServerDataSource
      */
     public SQLServerDataSource() {
         connectionProps = new Properties();
-        int dataSourceID = nextDataSourceID();
-        String nameL = getClass().getName();
-        traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + dataSourceID;
-        loggingClassName = "com.microsoft.sqlserver.jdbc." + nameL.substring(1 + nameL.lastIndexOf('.')) + ":"
-                + dataSourceID;
+        traceID = getClass().getSimpleName() + ':' + nextDataSourceID();
+        loggingClassName = "com.microsoft.sqlserver.jdbc." + traceID;
     }
 
     String getClassNameLogging() {
@@ -161,7 +173,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the the database to connect to.
-     * 
+     *
      * @param databaseName
      *        if not set, returns the default value of null.
      */
@@ -177,7 +189,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the the SQL Server instance name to connect to.
-     * 
+     *
      * @param instanceName
      *        if not set, returns the default value of null.
      */
@@ -294,14 +306,31 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setEncrypt(boolean encrypt) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(), encrypt);
+    public void setEncrypt(String encryptOption) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(), encryptOption);
     }
 
     @Override
-    public boolean getEncrypt() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENCRYPT.toString(),
-                SQLServerDriverBooleanProperty.ENCRYPT.getDefaultValue());
+    @Deprecated
+    public void setEncrypt(boolean encryptOption) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
+                Boolean.toString(encryptOption));
+    }
+
+    @Override
+    public String getEncrypt() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
+                SQLServerDriverStringProperty.ENCRYPT.getDefaultValue());
+    }
+
+    @Override
+    public void setServerCertificate(String cert) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), cert);
+    }
+
+    @Override
+    public String getServerCertificate() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString(), null);
     }
 
     @Override
@@ -375,7 +404,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the lock timeout value.
-     * 
+     *
      * @param lockTimeout
      *        the number of milliseconds to wait before the database reports a lock timeout. The default value of -1
      *        means wait forever. If specified, this value will be the default for all statements on the connection.
@@ -394,7 +423,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the password that will be used when connecting to SQL Server.
-     * 
+     *
      * @param password
      *        Note getPassword is deliberately declared non-public for security reasons. If the password is not set,
      *        getPassword returns the default value of null.
@@ -410,7 +439,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the TCP-IP port number used when opening a socket connection to SQL Server.
-     * 
+     *
      * @param portNumber
      *        if not set, getPortNumber returns the default of 1433. Note as mentioned above, setPortNumber does not do
      *        any range checking on the port value passed in,\ invalid port numbers like 99999 can be passed in without
@@ -429,7 +458,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the default cursor type used for the result set.
-     * 
+     *
      * @param selectMethod
      *        This(non-Javadoc) @see com.microsoft.sqlserver.jdbc.ISQLServerDataSource#setSelectMethod(java.lang.String)
      *        property is useful when you are dealing with large result sets and do not want to store the whole result
@@ -472,6 +501,17 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setReplication(boolean replication) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(), replication);
+    }
+
+    @Override
+    public boolean getReplication() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.REPLICATION.toString(),
+                SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue());
+    }
+
+    @Override
     public void setSendTimeAsDatetime(boolean sendTimeAsDatetime) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 sendTimeAsDatetime);
@@ -508,7 +548,7 @@ public class SQLServerDataSource
 
     /**
      * Sets whether string parameters are sent to the server in UNICODE format.
-     * 
+     *
      * @param sendStringParametersAsUnicode
      *        if true (default), string parameters are sent to the server in UNICODE format. if false, string parameters
      *        are sent to the server in the native TDS collation format of the database, not in UNICODE. if set, returns
@@ -541,7 +581,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the host name of the target SQL Server.
-     * 
+     *
      * @param serverName
      *        if not set, returns the default value of null is returned.
      */
@@ -556,9 +596,46 @@ public class SQLServerDataSource
     }
 
     /**
+     * Set the preferred type of IP Address
+     * 
+     * @param iPAddressPreference
+     *        Preferred IP Address type
+     */
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                iPAddressPreference);
+    }
+
+    /**
+     * Gets the preferred type of IP Address
+     */
+    @Override
+    public String getIPAddressPreference() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString(),
+                SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.getDefaultValue());
+    }
+
+    /**
+     * Sets the realm for Kerberos authentication.
+     *
+     * @param realm
+     *        realm
+     */
+    @Override
+    public void setRealm(String realm) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), realm);
+    }
+
+    @Override
+    public String getRealm() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.REALM.toString(), null);
+    }
+
+    /**
      * Sets the Service Principal Name (SPN) of the target SQL Server.
      * https://msdn.microsoft.com/en-us/library/cc280459.aspx
-     * 
+     *
      * @param serverSpn
      *        service principal name
      */
@@ -574,7 +651,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the fail over partner of the target SQL Server.
-     * 
+     *
      * @param serverName
      *        if not set, returns the default value of null.
      */
@@ -602,7 +679,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the user name that will be used when connecting to SQL Server.
-     * 
+     *
      * @param user
      *        if not set, returns the default value of null.
      */
@@ -618,7 +695,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the name of the client machine (or client workstation).
-     * 
+     *
      * @param workstationID
      *        host name of the client. if not set, the default value is constructed by calling
      *        InetAddress.getLocalHost().getHostName() or if getHostName() returns blank then
@@ -645,7 +722,7 @@ public class SQLServerDataSource
 
     /**
      * Sets whether the driver will convert SQL states to XOPEN compliant states.
-     * 
+     *
      * @param xopenStates
      *        if true, the driver will convert SQL states to XOPEN compliant states. The default is false which causes
      *        the driver to generate SQL 99 state codes. If not set, getXopenStates returns the default value of false.
@@ -733,7 +810,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the datasource URL.
-     * 
+     *
      * @param url
      *        The URL property is exposed for backwards compatibility reasons. Also, several Java Application servers
      *        expect a setURL function on the DataSource and set it by default (JBoss and WebLogic) Note for security
@@ -786,7 +863,7 @@ public class SQLServerDataSource
 
     /**
      * Sets the packet size.
-     * 
+     *
      * @param packetSize
      *        the size (in bytes) to use for the TCP/IP send and receive buffer. It is also the value used for the TDS
      *        packet size (SQL Server Network Packet Size). Validity of the value is checked at connect time. If no
@@ -905,22 +982,54 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 configurationName);
     }
 
     @Override
+    @Deprecated
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
     @Override
-    public void setMSIClientId(String msiClientId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
+    public void setJAASConfigurationName(String configurationName) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                configurationName);
     }
 
+    @Override
+    public String getJAASConfigurationName() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
+                SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+    }
+
+    /**
+     * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
+     *
+     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
+     *
+     * @param managedIdentityClientId
+     *        Client ID of the user-assigned Managed Identity.
+     */
+    @Deprecated
+    @Override
+    public void setMSIClientId(String managedIdentityClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
+                managedIdentityClientId);
+    }
+
+    /**
+     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
+     *
+     * Returns the value for the connection property 'msiClientId'.
+     *
+     * @return msiClientId property value
+     */
+    @Deprecated
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1019,24 +1128,21 @@ public class SQLServerDataSource
     }
 
     @Override
+    @Deprecated
     public String getAADSecurePrincipalId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
     }
 
     @Override
+    @Deprecated
     public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 AADSecurePrincipalId);
     }
 
     @Override
-    public String getAADSecurePrincipalSecret() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue());
-    }
-
-    @Override
+    @Deprecated
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                 AADSecurePrincipalSecret);
@@ -1067,9 +1173,84 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(), maxResultBuffer);
     }
 
+    @Override
+    public void setConnectRetryCount(int count) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(), count);
+    }
+
+    @Override
+    public int getConnectRetryCount() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue());
+    }
+
+    @Override
+    public void setConnectRetryInterval(int interval) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(), interval);
+    }
+
+    @Override
+    public int getConnectRetryInterval() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
+                SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
+    }
+
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.PREPARE_METHOD.toString(), prepareMethod);
+    }
+
+    @Override
+    public String getPrepareMethod() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
+                SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
+    }
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) {}
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public int getMsiTokenCacheTtl() {
+        return 0;
+    }
+
+    /**
+     * Sets the {@link SQLServerAccessTokenCallback} delegate.
+     *
+     * @param accessTokenCallback
+     *        Access token callback delegate.
+     */
+    @Override
+    public void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback) {
+        setObjectProperty(connectionProps, SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                accessTokenCallback);
+    }
+
+    /**
+     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback delegate.
+     *
+     * @return Access token callback delegate.
+     */
+    @Override
+    public SQLServerAccessTokenCallback getAccessTokenCallback() {
+        return (SQLServerAccessTokenCallback) getObjectProperty(connectionProps,
+                SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue());
+    }
+
     /**
      * Sets a property string value.
-     * 
+     *
      * @param props
      * @param propKey
      * @param propValue
@@ -1089,7 +1270,7 @@ public class SQLServerDataSource
 
     /**
      * Returns a property value in String format.
-     * 
+     *
      * @param props
      * @param propKey
      * @param defaultValue
@@ -1110,7 +1291,7 @@ public class SQLServerDataSource
 
     /**
      * Sets an integer property value.
-     * 
+     *
      * @param props
      * @param propKey
      * @param propValue
@@ -1249,11 +1430,7 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
-        if (Util.use43Wrapper()) {
-            result = new SQLServerConnection43(toString());
-        } else {
-            result = new SQLServerConnection(toString());
-        }
+        result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " End create new connection " + result.toString());
@@ -1314,7 +1491,7 @@ public class SQLServerDataSource
 
     /**
      * Initializes the datasource from properties found inside the reference
-     * 
+     *
      * @param ref
      *        Called by SQLServerDataSourceObjectFactory to initialize new DataSource instance.
      */
@@ -1370,19 +1547,33 @@ public class SQLServerDataSource
         return baseDataSourceID.incrementAndGet();
     }
 
+    /**
+     * writeReplace
+     *
+     * @return serialization proxy
+     * @throws java.io.ObjectStreamException
+     *         if error
+     */
     private Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializationProxy(this);
     }
 
+    /**
+     * For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource is to use a
+     * SerializationProxy. Direct use of readObject() is not supported.
+     *
+     * @param stream
+     *        input stream object
+     * @throws java.io.InvalidObjectException
+     *         if error
+     */
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        // For added security/robustness, the only way to rehydrate a serialized
-        // SQLServerDataSource
-        // is to use a SerializationProxy. Direct use of readObject() is not
-        // supported.
         throw new java.io.InvalidObjectException("");
     }
 
-    // This code is duplicated in pooled and XA datasource classes.
+    /**
+     * This code is duplicated in pooled and XA datasource classes.
+     */
     private static class SerializationProxy implements java.io.Serializable {
         private final Reference ref;
         private static final long serialVersionUID = 654661379542314226L;

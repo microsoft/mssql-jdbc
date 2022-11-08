@@ -53,7 +53,9 @@ public class DatabaseMetaDataForeignKeyTest extends AbstractTest {
     private static String catalog = null;
 
     @BeforeAll
-    public static void setupVariation() throws SQLException {
+    public static void setupVariation() throws Exception {
+        setConnection();
+
         cleanup();
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {

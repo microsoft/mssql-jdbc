@@ -32,26 +32,38 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = 1546487135640225989L;
-    /*
+
+    /**
      * Resources associated with reading in the file
      */
+    /** file reader */
     private BufferedReader fileReader;
+
+    /** input stream reader */
     private InputStreamReader sr;
+
+    /** file input stream */
     private FileInputStream fis;
 
-    /*
+    /**
      * Current line of data to parse.
      */
     private String currentLine = null;
 
-    /*
+    /**
      * Delimiter to parse lines with.
      */
     private final String delimiter;
 
+    /**
+     * Escape delimiters
+     */
     private boolean escapeDelimiters;
 
-    // Regex to ignore delimiter when the field is enclosed in quotes.
+    /**
+     * Regex to ignore delimiter when the field is enclosed in quotes.
+     * 
+     */
     private static final String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
@@ -63,11 +75,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Constructs a simple reader to parse data from a delimited file with the given encoding.
      * 
      * @param fileToParse
-     *        File to parse data from
+     *        File to parse data from.
      * @param encoding
      *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *        Delimiter to used to separate each column
+     *        Delimiter to used to separate each column. Regex characters must be escaped with double backslashes.
      * @param firstLineIsColumnNames
      *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
@@ -116,7 +128,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * @param encoding
      *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *        Delimiter to used to separate each column
+     *        Delimiter to used to separate each column. Regex characters must be escaped with double backslashes.
      * @param firstLineIsColumnNames
      *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException

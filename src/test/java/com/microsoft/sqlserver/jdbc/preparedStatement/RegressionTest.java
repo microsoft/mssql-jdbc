@@ -5,9 +5,11 @@
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +53,9 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @BeforeAll
-    public static void setupTest() throws SQLException {
+    public static void setupTest() throws Exception {
+        setConnection();
+
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
         }
@@ -95,7 +100,7 @@ public class RegressionTest extends AbstractTest {
     }
 
     /**
-     * Test creating and dropping tabel with preparedStatement
+     * Test creating and dropping table with preparedStatement
      * 
      * @throws SQLException
      */
@@ -361,6 +366,111 @@ public class RegressionTest extends AbstractTest {
                 fail(e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that batch is cleared properly on failure.
+     * 
+     * @throws Exception
+     *         when an exception occurs
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void batchClearedOnError() throws Exception {
+        batchClearedOnErrorInternal("BatchInsert");
+    }
+
+    /**
+     * Tests that batch is cleared properly on failure, after using BulkCopy.
+     * 
+     * @throws Exception
+     *         when an exception occurs
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void batchClearedOnErrorUseBulkCopyAPI() throws Exception {
+        batchClearedOnErrorInternal("BulkCopy");
+    }
+
+    private void batchClearedOnErrorInternal(String mode) throws Exception {
+        try (SQLServerConnection con = getConnection()) {
+            if (mode.equalsIgnoreCase("bulkcopy")) {
+                modifyConnectionForBulkCopyAPI(con);
+            }
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+
+                con.setAutoCommit(false);
+
+                // create a table with two columns
+                try {
+                    stmt.execute("create table " + AbstractSQLGenerator.escapeIdentifier(tableName2)
+                            + " ( ID int, DATA nvarchar(max), primary key (ID) );");
+                } catch (SQLException e) {
+                    fail(TestResource.getResource("R_createDropTableFailed") + e.getMessage());
+                }
+
+                con.commit();
+
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName2) + " values (?,?)")) {
+                    // First batch should succeed
+                    // 0,a
+                    pstmt.setInt(1, 0);
+                    pstmt.setNString(2, "a");
+                    pstmt.addBatch();
+
+                    // 1,b
+                    pstmt.setInt(1, 1);
+                    pstmt.setNString(2, "b");
+                    pstmt.addBatch();
+
+                    pstmt.executeBatch();
+
+                    // Second batch should fail due to duplicate primary key
+                    // 1,c
+                    pstmt.setInt(1, 1);
+                    pstmt.setNString(2, "c");
+                    pstmt.addBatch();
+
+                    // 2,d
+                    pstmt.setInt(1, 2);
+                    pstmt.setNString(2, "d");
+                    pstmt.addBatch();
+
+                    try {
+                        pstmt.executeBatch();
+                    } catch (BatchUpdateException e) {
+                        int[] numFails = e.getUpdateCounts();
+                        // JDBC spec allows either updateCounts to stop before
+                        // the first error, or to be the same length as the
+                        // batch but with EXECUTE_FAILED for the failing items
+                        assertTrue(numFails == null || numFails.length == 0
+                                || IntStream.of(numFails).filter(i -> i == Statement.EXECUTE_FAILED).count() == 1);
+                    }
+
+                    // Third batch should succeed - this is the key test for
+                    // https://github.com/microsoft/mssql-jdbc/issues/1767
+                    // third batch used to fail in "bulk copy" mode
+                    // 3,e
+                    pstmt.setInt(1, 3);
+                    pstmt.setNString(2, "e");
+                    pstmt.addBatch();
+
+                    // 4,f
+                    pstmt.setInt(1, 4);
+                    pstmt.setNString(2, "f");
+                    pstmt.addBatch();
+
+                    pstmt.executeBatch();
+
+                    con.commit();
+
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                }
             }
         }
     }

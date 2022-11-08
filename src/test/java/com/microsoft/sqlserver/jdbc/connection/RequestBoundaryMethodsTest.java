@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -45,6 +46,11 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class RequestBoundaryMethodsTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("RequestBoundaryTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     /**
      * Tests Request Boundary methods with SQLServerConnection properties that are modifiable through public APIs.
@@ -488,7 +494,13 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("createArrayOf");
         verifiedMethodNames.add("setUseFmtOnly");
         verifiedMethodNames.add("setDelayLoadingLobs");
-
+        verifiedMethodNames.add("registerColumnEncryptionKeyStoreProvidersOnConnection");
+        verifiedMethodNames.add("getPrepareMethod");
+        verifiedMethodNames.add("setPrepareMethod");
+        verifiedMethodNames.add("getIPAddressPreference");
+        verifiedMethodNames.add("setIPAddressPreference");
+        verifiedMethodNames.add("getMsiTokenCacheTtl");
+        verifiedMethodNames.add("setMsiTokenCacheTtl");
         return verifiedMethodNames;
     }
 }

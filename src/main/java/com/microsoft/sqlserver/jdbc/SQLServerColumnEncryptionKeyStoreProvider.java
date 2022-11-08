@@ -5,13 +5,21 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.time.Duration;
+
+
 /**
  * 
- * Defines the abtract class for a SQL Server Column Encryption key store provider Extend this class to implement a
+ * Defines the abstract class for a SQL Server Column Encryption key store provider Extend this class to implement a
  * custom key store provider.
  *
  */
 public abstract class SQLServerColumnEncryptionKeyStoreProvider {
+
+    /**
+     * default constructor
+     */
+    public SQLServerColumnEncryptionKeyStoreProvider() {}
 
     /**
      * Sets the name of this key store provider.
@@ -72,9 +80,27 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
      * @param signature
      *        signature of the column master key metadata
      * @return
-     *        whether the signature is valid for the column master key
+     *         whether the signature is valid for the column master key
      * @throws SQLServerException
-     *      when an error occurs while verifying the signature
+     *         when an error occurs while verifying the signature
      */
-    public abstract boolean verifyColumnMasterKeyMetadata (String masterKeyPath, boolean allowEnclaveComputations, byte[] signature) throws SQLServerException;
+    public abstract boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
+            byte[] signature) throws SQLServerException;
+
+    /**
+     * Returns the time-to-live for items in the cache of column encryption keys, as implemented in the key store provider.
+     * 
+     * @return the time-to-live for items in the cache.
+     */
+    public Duration getColumnEncryptionKeyCacheTtl() {
+        return Duration.ZERO;
+    }
+
+    /**
+     * Sets the the time-to-live for items in the cache of column encryption keys in the key store provider.
+     * 
+     * @param duration
+     *        value to be set for the time-to-live for items in the cache in the key store provider.
+     */
+    public void setColumnEncryptionCacheTtl(Duration duration) {}
 }

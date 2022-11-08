@@ -16,6 +16,7 @@ public final class Constants {
      * <pre>
      * xJDBC42 - - - - - - For tests not compatible with JDBC 42 Specifications
      * xGradle - - - - - - For tests not compatible with Gradle Script (e.g. Manifest File)
+     * xSQLv11 - - - - - - For tests not compatible with SQL Server 2012
      * xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014
      * xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017
      * xSQLv15 - - - - - - For tests not compatible with SQL Server 2019
@@ -30,6 +31,7 @@ public final class Constants {
      */
     public static final String xJDBC42 = "xJDBC42";
     public static final String xGradle = "xGradle";
+    public static final String xSQLv11 = "xSQLv11";
     public static final String xSQLv12 = "xSQLv12";
     public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
@@ -98,6 +100,7 @@ public final class Constants {
     public static final String AZURE_KEY_VAULT_NAME = "AZURE_KEY_VAULT";
     public static final String JAVA_KEY_STORE_NAME = "MSSQL_JAVA_KEYSTORE";
     public static final String CUSTOM_KEYSTORE_NAME = "CUSTOM_KEYSTORE";
+    public static final String DUMMY_KEYSTORE_NAME = "DUMMY_PROVIDER";
     public static final String JAVA_KEY_STORE_FILENAME = "JavaKeyStore.txt";
     public static final String JAVA_KEY_STORE_SECRET = "JavaKeyStorePassword";
     public static final String JKS = "JKS";
@@ -114,6 +117,11 @@ public final class Constants {
     public static final String CEK_ALGORITHM = "RSA_OAEP";
     public static final String CEK_STRING = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     public static final String CEK_ENCRYPTED_VALUE = "0x016E000001630075007200720065006E00740075007300650072002F006D0079002F006100320032003600650031003800310034003300350063003300370065003800660035003500330035003500660066006100340037003400340062003600330035003600610031006200650035003500A83E74C244AD62ED7D83FDEAED3923B4D843BBB8FDE1ECFEE11DB5275144BC936FD3485D157B4921A6CF12EEEAD52F6BAB5822383C7101508523C51858A1487FD10173CD945159418B70DD9FF432D28B453146FA72F90CFA90810B0E905C95FD99D1CA4009BA3D56C783853751EA74482C53C49667C62DD588452473FFECA835B5233B1BDACD4C461560635204DF8EE674C0A3AD63E4C63D787B6602B0902306DC145354C05B7DD74EDED34D5DE4F05379851E36612C9D3BA3B8551BC558FCF7F705711D22AD4C7CD99931662B73DD647B1B3C1FB109A5850919EFB75774F64ECBEBD7808A0D69FBE124906CDD39B7552B03712FDF9B46399766E79B6BFCBBC75267496B257E40BA05CDB4E294C7353A2FCEA7C0983BF5E1599B71B2C975A682D29CDC9CEEEFE8E11676004C6F1217FB7726451A708A7C1F6CADEB00D2D81110771DEB9050B244B20DC787C58FBD07F2B4AE7467422249A4134D63E09BE26ED165EB1393F313B1877399C803B61E1860F5D8223054DD1F07835492C3AEFA48FDF71F123D7DE430DD1EA69D82B91B85176BF46306FC3D68CC43497A9D625584213BEF754FB0E8D64201FEA74DAE37E3D3BF6D58D1A7CA9502173C192E038DD7CEB5A16A7982044538021AE7B96A94B9941AF87AE879032F783108729EB366114DFCF7A68B440F26D752BEAE6433E90F857C13EAB1CCE1EC42D9897893488E4182";
+
+    // Encrypt Options
+    public static final String FALSE = "FALSE";
+    public static final String TRUE = "TRUE";
+    public static final String STRICT = "STRICT";
 
     // Start: Connection Properties parsed in AbstractTest class for creating DataSource.
     public static final String INTEGRATED_SECURITY = "INTEGRATEDSECURITY";
@@ -147,7 +155,6 @@ public final class Constants {
     public static final String ENCLAVE_ATTESTATIONURL = "enclaveAttestationUrl";
     public static final String ENCLAVE_ATTESTATIONPROTOCOL = "enclaveAttestationProtocol";
 
-    // for MSI
     public static final String MSICLIENTID = "MSICLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTID = "KEYVAULTPROVIDERCLIENTID";
     public static final String KEYVAULTPROVIDER_CLIENTKEY = "KEYVAULTPROVIDERCLIENTKEY";
@@ -159,8 +166,13 @@ public final class Constants {
     public static final String CLIENT_KEY = "CLIENTKEY";
     public static final String AAD_SECURE_PRINCIPAL_ID = "AADSECUREPRINCIPALID";
     public static final String AAD_SECURE_PRINCIPAL_SECRET = "AADSECUREPRINCIPALSECRET";
+
+    public static final String CONNECT_RETRY_COUNT = "CONNECTRETRYCOUNT";
+    public static final String CONNECT_RETRY_INTERVAL = "CONNECTRETRYINTERVAL";
+
     public static final String CLIENT_KEY_PASSWORD = "CLIENTKEYPASSWORD";
     public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
+    public static final String PREPARE_METHOD = "PREPAREMETHOD";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
 
     public enum LOB {

@@ -5,13 +5,18 @@
 
 package com.microsoft.sqlserver.jdbc.connection;
 
+import java.sql.Connection;
+
 import javax.sql.XAConnection;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -20,7 +25,12 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.reqExternalSetup)
 public class XADataSourceTest extends AbstractTest {
-    private static String connectionUrlSSL = connectionString + ";encrypt=true;trustServerCertificate=false;";
+    private static String connectionUrlSSL = connectionString;
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     /**
      * Tests XA connection with PKCS12 truststore that is password protected.

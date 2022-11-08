@@ -1,283 +1,312 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
+/**
+ * This code is extracted from org.bouncycastle.crypto.digests.MD4Digest and modified to remove dependencies.
+ */
 package mssql.security.provider;
 
-/**
- * This code originates from sun.security.provider.MD4.java. It is modified to remove dependencies to DigestBase,
- * Provider, ByteArrayAccess.
- */
+public class MD4 {
+    private final byte[] xBuf = new byte[4];
+    private int xBufOff;
+    private long byteCount;
+    private static final int DIGEST_LENGTH = 16;
+    private int H1, H2, H3, H4; // IV's
+    private int[] X = new int[16];
+    private int xOff;
 
-/*
- * Copyright (c) 2005, 2016, Oracle and/or its affiliates. All rights reserved. ORACLE PROPRIETARY/CONFIDENTIAL. Use is
- * subject to license terms.
- */
+    /**
+     * Standard constructor
+     */
+    public MD4() {
+        reset();
+    }
 
-/**
- * The MD4 class is used to compute an MD4 message digest over a given buffer of bytes. It is an implementation of the
- * RSA Data Security Inc MD4 algorithm as described in Internet RFC 1320.
- *
- * <p>
- * The MD4 algorithm is very weak and should not be used unless it is unavoidable. Therefore, it is not registered in
- * our standard providers. To obtain an implementation, call the static getInstance() method in this class.
- *
- * @author Andreas Sterbenz
- */
-public final class MD4 {
+    /**
+     * Copy constructor. This will copy the state of the provided message digest.
+     */
+    public MD4(MD4 t) {
+        System.arraycopy(t.xBuf, 0, xBuf, 0, t.xBuf.length);
 
-    // state of this object
-    private final int[] state;
+        xBufOff = t.xBufOff;
+        byteCount = t.byteCount;
 
-    // temporary buffer, used by implCompress()
-    private final int[] x;
+        copyIn(t);
+    }
 
-    // rotation constants
+    private void copyIn(MD4 t) {
+        System.arraycopy(t.xBuf, 0, xBuf, 0, t.xBuf.length);
+
+        xBufOff = t.xBufOff;
+        byteCount = t.byteCount;
+
+        H1 = t.H1;
+        H2 = t.H2;
+        H3 = t.H3;
+        H4 = t.H4;
+
+        System.arraycopy(t.X, 0, X, 0, t.X.length);
+        xOff = t.xOff;
+    }
+
+    public String getAlgorithmName() {
+        return "MD4";
+    }
+
+    public int getDigestSize() {
+        return DIGEST_LENGTH;
+    }
+
+    protected void processWord(byte[] in, int inOff) {
+        X[xOff++] = (in[inOff] & 0xff) | ((in[inOff + 1] & 0xff) << 8) | ((in[inOff + 2] & 0xff) << 16)
+                | ((in[inOff + 3] & 0xff) << 24);
+
+        if (xOff == 16) {
+            processBlock();
+        }
+    }
+
+    protected void processLength(long bitLength) {
+        if (xOff > 14) {
+            processBlock();
+        }
+
+        X[14] = (int) (bitLength & 0xffffffff);
+        X[15] = (int) (bitLength >>> 32);
+    }
+
+    private void unpackWord(int word, byte[] out, int outOff) {
+        out[outOff] = (byte) word;
+        out[outOff + 1] = (byte) (word >>> 8);
+        out[outOff + 2] = (byte) (word >>> 16);
+        out[outOff + 3] = (byte) (word >>> 24);
+    }
+
+    public void update(byte in) {
+        xBuf[xBufOff++] = in;
+
+        if (xBufOff == xBuf.length) {
+            processWord(xBuf, 0);
+            xBufOff = 0;
+        }
+
+        byteCount++;
+    }
+
+    public void update(byte[] in, int inOff, int len) {
+        len = Math.max(0, len);
+
+        //
+        // fill the current word
+        //
+        int i = 0;
+        if (xBufOff != 0) {
+            while (i < len) {
+                xBuf[xBufOff++] = in[inOff + i++];
+                if (xBufOff == 4) {
+                    processWord(xBuf, 0);
+                    xBufOff = 0;
+                    break;
+                }
+            }
+        }
+
+        //
+        // process whole words.
+        //
+        int limit = ((len - i) & ~3) + i;
+        for (; i < limit; i += 4) {
+            processWord(in, inOff + i);
+        }
+
+        //
+        // load in the remainder.
+        //
+        while (i < len) {
+            xBuf[xBufOff++] = in[inOff + i++];
+        }
+
+        byteCount += len;
+    }
+
+    public void finish() {
+        long bitLength = (byteCount << 3);
+
+        //
+        // add the pad bytes.
+        //
+        update((byte) 128);
+
+        while (xBufOff != 0) {
+            update((byte) 0);
+        }
+
+        processLength(bitLength);
+
+        processBlock();
+    }
+
+    public int doFinal(byte[] out, int outOff) {
+        finish();
+
+        unpackWord(H1, out, outOff);
+        unpackWord(H2, out, outOff + 4);
+        unpackWord(H3, out, outOff + 8);
+        unpackWord(H4, out, outOff + 12);
+
+        reset();
+
+        return DIGEST_LENGTH;
+    }
+
+    /**
+     * reset the chaining variables to the IV values.
+     */
+    public void reset() {
+        byteCount = 0;
+
+        xBufOff = 0;
+        for (int i = 0; i < xBuf.length; i++) {
+            xBuf[i] = 0;
+        }
+
+        H1 = 0x67452301;
+        H2 = 0xefcdab89;
+        H3 = 0x98badcfe;
+        H4 = 0x10325476;
+
+        xOff = 0;
+
+        for (int i = 0; i != X.length; i++) {
+            X[i] = 0;
+        }
+    }
+
+    //
+    // round 1 left rotates
+    //
     private static final int S11 = 3;
     private static final int S12 = 7;
     private static final int S13 = 11;
     private static final int S14 = 19;
+
+    //
+    // round 2 left rotates
+    //
     private static final int S21 = 3;
     private static final int S22 = 5;
     private static final int S23 = 9;
     private static final int S24 = 13;
+
+    //
+    // round 3 left rotates
+    //
     private static final int S31 = 3;
     private static final int S32 = 9;
     private static final int S33 = 11;
     private static final int S34 = 15;
 
-    // size of the input to the compression function in bytes
-    private static final int blockSize = 64;
-
-    // buffer to store partial blocks, blockSize bytes large
-    private final byte[] buffer = new byte[blockSize];
-    // offset into buffer
-    private int bufOfs;
-
-    // number of bytes processed so far.
-    // also used as a flag to indicate reset status
-    // -1: need to call engineReset() before next call to update()
-    // 0: is already reset
-    private long bytesProcessed;
-
-    private static final byte[] padding;
-
-    static {
-        padding = new byte[136];
-        padding[0] = (byte) 0x80;
-    }
-
-    // Standard constructor, creates a new MD4 instance.
-    public MD4() {
-        state = new int[4];
-        x = new int[16];
-        implReset();
-    }
-
-    /**
-     * Resets the digest for further use
+    /*
+     * rotate int x left n bits.
      */
-    public void reset() {
-        implReset();
+    private int rotateLeft(int x, int n) {
+        return (x << n) | (x >>> (32 - n));
     }
 
-    /**
-     * Updates the digest using the specified array of bytes
+    /*
+     * F, G, H and I are the basic MD4 functions.
      */
-    public void update(byte[] input) {
-        engineUpdate(input, 0, input.length);
+    private int F(int u, int v, int w) {
+        return (u & v) | (~u & w);
     }
 
-    /**
-     * Completes the hash computation by performing final operations such as padding.
-     */
-    public byte[] digest() {
-        byte[] out = new byte[16];
-        implDigest(out, 0);
-        return out;
+    private int G(int u, int v, int w) {
+        return (u & v) | (u & w) | (v & w);
     }
 
-    /**
-     * Reset the state of this object.
-     */
-    private void implReset() {
-        // Load magic initialization constants.
-        state[0] = 0x67452301;
-        state[1] = 0xefcdab89;
-        state[2] = 0x98badcfe;
-        state[3] = 0x10325476;
-        bufOfs = 0;
-        bytesProcessed = 0;
+    private int H(int u, int v, int w) {
+        return u ^ v ^ w;
     }
 
-    /**
-     * Perform the final computations, any buffered bytes are added to the digest, the count is added to the digest, and
-     * the resulting digest is stored.
-     */
-    private void implDigest(byte[] out, int ofs) {
-        long bitsProcessed = bytesProcessed << 3;
+    protected void processBlock() {
+        int a = H1;
+        int b = H2;
+        int c = H3;
+        int d = H4;
 
-        int index = (int) bytesProcessed & 0x3f;
-        int padLen = (index < 56) ? (56 - index) : (120 - index);
-        engineUpdate(padding, 0, padLen);
+        //
+        // Round 1 - F cycle, 16 times.
+        //
+        a = rotateLeft(a + F(b, c, d) + X[0], S11);
+        d = rotateLeft(d + F(a, b, c) + X[1], S12);
+        c = rotateLeft(c + F(d, a, b) + X[2], S13);
+        b = rotateLeft(b + F(c, d, a) + X[3], S14);
+        a = rotateLeft(a + F(b, c, d) + X[4], S11);
+        d = rotateLeft(d + F(a, b, c) + X[5], S12);
+        c = rotateLeft(c + F(d, a, b) + X[6], S13);
+        b = rotateLeft(b + F(c, d, a) + X[7], S14);
+        a = rotateLeft(a + F(b, c, d) + X[8], S11);
+        d = rotateLeft(d + F(a, b, c) + X[9], S12);
+        c = rotateLeft(c + F(d, a, b) + X[10], S13);
+        b = rotateLeft(b + F(c, d, a) + X[11], S14);
+        a = rotateLeft(a + F(b, c, d) + X[12], S11);
+        d = rotateLeft(d + F(a, b, c) + X[13], S12);
+        c = rotateLeft(c + F(d, a, b) + X[14], S13);
+        b = rotateLeft(b + F(c, d, a) + X[15], S14);
 
-        /**
-         * the following replaces:
-         * 
-         * <pre>
-         * i2bLittle4((int) bitsProcessed, buffer, 56);
-         * i2bLittle4((int) (bitsProcessed >>> 32), buffer, 60);
-         * i2bLittle(state, 0, out, ofs, 16);
-         * </pre>
-         */
-        buffer[56] = (byte) bitsProcessed;
-        buffer[57] = (byte) (bitsProcessed >> 8);
-        buffer[58] = (byte) (bitsProcessed >> 16);
-        buffer[59] = (byte) (bitsProcessed >> 24);
+        //
+        // Round 2 - G cycle, 16 times.
+        //
+        a = rotateLeft(a + G(b, c, d) + X[0] + 0x5a827999, S21);
+        d = rotateLeft(d + G(a, b, c) + X[4] + 0x5a827999, S22);
+        c = rotateLeft(c + G(d, a, b) + X[8] + 0x5a827999, S23);
+        b = rotateLeft(b + G(c, d, a) + X[12] + 0x5a827999, S24);
+        a = rotateLeft(a + G(b, c, d) + X[1] + 0x5a827999, S21);
+        d = rotateLeft(d + G(a, b, c) + X[5] + 0x5a827999, S22);
+        c = rotateLeft(c + G(d, a, b) + X[9] + 0x5a827999, S23);
+        b = rotateLeft(b + G(c, d, a) + X[13] + 0x5a827999, S24);
+        a = rotateLeft(a + G(b, c, d) + X[2] + 0x5a827999, S21);
+        d = rotateLeft(d + G(a, b, c) + X[6] + 0x5a827999, S22);
+        c = rotateLeft(c + G(d, a, b) + X[10] + 0x5a827999, S23);
+        b = rotateLeft(b + G(c, d, a) + X[14] + 0x5a827999, S24);
+        a = rotateLeft(a + G(b, c, d) + X[3] + 0x5a827999, S21);
+        d = rotateLeft(d + G(a, b, c) + X[7] + 0x5a827999, S22);
+        c = rotateLeft(c + G(d, a, b) + X[11] + 0x5a827999, S23);
+        b = rotateLeft(b + G(c, d, a) + X[15] + 0x5a827999, S24);
 
-        buffer[60] = (byte) (bitsProcessed >> 32);
-        buffer[61] = (byte) (bitsProcessed >> 40);
-        buffer[62] = (byte) (bitsProcessed >> 48);
-        buffer[63] = (byte) (bitsProcessed >> 56);
-        implCompress(buffer, 0);
+        //
+        // Round 3 - H cycle, 16 times.
+        //
+        a = rotateLeft(a + H(b, c, d) + X[0] + 0x6ed9eba1, S31);
+        d = rotateLeft(d + H(a, b, c) + X[8] + 0x6ed9eba1, S32);
+        c = rotateLeft(c + H(d, a, b) + X[4] + 0x6ed9eba1, S33);
+        b = rotateLeft(b + H(c, d, a) + X[12] + 0x6ed9eba1, S34);
+        a = rotateLeft(a + H(b, c, d) + X[2] + 0x6ed9eba1, S31);
+        d = rotateLeft(d + H(a, b, c) + X[10] + 0x6ed9eba1, S32);
+        c = rotateLeft(c + H(d, a, b) + X[6] + 0x6ed9eba1, S33);
+        b = rotateLeft(b + H(c, d, a) + X[14] + 0x6ed9eba1, S34);
+        a = rotateLeft(a + H(b, c, d) + X[1] + 0x6ed9eba1, S31);
+        d = rotateLeft(d + H(a, b, c) + X[9] + 0x6ed9eba1, S32);
+        c = rotateLeft(c + H(d, a, b) + X[5] + 0x6ed9eba1, S33);
+        b = rotateLeft(b + H(c, d, a) + X[13] + 0x6ed9eba1, S34);
+        a = rotateLeft(a + H(b, c, d) + X[3] + 0x6ed9eba1, S31);
+        d = rotateLeft(d + H(a, b, c) + X[11] + 0x6ed9eba1, S32);
+        c = rotateLeft(c + H(d, a, b) + X[7] + 0x6ed9eba1, S33);
+        b = rotateLeft(b + H(c, d, a) + X[15] + 0x6ed9eba1, S34);
 
-        for (int i = 0; i < state.length; i++) {
-            int x = state[i];
-            out[ofs++] = (byte) x;
-            out[ofs++] = (byte) (x >> 8);
-            out[ofs++] = (byte) (x >> 16);
-            out[ofs++] = (byte) (x >> 24);
+        H1 += a;
+        H2 += b;
+        H3 += c;
+        H4 += d;
+
+        //
+        // reset the offset and clean out the word buffer.
+        //
+        xOff = 0;
+        for (int i = 0; i != X.length; i++) {
+            X[i] = 0;
         }
-    }
-
-    private void engineUpdate(byte[] b, int ofs, int len) {
-        if (len == 0) {
-            return;
-        }
-        if ((ofs < 0) || (len < 0) || (ofs > b.length - len)) {
-            throw new ArrayIndexOutOfBoundsException();
-        }
-        if (bytesProcessed < 0) {
-            implReset();
-        }
-        bytesProcessed += len;
-        // if buffer is not empty, we need to fill it before proceeding
-        if (bufOfs != 0) {
-            int n = Math.min(len, blockSize - bufOfs);
-            System.arraycopy(b, ofs, buffer, bufOfs, n);
-            bufOfs += n;
-            ofs += n;
-            len -= n;
-            if (bufOfs >= blockSize) {
-                // compress completed block now
-                implCompress(buffer, 0);
-                bufOfs = 0;
-            }
-        }
-        // compress complete blocks
-        while (len >= blockSize) {
-            implCompress(b, ofs);
-            len -= blockSize;
-            ofs += blockSize;
-        }
-        // copy remainder to buffer
-        if (len > 0) {
-            System.arraycopy(b, ofs, buffer, 0, len);
-            bufOfs = len;
-        }
-    }
-
-    private static int FF(int a, int b, int c, int d, int x, int s) {
-        a += ((b & c) | ((~b) & d)) + x;
-        return ((a << s) | (a >>> (32 - s)));
-    }
-
-    private static int GG(int a, int b, int c, int d, int x, int s) {
-        a += ((b & c) | (b & d) | (c & d)) + x + 0x5a827999;
-        return ((a << s) | (a >>> (32 - s)));
-    }
-
-    private static int HH(int a, int b, int c, int d, int x, int s) {
-        a += ((b ^ c) ^ d) + x + 0x6ed9eba1;
-        return ((a << s) | (a >>> (32 - s)));
-    }
-
-    /**
-     * This is where the functions come together as the generic MD4 transformation operation. It consumes 64 bytes from
-     * the buffer, beginning at the specified offset.
-     */
-    private void implCompress(byte[] buf, int ofs) {
-        /**
-         * the following replaces:
-         * 
-         * <pre>
-         * b2iLittle64(buf, ofs, x);
-         * </pre>
-         */
-        for (int xfs = 0; xfs < x.length; xfs++) {
-            x[xfs] = (buf[ofs] & 0xff) | ((buf[ofs + 1] & 0xff) << 8) | ((buf[ofs + 2] & 0xff) << 16)
-                    | ((buf[ofs + 3] & 0xff) << 24);
-            ofs += 4;
-        }
-
-        int a = state[0];
-        int b = state[1];
-        int c = state[2];
-        int d = state[3];
-
-        /* Round 1 */
-        a = FF(a, b, c, d, x[0], S11); /* 1 */
-        d = FF(d, a, b, c, x[1], S12); /* 2 */
-        c = FF(c, d, a, b, x[2], S13); /* 3 */
-        b = FF(b, c, d, a, x[3], S14); /* 4 */
-        a = FF(a, b, c, d, x[4], S11); /* 5 */
-        d = FF(d, a, b, c, x[5], S12); /* 6 */
-        c = FF(c, d, a, b, x[6], S13); /* 7 */
-        b = FF(b, c, d, a, x[7], S14); /* 8 */
-        a = FF(a, b, c, d, x[8], S11); /* 9 */
-        d = FF(d, a, b, c, x[9], S12); /* 10 */
-        c = FF(c, d, a, b, x[10], S13); /* 11 */
-        b = FF(b, c, d, a, x[11], S14); /* 12 */
-        a = FF(a, b, c, d, x[12], S11); /* 13 */
-        d = FF(d, a, b, c, x[13], S12); /* 14 */
-        c = FF(c, d, a, b, x[14], S13); /* 15 */
-        b = FF(b, c, d, a, x[15], S14); /* 16 */
-
-        /* Round 2 */
-        a = GG(a, b, c, d, x[0], S21); /* 17 */
-        d = GG(d, a, b, c, x[4], S22); /* 18 */
-        c = GG(c, d, a, b, x[8], S23); /* 19 */
-        b = GG(b, c, d, a, x[12], S24); /* 20 */
-        a = GG(a, b, c, d, x[1], S21); /* 21 */
-        d = GG(d, a, b, c, x[5], S22); /* 22 */
-        c = GG(c, d, a, b, x[9], S23); /* 23 */
-        b = GG(b, c, d, a, x[13], S24); /* 24 */
-        a = GG(a, b, c, d, x[2], S21); /* 25 */
-        d = GG(d, a, b, c, x[6], S22); /* 26 */
-        c = GG(c, d, a, b, x[10], S23); /* 27 */
-        b = GG(b, c, d, a, x[14], S24); /* 28 */
-        a = GG(a, b, c, d, x[3], S21); /* 29 */
-        d = GG(d, a, b, c, x[7], S22); /* 30 */
-        c = GG(c, d, a, b, x[11], S23); /* 31 */
-        b = GG(b, c, d, a, x[15], S24); /* 32 */
-
-        /* Round 3 */
-        a = HH(a, b, c, d, x[0], S31); /* 33 */
-        d = HH(d, a, b, c, x[8], S32); /* 34 */
-        c = HH(c, d, a, b, x[4], S33); /* 35 */
-        b = HH(b, c, d, a, x[12], S34); /* 36 */
-        a = HH(a, b, c, d, x[2], S31); /* 37 */
-        d = HH(d, a, b, c, x[10], S32); /* 38 */
-        c = HH(c, d, a, b, x[6], S33); /* 39 */
-        b = HH(b, c, d, a, x[14], S34); /* 40 */
-        a = HH(a, b, c, d, x[1], S31); /* 41 */
-        d = HH(d, a, b, c, x[9], S32); /* 42 */
-        c = HH(c, d, a, b, x[5], S33); /* 43 */
-        b = HH(b, c, d, a, x[13], S34); /* 44 */
-        a = HH(a, b, c, d, x[3], S31); /* 45 */
-        d = HH(d, a, b, c, x[11], S32); /* 46 */
-        c = HH(c, d, a, b, x[7], S33); /* 47 */
-        b = HH(b, c, d, a, x[15], S34); /* 48 */
-
-        state[0] += a;
-        state[1] += b;
-        state[2] += c;
-        state[3] += d;
     }
 }

@@ -5,7 +5,15 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketOption;
 import java.sql.BatchUpdateException;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import jdk.net.ExtendedSocketOptions;
 
 
 /**
@@ -20,13 +28,51 @@ final class DriverJDBCVersion {
     static final int major = 4;
     static final int minor = 3;
 
-    static final void checkSupportsJDBC43() {
-        return;
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
+
+    static final boolean checkSupportsJDBC43() {
+        return true;
     }
 
     static final void throwBatchUpdateException(SQLServerException lastError,
             long[] updateCounts) throws BatchUpdateException {
         throw new BatchUpdateException(lastError.getMessage(), lastError.getSQLState(), lastError.getErrorCode(),
                 updateCounts, new Throwable(lastError.getMessage()));
+    }
+
+    private static double jvmVersion = Double.parseDouble(Util.SYSTEM_SPEC_VERSION);
+
+    static SQLServerConnection getSQLServerConnection(String parentInfo) throws SQLServerException {
+        return jvmVersion >= 9 ? new SQLServerConnection43(parentInfo) : new SQLServerConnection(parentInfo);
+    }
+
+    /** Client process ID sent during login */
+    private static int pid = 0;
+
+    static {
+        long pidLong = 0;
+        try {
+            pidLong = ProcessHandle.current().pid();
+        } catch (NoClassDefFoundError e) { // ProcessHandle is Java 9+
+        }
+        pid = (pidLong > Integer.MAX_VALUE) ? 0 : (int) pidLong;
+    }
+
+    static int getProcessId() {
+        return pid;
+    }
+
+    static void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+        Set<SocketOption<?>> options = tcpSocket.supportedOptions();
+        if (options.contains(ExtendedSocketOptions.TCP_KEEPIDLE)
+                && options.contains(ExtendedSocketOptions.TCP_KEEPINTERVAL)) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+            }
+            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, 30); // 30 seconds
+            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, 1); // 1 second
+        } else if (logger.isLoggable(Level.FINER)) {
+            logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+        }
     }
 }

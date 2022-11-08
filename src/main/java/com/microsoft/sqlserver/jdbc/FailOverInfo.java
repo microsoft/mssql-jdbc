@@ -5,8 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 
@@ -15,12 +16,12 @@ import java.util.logging.Level;
  * to keep a lock in the class through a connection open a placeholder class is used to get the failover info in one
  * shot. This class should never directly expose its members.
  */
-
 final class FailoverInfo {
     private String failoverPartner;
     private int portNumber;
     private String failoverInstance;
     private boolean setUpInfocalled;
+    private final Lock lock = new ReentrantLock();
 
     // This member is exposed outside for reading, we need to know in advance if the
     // failover partner is the currently active server before making a DNS resolution and a connect attempt.
@@ -82,75 +83,37 @@ final class FailoverInfo {
         setUpInfocalled = true;
     }
 
-    synchronized ServerPortPlaceHolder failoverPermissionCheck(SQLServerConnection con,
-            boolean link) throws SQLServerException {
-        setupInfo(con);
-        return new ServerPortPlaceHolder(failoverPartner, portNumber, failoverInstance, link);
+    ServerPortPlaceHolder failoverPermissionCheck(SQLServerConnection con, boolean link) throws SQLServerException {
+        lock.lock();
+        try {
+            setupInfo(con);
+            return new ServerPortPlaceHolder(failoverPartner, portNumber, failoverInstance, link);
+        } finally {
+            lock.unlock();
+        }
     }
 
     // Add/replace the failover server,
-    synchronized void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner,
-            String actualFailoverPartner) throws SQLServerException {
-        if (useFailoverPartner != actualUseFailoverPartner) {
-            if (connection.getConnectionLogger().isLoggable(Level.FINE))
-                connection.getConnectionLogger()
-                        .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
-            useFailoverPartner = actualUseFailoverPartner;
+    void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner, String actualFailoverPartner) {
+        lock.lock();
+        try {
+            if (useFailoverPartner != actualUseFailoverPartner) {
+                if (connection.getConnectionLogger().isLoggable(Level.FINE))
+                    connection.getConnectionLogger()
+                            .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
+                useFailoverPartner = actualUseFailoverPartner;
+            }
+            // The checking for actualUseFailoverPartner may look weird but this is required
+            // We only change the failoverpartner info when we connect to the primary
+            // if we connect to the secondary and it sends a failover partner
+            // we wont store that information.
+            if (!actualUseFailoverPartner && !failoverPartner.equals(actualFailoverPartner)) {
+                failoverPartner = actualFailoverPartner;
+                // new FO partner need to setup again.
+                setUpInfocalled = false;
+            }
+        } finally {
+            lock.unlock();
         }
-        // The checking for actualUseFailoverPartner may look weird but this is required
-        // We only change the failoverpartner info when we connect to the primary
-        // if we connect to the secondary and it sends a failover partner
-        // we wont store that information.
-        if (!actualUseFailoverPartner && !failoverPartner.equals(actualFailoverPartner)) {
-            failoverPartner = actualFailoverPartner;
-            // new FO partner need to setup again.
-            setUpInfocalled = false;
-        }
-    }
-}
-
-
-// A simple readonly placeholder class to store the current server info.
-// We need this class so during a connection open we can keep a copy of the current failover info stable
-// This is also used to keep the standalone primary server connection information.
-//
-final class ServerPortPlaceHolder implements Serializable {
-    /**
-     * Always update serialVersionUID when prompted.
-     */
-    private static final long serialVersionUID = 7393779415545731523L;
-
-    private final String serverName;
-    private final int port;
-    private final String instanceName;
-    private final boolean checkLink;
-    private final SQLServerConnectionSecurityManager securityManager;
-
-    ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
-        serverName = name;
-        port = conPort;
-        instanceName = instance;
-        checkLink = fLink;
-        securityManager = new SQLServerConnectionSecurityManager(serverName, port);
-        doSecurityCheck();
-    }
-
-    // accessors
-    int getPortNumber() {
-        return port;
-    }
-
-    String getServerName() {
-        return serverName;
-    }
-
-    String getInstanceName() {
-        return instanceName;
-    }
-
-    void doSecurityCheck() {
-        securityManager.checkConnect();
-        if (checkLink)
-            securityManager.checkLink();
     }
 }

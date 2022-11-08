@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -22,16 +23,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
-
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
+
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -41,8 +43,14 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest {
 
-    final String tableName = RandomUtil.getIdentifier("#update1");
-    final String tableName2 = RandomUtil.getIdentifier("#update2");
+    final String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
+    final String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
+    final String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
@@ -59,6 +67,73 @@ public class PreparedStatementTest extends AbstractTest {
                 returnValue = result.getInt(1);
 
             return returnValue;
+        }
+    }
+
+    @Test
+    public void testSpPrepareConfigurationConnectionPropValues() throws SQLException {
+        String connectionStringPrepare = connectionString + ";prepareMethod=prepare;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringPrepare)) {
+            assertEquals("prepare", conn.getPrepareMethod());
+        }
+
+        try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
+            assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithSpPrepare() throws SQLException {
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName3)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("prepare"); // Use sp_prepare rather than sp_prepexec
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName3)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test");
+                ps.setInt(2, 0);
+                ps.executeUpdate();
+                ps.executeUpdate(); // Takes sp_prepare path
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementPoolEvictionWithSpPrepare() throws SQLException {
+        int cacheSize = 3;
+        int discardStatementCount = 3;
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+
+            con.setPrepareMethod("prepare"); // Use sp_prepare rather than sp_prepexec
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(discardStatementCount);
+
+            String query = "select 1 --";
+
+            for (int i = 0; i < cacheSize; i++) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + i)) {
+                    pstmt.execute(); // sp_executesql
+                    pstmt.execute(); // sp_prepare and sp_execute, handle created and cached
+                }
+                // No handles in discard queue
+                assertSame(0, con.getDiscardedServerPreparedStatementCount());
+            }
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement(query + cacheSize)) {
+                pstmt.execute(); // sp_executesql
+                pstmt.execute(); // sp_prepare and sp_execute, handle created and cached
+            }
+            // Handle should be discarded
+            assertSame(1, con.getDiscardedServerPreparedStatementCount());
         }
     }
 

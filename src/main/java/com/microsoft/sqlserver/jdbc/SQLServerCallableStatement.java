@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
-
 public class SQLServerCallableStatement extends SQLServerPreparedStatement implements ISQLServerCallableStatement {
 
     /**
@@ -52,6 +51,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** the call param names */
     private HashMap<String, Integer> parameterNames;
+
+    /** insensitive param names */
     private TreeMap<String, Integer> insensitiveParameterNames;
 
     /** Number of registered OUT parameters */
@@ -59,10 +60,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** number of out params assigned already */
     int nOutParamsAssigned = 0;
+
     /** The index of the out params indexed - internal index */
     private int outParamIndex = -1;
 
-    // The last out param accessed.
+    /** The last out param accessed. */
     private Parameter lastParamAccessed;
 
     /** Currently active Stream Note only one stream can be active at a time */
@@ -73,7 +75,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return "SQLServerCallableStatement";
     }
 
+    /** map */
     Map<String, Integer> map = new ConcurrentHashMap<>();
+
+    /** atomic integer */
     AtomicInteger ai = new AtomicInteger(0);
 
     /**
@@ -250,6 +255,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // If this is a non-final batch-terminating DONE token,
                 // then stop parsing the response now and set up for
@@ -431,11 +437,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, null, resultsReader(), this);
     }
 
     private Object getValue(int parameterIndex, JDBCType jdbcType, Calendar cal) throws SQLServerException {
-        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader());
+        return getterGetParam(parameterIndex).getValue(jdbcType, null, cal, resultsReader(), this);
     }
 
     private Object getStream(int parameterIndex, StreamType streamType) throws SQLServerException {
@@ -443,7 +449,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(), this);
 
         activeStream = (Closeable) value;
         return value;
@@ -454,7 +460,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader());
+                resultsReader(), this);
 
         if (null != value)
             activeStream = value.getStream();
@@ -1342,13 +1348,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         }
 
-        int l = 0;
-        if (null != parameterNames) {
-            l = parameterNames.size();
-        }
-        if (l == 0) { // Server didn't return anything, user might not have access
-            map.putIfAbsent(columnName, ai.incrementAndGet());
-            return map.get(columnName);// attempting to look up the first column will return no access exception
+        // @RETURN_VALUE will always be in the parameterNames map, so parameterNamesSize will always be at least of size 1.
+        // If the server didn't return anything (eg. the param names for the sproc), user might not have access.
+        // So, parameterNamesSize must be of size 1.
+        if (null != parameterNames && parameterNames.size() == 1) {
+            return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
         }
 
         // handle `@name` as well as `name`, since `@name` is what's returned
@@ -1361,7 +1365,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // 1. Search using case-sensitive non-locale specific (binary) compare first.
         // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-        Integer matchPos = parameterNames.get(columnNameWithSign);
+        Integer matchPos = (parameterNames != null) ? parameterNames.get(columnNameWithSign) : null;
         if (null == matchPos) {
             matchPos = insensitiveParameterNames.get(columnNameWithSign);
         }

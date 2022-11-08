@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(Parameterized.class)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
@@ -43,7 +44,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
@@ -73,7 +74,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";trustservercertificate=true;columnEncryptionSetting=enabled;", AEInfo);
+                AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 

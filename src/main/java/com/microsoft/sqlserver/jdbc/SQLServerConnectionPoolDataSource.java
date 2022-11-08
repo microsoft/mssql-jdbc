@@ -20,6 +20,12 @@ import javax.sql.PooledConnection;
  * API spec connection pooling.
  */
 public class SQLServerConnectionPoolDataSource extends SQLServerDataSource implements ConnectionPoolDataSource {
+
+    /**
+     * default constructor
+     */
+    public SQLServerConnectionPoolDataSource() {}
+
     // Get a new physical connection that the pool manager will issue logical connections from
     @Override
     public PooledConnection getPooledConnection() throws SQLException {
@@ -54,13 +60,27 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
         return ref;
     }
 
+    /**
+     * writeReplace
+     * 
+     * @return serialization proxy object
+     * @throws java.io.ObjectStreamException
+     *         if error
+     */
     private Object writeReplace() throws java.io.ObjectStreamException {
         return new SerializationProxy(this);
     }
 
+    /**
+     * For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource is to use a
+     * SerializationProxy. Direct use of readObject() is not supported.
+     * 
+     * @param stream
+     *        input stream
+     * @throws java.io.InvalidObjectException
+     *         if error
+     */
     private void readObject(java.io.ObjectInputStream stream) throws java.io.InvalidObjectException {
-        // For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource
-        // is to use a SerializationProxy. Direct use of readObject() is not supported.
         throw new java.io.InvalidObjectException("");
     }
 

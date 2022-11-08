@@ -22,9 +22,11 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -68,6 +70,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         BigDecimal randomBigDecimal = new BigDecimal(ramdonNum);
         BigDecimal randomMoney = RandomData.generateMoney(false);
         BigDecimal randomSmallMoney = RandomData.generateSmallMoney(false);
+        String randomUuid = UUID.randomUUID().toString().toUpperCase();
         // Temporal datatypes
         Date randomDate = Date.valueOf(Constants.NOW.toLocalDate());
         Time randomTime = new Time(Constants.NOW.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
@@ -85,7 +88,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         cal.set(Calendar.MILLISECOND, 0);
         Timestamp smallTimestamp = new Timestamp(cal.getTimeInMillis());
 
-        Object[] expected = new Object[23];
+        Object[] expected = new Object[24];
         expected[0] = Constants.RANDOM.nextLong();
         expected[1] = randomBinary;
         expected[2] = true;
@@ -109,6 +112,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         expected[20] = randomShort;
         expected[21] = randomBinary;
         expected[22] = randomString;
+        expected[23] = randomUuid;
 
         return expected;
     }
@@ -230,7 +234,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testAllcolumns() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?," + "?" + ")";
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -264,6 +268,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setShort(21, (short) expected[20]); // tinyint
             pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
             pstmt.setString(23, (String) expected[22]); // varchar(20)
+            pstmt.setString(24, (String) expected[23]); // uniqueidentifier
 
             pstmt.addBatch();
             pstmt.executeBatch();
@@ -323,6 +328,27 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                         assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testNullGuid() throws Exception {
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c24) values (?)";
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            pstmt.setNull(1, microsoft.sql.Types.GUID);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+            
+            try (ResultSet rs = stmt.executeQuery("select c24 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                Object[] expected = new Object[1];
+                
+                expected[0] = null;
+                rs.next();
+                
+                assertEquals(expected[0], rs.getObject(1));
             }
         }
     }
@@ -500,7 +526,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     public void testAllColumnsLargeBatch() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values " + "(" + "?, "
                 + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, "
-                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?" + ")";
+                + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?, " + "?," + "?" + ")";
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -534,6 +560,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setShort(21, (short) expected[20]); // tinyint
             pstmt.setBytes(22, (byte[]) expected[21]); // varbinary(5)
             pstmt.setString(23, (String) expected[22]); // varchar(20)
+            pstmt.setString(24, (String) expected[23]); // uniqueidentifier
 
             pstmt.addBatch();
             pstmt.executeLargeBatch();
@@ -694,6 +721,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
+
     @BeforeEach
     public void testSetup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
@@ -703,7 +735,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     + "c8 datetimeoffset, " + "c9 decimal, " + "c10 float, " + "c11 int, " + "c12 money, "
                     + "c13 nchar, " + "c14 numeric, " + "c15 nvarchar(20), " + "c16 real, " + "c17 smalldatetime, "
                     + "c18 smallint, " + "c19 smallmoney, " + "c20 time, " + "c21 tinyint, " + "c22 varbinary(5), "
-                    + "c23 varchar(20) " + ")";
+                    + "c23 varchar(20), " + "c24 UNIQUEIDENTIFIER" + ")";
 
             stmt.execute(sql1);
         }

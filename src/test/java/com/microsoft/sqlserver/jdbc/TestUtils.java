@@ -75,11 +75,28 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
-    private static Boolean isAzure = null;
-    private static Boolean isAzureDW = null;
-    private static Boolean isAzureMI = null;
-
     private TestUtils() {}
+
+    /**
+     * Checks if the connection session recovery object has negotiated reflection.
+     * 
+     * @param con
+     * @return
+     */
+    public static boolean isConnectionRecoveryNegotiated(Connection con) {
+        return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
+    }
+
+    /**
+     * Checks if connection is dead.
+     * 
+     * @param con
+     * @return
+     * @throws SQLServerException
+     */
+    public static boolean isConnectionDead(Connection con) throws SQLServerException {
+        return ((SQLServerConnection) con).isConnectionDead();
+    }
 
     /**
      * Checks if connection is established to Azure server.
@@ -97,7 +114,7 @@ public final class TestUtils {
      */
     public static boolean isAzureDW(Connection con) {
         isAzure(con);
-        return isAzureDW;
+        return ((SQLServerConnection) con).isAzureDW();
     }
 
     /**
@@ -107,7 +124,7 @@ public final class TestUtils {
      */
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
-        return isAzureMI;
+        return ((SQLServerConnection) con).isAzureMI();
     }
 
     /**
@@ -117,6 +134,15 @@ public final class TestUtils {
      */
     public static boolean isAEv2(Connection con) {
         return ((SQLServerConnection) con).isAEv2();
+    }
+
+    /**
+     * Returns whether the server supports retrying a connection on failure
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#doesServerSupportEnclaveRetry()
+     */
+    public static boolean doesServerSupportEnclaveRetry(Connection con) {
+        return ((SQLServerConnection) con).doesServerSupportEnclaveRetry();
     }
 
     /**
@@ -343,6 +369,17 @@ public final class TestUtils {
     }
 
     /**
+     * Drops user defined types
+     *
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName);
+    }
+
+    /**
      * mimic "DROP DATABASE ..."
      * 
      * @param databaseName
@@ -471,6 +508,26 @@ public final class TestUtils {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 
+     * @param b
+     *        byte value
+     * @return
+     */
+    public static String byteToHexDisplayString(byte[] b) {
+        if (null == b)
+            return "(null)";
+        int hexVal;
+        StringBuilder sb = new StringBuilder(b.length * 2 + 2);
+        sb.append("0x");
+        for (byte aB : b) {
+            hexVal = aB & 0xFF;
             sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
             sb.append(HEXCHARS[(hexVal & 0x0F)]);
         }
@@ -806,7 +863,7 @@ public final class TestUtils {
      * @return regex expression.
      */
     public static String formatErrorMsg(String s) {
-        return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
+        return (".*\\Q" + TestUtils.R_BUNDLE.getString(s) + "\\E" + ".*").replaceAll("\\{+[0-9]+\\}", "\\\\E.*\\\\Q");
     }
 
     /**
@@ -834,7 +891,7 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.indexOf(property);
+        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");

@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -94,6 +95,11 @@ public class DataTypesTest extends AbstractTest {
             this.className = className;
         }
     };
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     abstract static class SQLValue {
         private final SQLType sqlType;
@@ -1794,6 +1800,7 @@ public class DataTypesTest extends AbstractTest {
      * 
      * @throws Exception
      */
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Test
     public void testGetLocalDateTimePriorGregorian() throws Exception {
