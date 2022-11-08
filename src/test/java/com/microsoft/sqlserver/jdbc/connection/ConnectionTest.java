@@ -6,12 +6,17 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Properties;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -69,4 +74,12 @@ public class ConnectionTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testDefaultProperties() throws SQLException {
+        Properties defaults = new Properties();
+        defaults.setProperty("iPAddressPreference", "IPv6First");
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString, new Properties(defaults))) {
+            assertEquals("IPv6First", con.getIPAddressPreference());
+        }
+    }
 }
