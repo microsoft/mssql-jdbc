@@ -169,26 +169,26 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         // verify encrypt=true options
         ds.setEncrypt(EncryptOption.MANDATORY.toString());
-        assertEquals("TRUE", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
         ds.setEncrypt(EncryptOption.TRUE.toString());
-        assertEquals("TRUE", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
         // verify encrypt=false options
         ds.setEncrypt(EncryptOption.OPTIONAL.toString());
-        assertEquals("FALSE", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
         ds.setEncrypt(EncryptOption.FALSE.toString());
-        assertEquals("FALSE", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
         ds.setEncrypt(EncryptOption.NO.toString());
-        assertEquals("FALSE", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
         // verify enrypt=strict options
         ds.setEncrypt(EncryptOption.STRICT.toString());
-        assertEquals("STRICT", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
+        assertEquals("Strict", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setEncrypt(booleanPropValue);

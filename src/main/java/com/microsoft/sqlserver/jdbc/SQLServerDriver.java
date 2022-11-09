@@ -61,14 +61,25 @@ final class SQLServerDriverPropertyInfo {
 
 
 enum SqlAuthentication {
-    NOT_SPECIFIED,
-    SQLPASSWORD,
-    ACTIVE_DIRECTORY_PASSWORD,
-    ACTIVE_DIRECTORY_INTEGRATED,
-    ACTIVE_DIRECTORY_MANAGED_IDENTITY,
-    ACTIVE_DIRECTORY_SERVICE_PRINCIPAL,
-    ACTIVE_DIRECTORY_INTERACTIVE,
-    DEFAULT_AZURE_CREDENTIAL;
+    NOT_SPECIFIED("NotSpecified"),
+    SQLPASSWORD("SqlPassword"),
+    ACTIVE_DIRECTORY_PASSWORD("ActiveDirectoryPassword"),
+    ACTIVE_DIRECTORY_INTEGRATED("ActiveDirectoryIntegrated"),
+    ACTIVE_DIRECTORY_MANAGED_IDENTITY("ActiveDirectoryManagedIdentity"),
+    ACTIVE_DIRECTORY_SERVICE_PRINCIPAL("ActiveDirectoryServicePrincipal"),
+    ACTIVE_DIRECTORY_INTERACTIVE("ActiveDirectoryInteractive"),
+    DEFAULT_AZURE_CREDENTIAL("DefaultAzureCredential");
+
+    private final String name;
+
+    private SqlAuthentication(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -108,8 +119,19 @@ enum SqlAuthentication {
 
 
 enum ColumnEncryptionSetting {
-    ENABLED,
-    DISABLED;
+    ENABLED("Enabled"),
+    DISABLED("Disabled");
+
+    private final String name;
+
+    private ColumnEncryptionSetting(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static ColumnEncryptionSetting valueOfString(String value) throws SQLServerException {
         ColumnEncryptionSetting method = null;
@@ -129,12 +151,23 @@ enum ColumnEncryptionSetting {
 
 
 enum EncryptOption {
-    FALSE,
-    NO,
-    OPTIONAL,
-    TRUE,
-    MANDATORY,
-    STRICT;
+    FALSE("False"),
+    NO("No"),
+    OPTIONAL("Optional"),
+    TRUE("True"),
+    MANDATORY("Mandatory"),
+    STRICT("Strict");
+
+    private final String name;
+
+    private EncryptOption(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static EncryptOption valueOfString(String value) throws SQLServerException {
         EncryptOption option = null;
@@ -302,9 +335,20 @@ enum IPAddressPreference {
 
 
 enum KeyStoreAuthentication {
-    JAVA_KEYSTORE_PASSWORD,
-    KEYVAULT_CLIENT_SECRET,
-    KEYVAULT_MANAGED_IDENTITY;
+    JAVA_KEYSTORE_PASSWORD("JavaKeyStorePasssword"),
+    KEYVAULT_CLIENT_SECRET("KeyVaultClientSecret"),
+    KEYVAULT_MANAGED_IDENTITY("KeyVaultManagedIdentity");
+
+    private final String name;
+
+    private KeyStoreAuthentication(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static KeyStoreAuthentication valueOfString(String value) throws SQLServerException {
         KeyStoreAuthentication method = null;
@@ -329,9 +373,20 @@ enum KeyStoreAuthentication {
 
 
 enum AuthenticationScheme {
-    NATIVE_AUTHENTICATION,
-    NTLM,
-    JAVA_KERBEROS;
+    NATIVE_AUTHENTICATION("nativeAuthentication"),
+    NTLM("ntlm"),
+    JAVA_KERBEROS("javaKerberos");
+
+    private final String name;
+
+    private AuthenticationScheme(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static AuthenticationScheme valueOfString(String value) throws SQLServerException {
         AuthenticationScheme scheme;
