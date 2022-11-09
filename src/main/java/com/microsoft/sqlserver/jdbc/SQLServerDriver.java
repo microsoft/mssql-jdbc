@@ -335,7 +335,7 @@ enum IPAddressPreference {
 
 
 enum KeyStoreAuthentication {
-    JAVA_KEYSTORE_PASSWORD("JavaKeyStorePasssword"),
+    JAVA_KEYSTORE_PASSWORD("JavaKeyStorePassword"),
     KEYVAULT_CLIENT_SECRET("KeyVaultClientSecret"),
     KEYVAULT_MANAGED_IDENTITY("KeyVaultManagedIdentity");
 
