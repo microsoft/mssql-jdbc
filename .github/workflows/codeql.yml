@@ -73,6 +73,7 @@ jobs:
     # - run: |
     #   echo "Run, Build Application using script"
     #   ./location_of_script_within_repo/buildscript.sh
+    - run: mvn install jre11 -Denforcer.skip -Dmaven.javadoc.skip -DskipTests -Dmaven.test.skip.exec
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
