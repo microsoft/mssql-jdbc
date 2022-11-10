@@ -533,9 +533,9 @@ enum JavaType {
             for (JavaType javaType : VALUES)
                 // if JVM version is prior to Java 8, the javaClass variable can be
                 // null if the java type is introduced in Java 8
-                if (null != javaType.javaClass && javaType.javaClass.isInstance(obj))
+                if (null != javaType.javaClass && javaType.javaClass.isInstance(obj)) {
                     return javaType;
-
+                }
         }
 
         return JavaType.OBJECT;

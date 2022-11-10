@@ -779,7 +779,7 @@ final class DDC {
 
                         // Slightly less fast path for MBCS data that converts directly/easily to ASCII
                         if (getterArgs.isAdaptive) {
-                            return AsciiFilteredUnicodeInputStream.MakeAsciiFilteredUnicodeInputStream(stream,
+                            return AsciiFilteredUnicodeInputStream.makeAsciiFilteredUnicodeInputStream(stream,
                                     new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset())));
                         } else {
                             return new ByteArrayInputStream(
@@ -1566,7 +1566,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     private final Reader containedReader;
     private final Charset asciiCharSet;
 
-    static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
+    static AsciiFilteredUnicodeInputStream makeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);

@@ -2361,7 +2361,7 @@ final class SocketFinder {
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
-    private static final int MIN_TIMEOUT_FOR_PARRALLEL_CONNECTIONS = 1500;
+    private static final int MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS = 1500;
 
     // lock used for synchronization while updating
     // data within a socketFinder object
@@ -2489,7 +2489,7 @@ final class SocketFinder {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
-            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARRALLEL_CONNECTIONS);
+            timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
             if (Util.isIBM()) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(this.toString() + "Using Java NIO with timeout:" + timeoutInMilliSeconds);
