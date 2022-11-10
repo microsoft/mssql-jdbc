@@ -531,7 +531,7 @@ final class DDC {
      * @return the required object.
      */
     static final Object convertStringToObject(String stringVal, Charset charset, JDBCType jdbcType,
-            StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
+            StreamType streamType) throws UnsupportedEncodingException {
         switch (jdbcType) {
             // Convert String to Numeric types.
             case DECIMAL:
