@@ -2676,23 +2676,23 @@ final class SocketFinder {
     }
 
     /**
-     * Helper function which traverses through list of InetAddresses to find a resolved one
+     * Finds a first resolved InetAddresses by IP version preference.
      *
-     * @param addressList
+     * @param addresses
+     *
+     * @param ipv6first
      *
      * @param hostName
      * 
      * @param portNumber
      *        Port Number
      * @return First resolved address or unresolved address if none found
-     * @throws IOException
-     * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(List<InetAddress> addressList, String hostName,
-        int portNumber) throws IOException, SQLServerException {
+    private InetSocketAddress getInetAddressByIPPreference(InetAddress addresses[], boolean ipv6first,
+                                                           String hostName, int portNumber) {
         InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
-        for (int i = 0; i < addressList.size(); i++) {
-            addr = new InetSocketAddress(addressList.get(i), portNumber);
+        for (InetAddress inetAddress : fillAddressList(addresses, ipv6first)) {
+            addr = new InetSocketAddress(inetAddress, portNumber);
             if (!addr.isUnresolved())
                 return addr;
         }
@@ -2717,31 +2717,26 @@ final class SocketFinder {
     private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
-        List<InetAddress> preferredAddresses;
         InetAddress addresses[] = InetAddress.getAllByName(hostName);
         IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
         switch (pref) {
             case IPv6First:
                 // Try to connect to first choice of IP address type
-                preferredAddresses = fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(preferredAddresses, hostName, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No unresolved addresses of preferred type, try the other
-                fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(preferredAddresses, hostName, portNumber);
+                addr = getInetAddressByIPPreference(addresses, true, hostName, portNumber);
+                if (addr.isUnresolved()) {
+                    // No resolved addresses of preferred type, try the other
+                    addr = getInetAddressByIPPreference(addresses, false, hostName, portNumber);
+                }
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
             case IPv4First:
                 // Try to connect to first choice of IP address type
-                preferredAddresses = fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(preferredAddresses, hostName, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No unresolved addresses of preferred type, try the other
-                fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(preferredAddresses, hostName, portNumber);
+                addr = getInetAddressByIPPreference(addresses, false, hostName, portNumber);
+                if (addr.isUnresolved()) {
+                    // No resolved addresses of preferred type, try the other
+                    addr = getInetAddressByIPPreference(addresses, true, hostName, portNumber);
+                }
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
