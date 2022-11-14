@@ -63,7 +63,7 @@
 
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.5.1</azure-security-keyvault-keys.version>
+		<azure-security-keyvault-keys.version>4.5.2</azure-security-keyvault-keys.version>
 		<azure-identity.version>1.7.0-beta.2</azure-identity.version>
 		<msal.version>1.13.3</msal.version>
 		<org.osgi.compendium.version>5.0.0</org.osgi.compendium.version>
