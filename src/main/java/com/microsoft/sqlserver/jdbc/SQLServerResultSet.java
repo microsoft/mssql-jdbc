@@ -323,6 +323,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 this.stmt = stmt;
             }
 
+            @Override
             boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
                 // With server-cursored result sets, the column metadata is
                 // followed by a return status and cursor-related OUT parameters
@@ -333,6 +334,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return true;
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // The first OUT parameter after the sp_cursor[prep]exec OUT parameters
                 // is the start of the application OUT parameters. Leave parsing

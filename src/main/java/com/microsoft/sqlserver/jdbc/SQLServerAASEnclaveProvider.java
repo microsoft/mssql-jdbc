@@ -124,6 +124,13 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+
+        // sp_describe_parameter_encryption stored procedure with 2 params
+        final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+
+        // sp_describe_parameter_encryption stored procedure with 3 params
+        final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
+
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.

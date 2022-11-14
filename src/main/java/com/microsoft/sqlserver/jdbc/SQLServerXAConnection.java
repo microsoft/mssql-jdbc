@@ -57,7 +57,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         // Add password property for NTLM as physical connection had previously removed. This will be removed again
         String auth = controlConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString());
-        if (null != auth && AuthenticationScheme.ntlm == AuthenticationScheme.valueOfString(auth)) {
+        if (null != auth && AuthenticationScheme.NTLM == AuthenticationScheme.valueOfString(auth)) {
             controlConnectionProperties.setProperty(SQLServerDriverStringProperty.PASSWORD.toString(), pwd);
         }
 

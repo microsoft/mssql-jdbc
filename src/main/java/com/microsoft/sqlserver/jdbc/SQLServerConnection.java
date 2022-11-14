@@ -135,9 +135,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** discardedPreparedStatementHandle count */
     private AtomicInteger discardedPreparedStatementHandleCount = new AtomicInteger(0);
 
-    /** keystore provider */
-    private SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
-
     /** fedAuth required by user flag */
     private boolean fedAuthRequiredByUser = false;
 
@@ -242,7 +239,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @throws SQLServerException
      */
     SharedTimer getSharedTimer() throws SQLServerException {
-        if (state == State.Closed) {
+        if (state == State.CLOSED) {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_connectionIsClosed"),
                     SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE, false);
         }
@@ -301,9 +298,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!(obj instanceof CityHash128Key))
                 return false;
 
-            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)// checks if hash is equal,
-                                                                                      // short-circuitting;
-                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));// checks if string is equal
+            // checks if hash is equal, short-circuitting and if string is equal
+            return (java.util.Arrays.equals(segments, ((CityHash128Key) obj).segments)
+                    && this.unhashedString.equals(((CityHash128Key) obj).unhashedString));
         }
 
         public int hashCode() {
@@ -417,8 +414,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         /** Has it been more than maxIdleMillis since network activity has been marked */
         private boolean isIdle() {
-            boolean ret = Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
-            return ret;
+            return Instant.now().minusMillis(maxIdleMillis).isAfter(lastNetworkActivity);
         }
 
         /** Mark network activity now */
@@ -520,29 +516,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             switch (authenticationString.toUpperCase(Locale.ENGLISH)) {
                 case "ACTIVEDIRECTORYPASSWORD":
-                    this.authentication = SqlAuthentication.ActiveDirectoryPassword;
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD;
                     break;
                 case "ACTIVEDIRECTORYINTEGRATED":
-                    this.authentication = SqlAuthentication.ActiveDirectoryIntegrated;
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED;
                     break;
                 case "ACTIVEDIRECTORYMANAGEDIDENTITY":
-                    this.authentication = SqlAuthentication.ActiveDirectoryManagedIdentity;
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY;
                     break;
                 case "DEFAULTAZURECREDENTIAL":
-                    this.authentication = SqlAuthentication.DefaultAzureCredential;
+                    this.authentication = SqlAuthentication.DEFAULT_AZURE_CREDENTIAL;
                     break;
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
-                    this.authentication = SqlAuthentication.ActiveDirectoryServicePrincipal;
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL;
                     break;
                 case "ACTIVEDIRECTORYINTERACTIVE":
-                    this.authentication = SqlAuthentication.ActiveDirectoryInteractive;
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
                     break;
                 default:
                     // If authenticationString not specified, check if access token callback was set.
                     // If access token callback is set, break.
                     if (null != activeConnectionProperties
                             .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
-                        this.authentication = SqlAuthentication.NotSpecified;
+                        this.authentication = SqlAuthentication.NOT_SPECIFIED;
                         break;
                     }
                     assert (false);
@@ -589,20 +585,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
     }
 
+    final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
+
     /**
      * Denotes the state of the SqlServerConnection.
      */
     private enum State {
-        Initialized, // default value on calling SQLServerConnection constructor
-        Connected, // indicates that the TCP connection has completed
-        Opened, // indicates that the prelogin, login have completed, the database session established and the
+        INITIALIZED, // default value on calling SQLServerConnection constructor
+        CONNECTED, // indicates that the TCP connection has completed
+        OPENED, // indicates that the prelogin, login have completed, the database session established and the
                 // connection is ready for use.
-        Closed // indicates that the connection has been closed.
+        CLOSED // indicates that the connection has been closed.
     }
 
     private final static float TIMEOUTSTEP = 0.08F; // fraction of timeout to use for fast failover connections
     private final static float TIMEOUTSTEP_TNIR = 0.125F;
-    final static int TnirFirstAttemptTimeoutMs = 500; // fraction of timeout to use for fast failover connections
 
     /**
      * Connection state variables. NB If new state is added then logical connections derived from a physical connection
@@ -622,7 +619,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Permission targets */
-    private static final String callAbortPerm = "callAbort";
+    private static final String CALL_ABORT_PERM = "callAbort";
 
     private static final String SET_NETWORK_TIMEOUT_PERM = "setNetworkTimeout";
 
@@ -837,7 +834,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String encryptOption = null;
 
     boolean isColumnEncryptionSettingEnabled() {
-        return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.Enabled.toString()));
+        return (columnEncryptionSetting.equalsIgnoreCase(ColumnEncryptionSetting.ENABLED.toString()));
     }
 
     boolean getSendTemporalDataTypesAsStringForBulkCopy() {
@@ -864,9 +861,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** server column encryption version */
     private ColumnEncryptionVersion serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_NOTSUPPORTED;
-
-    /** Enclave type */
-    private String enclaveType = null;
 
     boolean getServerSupportsColumnEncryption() {
         return (serverColumnEncryptionVersion.value() > ColumnEncryptionVersion.AE_NOTSUPPORTED.value());
@@ -1085,6 +1079,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     SQLServerColumnEncryptionKeyStoreProvider getSystemOrGlobalColumnEncryptionKeyStoreProvider(
             String providerName) throws SQLServerException {
+        SQLServerColumnEncryptionKeyStoreProvider keystoreProvider = null;
+
         lock.lock();
         try {
             // check for global system providers
@@ -1363,7 +1359,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private byte[] ntlmPasswordHash = null;
 
     /** integrated authentication scheme */
-    private AuthenticationScheme intAuthScheme = AuthenticationScheme.nativeAuthentication;
+    private AuthenticationScheme intAuthScheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
 
     /** impersonated user credential */
     private GSSCredential impersonatedUserCred;
@@ -1400,7 +1396,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** connection state */
-    private volatile State state = State.Initialized;
+    private volatile State state = State.INITIALIZED;
 
     private void setState(State state) {
         this.state = state;
@@ -1411,7 +1407,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * session is established and after the session is closed.
      */
     final boolean isSessionUnAvailable() {
-        return !(state.equals(State.Opened));
+        return !(state.equals(State.OPENED));
     }
 
     final static int maxDecimalPrecision = 38; // @@max_precision for SQL 2000 and 2005 is 38.
@@ -1588,7 +1584,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final boolean attachConnId() {
-        return state.equals(State.Connected);
+        return state.equals(State.CONNECTED);
     }
 
     SQLServerPooledConnection getPooledConnectionParent() {
@@ -1753,7 +1749,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         // Interactive auth may involve MFA which require longer timeout
-        if (SqlAuthentication.ActiveDirectoryInteractive.toString().equalsIgnoreCase(authenticationString)) {
+        if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
             loginTimeoutSeconds *= 10;
         }
 
@@ -1869,13 +1865,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } else {
             KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
             switch (keyStoreAuthentication) {
-                case JavaKeyStorePassword:
+                case JAVA_KEYSTORE_PASSWORD:
                     setKeyStoreSecretAndLocation(keyStoreSecret, keyStoreLocation);
                     break;
-                case KeyVaultClientSecret:
+                case KEYVAULT_CLIENT_SECRET:
                     this.setKeyVaultProvider(keyStorePrincipalId, keyStoreSecret);
                     break;
-                case KeyVaultManagedIdentity:
+                case KEYVAULT_MANAGED_IDENTITY:
                     setKeyVaultProvider(keyStorePrincipalId);
                     break;
                 default:
@@ -2245,11 +2241,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
-                if (encryptOption.compareToIgnoreCase(EncryptOption.False.toString()) == 0) {
+                if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_OFF;
-                } else if (encryptOption.compareToIgnoreCase(EncryptOption.True.toString()) == 0) {
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.TRUE.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_ON;
-                } else if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+                } else if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
                     // this is necessary so we don't encrypt again
                     requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
 
@@ -2407,13 +2403,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
 
-                if (intAuthScheme == AuthenticationScheme.javaKerberos) {
+                if (intAuthScheme == AuthenticationScheme.JAVA_KERBEROS) {
                     sPropKey = SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString();
                     if (activeConnectionProperties.containsKey(sPropKey)) {
                         impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                         isUserCreatedCredential = true;
                     }
-                } else if (intAuthScheme == AuthenticationScheme.ntlm) {
+                } else if (intAuthScheme == AuthenticationScheme.NTLM) {
                     String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
                     String sPropValueDomain = activeConnectionProperties.getProperty(sPropKeyDomain);
                     if (null == sPropValueDomain) {
@@ -2449,7 +2445,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())
                         && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty())) {
                     MessageFormat form = new MessageFormat(
@@ -2458,12 +2454,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (integratedSecurity
-                        && !authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
+                        && !authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())) {
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_SetAuthenticationWhenIntegratedSecurityTrue"), null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
                         && ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (!activeConnectionProperties
@@ -2472,7 +2468,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())
                         && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (activeConnectionProperties
@@ -2481,7 +2477,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
                         && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty())) {
                     MessageFormat form = new MessageFormat(
@@ -2490,7 +2487,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (authenticationString
-                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
                     if ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
                             || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                     .isEmpty())
@@ -2519,7 +2516,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())
                         && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                                 .isEmpty())
                                 || (activeConnectionProperties
@@ -2543,7 +2540,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_SetAccesstokenWhenIntegratedSecurityTrue"), null);
                 }
 
-                if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+                if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
                         && (null != accessTokenInByte)) {
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_SetBothAuthenticationAndAccessToken"), null);
@@ -2558,7 +2555,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // Turn off TNIR for FedAuth if user did not set TNIR explicitly
-                if (!userSetTNIR && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())
+                if (!userSetTNIR && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())
                         || null != accessTokenInByte)) {
                     transparentNetworkIPResolution = false;
                 }
@@ -2928,7 +2925,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
-            state = State.Opened;
+            state = State.OPENED;
 
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
@@ -2936,10 +2933,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } finally {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
-            if (!state.equals(State.Opened)) {
-                // if connection is not closed, close it
-                if (!state.equals(State.Closed))
-                    this.close();
+            if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
+                this.close();
             }
 
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
@@ -3029,7 +3024,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // back into the parser for the error cases.
         while (true) {
             clientConnectionId = null;
-            state = State.Initialized;
+            state = State.INITIALIZED;
 
             try {
                 if (isDBMirroring && useFailoverHost) {
@@ -3413,7 +3408,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 serverInfo.getPortNumber(), (0 == timeOutFullInSeconds) ? 0 : timeOutSliceInMillis, useParallel,
                 useTnir, isTnirFirstAttempt, timeOutsliceInMillisForFullTimeout, iPAddressPreference);
 
-        setState(State.Connected);
+        setState(State.CONNECTED);
 
         try {
             clientConnectionId = UUID.randomUUID();
@@ -3482,7 +3477,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString()))
+        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
                 || (null != accessTokenInByte) || null != activeConnectionProperties
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
             fedAuthRequiredByUser = true;
@@ -3862,10 +3857,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                     // We must NOT use the response for the FEDAUTHREQUIRED PreLogin option, if the connection string
                     // option
-                    // was not using the new Authentication keyword or in other words, if Authentication=NotSpecified
+                    // was not using the new Authentication keyword or in other words, if Authentication=NOT_SPECIFIED
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString)
-                            && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())))
+                            && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())))
                             || (null != accessTokenInByte) || null != activeConnectionProperties
                                     .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
                         fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
@@ -3910,15 +3905,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final void terminate(int driverErrorCode, String message, Throwable throwable) throws SQLServerException {
-        String state = this.state.equals(State.Opened) ? SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE
-                                                       : SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH;
+        String st = this.state.equals(State.OPENED) ? SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE
+                                                    : SQLServerException.EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH;
 
         if (!xopenStates)
-            state = SQLServerException.mapFromXopen(state);
+            st = SQLServerException.mapFromXopen(st);
 
         SQLServerException ex = new SQLServerException(this,
-                SQLServerException.checkAndAppendClientConnId(message, this), state, // X/Open or SQL99
-                                                                                     // SQLState
+                SQLServerException.checkAndAppendClientConnId(message, this), st, // X/Open or SQL99
+                                                                                  // SQLState
                 0, // database error number (0 -> driver error)
                 true); // include stack trace in log
 
@@ -4381,11 +4376,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SecurityManager secMgr = System.getSecurityManager();
         if (secMgr != null) {
             try {
-                SQLPermission perm = new SQLPermission(callAbortPerm);
+                SQLPermission perm = new SQLPermission(CALL_ABORT_PERM);
                 secMgr.checkPermission(perm);
             } catch (SecurityException ex) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
-                Object[] msgArgs = {callAbortPerm};
+                Object[] msgArgs = {CALL_ABORT_PERM};
                 SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, true);
             }
         }
@@ -4398,7 +4393,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              * Always report the connection as closed for any further use, no matter what happens when we try to clean
              * up the physical resources associated with the connection using executor.
              */
-            setState(State.Closed);
+            setState(State.CLOSED);
 
             executor.execute(() -> clearConnectionResources());
         }
@@ -4414,7 +4409,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          * Always report the connection as closed for any further use, no matter what happens when we try to clean up
          * the physical resources associated with the connection.
          */
-        setState(State.Closed);
+        setState(State.CLOSED);
 
         clearConnectionResources();
 
@@ -4455,7 +4450,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * will pool the connection
      */
     final void poolCloseEventNotify() throws SQLServerException {
-        if (state.equals(State.Opened) && null != pooledConnectionParent) {
+        if (state.equals(State.OPENED) && null != pooledConnectionParent) {
             // autocommit = true => nothing to do when app closes connection
             // XA = true => the transaction manager is the only one who can invoke transactional APIs
 
@@ -4792,22 +4787,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case TDS.TDS_FEDAUTH_LIBRARY_ADAL:
                     byte workflow = 0x00;
                     switch (fedAuthFeatureExtensionData.authentication) {
-                        case ActiveDirectoryPassword:
+                        case ACTIVE_DIRECTORY_PASSWORD:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD;
                             break;
-                        case ActiveDirectoryIntegrated:
+                        case ACTIVE_DIRECTORY_INTEGRATED:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
-                        case ActiveDirectoryManagedIdentity:
+                        case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY;
                             break;
-                        case DefaultAzureCredential:
+                        case DEFAULT_AZURE_CREDENTIAL:
                             workflow = TDS.ADALWORKFLOW_DEFAULTAZURECREDENTIAL;
                             break;
-                        case ActiveDirectoryInteractive:
+                        case ACTIVE_DIRECTORY_INTERACTIVE:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
                             break;
-                        case ActiveDirectoryServicePrincipal:
+                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;
                             break;
                         default:
@@ -4993,10 +4988,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SSPIAuthentication authentication = null;
 
         if (integratedSecurity) {
-            if (AuthenticationScheme.nativeAuthentication == intAuthScheme) {
+            if (AuthenticationScheme.NATIVE_AUTHENTICATION == intAuthScheme) {
                 authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
-            } else if (AuthenticationScheme.javaKerberos == intAuthScheme) {
+            } else if (AuthenticationScheme.JAVA_KERBEROS == intAuthScheme) {
                 if (null != impersonatedUserCred) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
@@ -5023,15 +5018,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
          * Feature Extension in Login7, indicating the intent to use Active Directory Authentication Library for SQL
          * Server.
          */
-        if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())
-                || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+        if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())
+                || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())
+                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())
+                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString()))
+                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString()))
                         && fedAuthRequiredPreLoginResponse)
                 || null != activeConnectionProperties
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
@@ -5540,6 +5535,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sendFedAuthToken(this, sqlFedAuthToken, tdsTokenHandler);
             return true;
         }
+
+        /**
+         * Send the access token to the server.
+         */
+        private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlAuthenticationToken fedAuthToken,
+                TDSTokenHandler tdsTokenHandler) throws SQLServerException {
+            assert null != fedAuthToken;
+            assert null != fedAuthToken.getAccessToken();
+
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.fine(super.toString() + " Sending federated authentication token.");
+            }
+
+            TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
+
+            byte[] accessToken = fedAuthToken.getAccessToken().getBytes(UTF_16LE);
+
+            // Send total length (length of token plus 4 bytes for the token length field)
+            // If we were sending a nonce, this would include that length as well
+            tdsWriter.writeInt(accessToken.length + 4);
+
+            // Send length of token
+            tdsWriter.writeInt(accessToken.length);
+
+            // Send federated authentication access token.
+            tdsWriter.writeBytes(accessToken, 0, accessToken.length);
+
+            TDSReader tdsReader;
+            tdsReader = fedAuthCommand.startResponse();
+
+            federatedAuthenticationRequested = true;
+
+            TDSParser.parse(tdsReader, tdsTokenHandler);
+        }
     }
 
     /**
@@ -5549,11 +5578,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
-                || (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())
+                || (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
                         || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())
+                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())
                                 && fedAuthRequiredPreLoginResponse);
 
         assert null != fedAuthInfo;
@@ -5563,7 +5592,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
                 .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
-        if (authenticationString.equals(SqlAuthentication.NotSpecified.toString()) && null != callback) {
+        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != callback) {
             fedAuthToken = callback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
         } else {
             fedAuthToken = getFedAuthToken(fedAuthInfo);
@@ -5579,8 +5608,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlAuthenticationToken getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        SqlAuthenticationToken fedAuthToken = null;
-
         // fedAuthInfo should not be null.
         assert null != fedAuthInfo;
 
@@ -5590,13 +5617,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int sleepInterval = 100;
 
         if (!msalContextExists()
-                && !authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
+                && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
             throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
         }
 
         while (true) {
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
+            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                         authenticationString);
@@ -5604,7 +5631,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
+                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
 
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
@@ -5621,7 +5648,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // Break out of the retry loop in successful case.
                 break;
             } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
+                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
 
                 // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
                 if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
@@ -5637,7 +5664,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
+            } else if (authenticationString
+                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
                 // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
                 if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
                         && AuthenticationJNI.isDllLoaded()) {
@@ -5660,11 +5688,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } catch (DLLException adalException) {
 
                         // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
-                        int errorCategory = adalException.GetCategory();
+                        int errorCategory = adalException.getCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                            Object[] msgArgs = {Integer.toHexString(adalException.GetState())};
+                            Object[] msgArgs = {Integer.toHexString(adalException.getState())};
                             throw new SQLServerException(form.format(msgArgs), null);
                         }
 
@@ -5672,7 +5700,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory
                                 || timerHasExpired(timerExpire) || (sleepInterval >= millisecondsRemaining)) {
 
-                            String errorStatus = Integer.toHexString(adalException.GetStatus());
+                            String errorStatus = Integer.toHexString(adalException.getStatus());
 
                             if (connectionlogger.isLoggable(Level.FINER)) {
                                 connectionlogger.fine(
@@ -5682,8 +5710,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                            String errorCode = Integer.toHexString(adalException.GetStatus()).toUpperCase();
-                            Object[] msgArgs1 = {errorCode, adalException.GetState()};
+                            String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
+                            Object[] msgArgs1 = {errorCode, adalException.getState()};
                             SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
                                     adalException);
 
@@ -5722,14 +5750,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
+            } else if (authenticationString
+                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
                 // interactive flow
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
                         authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())) {
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
 
@@ -5756,40 +5785,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return false;
         }
         return true;
-    }
-
-    /**
-     * Send the access token to the server.
-     */
-    private void sendFedAuthToken(FedAuthTokenCommand fedAuthCommand, SqlAuthenticationToken fedAuthToken,
-            TDSTokenHandler tdsTokenHandler) throws SQLServerException {
-        assert null != fedAuthToken;
-        assert null != fedAuthToken.getAccessToken();
-
-        if (connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.fine(toString() + " Sending federated authentication token.");
-        }
-
-        TDSWriter tdsWriter = fedAuthCommand.startRequest(TDS.PKT_FEDAUTH_TOKEN_MESSAGE);
-
-        byte[] accessToken = fedAuthToken.getAccessToken().getBytes(UTF_16LE);
-
-        // Send total length (length of token plus 4 bytes for the token length field)
-        // If we were sending a nonce, this would include that length as well
-        tdsWriter.writeInt(accessToken.length + 4);
-
-        // Send length of token
-        tdsWriter.writeInt(accessToken.length);
-
-        // Send federated authentication access token.
-        tdsWriter.writeBytes(accessToken, 0, accessToken.length);
-
-        TDSReader tdsReader;
-        tdsReader = fedAuthCommand.startResponse();
-
-        federatedAuthenticationRequested = true;
-
-        TDSParser.parse(tdsReader, tdsTokenHandler);
     }
 
     final void processFeatureExtAck(TDSReader tdsReader) throws SQLServerException {
@@ -5880,6 +5875,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 serverColumnEncryptionVersion = ColumnEncryptionVersion.AE_V1;
+
+                String enclaveType = null;
 
                 if (null != enclaveAttestationUrl || (enclaveAttestationProtocol != null
                         && enclaveAttestationProtocol.equalsIgnoreCase(AttestationProtocol.NONE.toString()))) {
@@ -6219,7 +6216,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // TDS version 8 if strict mode
         // Denali --> TDS 7.4, Katmai (10.0) & later 7.3B, Prelogin disconnects anything older
-        if (encryptOption.compareToIgnoreCase(EncryptOption.Strict.toString()) == 0) {
+        if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
             tdsVersion = TDS.VER_TDS80;
         } else if (serverMajorVersion >= 11) {
             tdsVersion = TDS.VER_DENALI;
