@@ -132,7 +132,7 @@ dependencies {
 	compileOnly 'com.azure:azure-security-keyvault-keys:4.5.2',
 			'com.azure:azure-identity:1.7.0',
 			'org.antlr:antlr4-runtime:4.9.3',
-			'com.google.code.gson:gson:2.9.9',
+			'com.google.code.gson:gson:2.9.0',
 			'org.bouncycastle:bcprov-jdk15on:1.70',
 			'org.bouncycastle:bcpkix-jdk15on:1.70'
     testImplementation 'org.junit.platform:junit-platform-console:1.5.2',
