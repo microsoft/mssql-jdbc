@@ -129,12 +129,12 @@ repositories {
 dependencies {
     implementation 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.compendium:5.0.0'
-	compileOnly 'com.azure:azure-security-keyvault-keys:4.2.8',
-			'com.azure:azure-identity:1.7.0-beta.2',
-			'org.antlr:antlr4-runtime:4.9.2',
-			'com.google.code.gson:gson:2.8.7',
-			'org.bouncycastle:bcprov-jdk15on:1.69',
-			'org.bouncycastle:bcpkix-jdk15on:1.69'
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.5.2',
+			'com.azure:azure-identity:1.7.0',
+			'org.antlr:antlr4-runtime:4.9.3',
+			'com.google.code.gson:gson:2.9.9',
+			'org.bouncycastle:bcprov-jdk15on:1.70',
+			'org.bouncycastle:bcpkix-jdk15on:1.70'
     testImplementation 'org.junit.platform:junit-platform-console:1.5.2',
 			'org.junit.platform:junit-platform-commons:1.5.2',
 			'org.junit.platform:junit-platform-engine:1.5.2',
@@ -147,12 +147,11 @@ dependencies {
 			'com.zaxxer:HikariCP:3.4.2',
 			'org.apache.commons:commons-dbcp2:2.7.0',
 			'org.slf4j:slf4j-nop:1.7.30',
-			'org.antlr:antlr4-runtime:4.9.2',
+			'org.antlr:antlr4-runtime:4.9.3',
 			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:2.1.0.RELEASE',
-			'com.google.code.gson:gson:2.8.7',
-			'org.bouncycastle:bcprov-jdk15on:1.69',
-			'com.azure:azure-security-keyvault-keys:4.2.8',
-			'com.azure:azure-identity:1.7.0-beta.2',
-			'com.microsoft.azure:adal4j:1.6.7',
-			'com.h2database:h2:1.4.200'
+			'com.google.code.gson:gson:2.9.0',
+			'org.bouncycastle:bcprov-jdk15on:1.70',
+			'com.azure:azure-security-keyvault-keys:4.5.2',
+			'com.azure:azure-identity:1.7.0',
+			'com.h2database:h2:2.1.210'
 }
