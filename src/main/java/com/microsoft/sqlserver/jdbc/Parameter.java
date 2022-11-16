@@ -271,25 +271,22 @@ final class Parameter {
             // otherwise it would be sent as smallint
             // Also, for setters, we are able to send tinyint to smallint
             // However, for output parameter, it might cause error.
-            if (!isOutput()) {
-                if ((JavaType.SHORT == javaType)
-                        && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType))) {
-                    // value falls in the TINYINT range
-                    if (((Short) value) >= 0 && ((Short) value) <= 255) {
-                        value = ((Short) value).byteValue();
-                        javaType = JavaType.of(value);
-                        jdbcType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
-                    }
-                    // value falls outside tinyint range. Throw an error if the user intends to send as tinyint.
-                    else {
-                        // This is for cases like setObject(1, Short.valueOf("-1"), java.sql.Types.TINYINT);
-                        if (JDBCType.TINYINT == jdbcType) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_InvalidDataForAE"));
-                            Object[] msgArgs = {javaType.toString().toLowerCase(Locale.ENGLISH),
-                                    jdbcType.toString().toLowerCase(Locale.ENGLISH)};
-                            throw new SQLServerException(form.format(msgArgs), null);
-                        }
+            if (!isOutput() && ((JavaType.SHORT == javaType))
+                    && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType))) {
+                // value falls in the TINYINT range
+                if (((Short) value) >= 0 && ((Short) value) <= 255) {
+                    value = ((Short) value).byteValue();
+                    javaType = JavaType.of(value);
+                    jdbcType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
+                }
+                // value falls outside tinyint range. Throw an error if the user intends to send as tinyint.
+                else {
+                    // This is for cases like setObject(1, Short.valueOf("-1"), java.sql.Types.TINYINT);
+                    if (JDBCType.TINYINT == jdbcType) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
+                        Object[] msgArgs = {javaType.toString().toLowerCase(Locale.ENGLISH),
+                                jdbcType.toString().toLowerCase(Locale.ENGLISH)};
+                        throw new SQLServerException(form.format(msgArgs), null);
                     }
                 }
             }
@@ -388,8 +385,8 @@ final class Parameter {
 
     }
 
-    Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
-            TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+    Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
 
@@ -1152,7 +1149,7 @@ final class Parameter {
     void sendByRPC(TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
         assert null != inputDTV : "Parameter was neither set nor registered";
         SQLServerConnection conn = statement.connection;
-        
+
         try {
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());

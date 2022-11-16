@@ -511,6 +511,7 @@ final class SQLCollation implements java.io.Serializable {
             this.encoding = encoding;
         }
 
+        @Override
         public final String toString() {
             return name;
         }

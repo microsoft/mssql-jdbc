@@ -245,6 +245,7 @@ class PLPInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int read(byte[] b, int offset, int maxBytes) throws IOException {
         // If b is null, a NullPointerException is thrown.
         if (null == b)
