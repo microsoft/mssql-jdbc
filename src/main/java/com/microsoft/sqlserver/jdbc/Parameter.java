@@ -271,7 +271,7 @@ final class Parameter {
             // otherwise it would be sent as smallint
             // Also, for setters, we are able to send tinyint to smallint
             // However, for output parameter, it might cause error.
-            if (!isOutput() && ((JavaType.SHORT == javaType))
+            if (!isOutput() && (JavaType.SHORT == javaType)
                     && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType))) {
                 // value falls in the TINYINT range
                 if (((Short) value) >= 0 && ((Short) value) <= 255) {

@@ -793,7 +793,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
      * 
      */
-    @Deprecated(since = "12.1.0", forRemoval = true)
+    @Deprecated(since = "9.3.0", forRemoval = true)
     void setJASSConfigurationName(String configurationName);
 
     /**
@@ -804,7 +804,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
      * 
      */
-    @Deprecated(since = "12.1.0", forRemoval = true)
+    @Deprecated(since = "9.3.0", forRemoval = true)
     String getJASSConfigurationName();
 
     /**
@@ -1129,7 +1129,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return 'AADSecurePrincipalId' property value.
      * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
      */
-    @Deprecated(since = "12.1.0", forRemoval = true)
+    @Deprecated(since = "9.4.1", forRemoval = true)
     String getAADSecurePrincipalId();
 
     /**
@@ -1140,7 +1140,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Active Directory Service Principal Id.
      * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      */
-    @Deprecated(since = "12.1.0", forRemoval = true)
+    @Deprecated(since = "9.4.1", forRemoval = true)
     void setAADSecurePrincipalId(String AADSecurePrincipalId);
 
     /**
@@ -1151,7 +1151,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *        Active Directory Service Principal secret.
      * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      */
-    @Deprecated(since = "12.1.0", forRemoval = true)
+    @Deprecated(since = "9.4.1", forRemoval = true)
     void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
 
     /**

@@ -6825,7 +6825,7 @@ final class TDSReader implements Serializable {
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
             // terminate the connection.
-                    ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0))) {
+                    (command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
                 // if a timeout is configured with this object, add it to the timeout poller
                 int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
                 this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);

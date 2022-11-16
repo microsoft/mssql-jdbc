@@ -409,12 +409,12 @@ public interface ISQLServerConnection extends java.sql.Connection {
     String getIPAddressPreference();
 
     /**
-     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
-     *             This method will always return 0 and is for backwards compatibility only.
+     * This method will always return 0 and is for backwards compatibility only.
      *
      * @return Method will always return 0.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     int getMsiTokenCacheTtl();
 
     /**
@@ -423,7 +423,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *
      * @param timeToLive
      *        Time-to-live is no longer supported.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
 }
