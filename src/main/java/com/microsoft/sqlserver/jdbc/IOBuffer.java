@@ -26,7 +26,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SelectionKey;
@@ -1195,7 +1194,7 @@ final class TDSChannel implements Serializable {
                         if (logger.isLoggable(Level.FINER))
                             logger.finer(super.toString() + " " + e.getMessage());
 
-                        logger.finer(toString() + " Reading bytes threw exception:" + e.getMessage());
+                        logger.finer(super.toString() + " Reading bytes threw exception:" + e.getMessage());
                         throw e;
                     }
                 }
@@ -1403,7 +1402,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public int getReceiveBufferSize() throws SocketException {
+        public synchronized int getReceiveBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getReceiveBufferSize();
         }
 
@@ -1418,7 +1417,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public int getSendBufferSize() throws SocketException {
+        public synchronized int getSendBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getSendBufferSize();
         }
 
@@ -1428,7 +1427,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public int getSoTimeout() throws SocketException {
+        public synchronized int getSoTimeout() throws SocketException {
             return tdsChannel.tcpSocket.getSoTimeout();
         }
 
@@ -1499,19 +1498,19 @@ final class TDSChannel implements Serializable {
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
         @Override
-        public void close() throws IOException {
+        public synchronized void close() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(logContext + " Ignoring close");
         }
 
         @Override
-        public void setReceiveBufferSize(int size) throws SocketException {
+        public synchronized void setReceiveBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
         }
 
         @Override
-        public void setSendBufferSize(int size) throws SocketException {
+        public synchronized void setSendBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
         }
@@ -1529,7 +1528,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public void setSoTimeout(int timeout) throws SocketException {
+        public synchronized void setSoTimeout(int timeout) throws SocketException {
             tdsChannel.tcpSocket.setSoTimeout(timeout);
         }
 
@@ -2465,7 +2464,7 @@ final class SocketFinder {
             if (logger.isLoggable(Level.FINER)) {
                 StringBuilder loggingString = new StringBuilder(this.toString());
                 loggingString.append(" Total no of InetAddresses: ");
-                loggingString.append(inetAddrs.length);
+                loggingString.append((inetAddrs != null) ? inetAddrs.length : 0);
                 loggingString.append(". They are: ");
 
                 for (InetAddress inetAddr : inetAddrs) {
@@ -2475,7 +2474,7 @@ final class SocketFinder {
                 logger.finer(loggingString.toString());
             }
 
-            if (inetAddrs.length > IP_ADDRESS_LIMIT) {
+            if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
                 Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
@@ -2485,7 +2484,7 @@ final class SocketFinder {
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
-            if (inetAddrs.length == 1) {
+            if (inetAddrs != null && inetAddrs.length == 1) {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
@@ -3156,11 +3155,9 @@ final class SocketFinder {
             updatedException = true;
         }
 
-        if (updatedException) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer("The selected exception is updated to the following: ExceptionType:" + ex.getClass()
-                        + "; ExceptionMessage:" + ex.getMessage() + "; by the following thread:" + traceId);
-            }
+        if (updatedException && logger.isLoggable(Level.FINER)) {
+            logger.finer("The selected exception is updated to the following: ExceptionType:" + ex.getClass()
+                    + "; ExceptionMessage:" + ex.getMessage() + "; by the following thread:" + traceId);
         }
     }
 
@@ -3334,9 +3331,6 @@ final class TDSWriter {
     private int packetNum = 0;
 
     // Bytes for sending decimal/numeric data
-    private final static int BYTES4 = 4;
-    private final static int BYTES8 = 8;
-    private final static int BYTES12 = 12;
     private final static int BYTES16 = 16;
     public final static int BIGDECIMAL_MAX_LENGTH = 0x11;
 
@@ -3381,7 +3375,7 @@ final class TDSWriter {
     void preparePacket() throws SQLServerException {
         if (tdsChannel.isLoggingPackets()) {
             Arrays.fill(logBuffer.array(), (byte) 0xFE);
-            ((Buffer) logBuffer).clear();
+            logBuffer.clear();
         }
 
         // Write a placeholder packet header. This will be replaced
@@ -3399,13 +3393,12 @@ final class TDSWriter {
         if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_DTC == tdsMessageType || TDS.PKT_RPC == tdsMessageType)) {
             boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
-            if (TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) {
-                if (con.isDenaliOrLater() && Util.isActivityTraceOn()
-                        && !ActivityCorrelator.getCurrent().isSentToServer()) {
-                    includeTraceHeader = true;
-                    totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
-                }
+            if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) && (con.isDenaliOrLater()
+                    && Util.isActivityTraceOn() && !ActivityCorrelator.getCurrent().isSentToServer())) {
+                includeTraceHeader = true;
+                totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
             }
+
             writeInt(totalHeaderLength); // allHeaders.TotalLength (DWORD)
             writeInt(TDS.MARS_HEADER_LENGTH); // MARS header length (DWORD)
             writeShort((short) 2); // allHeaders.HeaderType(MARS header) (USHORT)
@@ -3459,8 +3452,8 @@ final class TDSWriter {
             streamByteBuffer = new byte[4 * currentPacketSize];
         }
 
-        ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
-        ((Buffer) stagingBuffer).clear();
+        socketBuffer.position(socketBuffer.limit());
+        stagingBuffer.clear();
 
         preparePacket();
         writeMessageHeader();
@@ -3502,7 +3495,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 1);
+                    logBuffer.position(logBuffer.position() + 1);
             }
         } else {
             valueBytes[0] = value;
@@ -3528,7 +3521,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putChar(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 2);
+                    logBuffer.position(logBuffer.position() + 2);
             }
         } else {
             Util.writeShort((short) value, valueBytes, 0);
@@ -3543,7 +3536,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putShort(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 2);
+                    logBuffer.position(logBuffer.position() + 2);
             }
         } else {
             Util.writeShort(value, valueBytes, 0);
@@ -3558,7 +3551,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putInt(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 4);
+                    logBuffer.position(logBuffer.position() + 4);
             }
         } else {
             Util.writeInt(value, valueBytes, 0);
@@ -3589,7 +3582,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putDouble(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 8);
+                    logBuffer.position(logBuffer.position() + 8);
             }
         } else {
             long bits = Double.doubleToLongBits(value);
@@ -3638,9 +3631,9 @@ final class TDSWriter {
         // Byte array to hold all the data and padding bytes.
         byte[] bytes = new byte[bLength];
 
-        byte[] valueBytes = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
+        byte[] val = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
         // removing the precision and scale information from the valueBytes array
-        System.arraycopy(valueBytes, 2, bytes, 0, valueBytes.length - 2);
+        System.arraycopy(val, 2, bytes, 0, val.length - 2);
         writeBytes(bytes);
     }
 
@@ -3662,8 +3655,8 @@ final class TDSWriter {
         bLength = (srcJdbcType == microsoft.sql.Types.MONEY ? 8 : 4);
         writeByte((byte) (bLength));
 
-        byte[] valueBytes = DDC.convertMoneyToBytes(moneyVal, bLength);
-        writeBytes(valueBytes);
+        byte[] val = DDC.convertMoneyToBytes(moneyVal, bLength);
+        writeBytes(val);
     }
 
     /**
@@ -4062,7 +4055,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putLong(value);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 8);
+                    logBuffer.position(logBuffer.position() + 8);
             }
         } else {
             Util.writeLong(value, valueBytes, 0);
@@ -4096,14 +4089,14 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, offset + bytesWritten, bytesToWrite);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + bytesToWrite);
+                    logBuffer.position(logBuffer.position() + bytesToWrite);
             }
 
             bytesWritten += bytesToWrite;
         }
     }
 
-    void writeWrappedBytes(byte value[], int valueLength) throws SQLServerException {
+    void writeWrappedBytes(byte[] value, int valueLength) throws SQLServerException {
         // This function should only be used to write a value that is longer than
         // what remains in the current staging buffer. However, the value must
         // be short enough to fit in an empty buffer.
@@ -4122,7 +4115,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, 0, remaining);
                 else
-                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + remaining);
+                    logBuffer.position(logBuffer.position() + remaining);
             }
         }
 
@@ -4135,7 +4128,7 @@ final class TDSWriter {
             if (dataIsLoggable)
                 logBuffer.put(value, remaining, valueLength - remaining);
             else
-                ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + remaining);
+                logBuffer.position(logBuffer.position() + remaining);
         }
     }
 
@@ -4170,16 +4163,14 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        final byte[] streamByteBuffer = new byte[4 * currentPacketSize];
+        final byte[] buff = new byte[4 * currentPacketSize];
         int bytesRead = 0;
         int bytesToWrite;
         do {
             // Read in next chunk
-            for (bytesToWrite = 0; -1 != bytesRead && bytesToWrite < streamByteBuffer.length;
-                    bytesToWrite += bytesRead) {
+            for (bytesToWrite = 0; -1 != bytesRead && bytesToWrite < buff.length; bytesToWrite += bytesRead) {
                 try {
-                    bytesRead = inputStream.read(streamByteBuffer, bytesToWrite,
-                            streamByteBuffer.length - bytesToWrite);
+                    bytesRead = inputStream.read(buff, bytesToWrite, buff.length - bytesToWrite);
                 } catch (IOException e) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {e.toString()};
@@ -4190,7 +4181,7 @@ final class TDSWriter {
                     break;
 
                 // Check for invalid bytesRead returned from InputStream.read
-                if (bytesRead < 0 || bytesRead > streamByteBuffer.length - bytesToWrite) {
+                if (bytesRead < 0 || bytesRead > buff.length - bytesToWrite) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                     Object[] msgArgs = {SQLServerException.getErrString("R_streamReadReturnedInvalidValue")};
                     error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
@@ -4201,7 +4192,7 @@ final class TDSWriter {
             if (writeChunkSizes)
                 writeInt(bytesToWrite);
 
-            writeBytes(streamByteBuffer, 0, bytesToWrite);
+            writeBytes(buff, 0, bytesToWrite);
             actualLength += bytesToWrite;
         } while (-1 != bytesRead || bytesToWrite > 0);
 
@@ -4461,7 +4452,7 @@ final class TDSWriter {
     }
 
     private void writePacketHeader(int tdsMessageStatus) {
-        int tdsMessageLength = ((Buffer) stagingBuffer).position();
+        int tdsMessageLength = stagingBuffer.position();
         ++packetNum;
 
         // Write the TDS packet header back at the start of the staging buffer
@@ -4499,13 +4490,13 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
-        ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
+        tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
+        socketBuffer.position(socketBuffer.limit());
 
         // If there is data in the staging buffer that needs to be written
         // to the socket, the socket buffer is now empty, so swap buffers
         // and start writing data from the staging buffer.
-        if (((Buffer) stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
+        if (stagingBuffer.position() >= TDS_PACKET_HEADER_SIZE) {
             // Swap the packet buffers ...
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
@@ -4517,14 +4508,14 @@ final class TDSWriter {
             // We need to use flip() rather than rewind() here so that
             // the socket buffer's limit is properly set for the last
             // packet, which may be shorter than the other packets.
-            ((Buffer) socketBuffer).flip();
-            ((Buffer) stagingBuffer).clear();
+            socketBuffer.flip();
+            stagingBuffer.clear();
 
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
-                tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
-                        this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                tdsChannel.logPacket(logBuffer.array(), 0, socketBuffer.limit(),
+                        this.toString() + " sending packet (" + socketBuffer.limit() + " bytes)");
             }
 
             // Prepare for the next packet
@@ -4532,8 +4523,8 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
-            ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
+            tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
+            socketBuffer.position(socketBuffer.limit());
         }
     }
 
@@ -4756,8 +4747,8 @@ final class TDSWriter {
         writeByte((byte) 0x11); // maximum length
         writeByte((byte) SQLServerConnection.maxDecimalPrecision); // precision
 
-        byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, nScale);
-        writeBytes(valueBytes, 0, valueBytes.length);
+        byte[] val = DDC.convertBigDecimalToBytes(bdValue, nScale);
+        writeBytes(val, 0, val.length);
     }
 
     /**
@@ -4937,27 +4928,26 @@ final class TDSWriter {
             // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next()
             // method when fetching new rows.
             // Therefore, we need to send TVP data row by row before fetching new row.
-            if (TVPType.ResultSet == value.tvpType) {
-                if ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet)) {
-                    SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
-                    SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
-                    int resultSetServerCursorId = sourceResultSet.getServerCursorId();
+            if ((TVPType.ResultSet == value.tvpType)
+                    && ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet))) {
+                SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
+                SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
+                int resultSetServerCursorId = sourceResultSet.getServerCursorId();
 
-                    if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
-                        cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                        cachedTVPHeaders.put(stagingBuffer.array(), 0, ((Buffer) stagingBuffer).position());
+                if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                    cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
+                    cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
 
-                        cachedCommand = this.command;
+                    cachedCommand = this.command;
 
-                        cachedRequestComplete = command.getRequestComplete();
-                        cachedInterruptsEnabled = command.getInterruptsEnabled();
-                        cachedProcessedResponse = command.getProcessedResponse();
+                    cachedRequestComplete = command.getRequestComplete();
+                    cachedInterruptsEnabled = command.getInterruptsEnabled();
+                    cachedProcessedResponse = command.getProcessedResponse();
 
-                        tdsWritterCached = true;
+                    tdsWritterCached = true;
 
-                        if (sourceResultSet.isForwardOnly()) {
-                            sourceResultSet.setFetchSize(1);
-                        }
+                    if (sourceResultSet.isForwardOnly()) {
+                        sourceResultSet.setFetchSize(1);
                     }
                 }
             }
@@ -4971,9 +4961,9 @@ final class TDSWriter {
                 if (tdsWritterCached) {
                     command = cachedCommand;
 
-                    ((Buffer) stagingBuffer).clear();
-                    ((Buffer) logBuffer).clear();
-                    writeBytes(cachedTVPHeaders.array(), 0, ((Buffer) cachedTVPHeaders).position());
+                    stagingBuffer.clear();
+                    logBuffer.clear();
+                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
                 }
 
                 Object[] rowData = value.getRowData();
@@ -4995,16 +4985,15 @@ final class TDSWriter {
                     String currentColumnStringValue = null;
 
                     Object currentObject = null;
-                    if (null != rowData) {
-                        // if rowData has value for the current column, retrieve it. If not, current column will stay
-                        // null.
-                        if (rowData.length > currentColumn) {
-                            currentObject = rowData[currentColumn];
-                            if (null != currentObject) {
-                                currentColumnStringValue = String.valueOf(currentObject);
-                            }
+                    // if rowData has value for the current column, retrieve it. If not, current column will stay
+                    // null.
+                    if ((null != rowData) && (rowData.length > currentColumn)) {
+                        currentObject = rowData[currentColumn];
+                        if (null != currentObject) {
+                            currentColumnStringValue = String.valueOf(currentObject);
                         }
                     }
+
                     writeInternalTVPRowValues(jdbcType, currentColumnStringValue, currentObject, columnPair, false);
                     currentColumn++;
                 }
@@ -5122,13 +5111,13 @@ final class TDSWriter {
                      */
                     bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
 
-                    byte[] valueBytes = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
+                    byte[] val = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
                     // 1-byte for sign and 16-byte for integer
                     byte[] byteValue = new byte[17];
 
                     // removing the precision and scale information from the valueBytes array
-                    System.arraycopy(valueBytes, 2, byteValue, 0, valueBytes.length - 2);
+                    System.arraycopy(val, 2, byteValue, 0, val.length - 2);
                     writeBytes(byteValue);
                 }
                 break;
@@ -6303,19 +6292,18 @@ final class TDSWriter {
                 cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
             } else if (SSType.DATETIME2 == ssType) {
                 // for Max value, does not round up, do casting instead.
-                if (3652058 == daysIntoCE) { // 9999-12-31
-                    if (864000000000L == scaledNanos) { // 24:00:00 in nanoseconds
-                        // does not round up
-                        scaledNanos = (((long) Nanos.PER_SECOND * secondsSinceMidnight
-                                + getRoundedSubSecondNanos(subSecondNanos)) / divisor) * divisor / 100;
+                if ((3652058 == daysIntoCE) && // 9999-12-31
+                        (864000000000L == scaledNanos)) { // 24:00:00 in nanoseconds
+                    // does not round up
+                    scaledNanos = (((long) Nanos.PER_SECOND * secondsSinceMidnight
+                            + getRoundedSubSecondNanos(subSecondNanos)) / divisor) * divisor / 100;
 
-                        int encodedLength = TDS.nanosSinceMidnightLength(TDS.MAX_FRACTIONAL_SECONDS_SCALE);
-                        byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
+                    int encodedLength = TDS.nanosSinceMidnightLength(TDS.MAX_FRACTIONAL_SECONDS_SCALE);
+                    byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
-                        // for DATETIME2 sends both date and time part together for encryption
-                        encodedBytesForEncryption = new byte[encodedLength + 3];
-                        System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
-                    }
+                    // for DATETIME2 sends both date and time part together for encryption
+                    encodedBytesForEncryption = new byte[encodedLength + 3];
+                    System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                 }
 
                 if (encodedBytesForEncryption == null) {
@@ -6331,19 +6319,18 @@ final class TDSWriter {
                         statement);
             } else {
                 // for Max value, does not round up, do casting instead.
-                if (3652058 == daysIntoCE) { // 9999-12-31
-                    if (864000000000L == scaledNanos) { // 24:00:00 in nanoseconds
-                        // does not round up
-                        scaledNanos = (((long) Nanos.PER_SECOND * secondsSinceMidnight
-                                + getRoundedSubSecondNanos(subSecondNanos)) / divisor) * divisor / 100;
+                if ((3652058 == daysIntoCE) && // 9999-12-31
+                        (864000000000L == scaledNanos)) { // 24:00:00 in nanoseconds
+                    // does not round up
+                    scaledNanos = (((long) Nanos.PER_SECOND * secondsSinceMidnight
+                            + getRoundedSubSecondNanos(subSecondNanos)) / divisor) * divisor / 100;
 
-                        int encodedLength = TDS.nanosSinceMidnightLength(TDS.MAX_FRACTIONAL_SECONDS_SCALE);
-                        byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
+                    int encodedLength = TDS.nanosSinceMidnightLength(TDS.MAX_FRACTIONAL_SECONDS_SCALE);
+                    byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
-                        // for DATETIMEOFFSET sends date, time and offset part together for encryption
-                        encodedBytesForEncryption = new byte[encodedLength + 5];
-                        System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
-                    }
+                    // for DATETIMEOFFSET sends date, time and offset part together for encryption
+                    encodedBytesForEncryption = new byte[encodedLength + 5];
+                    System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                 }
 
                 if (encodedBytesForEncryption == null) {
@@ -6704,8 +6691,6 @@ final class TDSReader implements Serializable {
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
     private final Lock lock = new ReentrantLock();
 
-    private ColumnEncryptionVersion columnEncryptionVersion;
-
     private final byte valueBytes[] = new byte[256];
 
     protected SensitivityClassification sensitivityClassification;
@@ -6729,7 +6714,6 @@ final class TDSReader implements Serializable {
             useColumnEncryption = true;
         }
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
-        columnEncryptionVersion = con.getServerColumnEncryptionVersion();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
         serverSupportedDataClassificationVersion = con.getServerSupportedDataClassificationVersion();
     }
@@ -6769,9 +6753,9 @@ final class TDSReader implements Serializable {
      * @return true if additional data is available to be read false if no more data is available
      */
     private boolean ensurePayload() throws SQLServerException {
-        if (payloadOffset == currentPacket.payloadLength)
-            if (!nextPacket())
-                return false;
+        if ((payloadOffset == currentPacket.payloadLength) && (!nextPacket())) {
+            return false;
+        }
         assert payloadOffset < currentPacket.payloadLength;
         return true;
     }
@@ -6837,16 +6821,16 @@ final class TDSReader implements Serializable {
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
             TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
-            if (null != command) {
-                // if cancelQueryTimeout is set, we should wait for the total amount of
-                // queryTimeout + cancelQueryTimeout to
-                // terminate the connection.
-                if ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0)) {
-                    // if a timeout is configured with this object, add it to the timeout poller
-                    int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
-                    this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);
-                }
+            if ((null != command) &&
+            // if cancelQueryTimeout is set, we should wait for the total amount of
+            // queryTimeout + cancelQueryTimeout to
+            // terminate the connection.
+                    ((command.getCancelQueryTimeoutSeconds() > 0 && command.getQueryTimeoutSeconds() > 0))) {
+                // if a timeout is configured with this object, add it to the timeout poller
+                int seconds = command.getCancelQueryTimeoutSeconds() + command.getQueryTimeoutSeconds();
+                this.timeout = con.getSharedTimer().schedule(new TDSTimeoutTask(command, con), seconds);
             }
+
             // First, read the packet header.
             for (int headerBytesRead = 0; headerBytesRead < TDS.PACKET_HEADER_SIZE;) {
                 int bytesRead = tdsChannel.read(newPacket.header, headerBytesRead,
@@ -8148,6 +8132,7 @@ abstract class UninterruptableTDSCommand extends TDSCommand {
         super(logContext, 0, 0);
     }
 
+    @Override
     final void interrupt(String reason) throws SQLServerException {
         // Interrupting an uninterruptable command is a no-op. That is,
         // it can happen, but it should have no effect.

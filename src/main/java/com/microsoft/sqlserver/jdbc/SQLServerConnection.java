@@ -2971,7 +2971,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         } else {
             if (isDBMirroring) {
                 // Create a temporary class with the mirror info from the user
-                tempFailover = new FailoverInfo(mirror, this, false);
+                tempFailover = new FailoverInfo(mirror, false);
             }
         }
 
@@ -3236,7 +3236,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             if (null == tempFailover)
-                tempFailover = new FailoverInfo(failoverPartnerServerProvided, this, false);
+                tempFailover = new FailoverInfo(failoverPartnerServerProvided, false);
             // if the failover is not from the map already out this in the map, if it is from the map just make sure
             // that we change the
             if (null != foActual) {

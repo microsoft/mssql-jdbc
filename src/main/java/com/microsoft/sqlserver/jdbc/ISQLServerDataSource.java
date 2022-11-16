@@ -938,6 +938,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * 
      * @param managedIdentityClientId
      *        Client ID of the user-assigned Managed Identity.
+     * 
+     * @deprecated
      */
     @Deprecated
     void setMSIClientId(String managedIdentityClientId);
@@ -948,6 +950,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns the value for the connection property 'msiClientId'.
      * 
      * @return msiClientId property value
+     * 
+     * @deprecated
      */
     @Deprecated
     String getMSIClientId();
@@ -1219,6 +1223,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * @param timeToLive
      *        Time-to-live is no longer supported.
+     * 
+     * @deprecated
      */
     @Deprecated
     void setMsiTokenCacheTtl(int timeToLive);
@@ -1228,6 +1234,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * This method will always return 0 and is for backwards compatibility only.
      *
      * @return Method will always return 0.
+     * 
+     * @deprecated
      */
     @Deprecated
     int getMsiTokenCacheTtl();

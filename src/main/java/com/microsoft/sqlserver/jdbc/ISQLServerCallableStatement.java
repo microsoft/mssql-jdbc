@@ -27,6 +27,8 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @return the column value; if the value is SQL NULL, the value returned is null
      * @throws SQLServerException
      *         when an error occurs
+     * 
+     * @deprecated
      */
     @Deprecated
     BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;

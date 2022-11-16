@@ -251,7 +251,7 @@ public class FedauthTest extends FedauthCommon {
      * encryption, in addition to application name in order to use different authorities.
      *
      * @throws Exception
-     *          if an exception occurs
+     *         if an exception occurs
      */
     @Test
     public void testAADPasswordApplicationName() throws Exception {
@@ -263,8 +263,7 @@ public class FedauthTest extends FedauthCommon {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(url);
 
-        try (Connection con = ds.getConnection()) {
-        } catch (Exception e) {
+        try (Connection con = ds.getConnection()) {} catch (Exception e) {
             fail(e.getMessage());
         }
     }
@@ -275,6 +274,7 @@ public class FedauthTest extends FedauthCommon {
      * 
      * @deprecated
      */
+    @Deprecated
     @Test
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
