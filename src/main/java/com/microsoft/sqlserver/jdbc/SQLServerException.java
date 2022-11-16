@@ -59,6 +59,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final String EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH = "08001";
     static final String EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST = "08003";
     static final String EXCEPTION_XOPEN_CONNECTION_FAILURE = "08006"; // After connection was connected OK
+
     static final String LOG_CLIENT_CONNECTION_ID_PREFIX = " ClientConnectionId:";
 
     // SQL error values (from sqlerrorcodes.h)
@@ -338,9 +339,9 @@ public final class SQLServerException extends java.sql.SQLException {
         if (xopenStates) {
             switch (errNum) {
                 case 4060:
-                    return "08001"; // Database name undefined at logging
+                    return EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH; // Database name undefined at logging
                 case 18456:
-                    return "08001"; // username password wrong at login
+                    return EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH; // username password wrong at login
                 case 2714:
                     return "42S01"; // Table already exists
                 case 208:
@@ -353,13 +354,13 @@ public final class SQLServerException extends java.sql.SQLException {
             // The error code came from the db but XOPEN does not have a specific case for it.
         } else {
             switch (errNum) {
-                // case 18456: return "08001"; //username password wrong at login
+                // case 18456: return EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH; //username password wrong at login
                 case 8152:
                     return "22001"; // String data right truncation
                 case 515: // 2.2705
                 case 547:
-                    return "23000"; // Integrity constraint violation
                 case 2601:
+                case 2627:
                     return "23000"; // Integrity constraint violation
                 case 2714:
                     return "S0001"; // table already exists
@@ -367,8 +368,6 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "S0002"; // table not found
                 case 1205:
                     return "40001"; // deadlock detected
-                case 2627:
-                    return "23000"; // DPM 4.04. Primary key violation
                 default: {
                     String dbState = databaseState.toString();
                     /*

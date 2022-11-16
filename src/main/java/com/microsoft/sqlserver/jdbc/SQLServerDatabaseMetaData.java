@@ -270,6 +270,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
+    private static final String SELECT = "SELECT";
+    private static final String WHERE = " WHERE ";
+    private static final String WHERE_CLAUSE = " WHERE 0 = 1";
+
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
@@ -805,8 +809,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (null == o) {
                     sb.append("NULL");
                 } else if (o instanceof Number) {
-                    if ("IS_AUTOINCREMENT".equalsIgnoreCase(p.getValue())
-                            || "IS_GENERATEDCOLUMN".equalsIgnoreCase(p.getValue())) {
+                    if (IS_AUTOINCREMENT.equalsIgnoreCase(p.getValue())
+                            || IS_GENERATEDCOLUMN.equalsIgnoreCase(p.getValue())) {
                         sb.append("'").append(Util.escapeSingleQuotes(Util.zeroOneToYesNo(((Number) o).intValue())))
                                 .append("'");
                     } else {
@@ -912,11 +916,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public java.sql.ResultSet getClientInfoProperties() throws SQLException {
         checkClosed();
-        return getResultSetFromInternalQueries(null, "SELECT" +
+        return getResultSetFromInternalQueries(null, SELECT +
         /* 1 */ " cast(NULL as char(1)) as NAME," +
         /* 2 */ " cast(0 as int) as MAX_LEN," +
         /* 3 */ " cast(NULL as char(1)) as DEFAULT_VALUE," +
-        /* 4 */ " cast(NULL as char(1)) as DESCRIPTION " + " where 0 = 1");
+        /* 4 */ " cast(NULL as char(1)) as DESCRIPTION " + WHERE_CLAUSE);
     }
 
     private static final String[] getBestRowIdentifierColumnNames = { /* 1 */ SCOPE, /* 2 */ COLUMN_NAME,
@@ -1436,7 +1440,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // as per
         // http://msdn.microsoft.com/en-us/library/ms378445%28v=sql.110%29.aspx
         // so just return empty result set
-        return getResultSetFromInternalQueries(catalog, "SELECT" +
+        return getResultSetFromInternalQueries(catalog, SELECT +
         /* 1 */ " cast(NULL as char(1)) as TABLE_CAT," +
         /* 2 */ " cast(NULL as char(1)) as TABLE_SCHEM," +
         /* 3 */ " cast(NULL as char(1)) as TABLE_NAME," +
@@ -1448,7 +1452,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 9 */ " cast(NULL as char(1)) as COLUMN_USAGE," +
         /* 10 */ " cast(NULL as char(1)) as REMARKS," +
         /* 11 */ " cast(0 as int) as CHAR_OCTET_LENGTH," +
-        /* 12 */ " cast(NULL as char(1)) as IS_NULLABLE" + " where 0 = 1");
+        /* 12 */ " cast(NULL as char(1)) as IS_NULLABLE" + WHERE_CLAUSE);
     }
 
     @Override
@@ -1503,12 +1507,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         //
         if (null != catalog && catalog.length() == 0) {
             if (null != schemaPattern)
-                s += " where " + schemaName + " like ?  and ";
+                s += WHERE + schemaName + " like ?  and ";
             else
-                s += " where ";
+                s += WHERE;
             s += schemaName + " in " + constSchemas;
         } else if (null != schemaPattern)
-            s += " where " + schemaName + " like ?  ";
+            s += WHERE + schemaName + " like ?  ";
 
         s += " order by 2, 1";
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
@@ -2388,14 +2392,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        return getResultSetFromInternalQueries(catalog, "SELECT" +
+        return getResultSetFromInternalQueries(catalog, SELECT +
         /* 1 */ " cast(NULL as char(1)) as TYPE_CAT," +
         /* 2 */ " cast(NULL as char(1)) as TYPE_SCHEM," +
         /* 3 */ " cast(NULL as char(1)) as TYPE_NAME," +
         /* 4 */ " cast(NULL as char(1)) as CLASS_NAME," +
         /* 5 */ " cast(0 as int) as DATA_TYPE," +
         /* 6 */ " cast(NULL as char(1)) as REMARKS," +
-        /* 7 */ " cast(0 as smallint) as BASE_TYPE" + " where 0 = 1");
+        /* 7 */ " cast(0 as smallint) as BASE_TYPE" + WHERE_CLAUSE);
     }
 
     @Override
@@ -2490,7 +2494,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        return getResultSetFromInternalQueries(catalog, "SELECT" +
+        return getResultSetFromInternalQueries(catalog, SELECT +
         /* 1 */ " cast(NULL as char(1)) as TYPE_CAT," +
         /* 2 */ " cast(NULL as char(1)) as TYPE_SCHEM," +
         /* 3 */ " cast(NULL as char(1)) as TYPE_NAME," +
@@ -2511,7 +2515,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         /* 18 */ " cast(NULL as char(1)) as SCOPE_CATALOG," +
         /* 19 */ " cast(NULL as char(1)) as SCOPE_SCHEMA," +
         /* 20 */ " cast(NULL as char(1)) as SCOPE_TABLE," +
-        /* 21 */ " cast(0 as smallint) as SOURCE_DATA_TYPE" + " where 0 = 1");
+        /* 21 */ " cast(0 as smallint) as SOURCE_DATA_TYPE" + WHERE_CLAUSE);
     }
 
     @Override
@@ -2521,11 +2525,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        return getResultSetFromInternalQueries(catalog, "SELECT" +
+        return getResultSetFromInternalQueries(catalog, SELECT +
         /* 1 */ " cast(NULL as char(1)) as TYPE_CAT," +
         /* 2 */ " cast(NULL as char(1)) as TYPE_SCHEM," +
         /* 3 */ " cast(NULL as char(1)) as TYPE_NAME," +
-        /* 4 */ " cast(NULL as char(1)) as SUPERTABLE_NAME" + " where 0 = 1");
+        /* 4 */ " cast(NULL as char(1)) as SUPERTABLE_NAME" + WHERE_CLAUSE);
     }
 
     @Override
@@ -2535,13 +2539,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        return getResultSetFromInternalQueries(catalog, "SELECT" +
+        return getResultSetFromInternalQueries(catalog, SELECT +
         /* 1 */ " cast(NULL as char(1)) as TYPE_CAT," +
         /* 2 */ " cast(NULL as char(1)) as TYPE_SCHEM," +
         /* 3 */ " cast(NULL as char(1)) as TYPE_NAME," +
         /* 4 */ " cast(NULL as char(1)) as SUPERTYPE_CAT," +
         /* 5 */ " cast(NULL as char(1)) as SUPERTYPE_SCHEM," +
-        /* 6 */ " cast(NULL as char(1)) as SUPERTYPE_NAME" + " where 0 = 1");
+        /* 6 */ " cast(NULL as char(1)) as SUPERTYPE_NAME" + WHERE_CLAUSE);
     }
 
     @Override

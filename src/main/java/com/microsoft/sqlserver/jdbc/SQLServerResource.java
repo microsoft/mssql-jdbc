@@ -516,7 +516,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
         {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
         {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
-        {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."}
+        {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."},
+        {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"}
     };
 }
 // @formatter:on

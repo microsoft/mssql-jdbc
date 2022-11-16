@@ -78,9 +78,10 @@ interface ISQLServerEnclaveProvider {
                 }
                 enclaveCEKs.clear();
                 SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                        enclaveSession.getSessionSecret(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                        enclaveSession.getSessionSecret(),
+                        SQLServerAeadAes256CbcHmac256Algorithm.AEAD_AES_256_CBC_HMAC_SHA256);
                 SQLServerAeadAes256CbcHmac256Algorithm algo = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey,
-                        SQLServerEncryptionType.Randomized, (byte) 0x1);
+                        SQLServerEncryptionType.RANDOMIZED, (byte) 0x1);
                 enclavePackage.write(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
             } catch (GeneralSecurityException | SQLServerException | IOException e) {
@@ -252,7 +253,7 @@ interface ISQLServerEnclaveProvider {
                 }
                 SQLServerEncryptionType encType = SQLServerEncryptionType
                         .of((byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
-                if (SQLServerEncryptionType.PlainText != encType) {
+                if (SQLServerEncryptionType.PLAINTEXT != encType) {
                     params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                             (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
                             null, encType.value,

@@ -57,6 +57,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
 
+    private static final String EXECUTE_BATCH_STRING_ = "executeBatch";
+
     /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
@@ -986,7 +988,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                         SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
                                 .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
-                        if (SQLServerEncryptionType.PlainText != encType) {
+                        if (SQLServerEncryptionType.PLAINTEXT != encType) {
                             params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                                     (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
@@ -2035,7 +2037,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
-        loggerExternal.entering(getClassNameLogging(), "executeBatch");
+        loggerExternal.entering(getClassNameLogging(), EXECUTE_BATCH_STRING_);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
         }
@@ -2051,7 +2053,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING_, updateCounts);
                         return updateCounts;
                     }
 
@@ -2069,7 +2071,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2098,8 +2101,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2112,7 +2115,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2129,7 +2133,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             updateCounts[i] = 1;
                         }
 
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING_, updateCounts);
                         return updateCounts;
                     }
                 }
@@ -2183,7 +2187,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-            loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+            loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING_, updateCounts);
             return updateCounts;
         } finally {
             batchParamValues = null;
@@ -2226,7 +2230,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2255,8 +2260,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2269,7 +2274,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2409,7 +2415,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
-            boolean hasTableBeenFound, boolean isExpectingTableName) {
+            boolean hasTableBeenFound, boolean isExpectingTableName) throws SQLServerException {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
@@ -2461,7 +2467,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // ] has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidSqlQuery"));
+                Object[] msgArgs = {localUserSQL};
+                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
             }
 
             // keep checking if it's escaped
@@ -2482,7 +2490,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // \" has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidSqlQuery"));
+                Object[] msgArgs = {localUserSQL};
+                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
             }
 
             // keep checking if it's escaped
@@ -2513,10 +2523,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidSqlQuery"));
+        Object[] msgArgs = {localUserSQL};
+        SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
+        return "";
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDW() {
+    private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2529,7 +2542,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null;
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(
+            ArrayList<String> listOfColumns) throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2556,7 +2570,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // ] has not been found, this is wrong.
                 if (tempint < 0) {
-                    throw new IllegalArgumentException("Invalid SQL Query.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidSqlQuery"));
+                    Object[] msgArgs = {localUserSQL};
+                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
                 }
 
                 // keep checking if it's escaped

@@ -49,6 +49,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      */
     private static final long serialVersionUID = 5044984771674532350L;
 
+    private static final String GET_TIMESTAMP = "getTimestamp";
+    private static final String SQLSTATE_07009 = "07009";
+
     /** the call param names */
     private HashMap<String, Integer> parameterNames;
 
@@ -409,7 +412,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (index < 1 || index > inOutParam.length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidOutputParameter"));
             Object[] msgArgs = {index};
-            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
         }
 
         // Check index refers to a registered OUT parameter
@@ -417,13 +420,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_outputParameterNotRegisteredForOutput"));
             Object[] msgArgs = {index};
-            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", true);
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, true);
         }
 
         // If we haven't executed the statement yet then throw a nice friendly exception.
         if (!wasExecuted())
             SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_statementMustBeExecuted"), "07009", false);
+                    SQLServerException.getErrString("R_statementMustBeExecuted"), SQLSTATE_07009, false);
 
         resultsReader().getCommand().checkForInterrupt();
 
@@ -892,39 +895,39 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     @Override
     public Timestamp getTimestamp(int index) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getTimestamp", index);
+            loggerExternal.entering(getClassNameLogging(), GET_TIMESTAMP, index);
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(index, JDBCType.TIMESTAMP);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        loggerExternal.exiting(getClassNameLogging(), GET_TIMESTAMP, value);
         return value;
     }
 
     @Override
     public Timestamp getTimestamp(String parameterName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTimestamp", parameterName);
+        loggerExternal.entering(getClassNameLogging(), GET_TIMESTAMP, parameterName);
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(parameterName), JDBCType.TIMESTAMP);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        loggerExternal.exiting(getClassNameLogging(), GET_TIMESTAMP, value);
         return value;
     }
 
     @Override
     public Timestamp getTimestamp(int index, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {index, cal});
+            loggerExternal.entering(getClassNameLogging(), GET_TIMESTAMP, new Object[] {index, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(index, JDBCType.TIMESTAMP, cal);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        loggerExternal.exiting(getClassNameLogging(), GET_TIMESTAMP, value);
         return value;
     }
 
     @Override
     public Timestamp getTimestamp(String name, Calendar cal) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "getTimestamp", new Object[] {name, cal});
+            loggerExternal.entering(getClassNameLogging(), GET_TIMESTAMP, new Object[] {name, cal});
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(name), JDBCType.TIMESTAMP, cal);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        loggerExternal.exiting(getClassNameLogging(), GET_TIMESTAMP, value);
         return value;
     }
 
@@ -1329,7 +1332,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     MessageFormat form = new MessageFormat(
                             SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
                     Object[] msgArgs = {columnName, ""};
-                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
+                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009,
+                            false);
                 }
 
                 try (ResultSet rs = s.executeQueryInternal(metaQuery.toString())) {
@@ -1373,7 +1377,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
             Object[] msgArgs = {columnName, procedureName};
-            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), "07009", false);
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
         }
 
         // @RETURN_VALUE is always in the list. If the user uses return value ?=call(@p1) syntax then

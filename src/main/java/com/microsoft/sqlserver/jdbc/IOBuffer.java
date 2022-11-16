@@ -3274,6 +3274,9 @@ final class SocketConnector implements Runnable {
  */
 final class TDSWriter {
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Writer");
+
+    private static final String UNEXPECTED_SSTYPE = "Unexpected SSType: ";
+
     private final String traceID;
 
     final public String toString() {
@@ -6017,7 +6020,7 @@ final class TDSWriter {
         assert con.isKatmaiOrLater();
 
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
-                || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: " + ssType;
+                || SSType.DATETIMEOFFSET == ssType : UNEXPECTED_SSTYPE + ssType;
 
         // First, for types with a time component, write the scaled nanos since midnight
         if (SSType.TIME == ssType || SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType) {
@@ -6052,8 +6055,7 @@ final class TDSWriter {
                 }
                 // If the type is datetime2 or datetimeoffset, truncate only if its the max value supported
                 else {
-                    assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: "
-                            + ssType;
+                    assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : UNEXPECTED_SSTYPE + ssType;
 
                     // ... then bump the date, provided that the resulting date is still within
                     // the valid date range.
@@ -6153,7 +6155,7 @@ final class TDSWriter {
         assert con.isKatmaiOrLater();
 
         assert SSType.DATE == ssType || SSType.TIME == ssType || SSType.DATETIME2 == ssType
-                || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: " + ssType;
+                || SSType.DATETIMEOFFSET == ssType : UNEXPECTED_SSTYPE + ssType;
 
         // store the time and minutesOffset portion of DATETIME2 and DATETIMEOFFSET to be used with date portion
         byte encodedBytesForEncryption[] = null;
@@ -6202,8 +6204,7 @@ final class TDSWriter {
                 }
                 // If the type is datetime2 or datetimeoffset, truncate only if its the max value supported
                 else {
-                    assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : "Unexpected SSType: "
-                            + ssType;
+                    assert SSType.DATETIME2 == ssType || SSType.DATETIMEOFFSET == ssType : UNEXPECTED_SSTYPE + ssType;
 
                     // ... then bump the date, provided that the resulting date is still within
                     // the valid date range.

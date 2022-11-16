@@ -1243,9 +1243,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             // if destination is encrypted send metadata from destination and not from source
             if (DataTypes.SHORT_VARTYPE_MAX_BYTES < destPrecision) {
-                return "varbinary(max)";
+                return SSType.VARBINARY.toString() + "(max)";
             } else {
-                return "varbinary(" + destColumnMetadata.get(destColIndx).precision + ")";
+                return SSType.VARBINARY.toString() + "(" + destColumnMetadata.get(destColIndx).precision + ")";
             }
         }
 
@@ -1268,7 +1268,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // SQL Server does not convert string to binary, we will have to explicitly convert before sending.
         if (Util.isCharType(bulkJdbcType) && Util.isBinaryType(destSSType)) {
             if (isStreaming)
-                return "varbinary(max)";
+                return SSType.VARBINARY.toString() + "(max)";
             else
                 // Return binary(n) or varbinary(n) or varbinary(max) depending on destination type/precision.
                 return destSSType.toString() + "("

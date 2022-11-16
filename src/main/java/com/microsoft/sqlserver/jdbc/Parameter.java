@@ -502,34 +502,36 @@ final class Parameter {
                             // so, here, if the decimal parameter is encrypted and it is null and it is not outparameter
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.defaultDecimalPrecision + ", "
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.defaultDecimalPrecision + ", " + scale + ")";
                             }
                         } else {
                             if (SQLServerConnection.defaultDecimalPrecision >= valueLength) {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.defaultDecimalPrecision + ","
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
 
                                 if (SQLServerConnection.defaultDecimalPrecision < (valueLength + scale)) {
-                                    param.typeDefinition = "decimal("
+                                    param.typeDefinition = SSType.DECIMAL.toString() + "("
                                             + (SQLServerConnection.defaultDecimalPrecision + scale) + "," + scale + ")";
                                 }
                             } else {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + ","
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
                             }
                         }
 
                         if (isOutput()) {
-                            param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + ", " + scale
-                                    + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "SSType.DECIMAL.toString()("
+                                    + SQLServerConnection.maxDecimalPrecision + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
-                            param.typeDefinition = "decimal(" + valueLength + "," + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "SSType.DECIMAL.toString()("
+                                    + valueLength + "," + scale + ")";
                         }
                     } else
-                        param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                        param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
+                                + "," + scale + ")";
 
                     break;
 
@@ -718,10 +720,10 @@ final class Parameter {
                          */
                         if (0 == valueLength) {
                             // Workaround for the issue when inserting empty string and null into encrypted columns
-                            param.typeDefinition = "varchar(1)";
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                             valueLength++;
                         } else {
-                            param.typeDefinition = "varchar(" + valueLength + ")";
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
                             if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
@@ -745,12 +747,12 @@ final class Parameter {
                                         || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "varchar(1)";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
                             } else {
-                                param.typeDefinition = "varchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
                             }
 
                             if (jdbcTypeSetByUser == JDBCType.LONGVARCHAR) {
@@ -760,12 +762,12 @@ final class Parameter {
                                 || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else if (DataTypes.SHORT_VARTYPE_MAX_CHARS < valueLength) {
                                 param.typeDefinition = NVARCHAR_MAX;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
                             }
 
                             if (jdbcTypeSetByUser == JDBCType.LONGNVARCHAR) {
@@ -774,10 +776,10 @@ final class Parameter {
                         } else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
@@ -814,10 +816,10 @@ final class Parameter {
                                         || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "varchar(1)";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "varchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                     param.typeDefinition = VARCHAR_MAX;
@@ -832,10 +834,10 @@ final class Parameter {
                                         || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
@@ -848,10 +850,10 @@ final class Parameter {
                         } else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
