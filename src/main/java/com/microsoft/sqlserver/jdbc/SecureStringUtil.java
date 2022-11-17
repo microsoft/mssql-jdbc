@@ -103,13 +103,14 @@ final class SecureStringUtil {
      * @return encrypted string
      * 
      * @throws SQLServerException
-     *         if error
+     *         Throws an exception if the method fails to encrypt the character array
      */
     byte[] getEncryptedBytes(char[] chars) throws SQLServerException {
         ENCRYPT_LOCK.lock();
         try {
-            if (chars == null)
+            if (chars == null) {
                 return null;
+            }
 
             byte[] iv = new byte[IV_LENGTH];
             SecureRandom random = new SecureRandom();
@@ -135,17 +136,20 @@ final class SecureStringUtil {
      * Get decrypted value of an encrypted string
      * 
      * @param bytes
+     *        The byte array to decrypt into a character array
      * 
      * @return decrypted string
      * 
      * @throws SQLServerException
+     *         Throws an exception if the method fails to decrypt the byte array
      */
     char[] getDecryptedChars(byte[] bytes) throws SQLServerException {
         DECRYPT_LOCK.lock();
         byte[] plainText = null;
         try {
-            if (bytes == null)
+            if (bytes == null) {
                 return null;
+            }
 
             byte[] iv = new byte[IV_LENGTH];
             System.arraycopy(bytes, 0, iv, 0, IV_LENGTH);
