@@ -3379,7 +3379,7 @@ final class TDSWriter {
     void preparePacket() throws SQLServerException {
         if (tdsChannel.isLoggingPackets()) {
             Arrays.fill(logBuffer.array(), (byte) 0xFE);
-            ((Buffer) logBuffer).clear();
+            logBuffer.clear();
         }
 
         // Write a placeholder packet header. This will be replaced

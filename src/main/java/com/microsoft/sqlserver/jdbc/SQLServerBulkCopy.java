@@ -70,6 +70,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private static final long serialVersionUID = 1989903904654306244L;
 
+    private static final String MAX = "(max)";
+
     /**
      * Represents the column mappings between the source and destination table
      */
@@ -1243,7 +1245,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             // if destination is encrypted send metadata from destination and not from source
             if (DataTypes.SHORT_VARTYPE_MAX_BYTES < destPrecision) {
-                return SSType.VARBINARY.toString() + "(max)";
+                return SSType.VARBINARY.toString() + MAX;
             } else {
                 return SSType.VARBINARY.toString() + "(" + destColumnMetadata.get(destColIndx).precision + ")";
             }
@@ -1268,7 +1270,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // SQL Server does not convert string to binary, we will have to explicitly convert before sending.
         if (Util.isCharType(bulkJdbcType) && Util.isBinaryType(destSSType)) {
             if (isStreaming)
-                return SSType.VARBINARY.toString() + "(max)";
+                return SSType.VARBINARY.toString() + MAX;
             else
                 // Return binary(n) or varbinary(n) or varbinary(max) depending on destination type/precision.
                 return destSSType.toString() + "("
@@ -1344,13 +1346,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Doesn't need to match with the exact size of data or with the destination column size.
                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     if (isStreaming) {
-                        return SSType.NVARCHAR.toString() + "(max)";
+                        return SSType.NVARCHAR.toString() + MAX;
                     } else {
                         return SSType.NVARCHAR.toString() + "(" + bulkPrecision + ")";
                     }
                 } else {
                     if (isStreaming) {
-                        return SSType.VARCHAR.toString() + "(max)";
+                        return SSType.VARCHAR.toString() + MAX;
                     } else {
                         return SSType.VARCHAR.toString() + "(" + bulkPrecision + ")";
                     }
@@ -1360,7 +1362,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.NVARCHAR:
                 if (isStreaming) {
-                    return SSType.NVARCHAR.toString() + "(MAX)";
+                    return SSType.NVARCHAR.toString() + MAX;
                 } else {
                     return SSType.NVARCHAR.toString() + "(" + bulkPrecision + ")";
                 }
@@ -1372,7 +1374,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
                 if (isStreaming)
-                    return SSType.VARBINARY.toString() + "(max)";
+                    return SSType.VARBINARY.toString() + MAX;
                 else
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
