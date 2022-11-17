@@ -30,7 +30,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * 
      * @deprecated
      */
-    @Deprecated(since = "6.5.4", forRemoval = true)
+    @Deprecated(since = "6.5.4")
     BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException;
 
     /**
