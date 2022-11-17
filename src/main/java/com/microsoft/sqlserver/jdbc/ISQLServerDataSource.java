@@ -798,7 +798,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the login configuration file for Kerberos authentication.
-     * *
+     *
      * 
      * @return login configuration file name
      * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead

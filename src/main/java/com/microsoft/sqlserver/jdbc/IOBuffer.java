@@ -3495,10 +3495,11 @@ final class TDSWriter {
         if (stagingBuffer.remaining() >= 1) {
             stagingBuffer.put(value);
             if (tdsChannel.isLoggingPackets()) {
-                if (dataIsLoggable)
+                if (dataIsLoggable) {
                     logBuffer.put(value);
-                else
+                } else {
                     logBuffer.position(logBuffer.position() + 1);
+                }
             }
         } else {
             valueBytes[0] = value;
