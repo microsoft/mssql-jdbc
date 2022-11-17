@@ -521,13 +521,12 @@ final class Parameter {
                         }
 
                         if (isOutput()) {
-                            param.typeDefinition = SSType.DECIMAL.toString() + "SSType.DECIMAL.toString()("
+                            param.typeDefinition = SSType.DECIMAL.toString() + "("
                                     + SQLServerConnection.maxDecimalPrecision + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
-                            param.typeDefinition = SSType.DECIMAL.toString() + "SSType.DECIMAL.toString()("
-                                    + valueLength + "," + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else
                         param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
