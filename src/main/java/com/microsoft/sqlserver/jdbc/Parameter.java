@@ -503,7 +503,7 @@ final class Parameter {
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.defaultDecimalPrecision + ", " + scale + ")";
+                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
                             }
                         } else {
                             if (SQLServerConnection.defaultDecimalPrecision >= valueLength) {
