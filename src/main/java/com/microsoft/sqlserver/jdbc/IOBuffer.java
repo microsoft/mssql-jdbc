@@ -26,6 +26,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SelectionKey;
@@ -3455,8 +3456,8 @@ final class TDSWriter {
             streamByteBuffer = new byte[4 * currentPacketSize];
         }
 
-        socketBuffer.position(socketBuffer.limit());
-        stagingBuffer.clear();
+        ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
+        ((Buffer) stagingBuffer).clear();
 
         preparePacket();
         writeMessageHeader();
@@ -3495,11 +3496,10 @@ final class TDSWriter {
         if (stagingBuffer.remaining() >= 1) {
             stagingBuffer.put(value);
             if (tdsChannel.isLoggingPackets()) {
-                if (dataIsLoggable) {
+                if (dataIsLoggable)
                     logBuffer.put(value);
-                } else {
-                    logBuffer.position(logBuffer.position() + 1);
-                }
+                else
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 1);
             }
         } else {
             valueBytes[0] = value;
@@ -3525,7 +3525,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putChar(value);
                 else
-                    logBuffer.position(logBuffer.position() + 2);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 2);
             }
         } else {
             Util.writeShort((short) value, valueBytes, 0);
@@ -3540,7 +3540,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putShort(value);
                 else
-                    logBuffer.position(logBuffer.position() + 2);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 2);
             }
         } else {
             Util.writeShort(value, valueBytes, 0);
@@ -3555,7 +3555,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putInt(value);
                 else
-                    logBuffer.position(logBuffer.position() + 4);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 4);
             }
         } else {
             Util.writeInt(value, valueBytes, 0);
@@ -3586,7 +3586,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putDouble(value);
                 else
-                    logBuffer.position(logBuffer.position() + 8);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 8);
             }
         } else {
             long bits = Double.doubleToLongBits(value);
@@ -4059,7 +4059,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.putLong(value);
                 else
-                    logBuffer.position(logBuffer.position() + 8);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + 8);
             }
         } else {
             Util.writeLong(value, valueBytes, 0);
@@ -4093,7 +4093,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, offset + bytesWritten, bytesToWrite);
                 else
-                    logBuffer.position(logBuffer.position() + bytesToWrite);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + bytesToWrite);
             }
 
             bytesWritten += bytesToWrite;
@@ -4119,7 +4119,7 @@ final class TDSWriter {
                 if (dataIsLoggable)
                     logBuffer.put(value, 0, remaining);
                 else
-                    logBuffer.position(logBuffer.position() + remaining);
+                    ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + remaining);
             }
         }
 
@@ -4132,7 +4132,7 @@ final class TDSWriter {
             if (dataIsLoggable)
                 logBuffer.put(value, remaining, valueLength - remaining);
             else
-                logBuffer.position(logBuffer.position() + remaining);
+                ((Buffer) logBuffer).position(((Buffer) logBuffer).position() + remaining);
         }
     }
 
@@ -4456,7 +4456,7 @@ final class TDSWriter {
     }
 
     private void writePacketHeader(int tdsMessageStatus) {
-        int tdsMessageLength = stagingBuffer.position();
+        int tdsMessageLength = ((Buffer) stagingBuffer).position();
         ++packetNum;
 
         // Write the TDS packet header back at the start of the staging buffer
@@ -4494,13 +4494,13 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
-        socketBuffer.position(socketBuffer.limit());
+        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
         // to the socket, the socket buffer is now empty, so swap buffers
         // and start writing data from the staging buffer.
-        if (stagingBuffer.position() >= TDS_PACKET_HEADER_SIZE) {
+        if (((Buffer) stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
             // Swap the packet buffers ...
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
@@ -4512,14 +4512,14 @@ final class TDSWriter {
             // We need to use flip() rather than rewind() here so that
             // the socket buffer's limit is properly set for the last
             // packet, which may be shorter than the other packets.
-            socketBuffer.flip();
-            stagingBuffer.clear();
+            ((Buffer) socketBuffer).flip();
+            ((Buffer) stagingBuffer).clear();
 
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
-                tdsChannel.logPacket(logBuffer.array(), 0, socketBuffer.limit(),
-                        this.toString() + " sending packet (" + socketBuffer.limit() + " bytes)");
+                tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
+                        this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
             }
 
             // Prepare for the next packet
@@ -4527,8 +4527,8 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining());
-            socketBuffer.position(socketBuffer.limit());
+            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         }
     }
 
@@ -4940,7 +4940,7 @@ final class TDSWriter {
 
                 if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
                     cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                    cachedTVPHeaders.put(stagingBuffer.array(), 0, stagingBuffer.position());
+                    cachedTVPHeaders.put(stagingBuffer.array(), 0, ((Buffer) stagingBuffer).position());
 
                     cachedCommand = this.command;
 
@@ -4965,9 +4965,9 @@ final class TDSWriter {
                 if (tdsWritterCached) {
                     command = cachedCommand;
 
-                    stagingBuffer.clear();
-                    logBuffer.clear();
-                    writeBytes(cachedTVPHeaders.array(), 0, cachedTVPHeaders.position());
+                    ((Buffer) stagingBuffer).clear();
+                    ((Buffer) logBuffer).clear();
+                    writeBytes(cachedTVPHeaders.array(), 0, ((Buffer) cachedTVPHeaders).position());
                 }
 
                 Object[] rowData = value.getRowData();
