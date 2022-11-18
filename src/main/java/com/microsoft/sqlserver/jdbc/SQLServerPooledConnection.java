@@ -5,17 +5,18 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.PooledConnection;
+import javax.sql.StatementEventListener;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
-
-import javax.sql.ConnectionEvent;
-import javax.sql.ConnectionEventListener;
-import javax.sql.PooledConnection;
-import javax.sql.StatementEventListener;
 
 
 /**
@@ -53,8 +54,15 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     // Unique id generator for each PooledConnection instance (used for logging).
     static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);
 
+    /** reentrant lock for connection */
+    private final Lock lock = new ReentrantLock();
+
+    /** reentrant lock for ConnectionEventListener */
+    private final Lock listenersLock = new ReentrantLock();
+
     SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {
         listeners = new Vector<>();
+        traceID = getClass().getSimpleName() + ':' + nextPooledConnectionID();
         // Piggyback SQLServerDataSource logger for now.
         pcLogger = SQLServerDataSource.dsLogger;
 
@@ -67,8 +75,6 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
             pcLogger.finer(toString() + " Start create new connection for pool.");
 
         physicalConnection = createNewConnection();
-        String nameL = getClass().getName();
-        traceID = nameL.substring(1 + nameL.lastIndexOf('.')) + ":" + nextPooledConnectionID();
         if (pcLogger.isLoggable(Level.FINE))
             pcLogger.fine(toString() + " created by (" + ds.toString() + ")" + " Physical connection " + safeCID()
                     + ", End create new connection for pool");
@@ -76,7 +82,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Provides a helper function to provide an ID string suitable for tracing.
-     * 
+     *
      * @return traceID String
      */
     @Override
@@ -86,7 +92,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Helper function to create a new connection for the pool.
-     * 
+     *
      * @return SQLServerConnection instance
      * @throws SQLException
      */
@@ -96,7 +102,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
     /**
      * Returns an object handle for the physical connection that this PooledConnection object represents.
-     * 
+     *
      * @throws SQLException
      *         when an error occurs
      * @return a Connection object that is a handle to this PooledConnection object
@@ -105,7 +111,8 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     public Connection getConnection() throws SQLException {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " user:(default).");
-        synchronized (this) {
+        lock.lock();
+        try {
             // If physical connection is closed, throw exception per spec, this PooledConnection is dead.
             if (physicalConnection == null) {
                 SQLServerException.makeFromDriverError(null, this,
@@ -151,6 +158,8 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
                 pcLogger.fine(toString() + " proxy " + lastProxyConnection.toString() + " is returned.");
 
             return lastProxyConnection;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -165,16 +174,20 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
 
         // close the proxy on fatal error event. Note exception is null then the event comes from the proxy close.
         if (null != e) {
-            synchronized (this) {
+            lock.lock();
+            try {
                 if (null != lastProxyConnection) {
                     lastProxyConnection.internalClose();
                     lastProxyConnection = null;
                 }
+            } finally {
+                lock.unlock();
             }
         }
 
         // A connection handle issued from this pooled connection is closing or an error occurred in the connection
-        synchronized (listeners) {
+        listenersLock.lock();
+        try {
             for (int i = 0; i < listeners.size(); i++) {
                 ConnectionEventListener listener = listeners.elementAt(i);
 
@@ -192,6 +205,8 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
                     listener.connectionErrorOccurred(ev);
                 }
             }
+        } finally {
+            listenersLock.unlock();
         }
     }
 
@@ -199,8 +214,11 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     public void addConnectionEventListener(ConnectionEventListener listener) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + safeCID());
-        synchronized (listeners) {
+        listenersLock.lock();
+        try {
             listeners.add(listener);
+        } finally {
+            listenersLock.unlock();
         }
     }
 
@@ -208,7 +226,8 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     public void close() throws SQLException {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + " Closing physical connection, " + safeCID());
-        synchronized (this) {
+        lock.lock();
+        try {
             // First close the last proxy
             if (null != lastProxyConnection)
                 // use internal close so there wont be an event due to us closing the connection, if not closed already.
@@ -218,19 +237,26 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
                 physicalConnection.close();
             }
             physicalConnection = null;
+        } finally {
+            lock.unlock();
         }
-        synchronized (listeners) {
+        listenersLock.lock();
+        try {
             listeners.clear();
+        } finally {
+            listenersLock.unlock();
         }
-
     }
 
     @Override
     public void removeConnectionEventListener(ConnectionEventListener listener) {
         if (pcLogger.isLoggable(Level.FINER))
             pcLogger.finer(toString() + safeCID());
-        synchronized (listeners) {
+        listenersLock.lock();
+        try {
             listeners.remove(listener);
+        } finally {
+            listenersLock.unlock();
         }
     }
 

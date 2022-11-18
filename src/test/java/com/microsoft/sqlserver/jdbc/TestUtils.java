@@ -29,6 +29,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
@@ -75,18 +76,20 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
     private TestUtils() {}
-    
+
     /**
      * Checks if the connection session recovery object has negotiated reflection.
+     * 
      * @param con
      * @return
      */
     public static boolean isConnectionRecoveryNegotiated(Connection con) {
         return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
     }
-    
+
     /**
      * Checks if connection is dead.
+     * 
      * @param con
      * @return
      * @throws SQLServerException
@@ -131,6 +134,15 @@ public final class TestUtils {
      */
     public static boolean isAEv2(Connection con) {
         return ((SQLServerConnection) con).isAEv2();
+    }
+
+    /**
+     * Returns whether the server supports retrying a connection on failure
+     * 
+     * @see com.microsoft.sqlserver.jdbc.SQLServerConnection#doesServerSupportEnclaveRetry()
+     */
+    public static boolean doesServerSupportEnclaveRetry(Connection con) {
+        return ((SQLServerConnection) con).doesServerSupportEnclaveRetry();
     }
 
     /**
@@ -354,6 +366,17 @@ public final class TestUtils {
      */
     public static void dropTypeIfExists(String typeName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(typeName, "TT", stmt);
+    }
+
+    /**
+     * Drops user defined types
+     *
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName);
     }
 
     /**
@@ -868,7 +891,7 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.indexOf(property);
+        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");

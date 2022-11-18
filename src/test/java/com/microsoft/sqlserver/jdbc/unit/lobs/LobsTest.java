@@ -78,7 +78,9 @@ public class LobsTest extends AbstractTest {
     DBTable table = null;
 
     @BeforeAll
-    public static void init() throws SQLException {
+    public static void init() throws Exception {
+        setConnection();
+
         tableName = RandomUtil.getIdentifier("LOBS");
         escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
     }

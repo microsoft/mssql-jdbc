@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -62,6 +63,11 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class StatementTest extends AbstractTest {
     public static final Logger log = Logger.getLogger("StatementTest");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @Nested
     @Tag(Constants.xAzureSQLDW)
@@ -186,17 +192,8 @@ public class StatementTest extends AbstractTest {
 
                 // Second execution:
                 // Verify connection is still usable.
-                // Verify execution with no timeout doesn't return too soon.
                 ps.setQueryTimeout(0);
-                elapsedMillis = -System.currentTimeMillis();
                 ps.execute();
-                elapsedMillis += System.currentTimeMillis();
-
-                // Oddly enough, the server's idea of 7 seconds is actually slightly less than
-                // 7000 milliseconds by our clock (!) so we have to allow some slack here.
-                if (elapsedMillis < 6500) {
-                    assertEquals(6500, (int) elapsedMillis, TestResource.getResource("R_executionNotLong"));
-                }
             }
         }
 
@@ -243,7 +240,7 @@ public class StatementTest extends AbstractTest {
 
                         assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                     } catch (SQLException e) {
-                        assertEquals(TestResource.getResource("R_queryCancelled"), e.getMessage());
+                        assertEquals(TestResource.getResource("R_queryCanceled"), e.getMessage());
                     }
 
                     assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows,
@@ -348,7 +345,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").equalsIgnoreCase(
+                                    assertTrue(TestResource.getResource("R_queryCanceled").equalsIgnoreCase(
                                             e.getMessage()), TestResource.getResource("R_unexpectedException"));
                                 }
 
@@ -437,7 +434,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()),
+                                    assertTrue(TestResource.getResource("R_queryCanceled").contains(e.getMessage()),
                                             TestResource.getResource("R_unexpectedException"));
                                 }
 
@@ -536,7 +533,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()),
+                                    assertTrue(TestResource.getResource("R_queryCanceled").contains(e.getMessage()),
                                             TestResource.getResource("R_unexpectedException"));
                                 }
                                 elapsedMillis += System.currentTimeMillis();

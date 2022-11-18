@@ -50,16 +50,6 @@ import javax.crypto.KeyAgreement;
  */
 interface ISQLServerEnclaveProvider {
     /**
-     * sp_describe_parameter_encryption stored procedure with 2 params
-     */
-    static final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
-
-    /**
-     * sp_describe_parameter_encryption stored procedure with 3 params
-     */
-    static final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
-
-    /**
      * Get the Enclave package
      * 
      * @param userSQL
@@ -78,7 +68,7 @@ interface ISQLServerEnclaveProvider {
                 enclavePackage.write(enclaveSession.getSessionID());
                 ByteArrayOutputStream keys = new ByteArrayOutputStream();
                 byte[] randomGUID = new byte[16];
-                SecureRandom.getInstanceStrong().nextBytes(randomGUID);
+                new SecureRandom().nextBytes(randomGUID);
                 keys.write(randomGUID);
                 keys.write(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(enclaveSession.getCounter())
                         .array());
@@ -180,19 +170,20 @@ interface ISQLServerEnclaveProvider {
      *         if error
      */
     default void processSDPEv1(String userSql, String preparedTypeDefinitions, Parameter[] params,
-            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement, PreparedStatement stmt, ResultSet rs,
-            ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
+            ArrayList<String> parameterNames, SQLServerConnection connection, SQLServerStatement sqlServerStatement,
+            PreparedStatement stmt, ResultSet rs, ArrayList<byte[]> enclaveRequestedCEKs) throws SQLException {
         Map<Integer, CekTableEntry> cekList = new HashMap<>();
         CekTableEntry cekEntry = null;
         boolean isRequestedByEnclave = false;
         SQLServerStatement statement = (SQLServerStatement) ((SQLServerPreparedStatement) stmt);
 
         if (null != sqlServerStatement && sqlServerStatement.hasColumnEncryptionKeyStoreProvidersRegistered()) {
-            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
+            statement.registerColumnEncryptionKeyStoreProvidersOnStatement(
+                    sqlServerStatement.statementColumnEncryptionKeyStoreProviders);
         }
-        
+
         while (rs.next()) {
-            int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KeyOrdinal.value());
+            int currentOrdinal = rs.getInt(DescribeParameterEncryptionResultSet1.KEYORDINAL.value());
             if (!cekList.containsKey(currentOrdinal)) {
                 cekEntry = new CekTableEntry(currentOrdinal);
                 cekList.put(cekEntry.ordinal, cekEntry);
@@ -200,31 +191,31 @@ interface ISQLServerEnclaveProvider {
                 cekEntry = cekList.get(currentOrdinal);
             }
 
-            String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.ProviderName.value());
-            String algo = rs.getString(DescribeParameterEncryptionResultSet1.KeyEncryptionAlgorithm.value());
-            String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KeyPath.value());
+            String keyStoreName = rs.getString(DescribeParameterEncryptionResultSet1.PROVIDERNAME.value());
+            String algo = rs.getString(DescribeParameterEncryptionResultSet1.KEYENCRYPTIONALGORITHM.value());
+            String keyPath = rs.getString(DescribeParameterEncryptionResultSet1.KEYPATH.value());
 
-            int dbID = rs.getInt(DescribeParameterEncryptionResultSet1.DbId.value());
-            byte[] mdVer = rs.getBytes(DescribeParameterEncryptionResultSet1.KeyMdVersion.value());
-            int keyID = rs.getInt(DescribeParameterEncryptionResultSet1.KeyId.value());
-            byte[] encryptedKey = rs.getBytes(DescribeParameterEncryptionResultSet1.EncryptedKey.value());
+            int dbID = rs.getInt(DescribeParameterEncryptionResultSet1.DBID.value());
+            byte[] mdVer = rs.getBytes(DescribeParameterEncryptionResultSet1.KEYMDVERSION.value());
+            int keyID = rs.getInt(DescribeParameterEncryptionResultSet1.KEYID.value());
+            byte[] encryptedKey = rs.getBytes(DescribeParameterEncryptionResultSet1.ENCRYPTEDKEY.value());
 
-            cekEntry.add(encryptedKey, dbID, keyID, rs.getInt(DescribeParameterEncryptionResultSet1.KeyVersion.value()),
+            cekEntry.add(encryptedKey, dbID, keyID, rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()),
                     mdVer, keyPath, keyStoreName, algo);
 
             // servers supporting enclave computations should always return a boolean indicating whether the key
             // is
             // required by enclave or not.
-            if (ColumnEncryptionVersion.AE_v2.value() <= connection.getServerColumnEncryptionVersion().value()) {
+            if (ColumnEncryptionVersion.AE_V2.value() <= connection.getServerColumnEncryptionVersion().value()) {
                 isRequestedByEnclave = rs
-                        .getBoolean(DescribeParameterEncryptionResultSet1.IsRequestedByEnclave.value());
+                        .getBoolean(DescribeParameterEncryptionResultSet1.ISREQUESTEDBYENCLAVE.value());
             }
 
             if (isRequestedByEnclave) {
-                byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.EnclaveCMKSignature.value());
+                byte[] keySignature = rs.getBytes(DescribeParameterEncryptionResultSet1.ENCLAVECMKSIGNATURE.value());
                 String serverName = connection.getTrustedServerNameAE();
-                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath, serverName,
-                        isRequestedByEnclave, keySignature);
+                SQLServerSecurityUtility.verifyColumnMasterKeyMetadata(connection, statement, keyStoreName, keyPath,
+                        serverName, isRequestedByEnclave, keySignature);
 
                 // DBID(4) + MDVER(8) + KEYID(2) + CEK(32) = 46
                 ByteBuffer aev2CekEntry = ByteBuffer.allocate(46);
@@ -232,7 +223,8 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
 
-                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility.getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility
+                        .getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
                 aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
@@ -244,37 +236,44 @@ interface ISQLServerEnclaveProvider {
                     0, false);
         }
 
-        rs = (SQLServerResultSet) stmt.getResultSet();
-        while (rs.next() && null != params) {
-            String paramName = rs.getString(DescribeParameterEncryptionResultSet2.ParameterName.value());
-            int paramIndex = parameterNames.indexOf(paramName);
-            int cekOrdinal = rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionKeyOrdinal.value());
-            cekEntry = cekList.get(cekOrdinal);
+        try (ResultSet rs2 = stmt.getResultSet()) {
+            while (rs2.next() && null != params) {
+                String paramName = rs2.getString(DescribeParameterEncryptionResultSet2.PARAMETERNAME.value());
+                int paramIndex = parameterNames.indexOf(paramName);
+                int cekOrdinal = rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONKEYORDINAL.value());
+                cekEntry = cekList.get(cekOrdinal);
 
-            // cekEntry will be null if none of the parameters are encrypted.
-            if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
-                Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
-            SQLServerEncryptionType encType = SQLServerEncryptionType
-                    .of((byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncrytionType.value()));
-            if (SQLServerEncryptionType.PlainText != encType) {
-                params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
-                        (byte) rs.getInt(DescribeParameterEncryptionResultSet2.ColumnEncryptionAlgorithm.value()), null,
-                        encType.value,
-                        (byte) rs.getInt(DescribeParameterEncryptionResultSet2.NormalizationRuleVersion.value()));
-                // Decrypt the symmetric key.(This will also validate and throw if needed).
-                SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
-            } else {
-                if (params[paramIndex].getForceEncryption()) {
+                // cekEntry will be null if none of the parameters are encrypted.
+                if ((null != cekEntry) && (cekList.size() < cekOrdinal)) {
                     MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
-                    Object[] msgArgs = {userSql, paramIndex + 1};
-                    SQLServerException.makeFromDriverError(null, connection, form.format(msgArgs), "0", true);
+                            SQLServerException.getErrString("R_InvalidEncryptionKeyOrdinal"));
+                    Object[] msgArgs = {cekOrdinal, cekEntry.getSize()};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+                SQLServerEncryptionType encType = SQLServerEncryptionType
+                        .of((byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
+                if (SQLServerEncryptionType.PlainText != encType) {
+                    params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
+                            null, encType.value,
+                            (byte) rs2.getInt(DescribeParameterEncryptionResultSet2.NORMALIZATIONRULEVERSION.value()));
+                    // Decrypt the symmetric key.(This will also validate and throw if needed).
+                    SQLServerSecurityUtility.decryptSymmetricKey(params[paramIndex].cryptoMeta, connection, statement);
+                } else {
+                    if (params[paramIndex].getForceEncryption()) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumn"));
+                        Object[] msgArgs = {userSql, paramIndex + 1};
+                        SQLServerException.makeFromDriverError(null, connection, form.format(msgArgs), "0", true);
+                    }
                 }
             }
+        }
+
+        // We only add if we're using Always Encrypted v1 / v3 AND we have something to add.
+        if (connection.getServerColumnEncryptionVersion() != ColumnEncryptionVersion.AE_V2 && params != null
+                && params.length > 0) {
+            ParameterMetaDataCache.addQueryMetadata(params, parameterNames, connection, sqlServerStatement, userSql);
         }
     }
 
@@ -337,7 +336,7 @@ abstract class BaseAttestationRequest {
 
     byte[] getBytes() throws IOException {
         return null;
-    };
+    }
 
     byte[] createSessionSecret(byte[] serverResponse) throws GeneralSecurityException, SQLServerException {
         if (serverResponse == null || serverResponse.length != ENCLAVE_LENGTH) {
@@ -494,7 +493,7 @@ class EnclaveSession {
         return sessionSecret;
     }
 
-    synchronized long getCounter() {
+    long getCounter() {
         return counter.getAndIncrement();
     }
 }

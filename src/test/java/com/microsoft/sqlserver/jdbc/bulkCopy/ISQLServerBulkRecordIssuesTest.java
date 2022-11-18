@@ -50,6 +50,11 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
     String variation;
 
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
+
     /**
      * Testing that sending a bigger varchar(3) to varchar(2) is thowing the proper error message.
      * 
@@ -232,6 +237,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSendValidValueforDatetime3ColumnAsLocalDateTime() throws Exception {
         variation = "testSendValidValueforDatetime3ColumnAsLocalDateTime";
         BulkData bData = new BulkData(variation);
@@ -266,6 +272,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSendValidValueforDatetime7ColumnAsLocalDateTime() throws Exception {
         variation = "testSendValidValueforDatetime7ColumnAsLocalDateTime";
         BulkData bData = new BulkData(variation);
@@ -301,6 +308,7 @@ public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
      * @throws Exception
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSendValidValueforDatetime2ColumnAsLocalTime() throws Exception {
         variation = "testSendValidValueforDatetime2ColumnAsLocalTime";
         BulkData bData = new BulkData(variation);

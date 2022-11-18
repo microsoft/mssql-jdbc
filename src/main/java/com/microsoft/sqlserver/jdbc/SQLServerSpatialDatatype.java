@@ -115,6 +115,9 @@ abstract class SQLServerSpatialDatatype {
 
     private List<Integer> version_one_shape_indexes = new ArrayList<Integer>();
 
+    private static final String FULLGLOBE = "FULLGLOBE";
+    private static final String EMPTY = "EMPTY";
+
     /**
      * Serializes the Geogemetry/Geography instance to internal SQL Server format (CLR).
      * 
@@ -797,7 +800,7 @@ abstract class SQLServerSpatialDatatype {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
                     throw new SQLServerException(form.format(new Object[] {"Fullglobe"}), null, 0, null);
                 } else {
-                    appendToWKTBuffers("FULLGLOBE");
+                    appendToWKTBuffers(FULLGLOBE);
                     return;
                 }
             }
@@ -901,7 +904,7 @@ abstract class SQLServerSpatialDatatype {
             }
 
             // check for FULLGLOBE before reading the first open bracket, since FULLGLOBE doesn't have one.
-            if ("FULLGLOBE".equals(nextToken)) {
+            if (FULLGLOBE.equals(nextToken)) {
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
                     throw new SQLServerException(form.format(new Object[] {"Fullglobe"}), null, 0, null);
@@ -1101,7 +1104,7 @@ abstract class SQLServerSpatialDatatype {
     void constructMultiShapeWKT(int shapeStartIndex, int shapeEndIndex) {
         for (int i = shapeStartIndex + 1; i < shapeEndIndex; i++) {
             if (shapes[i].getFigureOffset() == -1) { // EMPTY
-                appendToWKTBuffers("EMPTY");
+                appendToWKTBuffers(EMPTY);
             } else {
                 constructShapeWKT(shapes[i].getFigureOffset(), shapes[i].getFigureOffset() + 1);
             }
@@ -1165,7 +1168,7 @@ abstract class SQLServerSpatialDatatype {
         for (int i = shapeStartIndex + 1; i < shapeEndIndex; i++) {
             figureEndIndex = figures.length;
             if (shapes[i].getFigureOffset() == -1) { // EMPTY
-                appendToWKTBuffers("EMPTY");
+                appendToWKTBuffers(EMPTY);
                 if (!(i == shapeEndIndex - 1)) { // not the last exterior polygon of this multipolygon, add a comma
                     appendToWKTBuffers(", ");
                 }
@@ -2209,7 +2212,7 @@ abstract class SQLServerSpatialDatatype {
     boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd,
             boolean isInsideAnotherShape) throws SQLServerException {
         String potentialEmptyKeyword = getNextStringToken().toUpperCase(Locale.US);
-        if ("EMPTY".equals(potentialEmptyKeyword)) {
+        if (EMPTY.equals(potentialEmptyKeyword)) {
 
             byte typeCode = 0;
 
@@ -2440,7 +2443,7 @@ abstract class SQLServerSpatialDatatype {
                         currentShapeIndex++;
                         break;
                     case FULLGLOBE:
-                        appendToWKTBuffers("FULLGLOBE");
+                        appendToWKTBuffers(FULLGLOBE);
                         break;
                     default:
                         break;

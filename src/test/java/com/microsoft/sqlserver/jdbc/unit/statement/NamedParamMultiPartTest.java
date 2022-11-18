@@ -43,7 +43,9 @@ public class NamedParamMultiPartTest extends AbstractTest {
      * @throws SQLException
      */
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    public static void beforeAll() throws Exception {
+        setConnection();
+
         procedureName = RandomUtil.getIdentifier("mystoredproc");
 
         try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {

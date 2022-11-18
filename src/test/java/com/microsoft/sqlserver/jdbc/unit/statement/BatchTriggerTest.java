@@ -107,6 +107,8 @@ public class BatchTriggerTest extends AbstractTest {
      */
     @BeforeAll
     public static void testSetup() throws TestAbortedException, Exception {
+        setConnection();
+
         tableName = RandomUtil.getIdentifier("triggerTable");
         triggerName = RandomUtil.getIdentifier("triggerTest");
         insertQuery = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)

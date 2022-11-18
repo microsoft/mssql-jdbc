@@ -279,10 +279,25 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setEnablePrepareOnFirstPreparedStatementCall(boolean value);
 
     /**
+     * Returns the behavior for a specific connection instance. {@link PrepareMethod}
+     *
+     * @return Returns current setting for prepareMethod connection property.
+     */
+    String getPrepareMethod();
+
+    /**
+     * Sets the behavior for the prepare method. {@link PrepareMethod}
+     *
+     * @param prepareMethod
+     *        Changes the setting as per description
+     */
+    void setPrepareMethod(String prepareMethod);
+
+    /**
      * Returns the behavior for a specific connection instance. This setting controls how many outstanding prepared
      * statement discard actions (sp_unprepare) can be outstanding per connection before a call to clean-up the
      * outstanding handles on the server is executed. If the setting is {@literal <=} 1, unprepare actions will be
-     * executed immedietely on prepared statement close. If it is set to {@literal >} 1, these calls will be batched
+     * executed immediately on prepared statement close. If it is set to {@literal >} 1, these calls will be batched
      * together to avoid overhead of calling sp_unprepare too often. The default for this option can be changed by
      * calling getDefaultServerPreparedStatementDiscardThreshold().
      * 
@@ -376,4 +391,39 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Sets the name of the preferred type of IP Address.
+     * 
+     * @param iPAddressPreference
+     *        A String that contains the preferred type of IP Address.
+     */
+    void setIPAddressPreference(String iPAddressPreference);
+
+    /**
+     * Gets the name of the preferred type of IP Address.
+     * 
+     * @return IPAddressPreference
+     *         A String that contains the preferred type of IP Address.
+     */
+    String getIPAddressPreference();
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     *
+     * @return Method will always return 0.
+     */
+    @Deprecated
+    int getMsiTokenCacheTtl();
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     *
+     * @param timeToLive
+     *        Time-to-live is no longer supported.
+     */
+    @Deprecated
+    void setMsiTokenCacheTtl(int timeToLive);
 }

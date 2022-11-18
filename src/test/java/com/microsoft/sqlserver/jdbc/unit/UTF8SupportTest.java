@@ -35,6 +35,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 public class UTF8SupportTest extends AbstractTest {
@@ -105,7 +106,9 @@ public class UTF8SupportTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void setUp() throws ClassNotFoundException, SQLException {
+    public static void setUp() throws Exception {
+        setConnection();
+
         assert (TestUtils.serverSupportsUTF8(connection));
         databaseName = RandomUtil.getIdentifier("UTF8Database");
         tableName = RandomUtil.getIdentifier("UTF8Table");

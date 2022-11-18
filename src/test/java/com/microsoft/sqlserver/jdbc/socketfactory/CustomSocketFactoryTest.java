@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.SocketFactory;
-
 import org.junit.Assert;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -28,6 +28,11 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class CustomSocketFactoryTest extends AbstractTest {
     private static List<String> dummyLog = new ArrayList<>();
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @BeforeEach
     public void beforeEach() {

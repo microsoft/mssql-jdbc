@@ -51,6 +51,8 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @BeforeAll
     public static void setUp() throws Exception {
+        setConnection();
+
         // reset logging to avoid servere logs due to negative testing
         LogManager.getLogManager().reset();
 
@@ -118,10 +120,11 @@ public class NTLMConnectionTest extends AbstractTest {
      */
     @Test
     public void testNTLMEncryptedConnection() throws SQLException {
-        try (Connection con = PrepUtil
-                .getConnection(connectionStringNTLM + ";encrypt=true;trustServerCertificate=true")) {
+        try (Connection con = PrepUtil.getConnection(
+                connectionStringNTLM + ";encrypt=" + encrypt + ";trustServerCertificate=" + trustServerCertificate)) {
             verifyNTLM(con);
         }
+
     }
 
     /**

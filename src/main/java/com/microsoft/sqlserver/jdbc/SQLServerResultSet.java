@@ -323,6 +323,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 this.stmt = stmt;
             }
 
+            @Override
             boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
                 // With server-cursored result sets, the column metadata is
                 // followed by a return status and cursor-related OUT parameters
@@ -333,6 +334,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return true;
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // The first OUT parameter after the sp_cursor[prep]exec OUT parameters
                 // is the start of the application OUT parameters. Leave parsing
@@ -381,22 +383,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
-                // Continue to read the error message if DONE packet has error flag
-                int packetType = tdsReader.peekTokenType();
-                if (TDS.TDS_DONE == packetType) {
-                    short status = tdsReader.peekStatusFlag();
-                    // check if status flag has DONE_ERROR set i.e., 0x2
-                    if ((status & 0x0002) != 0) {
-                        // Consume the DONE packet if there is error
-                        StreamDone doneToken = new StreamDone();
-                        doneToken.setFromTDS(tdsReader);
-                        if (doneToken.isFinal()) {
-                            // Response is completely processed, hence decrement unprocessed response count.
-                            stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                        }
-                        return true;
-                    }
+                short status = tdsReader.peekStatusFlag();
+                if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    SQLServerError databaseError = this.getDatabaseError();
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
+
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 return false;
             }
@@ -1796,8 +1791,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         RowType fetchBufferCurrentRowType = RowType.UNKNOWN;
         try {
             fetchBufferCurrentRowType = fetchBuffer.nextRow();
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
+            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
                 return false;
+            }
         } catch (SQLServerException e) {
             currentRow = AFTER_LAST_ROW;
             rowErrorException = e;
@@ -3086,8 +3082,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Having a current row implies we have a fetch buffer in which that row exists.
         assert null != tdsReader;
 
-        return deletedCurrentRow
-                || (0 != serverCursorId && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
+        return deletedCurrentRow || (0 != serverCursorId
+                && TDS.ROWSTAT_FETCH_MISSING == loadColumn(columns.length).getInt(tdsReader, stmt));
     }
 
     /* ---------------- Column updates ---------------------- */
@@ -5384,11 +5380,16 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-                if (doneToken.isFinal()) {
-                    // Response is completely processed, hence decrement unprocessed response count.
-                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                if (doneToken.isFinal() && doneToken.isError()) {
+                    short status = tdsReader.peekStatusFlag();
+                    SQLServerError databaseError = getDatabaseError();
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
-                
+
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
                 // another DONE token to follow.
@@ -5409,6 +5410,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             void onEOF(TDSReader tdsReader) throws SQLServerException {
                 super.onEOF(tdsReader);
                 done = true;
+            }
+
+            boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
+                if (tdsReader.getServerSupportsDataClassification()) {
+                    tdsReader.trySetSensitivityClassification(new StreamColumns(
+                            Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection))
+                                    .processDataClassification(tdsReader));
+                }
+                return true;
             }
         }
 
@@ -5474,8 +5484,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             while (null != tdsReader && !done && fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
-                    && null != fetchBufferTokenHandler.getDatabaseError()) {
+            if (null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
@@ -5535,6 +5544,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsReader = responseTDSReader;
             discardFetchBuffer();
         }
+
     }
 
     /**
@@ -5582,7 +5592,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (numRows < 0 || startRow < 0) {
             // Scroll past all the returned rows, caching in the scroll window as we go.
             try {
-                while (scrollWindow.next(this));
+                while (scrollWindow != null && scrollWindow.next(this));
             } catch (SQLException e) {
                 // If there is a row error in the results, don't throw an exception from here.
                 // Ignore it for now and defer the exception until the app encounters the
@@ -5599,7 +5609,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             }
 
             // Put the scroll window back before the first row.
-            scrollWindow.reset();
+            if (null != scrollWindow)
+                scrollWindow.reset();
         }
     }
 
