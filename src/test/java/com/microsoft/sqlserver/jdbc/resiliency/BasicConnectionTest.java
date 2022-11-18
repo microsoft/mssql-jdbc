@@ -17,6 +17,7 @@ import java.sql.Statement;
 
 import javax.sql.PooledConnection;
 
+import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -264,6 +265,37 @@ public class BasicConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             e.printStackTrace();
             fail(e.toString());
+        }
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testDSPooledConnectionAccessTokenCallbackIdleConnectionResiliency() throws Exception {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+        ds.setUser("");
+        ds.setPassword("");
+        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
+
+        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+
+        // Idle Connection Resiliency should reconnect after connection kill, second query should run successfully
+        TestUtils.expireTokenToggle = false;
+        pc = (SQLServerPooledConnection) ds.getPooledConnection();
+
+        try (Connection conn = pc.getConnection(); Statement s = conn.createStatement()) {
+            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
+            s.executeQuery("SELECT 1");
+            ResiliencyUtils.killConnection(conn, connectionString, 3);
+            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
+            s.executeQuery("SELECT 1");
+        } catch (SQLException e) {
+            fail(e.getMessage());
         }
     }
 

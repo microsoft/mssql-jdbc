@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1029,5 +1030,65 @@ public class SQLServerConnectionTest extends AbstractTest {
                 .getConnection(invalidServerNameField)) {} catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testDSPooledConnectionAccessTokenCallback() throws Exception {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+        ds.setUser("");
+        ds.setPassword("");
+        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
+
+        TestUtils.expireTokenToggle = false;
+        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        String conn1ID;
+        String conn2ID;
+
+        // Callback should provide valid token on connection open for all new connections
+        // When the access token hasn't expired, the connection ID should be the same
+        try (Connection conn1 = pc.getConnection()) {}
+        conn1ID = TestUtils.getConnectionID(pc);
+        try (Connection conn2 = pc.getConnection()) {}
+        conn2ID = TestUtils.getConnectionID(pc);
+        assertEquals(conn1ID, conn2ID);
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testDSPooledConnectionAccessTokenCallbackExpiredToken() throws Exception {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        AbstractTest.updateDataSource(connectionString, ds);
+        ds.setUser("");
+        ds.setPassword("");
+        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
+
+        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        String conn1ID;
+        String conn2ID;
+
+        // When token expires after first connection, it should create a new connection to get a new token.
+        // Connection ID should not be the same.
+        TestUtils.expireTokenToggle = true;
+        pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        try (Connection conn1 = pc.getConnection()) {}
+        conn1ID = TestUtils.getConnectionID(pc);
+        // Sleep until token expires
+        Thread.sleep(120000);
+        try (Connection conn2 = pc.getConnection()) {}
+        conn2ID = TestUtils.getConnectionID(pc);
+
+        assertNotEquals(conn1ID, conn2ID);
     }
 }
