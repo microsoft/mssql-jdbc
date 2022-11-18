@@ -18,6 +18,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -37,6 +39,7 @@ final class Util {
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
+    private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
         return SYSTEM_JRE.startsWith("IBM");
@@ -284,6 +287,14 @@ final class Util {
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
                         String property = result.toString().trim();
+
+                        if (property.contains("=")) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_errorServerName"));
+                            Object[] msgArgs = {property};
+                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                        }
+
                         if (property.length() > 0) {
                             p.put(SQLServerDriverStringProperty.SERVER_NAME.toString(), property);
                             if (logger.isLoggable(Level.FINE)) {
@@ -829,13 +840,12 @@ final class Util {
 
         switch (jdbcType) {
             case MONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_MONEY)) && (-1 != bd.compareTo(SSType.MIN_VALUE_MONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_MONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_MONEY) < 0)) {
                     return;
                 }
                 break;
             case SMALLMONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY))
-                        && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_SMALLMONEY) < 0)) {
                     return;
                 }
                 break;
@@ -944,27 +954,32 @@ final class Util {
     // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
-        Date now = new Date();
+    static boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
+        LOCK.lock();
+        try {
+            Date now = new Date();
 
-        // if the token's expiration is within the next 45 mins
-        // 45 mins * 60 sec/min * 1000 millisec/sec
-        if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
+            // if the token's expiration is within the next 45 mins
+            // 45 mins * 60 sec/min * 1000 millisec/sec
+            if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
 
-            // within the next 10 mins
-            if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
-                return true;
-            } else {
-                // check if another thread is already updating the access token
-                if (connection.attemptRefreshTokenLocked) {
-                    return false;
-                } else {
-                    connection.attemptRefreshTokenLocked = true;
+                // within the next 10 mins
+                if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
                     return true;
+                } else {
+                    // check if another thread is already updating the access token
+                    if (connection.attemptRefreshTokenLocked) {
+                        return false;
+                    } else {
+                        connection.attemptRefreshTokenLocked = true;
+                        return true;
+                    }
                 }
             }
+            return false;
+        } finally {
+            LOCK.unlock();
         }
-        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -1005,6 +1020,27 @@ final class Util {
 
     static String zeroOneToYesNo(int i) {
         return 0 == i ? "NO" : "YES";
+    }
+
+    static byte[] charsToBytes(char[] chars) {
+        if (chars == null)
+            return null;
+        byte[] bytes = new byte[chars.length * 2];
+        for (int i = 0; i < chars.length; i++) {
+            bytes[i * 2] = (byte) (0xff & (chars[i] >> 8));
+            bytes[i * 2 + 1] = (byte) (0xff & (chars[i]));
+        }
+        return bytes;
+    }
+
+    static char[] bytesToChars(byte[] bytes) {
+        if (bytes == null)
+            return null;
+        char[] chars = new char[bytes.length / 2];
+        for (int i = 0; i < chars.length; i++) {
+            chars[i] = (char) (((0xFF & (bytes[i * 2])) << 8) | (0xFF & bytes[i * 2 + 1]));
+        }
+        return chars;
     }
 }
 

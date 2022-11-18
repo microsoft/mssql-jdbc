@@ -94,7 +94,9 @@ public class TVPNumericTest extends AbstractTest {
     }
 
     @BeforeAll
-    public static void testSetup() throws SQLException {
+    public static void testSetup() throws Exception {
+        setConnection();
+
         tvpName = RandomUtil.getIdentifier("numericTVP");
         procedureName = RandomUtil.getIdentifier("procedureThatCallsTVP");
         charTableName = RandomUtil.getIdentifier("tvpNumericTable");

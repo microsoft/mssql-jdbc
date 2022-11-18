@@ -232,26 +232,7 @@ final class StreamColumns extends StreamPacket {
         }
     }
 
-    private String readByteString(TDSReader tdsReader) throws SQLServerException {
-        String value = "";
-        int byteLen = (int) tdsReader.readUnsignedByte();
-        value = tdsReader.readUnicodeString(byteLen);
-        return value;
-    }
-
-    private Label readSensitivityLabel(TDSReader tdsReader) throws SQLServerException {
-        String name = readByteString(tdsReader);
-        String id = readByteString(tdsReader);
-        return new Label(name, id);
-    }
-
-    private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
-        String name = readByteString(tdsReader);
-        String id = readByteString(tdsReader);
-        return new InformationType(name, id);
-    }
-
-    private SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException {
+    SensitivityClassification processDataClassification(TDSReader tdsReader) throws SQLServerException {
         if (!tdsReader.getServerSupportsDataClassification()) {
             tdsReader.throwInvalidTDS();
         }
@@ -304,7 +285,9 @@ final class StreamColumns extends StreamPacket {
                 // get the label index and then lookup label to use for source
                 int sensitivityLabelIndex = tdsReader.readUnsignedShort();
                 Label label = null;
-                if (sensitivityLabelIndex != Integer.MAX_VALUE) {
+
+                // If sensitivity label index is equal to USHORT_MAX eg. 65535 then there is no sensitivity label
+                if (sensitivityLabelIndex != DataTypes.SQL_USHORTVARMAXLEN) {
                     if (sensitivityLabelIndex >= sensitivityLabels.size()) {
                         tdsReader.throwInvalidTDS();
                     }
@@ -313,7 +296,9 @@ final class StreamColumns extends StreamPacket {
                 // get the information type index and then lookup information type to use for source
                 int informationTypeIndex = tdsReader.readUnsignedShort();
                 InformationType informationType = null;
-                if (informationTypeIndex != Integer.MAX_VALUE) {
+
+                // If information type index is equal to USHORT_MAX eg. 65535 then there is no information type
+                if (informationTypeIndex != DataTypes.SQL_USHORTVARMAXLEN) {
                     if (informationTypeIndex >= informationTypes.size()) {}
                     informationType = informationTypes.get(informationTypeIndex);
                 }
@@ -341,6 +326,25 @@ final class StreamColumns extends StreamPacket {
         }
 
         return sensitivityClassification;
+    }
+
+    private String readByteString(TDSReader tdsReader) throws SQLServerException {
+        String value = "";
+        int byteLen = (int) tdsReader.readUnsignedByte();
+        value = tdsReader.readUnicodeString(byteLen);
+        return value;
+    }
+
+    private Label readSensitivityLabel(TDSReader tdsReader) throws SQLServerException {
+        String name = readByteString(tdsReader);
+        String id = readByteString(tdsReader);
+        return new Label(name, id);
+    }
+
+    private InformationType readSensitivityInformationType(TDSReader tdsReader) throws SQLServerException {
+        String name = readByteString(tdsReader);
+        String id = readByteString(tdsReader);
+        return new InformationType(name, id);
     }
 
     /**

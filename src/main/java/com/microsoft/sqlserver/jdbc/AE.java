@@ -224,7 +224,7 @@ class CryptoMetadata {
         encryptionKeyInfo = null;
     }
 
-    boolean IsAlgorithmInitialized() {
+    boolean isAlgorithmInitialized() {
         return null != cipherAlgorithm;
     }
 }
@@ -234,17 +234,17 @@ class CryptoMetadata {
 // We expect the server to return the fields in the resultset in the same order as mentioned below.
 // If the server changes the below order, then transparent parameter encryption will break.
 enum DescribeParameterEncryptionResultSet1 {
-    KeyOrdinal,
-    DbId,
-    KeyId,
-    KeyVersion,
-    KeyMdVersion,
-    EncryptedKey,
-    ProviderName,
-    KeyPath,
-    KeyEncryptionAlgorithm,
-    IsRequestedByEnclave,
-    EnclaveCMKSignature;
+    KEYORDINAL,
+    DBID,
+    KEYID,
+    KEYVERSION,
+    KEYMDVERSION,
+    ENCRYPTEDKEY,
+    PROVIDERNAME,
+    KEYPATH,
+    KEYENCRYPTIONALGORITHM,
+    ISREQUESTEDBYENCLAVE,
+    ENCLAVECMKSIGNATURE;
 
     int value() {
         // Column indexing starts from 1;
@@ -257,12 +257,12 @@ enum DescribeParameterEncryptionResultSet1 {
 // We expect the server to return the fields in the resultset in the same order as mentioned below.
 // If the server changes the below order, then transparent parameter encryption will break.
 enum DescribeParameterEncryptionResultSet2 {
-    ParameterOrdinal,
-    ParameterName,
-    ColumnEncryptionAlgorithm,
-    ColumnEncrytionType,
-    ColumnEncryptionKeyOrdinal,
-    NormalizationRuleVersion;
+    PARAMETERORDINAL,
+    PARAMETERNAME,
+    COLUMNENCRYPTIONALGORITHM,
+    COLUMNENCRYPTIONTYPE,
+    COLUMNENCRYPTIONKEYORDINAL,
+    NORMALIZATIONRULEVERSION;
 
     int value() {
         // Column indexing starts from 1;
@@ -270,10 +270,12 @@ enum DescribeParameterEncryptionResultSet2 {
     }
 }
 
+
 enum ColumnEncryptionVersion {
-    AE_NotSupported,
-    AE_v1,
-    AE_v2;
+    AE_NOTSUPPORTED,
+    AE_V1,
+    AE_V2,
+    AE_V3;
 
     int value() {
         // Column indexing starts from 1;

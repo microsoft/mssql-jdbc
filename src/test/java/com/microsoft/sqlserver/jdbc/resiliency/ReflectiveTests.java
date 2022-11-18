@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +30,13 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class ReflectiveTests extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     private void timeoutVariations(Map<String, String> props, long expectedDuration,
             Optional<String> expectedErrMsg) throws SQLException {
@@ -37,7 +44,7 @@ public class ReflectiveTests extends AbstractTest {
         String cs = ResiliencyUtils.setConnectionProps(connectionString.concat(";"), props);
         try (Connection c = ResiliencyUtils.getConnection(cs)) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 ResiliencyUtils.blockConnection(c);
                 startTime = System.currentTimeMillis();
                 s.executeQuery("SELECT 1");
@@ -101,7 +108,9 @@ public class ReflectiveTests extends AbstractTest {
         m.put("queryTimeout", "10");
         m.put("loginTimeout", "65535");
         m.put("connectRetryCount", "1");
-        timeoutVariations(m, 12000, Optional.empty());
+        // The timeout happens in < 10s about 55% of the time and < 12s ~95% of the time in pipelines.
+        // Using 14s to ensure we don't needlessly fail for the last ~5%.
+        timeoutVariations(m, 14000, Optional.empty());
     }
 
     /*

@@ -150,18 +150,24 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
 
         bIsOpen = false;
 
-        executor.execute(new Runnable() {
-            public void run() {
-                if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
-                    wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
-                try {
-                    wrappedConnection.poolCloseEventNotify();
-                    wrappedConnection = null;
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+        if (null == executor) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+            Object[] msgArgs = {"executor"};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
+        } else {
+            executor.execute(new Runnable() {
+                public void run() {
+                    if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
+                        wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
+                    try {
+                        wrappedConnection.poolCloseEventNotify();
+                        wrappedConnection = null;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override
@@ -557,6 +563,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public String getPrepareMethod() {
+        return wrappedConnection.getPrepareMethod();
+    }
+
+    @Override
+    public void setPrepareMethod(String prepareMethod) {
+        wrappedConnection.setPrepareMethod(prepareMethod);
+    }
+
+    @Override
     public int getServerPreparedStatementDiscardThreshold() {
         return wrappedConnection.getServerPreparedStatementDiscardThreshold();
     }
@@ -615,4 +631,33 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setDelayLoadingLobs(boolean delayLoadingLobs) {
         wrappedConnection.setDelayLoadingLobs(delayLoadingLobs);
     }
+
+    @Override
+    public void setIPAddressPreference(String iPAddressPreference) {
+        wrappedConnection.setIPAddressPreference(iPAddressPreference);
+
+    }
+
+    @Override
+    public String getIPAddressPreference() {
+        return wrappedConnection.getIPAddressPreference();
+    }
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public int getMsiTokenCacheTtl() {
+        return 0;
+    }
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) {}
 }

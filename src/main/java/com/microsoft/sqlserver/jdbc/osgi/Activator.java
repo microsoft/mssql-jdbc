@@ -17,10 +17,16 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 
 /**
  * Allows plugins to register the driver as an OSGI Framework service.
+ * 
  */
 public class Activator implements BundleActivator {
 
     private ServiceRegistration<DataSourceFactory> service;
+
+    /**
+     * default constructor
+     */
+    public Activator() {}
 
     @Override
     public void start(BundleContext context) throws Exception {

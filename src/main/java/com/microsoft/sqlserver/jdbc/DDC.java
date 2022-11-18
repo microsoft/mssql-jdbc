@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -529,7 +531,7 @@ final class DDC {
      * @return the required object.
      */
     static final Object convertStringToObject(String stringVal, Charset charset, JDBCType jdbcType,
-            StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
+            StreamType streamType) throws UnsupportedEncodingException {
         switch (jdbcType) {
             // Convert String to Numeric types.
             case DECIMAL:
@@ -620,7 +622,7 @@ final class DDC {
         int hour;
         int minute;
         int second;
-        int a_nanos = 0;
+        int nanos = 0;
         int firstDash;
         int secondDash;
         int dividingSpace;
@@ -650,18 +652,18 @@ final class DDC {
 
         // Convert the date
         boolean parsedDate = false;
-        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
-            if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
-                    && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s.substring(0, firstDash));
-                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
-                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
+        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1 && firstDash == YEAR_LENGTH
+                && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
+                && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
+            year = Integer.parseInt(s.substring(0, firstDash));
+            month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+            day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
 
-                if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
-                    parsedDate = true;
-                }
+            if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
+                parsedDate = true;
             }
         }
+
         if (!parsedDate) {
             throw new java.lang.IllegalArgumentException(formatError);
         }
@@ -683,7 +685,7 @@ final class DDC {
                     tmpNanos *= 10;
                     nanoPrecision++;
                 }
-                a_nanos = tmpNanos;
+                nanos = tmpNanos;
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
@@ -692,7 +694,7 @@ final class DDC {
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
         }
-        return LocalDateTime.of(year, month, day, hour, minute, second, a_nanos);
+        return LocalDateTime.of(year, month, day, hour, minute, second, nanos);
     }
 
     static final Object convertStreamToObject(BaseInputStream stream, TypeInfo typeInfo, JDBCType jdbcType,
@@ -777,7 +779,7 @@ final class DDC {
 
                         // Slightly less fast path for MBCS data that converts directly/easily to ASCII
                         if (getterArgs.isAdaptive) {
-                            return AsciiFilteredUnicodeInputStream.MakeAsciiFilteredUnicodeInputStream(stream,
+                            return AsciiFilteredUnicodeInputStream.makeAsciiFilteredUnicodeInputStream(stream,
                                     new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset())));
                         } else {
                             return new ByteArrayInputStream(
@@ -806,10 +808,7 @@ final class DDC {
         //
         // Catch them and translate them to a SQLException so that we don't propagate an unexpected exception
         // type all the way up to the app, which may not catch it either...
-        catch (IllegalArgumentException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-            throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
-        } catch (UnsupportedEncodingException e) {
+        catch (IllegalArgumentException | UnsupportedEncodingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
         }
@@ -889,7 +888,7 @@ final class DDC {
      * @return a Java object of the desired type.
      */
     static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
-            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
+            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
         // use the path below instead to optimize performance.
@@ -1034,7 +1033,9 @@ final class DDC {
             }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         int localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
@@ -1096,7 +1097,10 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
@@ -1190,28 +1194,33 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
     private static Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, int daysSinceBaseDate,
-            long ticksSinceMidnight, int fractionalSecondsScale) {
+            long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
         int subSecondNanos;
 
         // In cases where Timezone values don't need to be considered, use LocalDateTime go avoid
         // overhead from using a Calendar object.
         // Note that DateTimeOffset path is not handled in this method, since DateTimeOffset always has
         // its own Calendar object (UTC timezone) associated with it.
-        LocalDateTime ldt = null;
+        LocalDateTime ldt;
 
         switch (ssType) {
             case TIME: {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0).plusNanos(ticksSinceMidnight);
+                ldt = LocalDateTime.of(TDS.BASE_LOCAL_DATE_1900, LocalTime.ofNanoOfDay(ticksSinceMidnight));
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
@@ -1220,31 +1229,41 @@ final class DDC {
             case DATE:
             case DATETIME2:
             case DATETIMEOFFSET: {
-                ldt = LocalDateTime.of(1, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight);
+                LocalDate ld = TDS.BASE_LOCAL_DATE.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(ticksSinceMidnight));
+                    subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 }
-                subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
             }
 
             case DATETIME: // and SMALLDATETIME
             {
-                ldt = LocalDateTime.of(TDS.BASE_YEAR_1900, 1, 1, 0, 0, 0);
-                ldt = ldt.plusDays(daysSinceBaseDate);
-                // If the target is java.sql.Date, don't add the time component since it needs to be at midnight.
-                if (jdbcType.category != JDBCType.Category.DATE) {
-                    ldt = ldt.plusNanos(ticksSinceMidnight * Nanos.PER_MILLISECOND);
+                LocalDate ld = TDS.BASE_LOCAL_DATE_1900.plusDays(daysSinceBaseDate);
+                // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
+                if (ticksSinceMidnight == 0) {
+                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    subSecondNanos = 0;
+                } else {
+                    long nanoOfDay = ticksSinceMidnight * Nanos.PER_MILLISECOND;
+                    if (nanoOfDay > LocalTime.MAX.toNanoOfDay()) {
+                        ldt = LocalDateTime.of(ld, LocalTime.MIN).plusNanos(nanoOfDay);
+                    } else {
+                        ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                    }
+                    subSecondNanos = (int) (nanoOfDay % Nanos.PER_SECOND);
                 }
-
-                subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
                 break;
             }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         switch (jdbcType.category) {
@@ -1272,7 +1291,10 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
@@ -1323,12 +1345,17 @@ final class DDC {
                     }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
             }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
@@ -1461,24 +1488,28 @@ final class AsciiFilteredInputStream extends InputStream {
             ASCII_FILTER[i] = (byte) '?';
     }
 
-    AsciiFilteredInputStream(BaseInputStream containedStream) throws SQLServerException {
+    AsciiFilteredInputStream(BaseInputStream containedStream) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
         this.containedStream = containedStream;
     }
 
+    @Override
     public void close() throws IOException {
         containedStream.close();
     }
 
+    @Override
     public long skip(long n) throws IOException {
         return containedStream.skip(n);
     }
 
+    @Override
     public int available() throws IOException {
         return containedStream.available();
     }
 
+    @Override
     public int read() throws IOException {
         int value = containedStream.read();
         if (value >= 0 && value <= 255)
@@ -1486,6 +1517,7 @@ final class AsciiFilteredInputStream extends InputStream {
         return value;
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         int bytesRead = containedStream.read(b);
         if (bytesRead > 0) {
@@ -1496,6 +1528,7 @@ final class AsciiFilteredInputStream extends InputStream {
         return bytesRead;
     }
 
+    @Override
     public int read(byte b[], int offset, int maxBytes) throws IOException {
         int bytesRead = containedStream.read(b, offset, maxBytes);
         if (bytesRead > 0) {
@@ -1506,14 +1539,17 @@ final class AsciiFilteredInputStream extends InputStream {
         return bytesRead;
     }
 
+    @Override
     public boolean markSupported() {
         return containedStream.markSupported();
     }
 
+    @Override
     public void mark(int readLimit) {
         containedStream.mark(readLimit);
     }
 
+    @Override
     public void reset() throws IOException {
         containedStream.reset();
     }
@@ -1530,27 +1566,29 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     private final Reader containedReader;
     private final Charset asciiCharSet;
 
-    static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm,
-            Reader rd) throws SQLServerException {
+    static AsciiFilteredUnicodeInputStream makeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
     }
 
     // Note the Reader provided should support mark, reset
-    private AsciiFilteredUnicodeInputStream(Reader rd) throws SQLServerException {
+    private AsciiFilteredUnicodeInputStream(Reader rd) {
         containedReader = rd;
         asciiCharSet = US_ASCII;
     }
 
+    @Override
     public void close() throws IOException {
         containedReader.close();
     }
 
+    @Override
     public long skip(long n) throws IOException {
         return containedReader.skip(n);
     }
 
+    @Override
     public int available() throws IOException {
         // from the JDBC spec
         // Note: A stream may return 0 when the method InputStream.available is called whether there is data available
@@ -1561,15 +1599,18 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     private final byte[] bSingleByte = new byte[1];
 
+    @Override
     public int read() throws IOException {
         int bytesRead = read(bSingleByte);
         return (-1 == bytesRead) ? -1 : (bSingleByte[0] & 0xFF);
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
+    @Override
     public int read(byte b[], int offset, int maxBytes) throws IOException {
         char tempBufferToHoldCharDataForConversion[] = new char[maxBytes];
         int charsRead = containedReader.read(tempBufferToHoldCharDataForConversion);
@@ -1583,10 +1624,12 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         return charsRead;
     }
 
+    @Override
     public boolean markSupported() {
         return containedReader.markSupported();
     }
 
+    @Override
     public void mark(int readLimit) {
         try {
             containedReader.mark(readLimit);
@@ -1597,6 +1640,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         }
     }
 
+    @Override
     public void reset() throws IOException {
         containedReader.reset();
     }

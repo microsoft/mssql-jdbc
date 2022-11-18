@@ -98,7 +98,6 @@ final class TDSParser {
                     tdsReader.getCommand().checkForInterrupt();
                     parsing = tdsTokenHandler.onDone(tdsReader);
                     break;
-
                 case TDS.TDS_ERR:
                     parsing = tdsTokenHandler.onError(tdsReader);
                     break;
@@ -123,9 +122,11 @@ final class TDSParser {
                 case TDS.TDS_TABNAME:
                     parsing = tdsTokenHandler.onTabName(tdsReader);
                     break;
-
                 case TDS.TDS_FEDAUTHINFO:
                     parsing = tdsTokenHandler.onFedAuthInfo(tdsReader);
+                    break;
+                case TDS.TDS_SQLDATACLASSIFICATION:
+                    parsing = tdsTokenHandler.onDataClassification(tdsReader);
                     break;
                 case -1:
                     tdsReader.getCommand().onTokenEOF();
@@ -263,10 +264,14 @@ class TDSTokenHandler {
     }
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
-        // SHOWPLAN might be ON, instead of throwing an exception, ignore the column meta data
-        if (logger.isLoggable(Level.SEVERE))
-            logger.severe(tdsReader.toString() + ": " + logContext + ": Encountered "
-                    + TDS.getTokenName(tdsReader.peekTokenType()) + ". SHOWPLAN is ON, ignoring.");
+        /*
+         * SHOWPLAN or something else that produces extra metadata might be ON. instead of throwing an exception, warn
+         * and discard the column meta data
+         */
+        if (logger.isLoggable(Level.WARNING))
+            logger.warning(tdsReader.toString() + ": " + logContext + ": Discarding unexpected "
+                    + TDS.getTokenName(tdsReader.peekTokenType()));
+        (new StreamColumns(false)).setFromTDS(tdsReader);
         return false;
     }
 
@@ -300,5 +305,10 @@ class TDSTokenHandler {
     boolean onFedAuthInfo(TDSReader tdsReader) throws SQLServerException {
         tdsReader.getConnection().processFedAuthInfo(tdsReader, this);
         return true;
+    }
+
+    boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
+        TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
+        return false;
     }
 }

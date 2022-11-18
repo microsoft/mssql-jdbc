@@ -22,6 +22,8 @@ import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -287,20 +289,30 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Increment opened result set counter
      */
-    synchronized void incrResultSetCount() {
-        resultSetCount++;
+    void incrResultSetCount() {
+        lock.lock();
+        try {
+            resultSetCount++;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
      * Decrement opened result set counter.
      */
-    synchronized void decrResultSetCount() {
-        resultSetCount--;
-        assert resultSetCount >= 0;
+    void decrResultSetCount() {
+        lock.lock();
+        try {
+            resultSetCount--;
+            assert resultSetCount >= 0;
 
-        // close statement if no more result sets opened
-        if (isCloseOnCompletion && !(EXECUTE_BATCH == executeMethod && moreResults) && resultSetCount == 0) {
-            closeInternal();
+            // close statement if no more result sets opened
+            if (isCloseOnCompletion && !(EXECUTE_BATCH == executeMethod && moreResults) && resultSetCount == 0) {
+                closeInternal();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -1242,7 +1254,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Cancel the currently executing statement.
         if (null != currentCommand)
-            currentCommand.interrupt(SQLServerException.getErrString("R_queryCancelled"));
+            currentCommand.interrupt(SQLServerException.getErrString("R_queryCanceled"));
         loggerExternal.exiting(getClassNameLogging(), "cancel");
     }
 
@@ -1480,11 +1492,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // Handling DONE/DONEPROC/DONEINPROC tokens is a little tricky...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+                connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
-                if (doneToken.isFinal()) {
-                    // Response is completely processed, hence decrement unprocessed response count.
-                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                }
                 // If the done token has the attention ack bit set, then record
                 // it as the attention ack DONE token. We may or may not throw
                 // an statement canceled/timed out exception later based on
@@ -2405,6 +2414,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** This is a per-statement store provider. */
     Map<String, SQLServerColumnEncryptionKeyStoreProvider> statementColumnEncryptionKeyStoreProviders = new HashMap<>();
 
+    /** reentrant lock */
+    private final Lock lock = new ReentrantLock();
+
     /**
      * Registers statement-level key store providers, replacing all existing providers.
      * 
@@ -2413,42 +2425,48 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @throws SQLServerException
      *         when an error occurs
      */
-    public synchronized void registerColumnEncryptionKeyStoreProvidersOnStatement(
+    public void registerColumnEncryptionKeyStoreProvidersOnStatement(
             Map<String, SQLServerColumnEncryptionKeyStoreProvider> clientKeyStoreProviders) throws SQLServerException {
         loggerExternal.entering(loggingClassName, "registerColumnEncryptionKeyStoreProvidersOnStatement",
                 "Registering Column Encryption Key Store Providers on Statement");
 
-        checkClosed();
+        lock.lock();
+        try {
+            checkClosed();
 
-        if (null == clientKeyStoreProviders) {
-            throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"), null,
-                    0, false);
-        }
-
-        statementColumnEncryptionKeyStoreProviders.clear();
-
-        for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders.entrySet()) {
-            String providerName = entry.getKey();
-            if (null == providerName || 0 == providerName.trim().length()) {
-                throw new SQLServerException(null, SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"),
+            if (null == clientKeyStoreProviders) {
+                throw new SQLServerException(null, SQLServerException.getErrString("R_CustomKeyStoreProviderMapNull"),
                         null, 0, false);
             }
 
-            // MSSQL_CERTIFICATE_STORE not allowed on statement level
-            if ((providerName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME))) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_InvalidCustomKeyStoreProviderName"));
-                Object[] msgArgs = {providerName, WINDOWS_KEY_STORE_NAME};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
+            statementColumnEncryptionKeyStoreProviders.clear();
 
-            if (null == entry.getValue()) {
-                throw new SQLServerException(null, String
-                        .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
-                        null, 0, false);
-            }
+            for (Map.Entry<String, SQLServerColumnEncryptionKeyStoreProvider> entry : clientKeyStoreProviders
+                    .entrySet()) {
+                String providerName = entry.getKey();
+                if (null == providerName || 0 == providerName.trim().length()) {
+                    throw new SQLServerException(null,
+                            SQLServerException.getErrString("R_EmptyCustomKeyStoreProviderName"), null, 0, false);
+                }
 
-            statementColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
+                // MSSQL_CERTIFICATE_STORE not allowed on statement level
+                if ((providerName.equalsIgnoreCase(WINDOWS_KEY_STORE_NAME))) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_InvalidCustomKeyStoreProviderName"));
+                    Object[] msgArgs = {providerName, WINDOWS_KEY_STORE_NAME};
+                    throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+                }
+
+                if (null == entry.getValue()) {
+                    throw new SQLServerException(null, String
+                            .format(SQLServerException.getErrString("R_CustomKeyStoreProviderValueNull"), providerName),
+                            null, 0, false);
+                }
+
+                statementColumnEncryptionKeyStoreProviders.put(entry.getKey(), entry.getValue());
+            }
+        } finally {
+            lock.unlock();
         }
 
         loggerExternal.exiting(loggingClassName, "registerColumnEncryptionKeyStoreProvidersOnStatement",
@@ -2456,36 +2474,51 @@ public class SQLServerStatement implements ISQLServerStatement {
                         + statementColumnEncryptionKeyStoreProviders.size());
     }
 
-    synchronized String getAllStatementColumnEncryptionKeyStoreProviders() {
-        String keyStores = "";
-        if (0 != statementColumnEncryptionKeyStoreProviders.size())
-            keyStores = statementColumnEncryptionKeyStoreProviders.keySet().toString();
-        return keyStores;
-    }
-
-    synchronized boolean hasColumnEncryptionKeyStoreProvidersRegistered() {
-        return null != statementColumnEncryptionKeyStoreProviders
-                && statementColumnEncryptionKeyStoreProviders.size() > 0;
-    }
-
-    synchronized SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
-            String providerName) throws SQLServerException {
-
-        // Check for a statement-level provider first
-        if (null != statementColumnEncryptionKeyStoreProviders
-                && statementColumnEncryptionKeyStoreProviders.size() > 0) {
-            // If any statement-level providers are registered, we don't fall back to connection-level providers
-            if (statementColumnEncryptionKeyStoreProviders.containsKey(providerName)) {
-                return statementColumnEncryptionKeyStoreProviders.get(providerName);
-            } else {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_UnrecognizedStatementKeyStoreProviderName"));
-                Object[] msgArgs = {providerName, getAllStatementColumnEncryptionKeyStoreProviders()};
-                throw new SQLServerException(form.format(msgArgs), null);
+    String getAllStatementColumnEncryptionKeyStoreProviders() {
+        lock.lock();
+        try {
+            String keyStores = "";
+            if (0 != statementColumnEncryptionKeyStoreProviders.size()) {
+                keyStores = statementColumnEncryptionKeyStoreProviders.keySet().toString();
             }
+            return keyStores;
+        } finally {
+            lock.unlock();
         }
+    }
 
-        return null;
+    boolean hasColumnEncryptionKeyStoreProvidersRegistered() {
+        lock.lock();
+        try {
+            return null != statementColumnEncryptionKeyStoreProviders
+                    && statementColumnEncryptionKeyStoreProviders.size() > 0;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    SQLServerColumnEncryptionKeyStoreProvider getColumnEncryptionKeyStoreProvider(
+            String providerName) throws SQLServerException {
+        lock.lock();
+        try {
+            // Check for a statement-level provider first
+            if (null != statementColumnEncryptionKeyStoreProviders
+                    && statementColumnEncryptionKeyStoreProviders.size() > 0) {
+                // If any statement-level providers are registered, we don't fall back to connection-level providers
+                if (statementColumnEncryptionKeyStoreProviders.containsKey(providerName)) {
+                    return statementColumnEncryptionKeyStoreProviders.get(providerName);
+                } else {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_UnrecognizedStatementKeyStoreProviderName"));
+                    Object[] msgArgs = {providerName, getAllStatementColumnEncryptionKeyStoreProviders()};
+                    throw new SQLServerException(form.format(msgArgs), null);
+                }
+            }
+
+            return null;
+        } finally {
+            lock.unlock();
+        }
     }
 }
 

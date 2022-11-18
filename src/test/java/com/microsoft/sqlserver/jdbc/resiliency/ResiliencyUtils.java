@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
@@ -287,8 +288,8 @@ final class ResiliencyUtils {
         return sessionID;
     }
 
-    static void killConnection(Connection c, String cString) throws SQLException {
-        killConnection(getSessionId(c), cString, c);
+    static void killConnection(Connection c, String cString, int delayTimeout) throws SQLException {
+        killConnection(getSessionId(c), cString, c, delayTimeout);
     }
 
     /**
@@ -296,17 +297,31 @@ final class ResiliencyUtils {
      * being passed.
      * 
      * @param sessionID
+     *        session id
      * @param cString
+     *        connection string
      * @param c
+     *        connection
+     * @param delayTimeout
+     *        delay timeout in seconds
      * @throws SQLException
      */
-    static void killConnection(int sessionID, String cString, Connection c) throws SQLException {
+    static void killConnection(int sessionID, String cString, Connection c, int delayTimeout) throws SQLException {
         try (Connection c2 = DriverManager.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
-                if (TestUtils.isAzureDW(c2)) // AzureSQLDW and Synapse uses different syntax
-                    s.execute("KILL '" + sessionID + "'");
-                else
-                    s.execute("KILL " + sessionID);
+                if (TestUtils.isAzureDW(c2)) {// AzureSQLDW and Synapse uses different syntax
+                    if (delayTimeout > 0) {
+                        s.execute("KILL '" + sessionID + "'" + "WAITFOR DELAY " + "'00:00:" + delayTimeout + "'");
+                    } else {
+                        s.execute("KILL '" + sessionID + "'");
+                    }
+                } else {
+                    if (delayTimeout > 0) {
+                        s.execute("KILL " + sessionID + "WAITFOR DELAY " + "'00:00:" + delayTimeout + "'");
+                    } else {
+                        s.execute("KILL " + sessionID);
+                    }
+                }
             }
         }
         isRecoveryAliveAndConnDead(c);

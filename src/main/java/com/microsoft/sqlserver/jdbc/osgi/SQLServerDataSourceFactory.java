@@ -11,7 +11,6 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 
-import javax.activation.DataSource;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.XADataSource;
 
@@ -34,6 +33,11 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
     private static final String NOT_SUPPORTED_MSG = ResourceBundle
             .getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource", Locale.getDefault())
             .getString("R_propertyNotSupported");
+
+    /**
+     * default constructor
+     */
+    public SQLServerDataSourceFactory() {}
 
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {

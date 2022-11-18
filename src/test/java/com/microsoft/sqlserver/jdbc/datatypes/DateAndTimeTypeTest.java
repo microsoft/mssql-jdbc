@@ -17,6 +17,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -193,6 +194,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
                     + tvpType + " null)";
             stmt.executeUpdate(TVPCreateCmd);
         }
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
     }
 
     /*

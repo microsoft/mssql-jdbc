@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -17,6 +18,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -49,6 +51,11 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static String srcTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_SourceTable");
     private static String desTable = RandomUtil.getIdentifier("BulkCopyResultSetCursorTest_DestinationTable");
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     /**
      * Test a previous failure when using server cursor and using the same connection to create Bulk Copy and result
@@ -147,15 +154,17 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                     verifyDestinationTableData(expectedBigDecimals.length * 3);
                 }
 
-                String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(desTable) + " values (?,?,?,?)";
+                String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(desTable) + " values (?,?,?,?,?)";
                 Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-                try (SQLServerPreparedStatement pstmt1 = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
+                try (PreparedStatement p = conn.prepareStatement(sql);
+                        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) p) {
                     for (int i = 0; i < expectedBigDecimals.length; i++) {
-                        pstmt1.setBigDecimal(1, expectedBigDecimals[i]);
-                        pstmt1.setString(2, expectedStrings[i]);
-                        pstmt1.setTimestamp(3, expectedTimestamps[i], calGMT);
-                        pstmt1.setString(4, expectedStrings[i]);
-                        pstmt1.execute();
+                        pstmt.setBigDecimal(1, expectedBigDecimals[i]);
+                        pstmt.setString(2, expectedStrings[i]);
+                        pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
+                        pstmt.setString(4, expectedStrings[i]);
+                        pstmt.setTimestamp(5, expectedTimestamps[i], calGMT);
+                        pstmt.execute();
                     }
                     verifyDestinationTableData(expectedBigDecimals.length * 4);
                 }
@@ -173,8 +182,9 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void verifyDestinationTableData(int expectedNumberOfRows) throws SQLException {
-        try (Connection conn = getConnection(); ResultSet rs = conn.createStatement().executeQuery(
-                "select * from " + AbstractSQLGenerator.escapeIdentifier(desTable) + " ORDER BY id ASC")) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                        "select * from " + AbstractSQLGenerator.escapeIdentifier(desTable) + " ORDER BY id ASC")) {
 
             int expectedArrayLength = expectedBigDecimals.length;
 
@@ -188,6 +198,8 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
                         + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(4));
                 assertTrue(rs.getString(5).trim().equals(expectedStrings[i % expectedArrayLength]), "Expected Value:"
                         + expectedStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(5));
+                assertTrue(rs.getString(6).equals(expectedTimestampStrings[i % expectedArrayLength]), "Expected Value:"
+                        + expectedTimestampStrings[i % expectedArrayLength] + ", Actual Value: " + rs.getString(5));
                 i++;
             }
 
@@ -196,16 +208,17 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     }
 
     private static void populateSourceTable() throws SQLException {
-        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " values (?,?,?,?)";
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(srcTable) + " values (?,?,?,?,?)";
         Calendar calGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
-        try (Connection conn = getConnection();
-                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement p = conn.prepareStatement(sql);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) p) {
             for (int i = 0; i < expectedBigDecimals.length; i++) {
                 pstmt.setBigDecimal(1, expectedBigDecimals[i]);
                 pstmt.setString(2, expectedStrings[i]);
                 pstmt.setTimestamp(3, expectedTimestamps[i], calGMT);
                 pstmt.setString(4, expectedStrings[i]);
+                pstmt.setTimestamp(5, expectedTimestamps[i], calGMT);
                 pstmt.execute();
             }
         }
@@ -222,10 +235,10 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     private static void createTables(Statement stmt) throws SQLException {
         String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(srcTable)
-                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000), c5 datetime2(7) not null);";
         stmt.execute(sql);
         sql = "create table " + AbstractSQLGenerator.escapeIdentifier(desTable)
-                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000));";
+                + " (id INT NOT NULL IDENTITY PRIMARY KEY, c1 decimal(10,5) null, c2 nchar(50) null, c3 datetime2(7) null, c4 char(7000), c5 datetime2(7) not null);";
         stmt.execute(sql);
     }
 

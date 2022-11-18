@@ -17,6 +17,7 @@ import java.sql.Statement;
 
 import javax.sql.PooledConnection;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +30,13 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @Tag(Constants.xSQLv11)
+@Tag(Constants.xAzureSQLDW)
 public class BasicConnectionTest extends AbstractTest {
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
+    }
 
     @Test
     public void testBasicReconnectDefault() throws SQLException {
@@ -37,15 +44,28 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.fedAuth)
+    public void testBasicConnectionAAD() throws SQLException {
+        String azureServer = getConfiguredProperty("azureServer");
+        String azureDatabase = getConfiguredProperty("azureDatabase");
+        String azureUserName = getConfiguredProperty("azureUserName");
+        String azurePassword = getConfiguredProperty("azurePassword");
+        org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
+
+        basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
+                + ";password=" + azurePassword + ";loginTimeout=30;Authentication=ActiveDirectoryPassword");
+    }
+
+    @Test
     public void testBasicEncryptedConnection() throws SQLException {
-        basicReconnect(connectionString + ";encrypt=true;trustServerCertificate=true;");
+        basicReconnect(connectionString);
     }
 
     @Test
     public void testGracefulClose() throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 c.close();
                 s.executeQuery("SELECT 1");
                 fail("Query execution did not throw an exception on a closed execution");
@@ -58,7 +78,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testCatalog() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -71,7 +90,7 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 return;
             }
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 while (rs.next()) {
                     actualDatabaseName = rs.getString(1);
@@ -83,10 +102,9 @@ public class BasicConnectionTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
         }
     }
-    
+
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testUseDb() throws SQLException {
         String expectedDatabaseName = null;
         String actualDatabaseName = null;
@@ -99,7 +117,7 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException e) {
                 return;
             }
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 while (rs.next()) {
                     actualDatabaseName = rs.getString(1);
@@ -118,7 +136,7 @@ public class BasicConnectionTest extends AbstractTest {
         String actualLanguage = "";
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
             s.execute("SET LANGUAGE " + expectedLanguage);
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT @@LANGUAGE")) {
                 while (rs.next()) {
                     actualLanguage = rs.getString(1);
@@ -137,7 +155,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("CREATE TABLE [" + tableName + "] (col1 varchar(1))");
             c.setAutoCommit(false);
             s.execute("INSERT INTO [" + tableName + "] values ('x')");
-            ResiliencyUtils.killConnection(c, connectionString);
+            ResiliencyUtils.killConnection(c, connectionString, 0);
             try (ResultSet rs = s.executeQuery("SELECT db_name();")) {
                 fail("Connection resiliency should not have reconnected with an open transaction!");
             } catch (SQLException ex) {
@@ -155,7 +173,7 @@ public class BasicConnectionTest extends AbstractTest {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("select 2")) {
                 rs.next();
-                ResiliencyUtils.killConnection(sessionId, connectionString, c);
+                ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 fail("Connection failed to clean up open resultset.");
@@ -173,7 +191,7 @@ public class BasicConnectionTest extends AbstractTest {
             c.close();
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
-            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.killConnection(c1, connectionString, 0);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             s1.executeQuery("SELECT 1");
         } catch (SQLException e) {
@@ -183,7 +201,6 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
-    @Tag(Constants.xAzureSQLDW)
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
         mds.setURL(connectionString);
@@ -207,7 +224,7 @@ public class BasicConnectionTest extends AbstractTest {
             c.close();
             Connection c1 = pooledConnection.getConnection();
             Statement s1 = c1.createStatement();
-            ResiliencyUtils.killConnection(c1, connectionString);
+            ResiliencyUtils.killConnection(c1, connectionString, 0);
             ResiliencyUtils.minimizeIdleNetworkTracker(c1);
             rs = s1.executeQuery("SELECT db_name();");
             while (rs.next()) {
@@ -235,7 +252,7 @@ public class BasicConnectionTest extends AbstractTest {
             s.execute("SET LANGUAGE FRENCH;");
             c.close();
             try (Connection c1 = pooledConnection.getConnection(); Statement s1 = c1.createStatement()) {
-                ResiliencyUtils.killConnection(c1, connectionString);
+                ResiliencyUtils.killConnection(c1, connectionString, 0);
                 ResiliencyUtils.minimizeIdleNetworkTracker(c1);
                 rs = s1.executeQuery("SELECT @@LANGUAGE;");
                 while (rs.next())
@@ -251,10 +268,15 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     private void basicReconnect(String connectionString) throws SQLException {
-        try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
-            try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
-                s.executeQuery("SELECT 1");
+        // Ensure reconnects can happen multiple times over the same connection and subsequent connections
+        for (int i1 = 0; i1 < 2; i1++) {
+            try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
+                for (int i2 = 0; i2 < 3; i2++) {
+                    try (Statement s = c.createStatement()) {
+                        ResiliencyUtils.killConnection(c, connectionString, 0);
+                        s.executeQuery("SELECT 1");
+                    }
+                }
             }
         }
     }
