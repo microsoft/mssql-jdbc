@@ -920,7 +920,6 @@ final class Parameter {
                             datatype += "(" + scale + ")";
                         }
                         return datatype;
-
                     case "datetime":
                     default:
                         return SSType.DATETIME.toString();
