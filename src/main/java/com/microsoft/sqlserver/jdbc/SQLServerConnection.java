@@ -6916,6 +6916,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     @Override
     public SQLXML createSQLXML() throws SQLException {
+
         loggerExternal.entering(loggingClassName, "createSQLXML");
         SQLXML sqlxml = new SQLServerSQLXML(this);
 
