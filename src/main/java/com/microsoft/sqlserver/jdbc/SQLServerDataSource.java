@@ -33,6 +33,8 @@ public class SQLServerDataSource
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc");
 
+    static final String TRUSTSTORE_PASSWORD_STRIPPED = "trustStorePasswordStripped";
+
     /** logging class name */
     final private String loggingClassName;
 
@@ -1457,7 +1459,7 @@ public class SQLServerDataSource
             ref.add(new StringRefAddr("class", dataSourceClassString));
 
         if (trustStorePasswordStripped)
-            ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+            ref.add(new StringRefAddr(TRUSTSTORE_PASSWORD_STRIPPED, "true"));
 
         // Add each property name+value pair found in connectionProps.
         Enumeration<?> e = connectionProps.keys();
@@ -1469,7 +1471,7 @@ public class SQLServerDataSource
                 // The property set and the variable set at the same time is not
                 // possible
                 assert !trustStorePasswordStripped;
-                ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+                ref.add(new StringRefAddr(TRUSTSTORE_PASSWORD_STRIPPED, "true"));
             } else {
                 // do not add passwords to the collection. we have normal
                 // password
@@ -1509,7 +1511,7 @@ public class SQLServerDataSource
                 dataSourceURL = propertyValue;
             } else if ("dataSourceDescription".equals(propertyName)) {
                 dataSourceDescription = propertyValue;
-            } else if ("trustStorePasswordStripped".equals(propertyName)) {
+            } else if (TRUSTSTORE_PASSWORD_STRIPPED.equals(propertyName)) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into

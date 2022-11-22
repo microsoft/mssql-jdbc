@@ -33,7 +33,9 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerAeadAes256CbcHmac256Algorithm");
 
-    final static String algorithmName = "AEAD_AES_256_CBC_HMAC_SHA256";
+    final static String AEAD_AES_256_CBC_HMAC_SHA256 = "AEAD_AES_256_CBC_HMAC_SHA256";
+    private static final String HMAC_SHA_256 = "HmacSHA256";
+
     // Stores column encryption key which includes root key and derived keys
     private SQLServerAeadAes256CbcHmac256EncryptionKey columnEncryptionkey;
     private byte algorithmVersion;
@@ -75,7 +77,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             SQLServerEncryptionType encryptionType, byte algorithmVersion) {
         this.columnEncryptionkey = columnEncryptionkey;
 
-        if (encryptionType == SQLServerEncryptionType.Deterministic) {
+        if (encryptionType == SQLServerEncryptionType.DETERMINISTIC) {
             this.isDeterministic = true;
         }
         this.algorithmVersion = algorithmVersion;
@@ -160,8 +162,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
 
             if (hasAuthenticationTag) {
 
-                Mac hmac = Mac.getInstance("HmacSHA256");
-                SecretKeySpec initkey = new SecretKeySpec(columnEncryptionkey.getMacKey(), "HmacSHA256");
+                Mac hmac = Mac.getInstance(HMAC_SHA_256);
+                SecretKeySpec initkey = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);
                 hmac.init(initkey);
                 hmac.update(version, 0, version.length);
                 hmac.update(iv, 0, iv.length);
@@ -330,8 +332,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         byte[] computedHash;
         byte[] authenticationTag = new byte[keySizeInBytes];
 
-        Mac hmac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), "HmacSHA256");
+        Mac hmac = Mac.getInstance(HMAC_SHA_256);
+        SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);
         hmac.init(key);
         hmac.update(version, 0, version.length);
         hmac.update(iv, 0, iv.length);

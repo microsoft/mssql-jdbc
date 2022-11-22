@@ -33,7 +33,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerNoneEnclaveProvider() {}
+    public SQLServerNoneEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {

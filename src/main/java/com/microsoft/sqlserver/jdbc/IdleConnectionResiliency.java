@@ -110,34 +110,32 @@ class IdleConnectionResiliency {
     }
 
     void incrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
-            if (unprocessedResponseCount.incrementAndGet() < 0) {
-                /*
-                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
-                 * connection.
-                 */
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
-                }
-
-                setConnectionRecoveryPossible(false);
+        if ((connection.getRetryCount() > 0 && !isReconnectRunning())
+                && (unprocessedResponseCount.incrementAndGet() < 0)) {
+            /*
+             * When this number rolls over, connection recovery is disabled for the rest of the life of the
+             * connection.
+             */
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
             }
+
+            setConnectionRecoveryPossible(false);
         }
     }
 
     void decrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
-            if (unprocessedResponseCount.decrementAndGet() < 0) {
-                /*
-                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
-                 * connection.
-                 */
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
-                }
-
-                setConnectionRecoveryPossible(false);
+        if ((connection.getRetryCount() > 0 && !isReconnectRunning())
+                && (unprocessedResponseCount.decrementAndGet() < 0)) {
+            /*
+             * When this number rolls over, connection recovery is disabled for the rest of the life of the
+             * connection.
+             */
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
             }
+
+            setConnectionRecoveryPossible(false);
         }
     }
 
@@ -428,6 +426,7 @@ final class ReconnectThread extends Thread {
 
     }
 
+    @Override
     public void run() {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.finer("Starting ReconnectThread for command: " + command.toString());

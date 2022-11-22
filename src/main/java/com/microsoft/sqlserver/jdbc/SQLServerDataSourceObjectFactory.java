@@ -24,7 +24,9 @@ public final class SQLServerDataSourceObjectFactory implements ObjectFactory {
     /**
      * Constructs a SQLServerDataSourceObjectFactory.
      */
-    public SQLServerDataSourceObjectFactory() {}
+    public SQLServerDataSourceObjectFactory() {
+        // default constructor
+    }
 
     /**
      * Returns an reference to the SQLServerDataSource instance getObjectInstance is a factory for rehydrating

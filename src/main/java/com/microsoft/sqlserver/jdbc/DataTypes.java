@@ -73,7 +73,7 @@ enum TDSType {
 
     private static final int MAXELEMENTS = 256;
     private static final TDSType[] VALUES = values();
-    private static final TDSType valuesTypes[] = new TDSType[MAXELEMENTS];
+    private static final TDSType[] valuesTypes = new TDSType[MAXELEMENTS];
 
     byte byteValue() {
         return (byte) intValue;

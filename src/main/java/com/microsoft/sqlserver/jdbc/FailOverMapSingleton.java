@@ -56,8 +56,7 @@ final class FailoverMapSingleton {
     // failover server name provided
     // by the server. The map is only populated if the server sends failover info.
     static void putFailoverInfo(SQLServerConnection connection, String primaryServer, String instance, String database,
-            FailoverInfo actualFailoverInfo, boolean actualuseFailover,
-            String failoverPartner) throws SQLServerException {
+            FailoverInfo actualFailoverInfo, boolean actualuseFailover, String failoverPartner) {
         FailoverInfo fo;
 
         LOCK.lock();

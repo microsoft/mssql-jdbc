@@ -52,7 +52,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerAASEnclaveProvider() {}
+    public SQLServerAASEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
