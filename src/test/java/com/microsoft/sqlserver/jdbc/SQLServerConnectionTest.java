@@ -1041,9 +1041,11 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testDSPooledConnectionAccessTokenCallback() throws Exception {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionString, ds);
-        ds.setUser("");
-        ds.setPassword("");
+
+        // User/password is not required for access token callback
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
+        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
+        AbstractTest.updateDataSource(cs, ds);
         ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
 
         TestUtils.expireTokenToggle = false;
@@ -1069,9 +1071,11 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testDSPooledConnectionAccessTokenCallbackExpiredToken() throws Exception {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionString, ds);
-        ds.setUser("");
-        ds.setPassword("");
+
+        // User/password is not required for access token callback
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
+        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
+        AbstractTest.updateDataSource(cs, ds);
         ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
 
         SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
@@ -1085,7 +1089,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection conn1 = pc.getConnection()) {}
         conn1ID = TestUtils.getConnectionID(pc);
         // Sleep until token expires
-        Thread.sleep(120000);
+        Thread.sleep(720000);
         try (Connection conn2 = pc.getConnection()) {}
         conn2ID = TestUtils.getConnectionID(pc);
 

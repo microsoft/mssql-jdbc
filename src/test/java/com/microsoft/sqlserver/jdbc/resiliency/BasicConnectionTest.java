@@ -277,9 +277,11 @@ public class BasicConnectionTest extends AbstractTest {
     @Test
     public void testDSPooledConnectionAccessTokenCallbackIdleConnectionResiliency() throws Exception {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        AbstractTest.updateDataSource(connectionString, ds);
-        ds.setUser("");
-        ds.setPassword("");
+
+        // User/password is not required for access token callback
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
+        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
+        AbstractTest.updateDataSource(cs, ds);
         ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
 
         SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
