@@ -983,7 +983,7 @@ abstract class SQLServerSpatialDatatype {
 
             switch (nextToken) {
                 case POINT_STR:
-                    if (startPos == 0 && POINT_STR.equals(nextToken.toUpperCase())) {
+                    if (startPos == 0 && POINT_STR.equalsIgnoreCase(nextToken)) {
                         isSinglePoint = true;
                         internalType = InternalSpatialDatatype.POINT;
                     }
@@ -1004,7 +1004,7 @@ abstract class SQLServerSpatialDatatype {
 
                     readLineWkt();
 
-                    if (startPos == 0 && LINESTRING_STR.equals(nextToken.toUpperCase()) && pointList.size() == 2) {
+                    if (startPos == 0 && LINESTRING_STR.equalsIgnoreCase(nextToken) && pointList.size() == 2) {
                         isSingleLineSegment = true;
                     }
                     break;

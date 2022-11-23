@@ -2552,8 +2552,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null;
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDWHelper(
-            ArrayList<String> listOfColumns) throws SQLServerException {
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
