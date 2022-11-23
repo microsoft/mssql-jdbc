@@ -2647,7 +2647,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) throws SQLServerException {
+    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
         // ignore all comments
         if (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2677,11 +2677,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // shouldn't come here, as the list of values is mandatory.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
         Object[] msgArgs = {localUserSQL};
-        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
-    private ArrayList<String> parseUserSQLForValueListDWHelper(
-            ArrayList<String> listOfValues) throws SQLServerException {
+    private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2715,7 +2714,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // It shouldn't come here. If we did, something is wrong.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
         Object[] msgArgs = {localUserSQL};
-        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
