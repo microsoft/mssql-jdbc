@@ -2535,7 +2535,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new IllegalArgumentException(form.format(msgArgs));
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
+    private ArrayList<String> parseUserSQLForColumnListDW() {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2548,8 +2548,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null;
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDWHelper(
-            ArrayList<String> listOfColumns) throws SQLServerException {
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2578,7 +2577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (tempint < 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
                     Object[] msgArgs = {localUserSQL};
-                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    throw new IllegalArgumentException(form.format(msgArgs));
                 }
 
                 // keep checking if it's escaped
@@ -2602,7 +2601,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (tempint < 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
                     Object[] msgArgs = {localUserSQL};
-                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    throw new IllegalArgumentException(form.format(msgArgs));
                 }
 
                 // keep checking if it's escaped
@@ -2644,7 +2643,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // most likely we couldn't hit the exit condition and just parsed until the end of the string.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
         Object[] msgArgs = {localUserSQL};
-        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
