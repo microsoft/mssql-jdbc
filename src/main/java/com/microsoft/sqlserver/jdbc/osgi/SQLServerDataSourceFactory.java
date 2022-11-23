@@ -37,7 +37,9 @@ public class SQLServerDataSourceFactory implements DataSourceFactory {
     /**
      * default constructor
      */
-    public SQLServerDataSourceFactory() {}
+    public SQLServerDataSourceFactory() {
+        // default constructor
+    }
 
     @Override
     public javax.sql.DataSource createDataSource(Properties props) throws SQLException {

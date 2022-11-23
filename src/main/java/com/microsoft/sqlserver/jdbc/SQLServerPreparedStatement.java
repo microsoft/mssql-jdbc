@@ -79,7 +79,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean isSpPrepareExecuted = false;
 
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
-    private PreparedStatementHandle cachedPreparedStatementHandle;
+    private transient PreparedStatementHandle cachedPreparedStatementHandle;
 
     /** Hash of user supplied SQL statement used for various cache lookups */
     private CityHash128Key sqlTextCacheKey;
@@ -605,7 +605,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             try {
                 // Re-use handle if available, requires parameter definitions which are not available until here.
                 if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
+                    System.out.println("re-using cached handle: preparedSQL=" + preparedSQL + " hasNewTypeDefinitions="
+                            + hasNewTypeDefinitions);
                     hasNewTypeDefinitions = false;
+                } else {
+                    System.out.println("not re-using cached handle: preparedSQL=" + preparedSQL
+                            + " hasNewTypeDefinitions=" + hasNewTypeDefinitions);
                 }
 
                 // Start the request and detach the response reader so that we can
@@ -2069,7 +2074,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2088,18 +2094,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
                         if (null != columnList && columnList.size() > 0) {
                             if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                             }
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {rs.getColumnCount(), valueList.size()};
+                                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2112,7 +2122,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2226,7 +2237,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2255,8 +2267,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2269,7 +2281,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2409,7 +2422,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
-            boolean hasTableBeenFound, boolean isExpectingTableName) {
+            boolean hasTableBeenFound, boolean isExpectingTableName) throws SQLServerException {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
@@ -2461,7 +2474,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // ] has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                Object[] msgArgs = {localUserSQL};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
 
             // keep checking if it's escaped
@@ -2482,7 +2497,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // \" has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                Object[] msgArgs = {localUserSQL};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
             }
 
             // keep checking if it's escaped
@@ -2513,10 +2530,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDW() {
+    private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2529,7 +2548,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null;
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(
+            ArrayList<String> listOfColumns) throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2556,7 +2576,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // ] has not been found, this is wrong.
                 if (tempint < 0) {
-                    throw new IllegalArgumentException("Invalid SQL Query.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                    Object[] msgArgs = {localUserSQL};
+                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
 
                 // keep checking if it's escaped
@@ -2578,7 +2600,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // \" has not been found, this is wrong.
                 if (tempint < 0) {
-                    throw new IllegalArgumentException("Invalid SQL Query.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                    Object[] msgArgs = {localUserSQL};
+                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                 }
 
                 // keep checking if it's escaped
@@ -2618,10 +2642,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // It shouldn't come here. If we did, something is wrong.
         // most likely we couldn't hit the exit condition and just parsed until the end of the string.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
+    private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) throws SQLServerException {
         // ignore all comments
         if (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2649,10 +2675,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // shouldn't come here, as the list of values is mandatory.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
+    private ArrayList<String> parseUserSQLForValueListDWHelper(
+            ArrayList<String> listOfValues) throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2684,31 +2713,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        // Don't need this anymore since we removed support for non-parameterized query.
-        // if (localUserSQL.charAt(0) == '\'') {
-        // int tempint = localUserSQL.indexOf("\'", 1);
-        //
-        // // \' has not been found, this is wrong.
-        // if (tempint < 0) {
-        // throw new IllegalArgumentException("Invalid SQL Query.");
-        // }
-        //
-        // // keep checking if it's escaped
-        // while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
-        // localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-        // tempint = localUserSQL.indexOf("\'", tempint + 1);
-        // }
-        //
-        // // we've found a ' that is actually trying to close the quote.
-        // // Include 's around the string as well, so we can distinguish '?' and ? later on.
-        // String tempstr = localUserSQL.substring(0, tempint + 1);
-        // localUserSQL = localUserSQL.substring(tempint + 1);
-        // listOfValues.add(tempstr);
-        // return parseUserSQLForValueListDWHelper(listOfValues);
-        // }
-
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
@@ -2746,9 +2754,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean checkSQLLength(int length) {
+    private boolean checkSQLLength(int length) throws SQLServerException {
         if (null == localUserSQL || localUserSQL.length() < length) {
-            throw new IllegalArgumentException("Invalid SQL Query.");
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+            Object[] msgArgs = {localUserSQL};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
         return true;
     }

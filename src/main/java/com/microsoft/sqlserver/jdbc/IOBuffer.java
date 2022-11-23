@@ -611,7 +611,7 @@ final class TDSChannel implements Serializable {
 
     private final SQLServerConnection con;
 
-    private final TDSWriter tdsWriter;
+    private final transient TDSWriter tdsWriter;
 
     final TDSWriter getWriter() {
         return tdsWriter;
@@ -622,35 +622,35 @@ final class TDSChannel implements Serializable {
     }
 
     // Socket for raw TCP/IP communications with SQL Server
-    private Socket tcpSocket;
+    private transient Socket tcpSocket;
 
     // Socket for SSL-encrypted communications with SQL Server
-    private SSLSocket sslSocket;
+    private transient SSLSocket sslSocket;
 
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
      * wrapped around the TCP socket. For unencrypted connections, it is just the TCP socket itself.
      */
     @SuppressWarnings("unused")
-    private Socket channelSocket;
+    private transient Socket channelSocket;
 
     // Implementation of a Socket proxy that can switch from TDS-wrapped I/O
     // (using the TDSChannel itself) during SSL handshake to raw I/O over
     // the TCP/IP socket.
-    ProxySocket proxySocket = null;
+    private transient ProxySocket proxySocket = null;
 
     // I/O streams for raw TCP/IP communications with SQL Server
-    private ProxyInputStream tcpInputStream;
-    private OutputStream tcpOutputStream;
+    private transient ProxyInputStream tcpInputStream;
+    private transient OutputStream tcpOutputStream;
 
     // I/O streams providing the communications interface to the driver.
     // For SSL-encrypted connections, these are streams obtained from
     // the SSL socket above. They wrap the underlying TCP streams.
     // For unencrypted connections, they are just the TCP streams themselves.
-    private ProxyInputStream inputStream;
-    private final Lock inputStreamLock = new ReentrantLock();
-    private OutputStream outputStream;
-    private final Lock outputStreamLock = new ReentrantLock();
+    private transient ProxyInputStream inputStream;
+    private final transient Lock inputStreamLock = new ReentrantLock();
+    private transient OutputStream outputStream;
+    private final transient Lock outputStreamLock = new ReentrantLock();
 
     /** TDS packet payload logger */
     private static Logger packetLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.DATA");
@@ -6672,7 +6672,7 @@ final class TDSReader implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Reader");
     final private String traceID;
-    private ScheduledFuture<?> timeout;
+    private transient ScheduledFuture<?> timeout;
 
     final public String toString() {
         return traceID;
@@ -6692,8 +6692,8 @@ final class TDSReader implements Serializable {
         return con;
     }
 
-    private TDSPacket currentPacket = new TDSPacket(0);
-    private TDSPacket lastPacket = currentPacket;
+    private transient TDSPacket currentPacket = new TDSPacket(0);
+    private transient TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
     private int packetNum = 0;
 
@@ -6702,13 +6702,13 @@ final class TDSReader implements Serializable {
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     private ColumnEncryptionVersion columnEncryptionVersion;
 
     private final byte valueBytes[] = new byte[256];
 
-    protected SensitivityClassification sensitivityClassification;
+    protected transient SensitivityClassification sensitivityClassification;
 
     private static final AtomicInteger lastReaderID = new AtomicInteger(0);
 
@@ -7532,7 +7532,7 @@ abstract class TDSCommand implements Serializable {
     // TDS channel accessors
     // These are set/reset at command execution time.
     // Volatile ensures visibility to execution thread and interrupt thread
-    private volatile TDSWriter tdsWriter;
+    private volatile transient TDSWriter tdsWriter;
     private volatile TDSReader tdsReader;
 
     protected TDSWriter getTDSWriter() {
@@ -7541,7 +7541,7 @@ abstract class TDSCommand implements Serializable {
 
     // Lock to ensure atomicity when manipulating more than one of the following
     // shared interrupt state variables below.
-    private final Lock interruptLock = new ReentrantLock();
+    private final transient Lock interruptLock = new ReentrantLock();
 
     // Flag set when this command starts execution, indicating that it is
     // ready to respond to interrupts; and cleared when its last response packet is
@@ -7626,7 +7626,7 @@ abstract class TDSCommand implements Serializable {
     private volatile boolean readingResponse;
     private int queryTimeoutSeconds;
     private int cancelQueryTimeoutSeconds;
-    private ScheduledFuture<?> timeout;
+    private transient ScheduledFuture<?> timeout;
 
     private boolean isExecuted = false;
 
@@ -7645,7 +7645,7 @@ abstract class TDSCommand implements Serializable {
     protected ArrayList<byte[]> enclaveCEKs;
 
     // Counter reference, so maxResultBuffer property can by acknowledged
-    private ICounter counter;
+    private transient ICounter counter;
 
     ICounter getCounter() {
         return counter;
@@ -7861,7 +7861,7 @@ abstract class TDSCommand implements Serializable {
     }
 
     private boolean interruptChecked = false;
-    private Thread correspondingThread = null;
+    private transient Thread correspondingThread = null;
 
     /**
      * Checks once whether an interrupt has occurred, and, if it has, throws an exception indicating that fact.

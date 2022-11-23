@@ -65,10 +65,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private int outParamIndex = -1;
 
     /** The last out param accessed. */
-    private Parameter lastParamAccessed;
+    private transient Parameter lastParamAccessed;
 
     /** Currently active Stream Note only one stream can be active at a time */
-    private Closeable activeStream;
+    private transient Closeable activeStream;
 
     // Internal function used in tracing
     String getClassNameInternal() {
@@ -76,7 +76,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     }
 
     /** map */
-    Map<String, Integer> map = new ConcurrentHashMap<>();
+    private Map<String, Integer> map = new ConcurrentHashMap<>();
 
     /** atomic integer */
     AtomicInteger ai = new AtomicInteger(0);

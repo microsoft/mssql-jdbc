@@ -153,12 +153,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Source data (from ResultSet). Is null unless the corresponding version of writeToServer is called.
      */
-    private ResultSet sourceResultSet;
+    private transient ResultSet sourceResultSet;
 
     /**
      * Metadata for the source table columns
      */
-    private ResultSetMetaData sourceResultSetMetaData;
+    private transient ResultSetMetaData sourceResultSetMetaData;
 
     /**
      * The CekTable for the destination table.
@@ -173,7 +173,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Destination table metadata
      */
-    private ResultSet destinationTableMetadata;
+    private transient ResultSet destinationTableMetadata;
 
     /**
      * Metadata for the destination table columns
@@ -239,12 +239,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * A map to store the metadata information for the destination table.
      */
-    private Map<Integer, BulkColumnMetaData> destColumnMetadata;
+    private transient Map<Integer, BulkColumnMetaData> destColumnMetadata;
 
     /**
      * A map to store the metadata information for the source table.
      */
-    private Map<Integer, BulkColumnMetaData> srcColumnMetadata;
+    private transient Map<Integer, BulkColumnMetaData> srcColumnMetadata;
 
     /**
      * Variable to store destination column count.
@@ -259,7 +259,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Shared timer
      */
-    private ScheduledFuture<?> timeout;
+    private transient ScheduledFuture<?> timeout;
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a

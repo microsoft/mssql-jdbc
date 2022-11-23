@@ -26,7 +26,9 @@ public class Activator implements BundleActivator {
     /**
      * default constructor
      */
-    public Activator() {}
+    public Activator() {
+        // default constructor
+    }
 
     @Override
     public void start(BundleContext context) throws Exception {

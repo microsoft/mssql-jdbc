@@ -30,7 +30,9 @@ public class DNSUtilities {
     /**
      * default constructor
      */
-    public DNSUtilities() {}
+    public DNSUtilities() {
+        // default constructor
+    }
 
     /**
      * Finds all SRV Record using DNS.

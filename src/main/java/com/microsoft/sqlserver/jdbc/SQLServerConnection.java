@@ -224,7 +224,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * lock instance for "this"
      **/
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     /**
      * static lock instance for the class
@@ -429,7 +429,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Keeps track of network idle status */
-    IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
+    transient IdleNetworkTracker idleNetworkTracker = new IdleNetworkTracker();
 
     /** Size of the parsed SQL-text metadata cache */
     static final private int PARSED_SQL_CACHE_SIZE = 100;
@@ -909,7 +909,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Session Recovery Object */
-    private IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
+    private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
     IdleConnectionResiliency getSessionRecovery() {
         return sessionRecovery;
@@ -928,7 +928,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalCustomColumnEncryptionKeyStoreProviders = null;
 
     /** This is a per-connection store provider. It can be JKS or AKV. */
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
+    transient Map<String, SQLServerColumnEncryptionKeyStoreProvider> systemColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
@@ -1161,7 +1161,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** This is a user-defined per-connection store provider. */
-    Map<String, SQLServerColumnEncryptionKeyStoreProvider> connectionColumnEncryptionKeyStoreProvider = new HashMap<>();
+    transient Map<String, SQLServerColumnEncryptionKeyStoreProvider> connectionColumnEncryptionKeyStoreProvider = new HashMap<>();
 
     /**
      * Registers connection-level key store providers, replacing all existing providers.
@@ -1362,7 +1362,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
 
     /** impersonated user credential */
-    private GSSCredential impersonatedUserCred;
+    private transient GSSCredential impersonatedUserCred;
 
     /** user created credential flag */
     private boolean isUserCreatedCredential;
@@ -4562,7 +4562,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     volatile SQLWarning sqlWarnings;
 
     /** warnings synchronization object */
-    private final Lock warningSynchronization = new ReentrantLock();
+    private final transient Lock warningSynchronization = new ReentrantLock();
 
     // Think about returning a copy when we implement additional warnings.
     @Override
@@ -5522,7 +5522,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final class FedAuthTokenCommand extends UninterruptableTDSCommand {
         // Always update serialVersionUID when prompted.
         private static final long serialVersionUID = 1L;
-        TDSTokenHandler tdsTokenHandler = null;
+        transient TDSTokenHandler tdsTokenHandler = null;
         SqlAuthenticationToken sqlFedAuthToken = null;
 
         FedAuthTokenCommand(SqlAuthenticationToken sqlFedAuthToken, TDSTokenHandler tdsTokenHandler) {
@@ -7899,7 +7899,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Enclave provider */
-    private ISQLServerEnclaveProvider enclaveProvider;
+    private transient ISQLServerEnclaveProvider enclaveProvider;
 
     ArrayList<byte[]> initEnclaveParameters(SQLServerStatement statement, String userSql,
             String preparedTypeDefinitions, Parameter[] params,

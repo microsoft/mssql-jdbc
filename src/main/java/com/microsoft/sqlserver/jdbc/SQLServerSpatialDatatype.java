@@ -115,8 +115,62 @@ abstract class SQLServerSpatialDatatype {
 
     private List<Integer> version_one_shape_indexes = new ArrayList<Integer>();
 
-    private static final String FULLGLOBE = "FULLGLOBE";
-    private static final String EMPTY = "EMPTY";
+    private static final String EMPTY_STR = "EMPTY";
+    private static final String POINT_STR = "POINT";
+    private static final String LINESTRING_STR = "LINESTRING";
+    private static final String POLYGON_STR = "POLYGON";
+    private static final String MULTIPOINT_STR = "MULTIPOINT";
+    private static final String MULTILINESTRING_STR = "MULTILINESTRING";
+    private static final String MULTIPOLYGON_STR = "MULTIPOLYGON";
+    private static final String GEOMETRYCOLLECTION_STR = "GEOMETRYCOLLECTION";
+    private static final String CIRCULARSTRING_STR = "CIRCULARSTRING";
+    private static final String COMPOUNDCURVE_STR = "COMPOUNDCURVE";
+    private static final String CURVEPOLYGON_STR = "CURVEPOLYGON";
+    private static final String FULLGLOBE_STR = "FULLGLOBE";
+
+    /**
+     * Specifies the spatial data types values
+     */
+    enum InternalSpatialDatatype {
+        POINT((byte) 1, POINT_STR),
+        LINESTRING((byte) 2, LINESTRING_STR),
+        POLYGON((byte) 3, POLYGON_STR),
+        MULTIPOINT((byte) 4, MULTIPOINT_STR),
+        MULTILINESTRING((byte) 5, MULTILINESTRING_STR),
+        MULTIPOLYGON((byte) 6, MULTIPOLYGON_STR),
+        GEOMETRYCOLLECTION((byte) 7, GEOMETRYCOLLECTION_STR),
+        CIRCULARSTRING((byte) 8, CIRCULARSTRING_STR),
+        COMPOUNDCURVE((byte) 9, COMPOUNDCURVE_STR),
+        CURVEPOLYGON((byte) 10, CURVEPOLYGON_STR),
+        FULLGLOBE((byte) 11, FULLGLOBE_STR),
+        INVALID_TYPE((byte) 0, null);
+
+        private byte typeCode;
+        private String typeName;
+        private static final InternalSpatialDatatype[] VALUES = values();
+
+        private InternalSpatialDatatype(byte typeCode, String typeName) {
+            this.typeCode = typeCode;
+            this.typeName = typeName;
+        }
+
+        byte getTypeCode() {
+            return this.typeCode;
+        }
+
+        String getTypeName() {
+            return this.typeName;
+        }
+
+        static InternalSpatialDatatype valueOf(byte typeCode) {
+            for (InternalSpatialDatatype internalType : VALUES) {
+                if (internalType.typeCode == typeCode) {
+                    return internalType;
+                }
+            }
+            return INVALID_TYPE;
+        }
+    }
 
     /**
      * Serializes the Geogemetry/Geography instance to internal SQL Server format (CLR).
@@ -798,9 +852,9 @@ abstract class SQLServerSpatialDatatype {
             if (isd.getTypeCode() == 11) { // FULLGLOBE
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
-                    throw new SQLServerException(form.format(new Object[] {"Fullglobe"}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[] {FULLGLOBE_STR}), null, 0, null);
                 } else {
-                    appendToWKTBuffers(FULLGLOBE);
+                    appendToWKTBuffers(FULLGLOBE_STR);
                     return;
                 }
             }
@@ -813,11 +867,11 @@ abstract class SQLServerSpatialDatatype {
                 appendToWKTBuffers(")");
                 return;
             }
-            appendToWKTBuffers(isd.getTypeName() + " EMPTY");
+            appendToWKTBuffers(isd.getTypeName() + " " + EMPTY_STR);
             return;
         } else if (figureIndexEnd == -1) {
             // figureIndexEnd can be -1 if a shape inside a GeometryCollection is EMPTY, handle accordingly.
-            appendToWKTBuffers(isd.getTypeName() + " EMPTY");
+            appendToWKTBuffers(isd.getTypeName() + " " + EMPTY_STR);
             return;
         }
 
@@ -898,16 +952,16 @@ abstract class SQLServerSpatialDatatype {
             }
             byte fa = 0;
 
-            if (version == 1 && ("CIRCULARSTRING".equals(nextToken) || "COMPOUNDCURVE".equals(nextToken)
-                    || "CURVEPOLYGON".equals(nextToken))) {
+            if (version == 1 && (CIRCULARSTRING_STR.equals(nextToken) || COMPOUNDCURVE_STR.equals(nextToken)
+                    || CURVEPOLYGON_STR.equals(nextToken))) {
                 version = 2;
             }
 
             // check for FULLGLOBE before reading the first open bracket, since FULLGLOBE doesn't have one.
-            if (FULLGLOBE.equals(nextToken)) {
+            if (FULLGLOBE_STR.equals(nextToken)) {
                 if (sd instanceof Geometry) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_illegalTypeForGeometry"));
-                    throw new SQLServerException(form.format(new Object[] {"Fullglobe"}), null, 0, null);
+                    throw new SQLServerException(form.format(new Object[] {FULLGLOBE_STR}), null, 0, null);
                 }
 
                 if (startPos != 0) {
@@ -928,8 +982,8 @@ abstract class SQLServerSpatialDatatype {
             readOpenBracket();
 
             switch (nextToken) {
-                case "POINT":
-                    if (startPos == 0 && "POINT".equals(nextToken.toUpperCase())) {
+                case POINT_STR:
+                    if (startPos == 0 && POINT_STR.equals(nextToken.toUpperCase())) {
                         isSinglePoint = true;
                         internalType = InternalSpatialDatatype.POINT;
                     }
@@ -941,8 +995,8 @@ abstract class SQLServerSpatialDatatype {
 
                     readPointWkt();
                     break;
-                case "LINESTRING":
-                case "CIRCULARSTRING":
+                case LINESTRING_STR:
+                case CIRCULARSTRING_STR:
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
                     fa = isd.getTypeCode() == InternalSpatialDatatype.LINESTRING.getTypeCode() ? FA_STROKE
                                                                                                : FA_EXTERIOR_RING;
@@ -950,40 +1004,40 @@ abstract class SQLServerSpatialDatatype {
 
                     readLineWkt();
 
-                    if (startPos == 0 && "LINESTRING".equals(nextToken.toUpperCase()) && pointList.size() == 2) {
+                    if (startPos == 0 && LINESTRING_STR.equals(nextToken.toUpperCase()) && pointList.size() == 2) {
                         isSingleLineSegment = true;
                     }
                     break;
-                case "POLYGON":
-                case "MULTIPOINT":
-                case "MULTILINESTRING":
+                case POLYGON_STR:
+                case MULTIPOINT_STR:
+                case MULTILINESTRING_STR:
                     thisShapeIndex = shapeList.size();
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
 
                     readShapeWkt(thisShapeIndex, nextToken);
 
                     break;
-                case "MULTIPOLYGON":
+                case MULTIPOLYGON_STR:
                     thisShapeIndex = shapeList.size();
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
 
                     readMultiPolygonWkt(thisShapeIndex, nextToken);
 
                     break;
-                case "COMPOUNDCURVE":
+                case COMPOUNDCURVE_STR:
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
                     figureList.add(new Figure(FA_COMPOSITE_CURVE, pointList.size()));
 
                     readCompoundCurveWkt(true);
 
                     break;
-                case "CURVEPOLYGON":
+                case CURVEPOLYGON_STR:
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
 
                     readCurvePolygon();
 
                     break;
-                case "GEOMETRYCOLLECTION":
+                case GEOMETRYCOLLECTION_STR:
                     thisShapeIndex = shapeList.size();
                     shapeList.add(new Shape(parentShapeIndex, figureList.size(), isd.getTypeCode()));
 
@@ -1104,7 +1158,7 @@ abstract class SQLServerSpatialDatatype {
     void constructMultiShapeWKT(int shapeStartIndex, int shapeEndIndex) {
         for (int i = shapeStartIndex + 1; i < shapeEndIndex; i++) {
             if (shapes[i].getFigureOffset() == -1) { // EMPTY
-                appendToWKTBuffers(EMPTY);
+                appendToWKTBuffers(EMPTY_STR);
             } else {
                 constructShapeWKT(shapes[i].getFigureOffset(), shapes[i].getFigureOffset() + 1);
             }
@@ -1168,7 +1222,7 @@ abstract class SQLServerSpatialDatatype {
         for (int i = shapeStartIndex + 1; i < shapeEndIndex; i++) {
             figureEndIndex = figures.length;
             if (shapes[i].getFigureOffset() == -1) { // EMPTY
-                appendToWKTBuffers(EMPTY);
+                appendToWKTBuffers(EMPTY_STR);
                 if (!(i == shapeEndIndex - 1)) { // not the last exterior polygon of this multipolygon, add a comma
                     appendToWKTBuffers(", ");
                 }
@@ -1510,29 +1564,29 @@ abstract class SQLServerSpatialDatatype {
 
             // if next keyword is empty, continue the loop.
             // Do not check this for polygon.
-            if (!"POLYGON".equals(nextToken)
+            if (!POLYGON_STR.equals(nextToken)
                     && checkEmptyKeyword(parentShapeIndex, InternalSpatialDatatype.valueOf(nextToken), true)) {
                 continue;
             }
 
-            if ("MULTIPOINT".equals(nextToken)) {
+            if (MULTIPOINT_STR.equals(nextToken)) {
                 shapeList.add(
                         new Shape(parentShapeIndex, figureList.size(), InternalSpatialDatatype.POINT.getTypeCode()));
-            } else if ("MULTILINESTRING".equals(nextToken)) {
+            } else if (MULTILINESTRING_STR.equals(nextToken)) {
                 shapeList.add(new Shape(parentShapeIndex, figureList.size(),
                         InternalSpatialDatatype.LINESTRING.getTypeCode()));
             }
 
             if (version == 1) {
-                if ("MULTIPOINT".equals(nextToken)) {
+                if (MULTIPOINT_STR.equals(nextToken)) {
                     fa = FA_STROKE;
-                } else if ("MULTILINESTRING".equals(nextToken) || "POLYGON".equals(nextToken)) {
+                } else if (MULTILINESTRING_STR.equals(nextToken) || POLYGON_STR.equals(nextToken)) {
                     fa = FA_EXTERIOR_RING;
                 }
                 version_one_shape_indexes.add(figureList.size());
             } else if (version == 2) {
-                if ("MULTIPOINT".equals(nextToken) || "MULTILINESTRING".equals(nextToken) || "POLYGON".equals(nextToken)
-                        || "MULTIPOLYGON".equals(nextToken)) {
+                if (MULTIPOINT_STR.equals(nextToken) || MULTILINESTRING_STR.equals(nextToken)
+                        || POLYGON_STR.equals(nextToken) || MULTIPOLYGON_STR.equals(nextToken)) {
                     fa = FA_LINE;
                 }
             }
@@ -1563,12 +1617,12 @@ abstract class SQLServerSpatialDatatype {
     void readCurvePolygon() throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
-            if ("CIRCULARSTRING".equals(nextPotentialToken)) {
+            if (CIRCULARSTRING_STR.equals(nextPotentialToken)) {
                 figureList.add(new Figure(FA_ARC, pointList.size()));
                 readOpenBracket();
                 readLineWkt();
                 readCloseBracket();
-            } else if ("COMPOUNDCURVE".equals(nextPotentialToken)) {
+            } else if (COMPOUNDCURVE_STR.equals(nextPotentialToken)) {
                 figureList.add(new Figure(FA_COMPOSITE_CURVE, pointList.size()));
                 readOpenBracket();
                 readCompoundCurveWkt(true);
@@ -1674,7 +1728,7 @@ abstract class SQLServerSpatialDatatype {
     void readCompoundCurveWkt(boolean isFirstIteration) throws SQLServerException {
         while (currentWktPos < wkt.length() && wkt.charAt(currentWktPos) != ')') {
             String nextPotentialToken = getNextStringToken().toUpperCase(Locale.US);
-            if ("CIRCULARSTRING".equals(nextPotentialToken)) {
+            if (CIRCULARSTRING_STR.equals(nextPotentialToken)) {
                 readOpenBracket();
                 readSegmentWkt(SEGMENT_FIRST_ARC, isFirstIteration);
                 readCloseBracket();
@@ -2212,7 +2266,7 @@ abstract class SQLServerSpatialDatatype {
     boolean checkEmptyKeyword(int parentShapeIndex, InternalSpatialDatatype isd,
             boolean isInsideAnotherShape) throws SQLServerException {
         String potentialEmptyKeyword = getNextStringToken().toUpperCase(Locale.US);
-        if (EMPTY.equals(potentialEmptyKeyword)) {
+        if (EMPTY_STR.equals(potentialEmptyKeyword)) {
 
             byte typeCode = 0;
 
@@ -2393,7 +2447,7 @@ abstract class SQLServerSpatialDatatype {
 
                         // handle Empty GeometryCollection cases
                         if (shapes[currentShapeIndex].getFigureOffset() == -1) {
-                            appendToWKTBuffers(" EMPTY");
+                            appendToWKTBuffers(" " + EMPTY_STR);
                             currentShapeIndex++;
                             if (currentShapeIndex < shapeEndIndex) {
                                 appendToWKTBuffers(", ");
@@ -2443,7 +2497,7 @@ abstract class SQLServerSpatialDatatype {
                         currentShapeIndex++;
                         break;
                     case FULLGLOBE:
-                        appendToWKTBuffers(FULLGLOBE);
+                        appendToWKTBuffers(FULLGLOBE_STR);
                         break;
                     default:
                         break;

@@ -241,10 +241,12 @@ final class DTV {
      * determine the value (e.g. a Calendar object for time-valued DTV values).
      */
     Object getValue(JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException {
         if (null == impl)
             impl = new ServerDTVImpl();
-        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader, statement);
+        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
+                statement);
     }
 
     Object getSetterValue() {
@@ -808,8 +810,8 @@ final class DTV {
                             case TIME:
                                 // when colum is encrypted, always send time as time, ignore sendTimeAsDatetime setting
                                 assert null != cryptoMeta;
-                                tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength,
-                                        isOutParam, statement);
+                                tdsWriter.writeEncryptedRPCTime(name, calendar, subSecondNanos, valueLength, isOutParam,
+                                        statement);
                                 break;
 
                             case DATE:
@@ -1117,7 +1119,8 @@ final class DTV {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
                 if (null != byteArrayValue) {
-                    byteArrayValue = SQLServerSecurityUtility.encryptWithKey(byteArrayValue, cryptoMeta, conn, statement);
+                    byteArrayValue = SQLServerSecurityUtility.encryptWithKey(byteArrayValue, cryptoMeta, conn,
+                            statement);
                     tdsWriter.writeEncryptedRPCByteArray(byteArrayValue);
                     writeEncryptData(dtv, false);
                 } else {
@@ -1955,7 +1958,8 @@ abstract class DTVImpl {
     abstract JavaType getJavaType();
 
     abstract Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs,
-            Calendar cal, TypeInfo type, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException;
+            Calendar cal, TypeInfo type, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException;
 
     abstract Object getSetterValue();
 
@@ -2330,7 +2334,8 @@ final class AppDTVImpl extends DTVImpl {
     }
 
     Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException {
         // Client side type conversion is not supported
         if (this.jdbcType != jdbcType)
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
@@ -2389,7 +2394,7 @@ final class TypeInfo implements Serializable {
 
     // Collation (will be null for non-textual types).
     private SQLCollation collation;
-    private Charset charset;
+    private transient Charset charset;
 
     SSType getSSType() {
         return ssType;
@@ -3660,7 +3665,8 @@ final class ServerDTVImpl extends DTVImpl {
     }
 
     Object getValue(DTV dtv, JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
-            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+            TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException {
         SQLServerConnection con = tdsReader.getConnection();
         Object convertedValue = null;
         byte[] decryptedValue;
@@ -3736,7 +3742,8 @@ final class ServerDTVImpl extends DTVImpl {
                     throw new SQLServerException(SQLServerException.getErrString("R_notSupported"), null);
                 }
 
-                decryptedValue = SQLServerSecurityUtility.decryptWithKey((byte[]) convertedValue, cryptoMetadata, con, statement);
+                decryptedValue = SQLServerSecurityUtility.decryptWithKey((byte[]) convertedValue, cryptoMetadata, con,
+                        statement);
                 return denormalizedValue(decryptedValue, jdbcType, cryptoMetadata.baseTypeInfo, con, streamGetterArgs,
                         cryptoMetadata.normalizationRuleVersion, cal);
             }
@@ -3993,8 +4000,8 @@ final class ServerDTVImpl extends DTVImpl {
 
             case BIT1:
             case BITN:
-                    convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength,
-                            jdbcType, streamGetterArgs.streamType);
+                convertedValue = DDC.convertIntegerToObject(tdsReader.readUnsignedByte(), expectedValueLength, jdbcType,
+                        streamGetterArgs.streamType);
                 break;
 
             case BIGVARCHAR:

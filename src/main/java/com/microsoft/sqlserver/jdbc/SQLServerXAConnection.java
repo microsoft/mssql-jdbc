@@ -30,16 +30,16 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      * transactional processing to the application. That app server is the one who should restrict commit/rollback on
      * the connections it issues to applications, not the driver. These instances can and must commit/rollback
      */
-    private volatile SQLServerXAResource XAResource;
+    private volatile transient SQLServerXAResource XAResource;
 
     /** physical connection */
     private SQLServerConnection physicalControlConnection;
 
     /** logger */
-    private Logger xaLogger;
+    private transient Logger xaLogger;
 
     /** reentrant lock */
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {
         super(ds, user, pwd);
