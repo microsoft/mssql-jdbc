@@ -605,12 +605,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             try {
                 // Re-use handle if available, requires parameter definitions which are not available until here.
                 if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
-                    System.out.println("re-using cached handle: preparedSQL=" + preparedSQL + " hasNewTypeDefinitions="
-                            + hasNewTypeDefinitions);
                     hasNewTypeDefinitions = false;
-                } else {
-                    System.out.println("not re-using cached handle: preparedSQL=" + preparedSQL
-                            + " hasNewTypeDefinitions=" + hasNewTypeDefinitions);
                 }
 
                 // Start the request and detach the response reader so that we can
@@ -2094,17 +2089,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
                         if (null != columnList && columnList.size() > 0) {
                             if (columnList.size() != valueList.size()) {
+
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
                                 Object[] msgArgs = {columnList.size(), valueList.size()};
-                                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
                                 Object[] msgArgs = {rs.getColumnCount(), valueList.size()};
-                                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
@@ -2257,13 +2253,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
                         if (null != columnList && columnList.size() > 0) {
                             if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
@@ -2417,12 +2417,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // have a
         // new query. reject this.
         if (localUserSQL.length() > 0) {
-            throw new IllegalArgumentException("Multiple queries are not allowed.");
+            throw new IllegalArgumentException(SQLServerException.getErrString("R_multipleQueriesNotAllowed"));
         }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
-            boolean hasTableBeenFound, boolean isExpectingTableName) throws SQLServerException {
+            boolean hasTableBeenFound, boolean isExpectingTableName) {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
@@ -2476,7 +2476,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (tempint < 0) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
                 Object[] msgArgs = {localUserSQL};
-                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                throw new IllegalArgumentException(form.format(msgArgs));
             }
 
             // keep checking if it's escaped
@@ -2499,7 +2499,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (tempint < 0) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
                 Object[] msgArgs = {localUserSQL};
-                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                throw new IllegalArgumentException(form.format(msgArgs));
             }
 
             // keep checking if it's escaped
@@ -2522,7 +2522,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     || checkAndRemoveCommentsAndSpace(false)) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else if (localUserSQL.charAt(0) == ';') {
-                throw new IllegalArgumentException("End of query detected before VALUES have been found.");
+                throw new IllegalArgumentException(SQLServerException.getErrString("R_endOfQueryDetected"));
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
@@ -2532,7 +2532,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // It shouldn't come here. If we did, something is wrong.
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
         Object[] msgArgs = {localUserSQL};
-        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
@@ -2696,8 +2696,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     localUserSQL = localUserSQL.substring(1);
                     if (!"?".equals(sb.toString())) {
                         // throw IllegalArgumentException and fallback to original logic for batch insert
-                        throw new IllegalArgumentException(
-                                "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
+                        throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
                     }
                     listOfValues.add(sb.toString());
                     sb.setLength(0);
@@ -2754,11 +2753,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean checkSQLLength(int length) throws SQLServerException {
+    private boolean checkSQLLength(int length) {
         if (null == localUserSQL || localUserSQL.length() < length) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
             Object[] msgArgs = {localUserSQL};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            throw new IllegalArgumentException(form.format(msgArgs));
         }
         return true;
     }
