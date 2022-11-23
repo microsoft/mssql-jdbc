@@ -70,6 +70,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private static final long serialVersionUID = 1989903904654306244L;
 
+    private static final String MAX = "(max)";
+
     /**
      * Represents the column mappings between the source and destination table
      */
@@ -1243,9 +1245,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             // if destination is encrypted send metadata from destination and not from source
             if (DataTypes.SHORT_VARTYPE_MAX_BYTES < destPrecision) {
-                return "varbinary(max)";
+                return SSType.VARBINARY.toString() + MAX;
             } else {
-                return "varbinary(" + destColumnMetadata.get(destColIndx).precision + ")";
+                return SSType.VARBINARY.toString() + "(" + destColumnMetadata.get(destColIndx).precision + ")";
             }
         }
 
@@ -1268,7 +1270,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // SQL Server does not convert string to binary, we will have to explicitly convert before sending.
         if (Util.isCharType(bulkJdbcType) && Util.isBinaryType(destSSType)) {
             if (isStreaming)
-                return "varbinary(max)";
+                return SSType.VARBINARY.toString() + MAX;
             else
                 // Return binary(n) or varbinary(n) or varbinary(max) depending on destination type/precision.
                 return destSSType.toString() + "("
@@ -1277,31 +1279,33 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         switch (bulkJdbcType) {
             case java.sql.Types.INTEGER:
-                return "int";
+                return SSType.INTEGER.toString();
 
             case java.sql.Types.SMALLINT:
-                return "smallint";
+                return SSType.SMALLINT.toString();
 
             case java.sql.Types.BIGINT:
-                return "bigint";
+                return SSType.BIGINT.toString();
 
             case java.sql.Types.BIT:
-                return "bit";
+                return SSType.BIT.toString();
 
             case java.sql.Types.TINYINT:
-                return "tinyint";
+                return SSType.TINYINT.toString();
 
             case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE:
-                return "float";
+                return SSType.FLOAT.toString();
 
             case java.sql.Types.REAL:
-                return "real";
+                return SSType.REAL.toString();
 
             case microsoft.sql.Types.MONEY:
-                return "money";
+                return SSType.MONEY.toString();
+
             case microsoft.sql.Types.SMALLMONEY:
-                return "smallmoney";
+                return SSType.SMALLMONEY.toString();
+
             case java.sql.Types.DECIMAL:
                 /*
                  * SQL Server allows the insertion of decimal and numeric into a money (and smallmoney) column, but
@@ -1310,31 +1314,31 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * money/smallmoney and the source is decimal/numeric.
                  */
                 if (destSSType == SSType.MONEY) {
-                    return "money";
+                    return SSType.MONEY.toString();
                 } else if (destSSType == SSType.SMALLMONEY) {
-                    return "smallmoney";
+                    return SSType.SMALLMONEY.toString();
                 }
-                return "decimal(" + bulkPrecision + ", " + bulkScale + ")";
+                return SSType.DECIMAL.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case java.sql.Types.NUMERIC:
                 if (destSSType == SSType.MONEY) {
-                    return "money";
+                    return SSType.MONEY.toString();
                 } else if (destSSType == SSType.SMALLMONEY) {
-                    return "smallmoney";
+                    return SSType.SMALLMONEY.toString();
                 }
-                return "numeric(" + bulkPrecision + ", " + bulkScale + ")";
+                return SSType.NUMERIC.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
                 // For char the value has to be between 0 to 8000.
-                return "char(" + bulkPrecision + ")";
+                return SSType.CHAR.toString() + "(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
-                    return "nchar(" + bulkPrecision + ")";
+                    return SSType.NCHAR.toString() + "(" + bulkPrecision + ")";
                 } else {
-                    return "char(" + bulkPrecision + ")";
+                    return SSType.CHAR.toString() + "(" + bulkPrecision + ")";
                 }
             case java.sql.Types.NCHAR:
-                return "NCHAR(" + bulkPrecision + ")";
+                return SSType.NCHAR.toString() + "(" + bulkPrecision + ")";
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR:
@@ -1342,15 +1346,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Doesn't need to match with the exact size of data or with the destination column size.
                 if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                     if (isStreaming) {
-                        return "nvarchar(max)";
+                        return SSType.NVARCHAR.toString() + MAX;
                     } else {
-                        return "nvarchar(" + bulkPrecision + ")";
+                        return SSType.NVARCHAR.toString() + "(" + bulkPrecision + ")";
                     }
                 } else {
                     if (isStreaming) {
-                        return "varchar(max)";
+                        return SSType.VARCHAR.toString() + MAX;
                     } else {
-                        return "varchar(" + bulkPrecision + ")";
+                        return SSType.VARCHAR.toString() + "(" + bulkPrecision + ")";
                     }
                 }
                 // For INSERT BULK operations, XMLTYPE is to be sent as NVARCHAR(N) or NVARCHAR(MAX) data type.
@@ -1358,21 +1362,21 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.NVARCHAR:
                 if (isStreaming) {
-                    return "NVARCHAR(MAX)";
+                    return SSType.NVARCHAR.toString() + MAX;
                 } else {
-                    return "NVARCHAR(" + bulkPrecision + ")";
+                    return SSType.NVARCHAR.toString() + "(" + bulkPrecision + ")";
                 }
 
             case java.sql.Types.BINARY:
                 // For binary the value has to be between 0 to 8000.
-                return "binary(" + bulkPrecision + ")";
+                return SSType.BINARY.toString() + "(" + bulkPrecision + ")";
 
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
                 if (isStreaming)
-                    return "varbinary(max)";
+                    return SSType.VARBINARY.toString() + MAX;
                 else
-                    return "varbinary(" + bulkPrecision + ")";
+                    return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
@@ -1380,19 +1384,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                            return "varchar("
+                            return SSType.VARCHAR.toString() + "("
                                     + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
                                     + ")";
                         } else {
-                            return "smalldatetime";
+                            return SSType.SMALLDATETIME.toString();
                         }
                     case DATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                            return "varchar("
+                            return SSType.VARCHAR.toString() + "("
                                     + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
                                     + ")";
                         } else {
-                            return "datetime";
+                            return SSType.DATETIME.toString();
                         }
                     default:
                         // datetime2
@@ -1403,9 +1407,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                          * temporal type.
                          */
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                            return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                            return SSType.VARCHAR.toString() + "("
+                                    + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
                         } else {
-                            return "datetime2(" + bulkScale + ")";
+                            return SSType.DATETIME2.toString() + "(" + bulkScale + ")";
                         }
                 }
 
@@ -1416,9 +1421,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
                 if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                    return SSType.VARCHAR.toString() + "(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision)
+                            + ")";
                 } else {
-                    return "date";
+                    return SSType.DATE.toString();
                 }
 
             case java.sql.Types.TIME:
@@ -1428,15 +1434,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
                 if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                    return SSType.VARCHAR.toString() + "(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision)
+                            + ")";
                 } else {
-                    return "time(" + bulkScale + ")";
+                    return SSType.TIME.toString() + "(" + bulkScale + ")";
                 }
 
                 // Return DATETIMEOFFSET for TIME_WITH_TIMEZONE and TIMESTAMP_WITH_TIMEZONE
             case 2013: // java.sql.Types.TIME_WITH_TIMEZONE
             case 2014: // java.sql.Types.TIMESTAMP_WITH_TIMEZONE
-                return "datetimeoffset(" + bulkScale + ")";
+                return SSType.DATETIMEOFFSET.toString() + "(" + bulkScale + ")";
 
             case microsoft.sql.Types.DATETIMEOFFSET:
                 /*
@@ -1445,12 +1452,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                  * conversion. if the source is ResultSet, we send the data as the corresponding temporal type.
                  */
                 if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
-                    return "varchar(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision) + ")";
+                    return SSType.VARCHAR.toString() + "(" + ((0 == bulkPrecision) ? destPrecision : bulkPrecision)
+                            + ")";
                 } else {
-                    return "datetimeoffset(" + bulkScale + ")";
+                    return SSType.DATETIMEOFFSET.toString() + "(" + bulkScale + ")";
                 }
             case microsoft.sql.Types.SQL_VARIANT:
-                return "sql_variant";
+                return SSType.SQL_VARIANT.toString();
             default: {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};

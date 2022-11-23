@@ -61,6 +61,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     final static char LEFT_CURLY_BRACKET = 123;
     final static char RIGHT_CURLY_BRACKET = 125;
 
+    private static final String ACTIVITY_ID = " ActivityId: ";
+
     /** response buffer adaptive flag */
     private boolean isResponseBufferingAdaptive = false;
 
@@ -730,7 +732,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public java.sql.ResultSet executeQuery(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_QUERY, NO_GENERATED_KEYS));
@@ -748,7 +750,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public int executeUpdate(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, NO_GENERATED_KEYS));
@@ -768,7 +770,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE_UPDATE, NO_GENERATED_KEYS));
@@ -781,7 +783,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public boolean execute(String sql) throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute", sql);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new StmtExecCmd(this, sql, EXECUTE, NO_GENERATED_KEYS));
@@ -884,7 +886,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         if (isCursorable(executeMethod) && isSelect(sql)) {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
@@ -974,7 +976,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         // Batch execution is always non-cursored
@@ -1836,7 +1838,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -1913,7 +1915,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -2100,7 +2102,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "execute", new Object[] {sql, autoGeneratedKeys});
             if (Util.isActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+                loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
             }
         }
         checkClosed();
@@ -2150,7 +2152,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeUpdate", new Object[] {sql, autoGeneratedKeys});
             if (Util.isActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+                loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
             }
         }
         checkClosed();
@@ -2178,7 +2180,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate", new Object[] {sql, autoGeneratedKeys});
             if (Util.isActivityTraceOn()) {
-                loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+                loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
             }
         }
         checkClosed();

@@ -271,25 +271,22 @@ final class Parameter {
             // otherwise it would be sent as smallint
             // Also, for setters, we are able to send tinyint to smallint
             // However, for output parameter, it might cause error.
-            if (!isOutput()) {
-                if ((JavaType.SHORT == javaType)
-                        && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType))) {
-                    // value falls in the TINYINT range
-                    if (((Short) value) >= 0 && ((Short) value) <= 255) {
-                        value = ((Short) value).byteValue();
-                        javaType = JavaType.of(value);
-                        jdbcType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
-                    }
-                    // value falls outside tinyint range. Throw an error if the user intends to send as tinyint.
-                    else {
-                        // This is for cases like setObject(1, Short.valueOf("-1"), java.sql.Types.TINYINT);
-                        if (JDBCType.TINYINT == jdbcType) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_InvalidDataForAE"));
-                            Object[] msgArgs = {javaType.toString().toLowerCase(Locale.ENGLISH),
-                                    jdbcType.toString().toLowerCase(Locale.ENGLISH)};
-                            throw new SQLServerException(form.format(msgArgs), null);
-                        }
+            if (!isOutput() && ((JavaType.SHORT == javaType)
+                    && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType)))) {
+                // value falls in the TINYINT range
+                if (((Short) value) >= 0 && ((Short) value) <= 255) {
+                    value = ((Short) value).byteValue();
+                    javaType = JavaType.of(value);
+                    jdbcType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
+                }
+                // value falls outside tinyint range. Throw an error if the user intends to send as tinyint.
+                else {
+                    // This is for cases like setObject(1, Short.valueOf("-1"), java.sql.Types.TINYINT);
+                    if (JDBCType.TINYINT == jdbcType) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
+                        Object[] msgArgs = {javaType.toString().toLowerCase(Locale.ENGLISH),
+                                jdbcType.toString().toLowerCase(Locale.ENGLISH)};
+                        throw new SQLServerException(form.format(msgArgs), null);
                     }
                 }
             }
@@ -388,8 +385,8 @@ final class Parameter {
 
     }
 
-    Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal,
-            TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
+    Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal, TDSReader tdsReader,
+            SQLServerStatement statement) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
 
@@ -505,34 +502,35 @@ final class Parameter {
                             // so, here, if the decimal parameter is encrypted and it is null and it is not outparameter
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.defaultDecimalPrecision + ", "
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
                             }
                         } else {
                             if (SQLServerConnection.defaultDecimalPrecision >= valueLength) {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.defaultDecimalPrecision + ","
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
 
                                 if (SQLServerConnection.defaultDecimalPrecision < (valueLength + scale)) {
-                                    param.typeDefinition = "decimal("
+                                    param.typeDefinition = SSType.DECIMAL.toString() + "("
                                             + (SQLServerConnection.defaultDecimalPrecision + scale) + "," + scale + ")";
                                 }
                             } else {
-                                param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + ","
-                                        + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                        + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
                             }
                         }
 
                         if (isOutput()) {
-                            param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + ", " + scale
-                                    + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                    + SQLServerConnection.maxDecimalPrecision + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
-                            param.typeDefinition = "decimal(" + valueLength + "," + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else
-                        param.typeDefinition = "decimal(" + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                        param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
+                                + "," + scale + ")";
 
                     break;
 
@@ -721,10 +719,10 @@ final class Parameter {
                          */
                         if (0 == valueLength) {
                             // Workaround for the issue when inserting empty string and null into encrypted columns
-                            param.typeDefinition = "varchar(1)";
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                             valueLength++;
                         } else {
-                            param.typeDefinition = "varchar(" + valueLength + ")";
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
                             if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
@@ -748,12 +746,12 @@ final class Parameter {
                                         || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "varchar(1)";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
                             } else {
-                                param.typeDefinition = "varchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
                             }
 
                             if (jdbcTypeSetByUser == JDBCType.LONGVARCHAR) {
@@ -763,12 +761,12 @@ final class Parameter {
                                 || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else if (DataTypes.SHORT_VARTYPE_MAX_CHARS < valueLength) {
                                 param.typeDefinition = NVARCHAR_MAX;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
                             }
 
                             if (jdbcTypeSetByUser == JDBCType.LONGNVARCHAR) {
@@ -777,10 +775,10 @@ final class Parameter {
                         } else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
@@ -817,10 +815,10 @@ final class Parameter {
                                         || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "varchar(1)";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "varchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                     param.typeDefinition = VARCHAR_MAX;
@@ -835,10 +833,10 @@ final class Parameter {
                                         || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
@@ -851,10 +849,10 @@ final class Parameter {
                         } else { // used if setNull() is called with java.sql.Types.NCHAR
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
-                                param.typeDefinition = "nvarchar(1)";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = "nvarchar(" + valueLength + ")";
+                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
 
                                 if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
                                     param.typeDefinition = NVARCHAR_MAX;
@@ -1152,7 +1150,7 @@ final class Parameter {
     void sendByRPC(TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
         assert null != inputDTV : "Parameter was neither set nor registered";
         SQLServerConnection conn = statement.connection;
-        
+
         try {
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());

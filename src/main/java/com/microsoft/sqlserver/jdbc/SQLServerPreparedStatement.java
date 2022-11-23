@@ -57,6 +57,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
 
+    private static final String EXECUTE_BATCH_STRING = "executeBatch";
+    private static final String ACTIVITY_ID = " ActivityId: ";
+
     /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
@@ -453,7 +456,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY));
@@ -478,7 +481,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         checkClosed();
@@ -500,7 +503,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
@@ -512,7 +515,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
@@ -528,6 +531,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * Always update serialVersionUID when prompted.
          */
         private static final long serialVersionUID = 4098801171124750861L;
+
         private final SQLServerPreparedStatement stmt;
 
         PrepStmtExecCmd(SQLServerPreparedStatement stmt, int executeMethod) {
@@ -563,7 +567,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
@@ -986,7 +990,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                         SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
                                 .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
-                        if (SQLServerEncryptionType.PlainText != encType) {
+                        if (SQLServerEncryptionType.PLAINTEXT != encType) {
                             params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                                     (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
@@ -2035,9 +2039,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
-        loggerExternal.entering(getClassNameLogging(), "executeBatch");
+        loggerExternal.entering(getClassNameLogging(), EXECUTE_BATCH_STRING);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -2051,7 +2055,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
                         return updateCounts;
                     }
 
@@ -2136,7 +2140,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             updateCounts[i] = 1;
                         }
 
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
                         return updateCounts;
                     }
                 }
@@ -2190,7 +2194,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-            loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+            loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
             return updateCounts;
         } finally {
             batchParamValues = null;
@@ -2201,7 +2205,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -2422,7 +2426,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
-            boolean hasTableBeenFound, boolean isExpectingTableName) {
+            boolean hasTableBeenFound, boolean isExpectingTableName) throws SQLServerException {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
@@ -2535,7 +2539,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new IllegalArgumentException(form.format(msgArgs));
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDW() {
+    private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2548,7 +2552,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return null;
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDWHelper(ArrayList<String> listOfColumns) {
+    private ArrayList<String> parseUserSQLForColumnListDWHelper(
+            ArrayList<String> listOfColumns) throws SQLServerException {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
@@ -2808,7 +2813,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.setMaxRows(0);
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];

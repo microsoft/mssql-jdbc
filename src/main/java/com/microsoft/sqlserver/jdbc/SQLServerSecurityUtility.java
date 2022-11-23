@@ -199,7 +199,7 @@ class SQLServerSecurityUtility {
             throw new SQLServerException(null, SQLServerException.getErrString("R_CustomCipherAlgorithmNotSupportedAE"),
                     null, 0, false);
         }
-        return SQLServerAeadAes256CbcHmac256Algorithm.algorithmName;
+        return SQLServerAeadAes256CbcHmac256Algorithm.AEAD_AES_256_CBC_HMAC_SHA256;
     }
 
     /**
