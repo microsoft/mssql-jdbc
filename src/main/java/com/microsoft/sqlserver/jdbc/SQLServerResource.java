@@ -17,7 +17,9 @@ public final class SQLServerResource extends ListResourceBundle {
     /**
      * default constructor
      */
-    public SQLServerResource() {}
+    public SQLServerResource() {
+        // default constructor
+    }
 
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
@@ -157,6 +159,11 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidapplicationIntent", "The applicationIntent connection property {0} is not valid."},
         {"R_dataAlreadyAccessed", "The data has been accessed and is not available for this column or parameter."},
         {"R_outParamsNotPermittedinBatch", "The OUT and INOUT parameters are not permitted in a batch."},
+        {"R_colNotMatchTable", "Number of provided columns {0} does not match the table definition {1}."},
+        {"R_invalidSQL", "Invalid SQL query {0}."},
+        {"R_multipleQueriesNotAllowed", "Multiple queries are not allowed."},
+        {"R_endOfQueryDetected", "End of query detected before VALUES have been found."},
+        {"R_onlyFullParamAllowed", "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment."},
         {"R_sslRequiredNoServerSupport", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. The application requested encryption but the server is not configured to support SSL."},
         {"R_sslRequiredByServer", "SQL Server login requires an encrypted connection that uses Secure Sockets Layer (SSL)."},
         {"R_sslFailed", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. Error: \"{0}\"."},

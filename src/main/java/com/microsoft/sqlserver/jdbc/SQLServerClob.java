@@ -100,7 +100,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
 
     transient SQLServerConnection con;
 
-    private final Logger logger;
+    private final transient Logger logger;
 
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":"
             + nextInstanceID();
@@ -112,7 +112,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
     // Unique id generator for each instance (used for logging).
     static private final AtomicInteger BASE_ID = new AtomicInteger(0);
 
-    private Charset defaultCharset = null;
+    private transient Charset defaultCharset = null;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {

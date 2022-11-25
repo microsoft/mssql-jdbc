@@ -37,13 +37,13 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Resources associated with reading in the file
      */
     /** file reader */
-    private BufferedReader fileReader;
+    private transient BufferedReader fileReader;
 
     /** input stream reader */
-    private InputStreamReader sr;
+    private transient InputStreamReader sr;
 
     /** file input stream */
-    private FileInputStream fis;
+    private transient FileInputStream fis;
 
     /**
      * Current line of data to parse.

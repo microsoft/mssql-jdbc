@@ -24,7 +24,7 @@ final class ServerPortPlaceHolder implements Serializable {
     private final int port;
     private final String instanceName;
     private final boolean checkLink;
-    private final SQLServerConnectionSecurityManager securityManager;
+    private final transient SQLServerConnectionSecurityManager securityManager;
 
     ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
         serverName = name;

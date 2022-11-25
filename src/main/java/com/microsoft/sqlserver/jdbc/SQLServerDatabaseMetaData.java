@@ -275,8 +275,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
-    private static LinkedHashMap<Integer, String> getColumnsDWColumns = null;
-    private static volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
+    private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    private volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
     private static final Lock LOCK = new ReentrantLock();
 
     /**
