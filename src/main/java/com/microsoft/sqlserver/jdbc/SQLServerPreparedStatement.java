@@ -175,10 +175,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean resetPrepStmtHandle(boolean discardCurrentCacheItem) {
         boolean statementPoolingUsed = null != cachedPreparedStatementHandle;
         // Return to pool and decrement reference count
-        if (statementPoolingUsed) {
-            // Make sure the cached handle does not get re-used more.
-            if (discardCurrentCacheItem)
-                cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
+        // Make sure the cached handle does not get re-used more.
+        if (statementPoolingUsed && discardCurrentCacheItem) {
+            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
         }
         prepStmtHandle = 0;
         return statementPoolingUsed;
@@ -2539,7 +2538,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new IllegalArgumentException(form.format(msgArgs));
     }
 
-    private ArrayList<String> parseUserSQLForColumnListDW() throws SQLServerException {
+    private ArrayList<String> parseUserSQLForColumnListDW() {
         // ignore all comments
         while (checkAndRemoveCommentsAndSpace(false)) {}
 
