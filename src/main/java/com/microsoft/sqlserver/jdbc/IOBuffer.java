@@ -664,7 +664,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    private final transient Lock lock=new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -4908,7 +4908,7 @@ final class TDSWriter {
 
         try {
             writeTVPRows(value);
-        } catch (NumberFormatException| ClassCastException e) {
+        } catch (NumberFormatException | ClassCastException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
         }
     }
