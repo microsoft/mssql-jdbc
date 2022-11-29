@@ -150,7 +150,7 @@ final class SQLServerParser {
         }
     }
 
-    private static String getRoundBracketChunk(SQLServerTokenIterator iter) throws SQLServerException {
+    private static String getRoundBracketChunk(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         Stack<String> s = new Stack<>();

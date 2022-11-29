@@ -417,8 +417,8 @@ abstract class BaseAttestationResponse {
     protected byte[] enclavePK;
     protected int sessionInfoSize;
     protected byte[] sessionID = new byte[8];
-    protected int DHPKsize;
-    protected int DHPKSsize;
+    protected int dhpkSize;
+    protected int dhpkSsize;
     protected byte[] DHpublicKey;
     protected byte[] publicKeySig;
 

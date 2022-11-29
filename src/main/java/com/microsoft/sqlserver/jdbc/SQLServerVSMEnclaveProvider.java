@@ -203,7 +203,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
 class VSMAttestationParameters extends BaseAttestationRequest {
     // Type 3 is VSM, sent as Little Endian 0x30000000
-    private static byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
+    private static final byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
 
     VSMAttestationParameters() throws SQLServerException {
         enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};
@@ -245,8 +245,8 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * Session ID - 8B
          * DH Public Key Size - 4B
          * DH Public Key Signature Size - 4B
-         * DH Public Key - DHPKsize bytes
-         * DH Public Key Signature - DHPKSsize bytes
+         * DH Public Key - dhpkSize bytes
+         * DH Public Key Signature - dhpkSsize bytes
          */
         ByteBuffer response = (null != b) ? ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN) : null;
         if (null != response) {
@@ -265,14 +265,14 @@ class VSMAttestationResponse extends BaseAttestationResponse {
 
             this.sessionInfoSize = response.getInt();
             response.get(sessionID, 0, 8);
-            this.DHPKsize = response.getInt();
-            this.DHPKSsize = response.getInt();
+            this.dhpkSize = response.getInt();
+            this.dhpkSsize = response.getInt();
 
-            DHpublicKey = new byte[DHPKsize];
-            publicKeySig = new byte[DHPKSsize];
+            DHpublicKey = new byte[dhpkSize];
+            publicKeySig = new byte[dhpkSsize];
 
-            response.get(DHpublicKey, 0, DHPKsize);
-            response.get(publicKeySig, 0, DHPKSsize);
+            response.get(DHpublicKey, 0, dhpkSize);
+            response.get(publicKeySig, 0, dhpkSsize);
         }
 
         if (null == response || 0 != response.remaining()) {
@@ -333,12 +333,12 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * Signature Blob - signatureSize bytes
          */
         ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
-        int packageSize = enclaveReportPackageBuffer.getInt();
-        int version = enclaveReportPackageBuffer.getInt();
-        int signatureScheme = enclaveReportPackageBuffer.getInt();
+        // packageSize
+        // version
+        // signatureScheme
         int signedStatementSize = enclaveReportPackageBuffer.getInt();
         int signatureSize = enclaveReportPackageBuffer.getInt();
-        int reserved = enclaveReportPackageBuffer.getInt();
+        // reserved
 
         byte[] signedStatement = new byte[signedStatementSize];
         enclaveReportPackageBuffer.get(signedStatement, 0, signedStatementSize);

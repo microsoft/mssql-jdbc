@@ -427,7 +427,7 @@ final class PLPXMLInputStream extends PLPInputStream {
     }
 
     PLPXMLInputStream(TDSReader tdsReader, long statedPayloadLength, InputStreamGetterArgs getterArgs,
-            ServerDTVImpl dtv) throws SQLServerException {
+            ServerDTVImpl dtv) {
         super(tdsReader, statedPayloadLength, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
     }
 

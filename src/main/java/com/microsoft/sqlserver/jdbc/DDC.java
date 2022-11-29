@@ -1055,7 +1055,7 @@ final class DDC {
                         ts.setNanos(subSecondNanos);
                         return ts;
 
-                    case DATETIMEOFFSET: {
+                    case DATETIMEOFFSET:
                         // Per driver spec, conversion to DateTimeOffset is only supported from
                         // DATETIMEOFFSET SQL Server values.
                         assert SSType.DATETIMEOFFSET == ssType;
@@ -1070,7 +1070,6 @@ final class DDC {
                         java.sql.Timestamp ts1 = new java.sql.Timestamp(cal.getTimeInMillis());
                         ts1.setNanos(subSecondNanos);
                         return microsoft.sql.DateTimeOffset.valueOf(ts1, localMillisOffset / (60 * 1000));
-                    }
 
                     case TIME:
                         // Per driver spec, values of sql server data types types (including TIME) which have greater
@@ -1574,7 +1573,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte b[], int offset, int maxBytes) throws IOException {
+    public int read(byte[] b, int offset, int maxBytes) throws IOException {
         char[] tempBufferToHoldCharDataForConversion = new char[maxBytes];
         int charsRead = containedReader.read(tempBufferToHoldCharDataForConversion);
 

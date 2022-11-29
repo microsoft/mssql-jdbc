@@ -275,14 +275,14 @@ class AASAttestationResponse extends BaseAttestationResponse {
 
         this.sessionInfoSize = response.getInt();
         response.get(sessionID, 0, 8);
-        this.DHPKsize = response.getInt();
-        this.DHPKSsize = response.getInt();
+        this.dhpkSize = response.getInt();
+        this.dhpkSsize = response.getInt();
 
-        DHpublicKey = new byte[DHPKsize];
-        publicKeySig = new byte[DHPKSsize];
+        DHpublicKey = new byte[dhpkSize];
+        publicKeySig = new byte[dhpkSsize];
 
-        response.get(DHpublicKey, 0, DHPKsize);
-        response.get(publicKeySig, 0, DHPKSsize);
+        response.get(DHpublicKey, 0, dhpkSize);
+        response.get(publicKeySig, 0, dhpkSsize);
 
         if (0 != response.remaining()) {
             SQLServerException.makeFromDriverError(null, this,

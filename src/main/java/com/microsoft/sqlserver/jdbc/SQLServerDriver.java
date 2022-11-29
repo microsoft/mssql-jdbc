@@ -533,7 +533,7 @@ enum SQLServerDriverStringProperty {
     TRUST_MANAGER_CLASS("trustManagerClass", ""),
     TRUST_MANAGER_CONSTRUCTOR_ARG("trustManagerConstructorArg", ""),
     USER("user", ""),
-    WORKSTATION_ID("workstationID", Util.WSIDNotAvailable),
+    WORKSTATION_ID("workstationID", Util.WSID_NOT_AVAILABLE),
     AUTHENTICATION_SCHEME("authenticationScheme", AuthenticationScheme.NATIVE_AUTHENTICATION.toString()),
     AUTHENTICATION("authentication", SqlAuthentication.NOT_SPECIFIED.toString()),
     ACCESS_TOKEN("accessToken", ""),
@@ -663,10 +663,10 @@ enum SQLServerDriverBooleanProperty {
  * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
  */
 public final class SQLServerDriver implements java.sql.Driver {
-    static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
+    static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR
             + " for SQL Server";
-    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
-            + SQLJdbcVersion.patch + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.releaseExt;
+    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
+            + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};
@@ -1132,8 +1132,8 @@ public final class SQLServerDriver implements java.sql.Driver {
 
         if (loggerExternal.isLoggable(Level.FINE)) {
             loggerExternal.log(Level.FINE,
-                    "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
-                            + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt
+                    "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
+                            + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
@@ -1225,15 +1225,15 @@ public final class SQLServerDriver implements java.sql.Driver {
     @Override
     public int getMajorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.major);
-        return SQLJdbcVersion.major;
+        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getMinorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.minor);
-        return SQLJdbcVersion.minor;
+        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        return SQLJdbcVersion.MINOR;
     }
 
     @Override

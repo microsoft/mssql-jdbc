@@ -725,7 +725,7 @@ final class TDSChannel implements Serializable {
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
-            SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(host, port, con, ex);
         }
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
@@ -2228,7 +2228,7 @@ final class TDSChannel implements Serializable {
         assert 0 <= nLength && nLength <= data.length;
         assert 0 <= nStartOffset && nStartOffset <= data.length;
 
-        final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+        final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
         final char[] printableChars = {'.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
                 '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ' ', '!', '\"', '#',
@@ -2284,8 +2284,8 @@ final class TDSChannel implements Serializable {
             // Fill up the line with as many bytes as we can (up to 16 bytes)
             for (nBytesThisLine = 0; nBytesThisLine < 16 && nBytesLogged < nLength; nBytesThisLine++, nBytesLogged++) {
                 int nUnsignedByteVal = (data[nStartOffset + nBytesLogged] + 256) % 256;
-                logLine[3 * nBytesThisLine] = hexChars[nUnsignedByteVal / 16];
-                logLine[3 * nBytesThisLine + 1] = hexChars[nUnsignedByteVal % 16];
+                logLine[3 * nBytesThisLine] = HEXCHARS[nUnsignedByteVal / 16];
+                logLine[3 * nBytesThisLine + 1] = HEXCHARS[nUnsignedByteVal % 16];
                 logLine[50 + nBytesThisLine] = printableChars[nUnsignedByteVal];
             }
 
@@ -2541,7 +2541,7 @@ final class SocketFinder {
             Thread.currentThread().interrupt();
 
             close(selectedSocket);
-            SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         } catch (IOException ex) {
             close(selectedSocket);
             // The code below has been moved from connectHelper.
@@ -2553,7 +2553,7 @@ final class SocketFinder {
             // That would be a bit awkward, because connecthelper(the caller of open)
             // just wraps IOException into SQLServerException and throws SQLServerException.
             // Instead, it would be good to wrap all exceptions at one place - Right here, their origin.
-            SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
 
         }
 
@@ -4280,7 +4280,7 @@ final class TDSWriter {
                     bytesToWrite = charsToWrite / 2;
 
                 streamString = new String(streamCharBuffer, 0, currentPacketSize);
-                byte[] bytes = ParameterUtils.HexToBin(streamString.trim());
+                byte[] bytes = ParameterUtils.hexToBin(streamString.trim());
                 writeInt(bytesToWrite);
                 writeBytes(bytes, 0, bytesToWrite);
             }
@@ -4929,8 +4929,7 @@ final class TDSWriter {
             // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next()
             // method when fetching new rows.
             // Therefore, we need to send TVP data row by row before fetching new row.
-            if ((TVPType.ResultSet == value.tvpType)
-                    && ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet))) {
+            if ((TVPType.RESULTSET == value.tvpType) && (value.sourceResultSet instanceof SQLServerResultSet)) {
                 SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
                 SQLServerStatement srcStmt = (SQLServerStatement) sourceResultSet.getStatement();
                 int resultSetServerCursorId = sourceResultSet.getServerCursorId();
@@ -5258,7 +5257,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = ParameterUtils.HexToBin(currentObject.toString()).length;
+                    dataLength = ParameterUtils.hexToBin(currentObject.toString()).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -5277,7 +5276,7 @@ final class TDSWriter {
                         if (dataLength > 0) {
                             writeInt(dataLength);
                             if (currentObject instanceof String)
-                                writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                                writeBytes(ParameterUtils.hexToBin(currentObject.toString()));
                             else
                                 writeBytes((byte[]) currentObject);
                         }
@@ -5290,7 +5289,7 @@ final class TDSWriter {
                     else {
                         writeShort((short) dataLength);
                         if (currentObject instanceof String)
-                            writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                            writeBytes(ParameterUtils.hexToBin(currentObject.toString()));
                         else
                             writeBytes((byte[]) currentObject);
                     }
@@ -5468,9 +5467,9 @@ final class TDSWriter {
             Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
             SQLServerMetaData metaData = pair.getValue();
 
-            if (SQLServerSortOrder.Ascending == metaData.sortOrder)
+            if (SQLServerSortOrder.ASCENDING == metaData.sortOrder)
                 flags = TDS.TVP_ORDERASC_FLAG;
-            else if (SQLServerSortOrder.Descending == metaData.sortOrder)
+            else if (SQLServerSortOrder.DESCENDING == metaData.sortOrder)
                 flags = TDS.TVP_ORDERDESC_FLAG;
             if (metaData.isUniqueKey)
                 flags |= TDS.TVP_UNIQUE_FLAG;
@@ -5509,7 +5508,7 @@ final class TDSWriter {
         return cryptoMeta;
     }
 
-    void writeEncryptedRPCByteArray(byte bValue[]) throws SQLServerException {
+    void writeEncryptedRPCByteArray(byte[] bValue) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         long nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5567,7 +5566,7 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCByteArray(String sName, byte bValue[], boolean bOut, JDBCType jdbcType,
+    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
@@ -7355,28 +7354,28 @@ final class TDSReader implements Serializable {
             case GUID: {
                 StringBuilder sb = new StringBuilder(GUID_TEMPLATE.length());
                 for (int i = 0; i < 4; i++) {
-                    sb.append(Util.hexChars[(guid[3 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[3 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[3 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[3 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[5 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[5 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[5 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[5 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[7 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[7 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[7 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[7 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[8 + i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[8 + i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[8 + i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[8 + i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 6; i++) {
-                    sb.append(Util.hexChars[(guid[10 + i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[10 + i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[10 + i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[10 + i] & 0x0F]);
                 }
 
                 try {

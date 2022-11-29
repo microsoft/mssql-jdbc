@@ -73,7 +73,7 @@ final class Parameter {
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
     // and getting its value from the server (OUT), we use the JDBC type of the IN parameter value if there
     // is one; otherwise we use the registered OUT param JDBC type.
-    JDBCType getJdbcType() throws SQLServerException {
+    JDBCType getJdbcType() {
         return (null != inputDTV) ? inputDTV.getJdbcType() : JDBCType.UNKNOWN;
     }
 
@@ -955,7 +955,7 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
-        void execute(DTV dtv, OffsetDateTime OffsetDateTimeValue) throws SQLServerException {
+        void execute(DTV dtv, OffsetDateTime offsetDateTimeValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 
@@ -1129,7 +1129,7 @@ final class Parameter {
          * microsoft.sql.SqlVariant)
          */
         @Override
-        void execute(DTV dtv, SqlVariant SqlVariantValue) throws SQLServerException {
+        void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 

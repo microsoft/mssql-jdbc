@@ -22,11 +22,11 @@ public class SQLServerMetaData {
     int scale = 0;
     boolean useServerDefault = false;
     boolean isUniqueKey = false;
-    SQLServerSortOrder sortOrder = SQLServerSortOrder.Unspecified;
+    SQLServerSortOrder sortOrder = SQLServerSortOrder.UNSPECIFIED;
     int sortOrdinal;
     private SQLCollation collation;
 
-    static final int defaultSortOrdinal = -1;
+    static final int DEFAULT_SORT_ORDINAL = -1;
 
     /**
      * Constructs a SQLServerMetaData with the column name and SQL type.
@@ -212,7 +212,7 @@ public class SQLServerMetaData {
 
     void validateSortOrder() throws SQLServerException {
         // should specify both sort order and ordinal, or neither
-        if ((SQLServerSortOrder.Unspecified == sortOrder) != (defaultSortOrdinal == sortOrdinal)) {
+        if ((SQLServerSortOrder.UNSPECIFIED == sortOrder) != (DEFAULT_SORT_ORDINAL == sortOrdinal)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_TVPMissingSortOrderOrOrdinal"));
             throw new SQLServerException(form.format(new Object[] {sortOrder, sortOrdinal}), null, 0, null);
         }

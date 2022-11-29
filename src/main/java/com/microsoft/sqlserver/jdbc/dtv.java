@@ -389,8 +389,8 @@ final class DTV {
         /**
          * Clears the calendar and then sets only the fields passed in. Rest of the fields will have default values.
          */
-        private void clearSetCalendar(Calendar cal, boolean lenient, Integer year, Integer month, Integer day_of_month,
-                Integer hour_of_day, Integer minute, Integer second) {
+        private void clearSetCalendar(Calendar cal, boolean lenient, Integer year, Integer month, Integer dayOfMonth,
+                Integer hourOfDay, Integer minute, Integer second) {
             cal.clear();
             cal.setLenient(lenient);
             if (null != year) {
@@ -399,11 +399,11 @@ final class DTV {
             if (null != month) {
                 cal.set(Calendar.MONTH, month);
             }
-            if (null != day_of_month) {
-                cal.set(Calendar.DAY_OF_MONTH, day_of_month);
+            if (null != dayOfMonth) {
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
             }
-            if (null != hour_of_day) {
-                cal.set(Calendar.HOUR_OF_DAY, hour_of_day);
+            if (null != hourOfDay) {
+                cal.set(Calendar.HOUR_OF_DAY, hourOfDay);
             }
             if (null != minute) {
                 cal.set(Calendar.MINUTE, minute);
@@ -456,7 +456,7 @@ final class DTV {
 
                 // Figure out the value components according to the type of the Java object passed in...
                 switch (javaType) {
-                    case TIME: {
+                    case TIME:
                         // Set the time zone from the calendar supplied by the app or use the JVM default
                         timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone()
                                                                : TimeZone.getDefault();
@@ -475,18 +475,16 @@ final class DTV {
                             subSecondNanos += Nanos.PER_SECOND;
 
                         break;
-                    }
 
-                    case DATE: {
+                    case DATE:
                         // Set the time zone from the calendar supplied by the app or use the JVM default
                         timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone()
                                                                : TimeZone.getDefault();
 
                         utcMillis = ((java.sql.Date) value).getTime();
                         break;
-                    }
 
-                    case TIMESTAMP: {
+                    case TIMESTAMP:
                         // Set the time zone from the calendar supplied by the app or use the JVM default
                         timeZone = (null != dtv.getCalendar()) ? dtv.getCalendar().getTimeZone()
                                                                : TimeZone.getDefault();
@@ -495,9 +493,8 @@ final class DTV {
                         utcMillis = timestampValue.getTime();
                         subSecondNanos = timestampValue.getNanos();
                         break;
-                    }
 
-                    case UTILDATE: {
+                    case UTILDATE:
                         // java.util.Date is mapped to JDBC type TIMESTAMP
                         // java.util.Date and java.sql.Date are both millisecond precision
                         // Set the time zone from the calendar supplied by the app or use the JVM default
@@ -521,9 +518,8 @@ final class DTV {
                         if (subSecondNanos < 0)
                             subSecondNanos += Nanos.PER_SECOND;
                         break;
-                    }
 
-                    case CALENDAR: {
+                    case CALENDAR:
                         // java.util.Calendar is mapped to JDBC type TIMESTAMP
                         // java.util.Calendar is millisecond precision
                         // Set the time zone from the calendar supplied by the app or use the JVM default
@@ -547,7 +543,6 @@ final class DTV {
                         if (subSecondNanos < 0)
                             subSecondNanos += Nanos.PER_SECOND;
                         break;
-                    }
 
                     case LOCALDATE:
                         // Mapped to JDBC type DATE
@@ -567,12 +562,12 @@ final class DTV {
                         calendar = new GregorianCalendar(UTC.timeZone, Locale.US);
 
                         // All date fields are set to default
-                        LocalTime LocalTimeValue = ((LocalTime) value);
-                        clearSetCalendar(calendar, true, conn.baseYear(), 1, 1, LocalTimeValue.getHour(), // Gets
-                                                                                                          // hour_of_day
+                        LocalTime localTimeValue = ((LocalTime) value);
+                        clearSetCalendar(calendar, true, conn.baseYear(), 1, 1, localTimeValue.getHour(), // Gets
+                                                                                                          // hourOfDay
                                                                                                           // field
-                                LocalTimeValue.getMinute(), LocalTimeValue.getSecond());
-                        subSecondNanos = LocalTimeValue.getNano();
+                                localTimeValue.getMinute(), localTimeValue.getSecond());
+                        subSecondNanos = localTimeValue.getNano();
 
                         // Do not need to adjust subSecondNanos as in the case for TIME
                         // because LOCALTIME does not have time zone and is not using utcMillis
@@ -586,7 +581,7 @@ final class DTV {
                         LocalDateTime localDateTimeValue = (LocalDateTime) value;
                         clearSetCalendar(calendar, true, localDateTimeValue.getYear(),
                                 localDateTimeValue.getMonthValue() - 1, localDateTimeValue.getDayOfMonth(),
-                                localDateTimeValue.getHour(), // Gets hour_of_day field
+                                localDateTimeValue.getHour(), // Gets hourOfDay field
                                 localDateTimeValue.getMinute(), localDateTimeValue.getSecond());
                         subSecondNanos = localDateTimeValue.getNano();
 
@@ -624,15 +619,12 @@ final class DTV {
                         // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
                         // use a local time zone determined by the minutes offset of the value, since
                         // the writers for those types expect local calendars.
-                        timeZone = (JDBCType.TIME_WITH_TIMEZONE == jdbcType
-                                && (null == typeInfo || SSType.DATETIMEOFFSET == typeInfo.getSSType())) ?
-
-                                                                                                        UTC.timeZone
-                                                                                                        : new SimpleTimeZone(
-                                                                                                                minutesOffset
-                                                                                                                        * 60
-                                                                                                                        * 1000,
-                                                                                                                "");
+                        timeZone = (JDBCType.TIME_WITH_TIMEZONE == jdbcType && (null == typeInfo
+                                || SSType.DATETIMEOFFSET == typeInfo.getSSType()))
+                                                                                   ? UTC.timeZone
+                                                                                   : new SimpleTimeZone(
+                                                                                           minutesOffset * 60 * 1000,
+                                                                                           "");
 
                         LocalDate baseDate = LocalDate.of(conn.baseYear(), 1, 1);
                         utcMillis = offsetTimeValue.atDate(baseDate).toEpochSecond() * 1000;
@@ -647,17 +639,8 @@ final class DTV {
                             // offsets in minutes precision.
                             minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
                         } catch (Exception e) {
-                            throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState
-                                                                                                                     // is
-                                                                                                                     // null
-                                                                                                                     // as
-                                                                                                                     // this
-                                                                                                                     // error
-                                                                                                                     // is
-                                                                                                                     // generated
-                                                                                                                     // in
-                                                                                                                     // the
-                                                                                                                     // driver
+                            throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null,
+                                    // SQLState is null as this error is generated in the driver
                                     0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
                                     e);
                         }
@@ -683,7 +666,7 @@ final class DTV {
                         utcMillis = offsetDateTimeValue.toEpochSecond() * 1000;
                         break;
 
-                    case DATETIMEOFFSET: {
+                    case DATETIMEOFFSET:
                         microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
                         utcMillis = dtoValue.getTimestamp().getTime();
                         subSecondNanos = dtoValue.getTimestamp().getNanos();
@@ -710,7 +693,6 @@ final class DTV {
                                                                                                  "");
 
                         break;
-                    }
 
                     default:
                         throw new AssertionError("Unexpected JavaType: " + javaType);
@@ -2028,7 +2010,7 @@ final class AppDTVImpl extends DTVImpl {
             // this conversion for us.
             else if (jdbcType.isBinary()) {
                 assert null != strValue;
-                dtv.setValue(ParameterUtils.HexToBin(strValue), JavaType.BYTEARRAY);
+                dtv.setValue(ParameterUtils.hexToBin(strValue), JavaType.BYTEARRAY);
             }
 
             // If the (Unicode) string value is to be sent to the server as MBCS,
@@ -2267,7 +2249,7 @@ final class AppDTVImpl extends DTVImpl {
          * microsoft.sql.SqlVariant)
          */
         @Override
-        void execute(DTV dtv, SqlVariant SqlVariantValue) throws SQLServerException {}
+        void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException {}
 
     }
 
@@ -2476,9 +2458,9 @@ final class TypeInfo implements Serializable {
         return 0x0800 == (flags & 0x0800);
     }
 
-    static int UPDATABLE_READ_ONLY = 0;
-    static int UPDATABLE_READ_WRITE = 1;
-    static int UPDATABLE_UNKNOWN = 2;
+    static final int UPDATABLE_READ_ONLY = 0;
+    static final int UPDATABLE_READ_WRITE = 1;
+    static final int UPDATABLE_UNKNOWN = 2;
 
     int getUpdatability() {
         return (flags >> 2) & 0x0003;
@@ -3450,7 +3432,7 @@ final class ServerDTVImpl extends DTVImpl {
             case NCHAR:
             case NVARCHAR:
             case VARCHARMAX:
-            case NVARCHARMAX: {
+            case NVARCHARMAX:
                 try {
                     String strVal = new String(decryptedValue, 0, decryptedValue.length,
                             (null == baseTypeInfo.getCharset()) ? con.getDatabaseCollation().getCharset()
@@ -3474,13 +3456,12 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedEncoding"));
                     throw new SQLServerException(form.format(new Object[] {baseTypeInfo.getCharset()}), null, 0, e);
                 }
-            }
 
             case BIT:
             case TINYINT:
             case SMALLINT:
             case INTEGER:
-            case BIGINT: {
+            case BIGINT:
                 // If data is encrypted, then these types are normalized to BIGINT. Need to denormalize here.
                 if (8 != decryptedValue.length) {
                     // Integer datatypes are normalized to bigint for AE.
@@ -3490,10 +3471,8 @@ final class ServerDTVImpl extends DTVImpl {
                 return DDC.convertLongToObject(Util.readLong(decryptedValue, 0), jdbcType, baseSSType,
                         streamGetterArgs.streamType);
 
-            }
-
             case REAL:
-            case FLOAT: {
+            case FLOAT:
                 // JDBC driver does not normalize real to float.
                 if (8 == decryptedValue.length) {
                     return DDC.convertDoubleToObject(
@@ -3515,16 +3494,15 @@ final class ServerDTVImpl extends DTVImpl {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
                 }
-            }
-            case SMALLMONEY: {
+
+            case SMALLMONEY:
                 return DDC.convertMoneyToObject(new BigDecimal(BigInteger.valueOf(Util.readInt(decryptedValue, 4)), 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use jdbc type from
                                                                                               // baseTypeInfo if using
                                                                                               // getObject()
                         streamGetterArgs.streamType, 4);
-            }
 
-            case MONEY: {
+            case MONEY:
                 BigInteger bi = BigInteger.valueOf(((long) Util.readInt(decryptedValue, 0) << 32)
                         | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL));
 
@@ -3538,25 +3516,22 @@ final class ServerDTVImpl extends DTVImpl {
                                                                                               // using
                                                                                               // getObject()
                         streamGetterArgs.streamType, 8);
-            }
 
             case NUMERIC:
-            case DECIMAL: {
+            case DECIMAL:
                 return DDC.convertBigDecimalToObject(
                         Util.readBigDecimal(decryptedValue, decryptedValue.length, baseTypeInfo.getScale()),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use jdbc type from
                                                                                               // baseTypeInfo if using
                                                                                               // getObject()
                         streamGetterArgs.streamType);
-            }
 
             case BINARY:
             case VARBINARY:
-            case VARBINARYMAX: {
+            case VARBINARYMAX:
                 return DDC.convertBytesToObject(decryptedValue, jdbcType, baseTypeInfo);
-            }
 
-            case DATE: {
+            case DATE:
                 // get the number of days !! Size should be 3
                 if (3 != decryptedValue.length) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
@@ -3570,17 +3545,14 @@ final class ServerDTVImpl extends DTVImpl {
 
                 return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, daysIntoCE, 0, 0);
 
-            }
-
-            case TIME: {
+            case TIME:
                 long localNanosSinceMidnight = readNanosSinceMidnightAE(decryptedValue, baseTypeInfo.getScale(),
                         baseSSType);
 
                 return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, 0, localNanosSinceMidnight,
                         baseTypeInfo.getScale());
-            }
 
-            case DATETIME2: {
+            case DATETIME2:
                 if (8 != decryptedValue.length) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
@@ -3592,18 +3564,16 @@ final class ServerDTVImpl extends DTVImpl {
                 byte[] datePortion = new byte[3];
                 System.arraycopy(decryptedValue, 0, timePortion, 0, dateOffset);
                 System.arraycopy(decryptedValue, dateOffset, datePortion, 0, 3);
-                long localNanosSinceMidnight = readNanosSinceMidnightAE(timePortion, baseTypeInfo.getScale(),
+                long localNanosSinceMidnight2 = readNanosSinceMidnightAE(timePortion, baseTypeInfo.getScale(),
                         baseSSType);
 
-                int daysIntoCE = getDaysIntoCE(datePortion, baseSSType);
+                int daysIntoCE2 = getDaysIntoCE(datePortion, baseSSType);
 
                 // Convert the DATETIME2 value to the desired Java type.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, daysIntoCE, localNanosSinceMidnight,
-                        baseTypeInfo.getScale());
+                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, daysIntoCE2,
+                        localNanosSinceMidnight2, baseTypeInfo.getScale());
 
-            }
-
-            case SMALLDATETIME: {
+            case SMALLDATETIME:
                 if (4 != decryptedValue.length) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
@@ -3615,9 +3585,8 @@ final class ServerDTVImpl extends DTVImpl {
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal,
                         Util.readUnsignedShort(decryptedValue, 0),
                         Util.readUnsignedShort(decryptedValue, 2) * 60L * 1000L, 0);
-            }
 
-            case DATETIME: {
+            case DATETIME:
                 int ticksSinceMidnight = (Util.readInt(decryptedValue, 4) * 10 + 1) / 3;
 
                 if (8 != decryptedValue.length || Integer.MAX_VALUE < ticksSinceMidnight) {
@@ -3630,33 +3599,29 @@ final class ServerDTVImpl extends DTVImpl {
                 // the number of three hundredths (1/300) of a second since midnight.
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
                         ticksSinceMidnight, 0);
-            }
 
-            case DATETIMEOFFSET: {
+            case DATETIMEOFFSET:
                 // Last 5 bytes are for date and offset
-                int dateOffset = decryptedValue.length - 5;
-                byte[] timePortion = new byte[dateOffset];
-                byte[] datePortion = new byte[3];
-                byte[] offsetPortion = new byte[2];
-                System.arraycopy(decryptedValue, 0, timePortion, 0, dateOffset);
-                System.arraycopy(decryptedValue, dateOffset, datePortion, 0, 3);
-                System.arraycopy(decryptedValue, dateOffset + 3, offsetPortion, 0, 2);
-                long localNanosSinceMidnight = readNanosSinceMidnightAE(timePortion, baseTypeInfo.getScale(),
+                int dateOffset2 = decryptedValue.length - 5;
+                byte[] timePortion2 = new byte[dateOffset2];
+                byte[] datePortion2 = new byte[3];
+                byte[] offsetPortion2 = new byte[2];
+                System.arraycopy(decryptedValue, 0, timePortion2, 0, dateOffset2);
+                System.arraycopy(decryptedValue, dateOffset2, datePortion2, 0, 3);
+                System.arraycopy(decryptedValue, dateOffset2 + 3, offsetPortion2, 0, 2);
+                long localNanosSinceMidnight3 = readNanosSinceMidnightAE(timePortion2, baseTypeInfo.getScale(),
                         baseSSType);
 
-                int daysIntoCE = getDaysIntoCE(datePortion, baseSSType);
+                int daysIntoCE3 = getDaysIntoCE(datePortion2, baseSSType);
 
-                int localMinutesOffset = ByteBuffer.wrap(offsetPortion).order(ByteOrder.LITTLE_ENDIAN).getShort();
+                int localMinutesOffset = ByteBuffer.wrap(offsetPortion2).order(ByteOrder.LITTLE_ENDIAN).getShort();
 
                 return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
                         new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US),
-                        daysIntoCE, localNanosSinceMidnight, baseTypeInfo.getScale());
+                        daysIntoCE3, localNanosSinceMidnight3, baseTypeInfo.getScale());
 
-            }
-
-            case GUID: {
+            case GUID:
                 return Util.readGUID(decryptedValue);
-            }
 
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnsupportedDataTypeAE"));

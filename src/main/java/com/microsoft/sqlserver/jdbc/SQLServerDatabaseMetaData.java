@@ -275,7 +275,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
+    /** getColumns columns */
     private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    /** getImportedKeys columns */
     private volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
     private static final Lock LOCK = new ReentrantLock();
 
@@ -996,12 +998,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public int getDriverMajorVersion() {
-        return SQLJdbcVersion.major;
+        return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return SQLJdbcVersion.minor;
+        return SQLJdbcVersion.MINOR;
     }
 
     @Override
@@ -1018,9 +1020,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String s = getDriverMajorVersion() + ".";
         s += "" + n;
         s = s + ".";
-        s = s + SQLJdbcVersion.patch;
+        s = s + SQLJdbcVersion.PATCH;
         s = s + ".";
-        s = s + SQLJdbcVersion.build;
+        s = s + SQLJdbcVersion.BUILD;
         return s;
     }
 
@@ -2445,13 +2447,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public int getJDBCMajorVersion() throws SQLServerException {
         checkClosed();
-        return DriverJDBCVersion.major;
+        return DriverJDBCVersion.MAJOR;
     }
 
     @Override
     public int getJDBCMinorVersion() throws SQLServerException {
         checkClosed();
-        return DriverJDBCVersion.minor;
+        return DriverJDBCVersion.MINOR;
     }
 
     @Override

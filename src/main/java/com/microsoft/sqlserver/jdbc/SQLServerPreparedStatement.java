@@ -338,6 +338,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * server-side state is cleaned up as best as possible, even under conditions which would normally result in
      * exceptions being thrown.
      */
+    @Override
     final void closeInternal() {
         super.closeInternal();
 
@@ -402,7 +403,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
         preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
-            preparedSQL = preparedSQL + identityQuery;
+            preparedSQL = preparedSQL + IDENTITY_QUERY;
 
         return true;
     }
@@ -421,7 +422,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         StringBuilder sb = new StringBuilder();
         int nCols = params.length;
-        char cParamName[] = new char[10];
+        char[] cParamName = new char[10];
         parameterNames = new ArrayList<>();
 
         for (int i = 0; i < nCols; i++) {
@@ -544,6 +545,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
+        @Override
         final void processResponse(TDSReader tdsReader) throws SQLServerException {
             ensureExecuteResultsReader(tdsReader);
             processExecuteResults();
@@ -669,6 +671,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or
      * CallableStatement execution, then it gets consumed here.
      */
+    @Override
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
 
@@ -676,6 +679,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 super(statement);
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // If no prepared statement handle is expected at this time
                 // then don't consume this OUT parameter as it does not contain
@@ -719,7 +723,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
-        char cParamName[];
+        char[] cParamName;
         for (int index = 0; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
                 cParamName = new char[10];
@@ -1070,15 +1074,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved
             // is retrieved.
-            if (null != cachedHandle) {
-                if (!connection.isColumnEncryptionSettingEnabled()
-                        || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
-                    if (cachedHandle.tryAddReference()) {
-                        setPreparedStatementHandle(cachedHandle.getHandle());
-                        cachedPreparedStatementHandle = cachedHandle;
-                        return true;
-                    }
-                }
+            if ((null != cachedHandle)
+                    && ((!connection.isColumnEncryptionSettingEnabled()
+                            || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)))
+                    && cachedHandle.tryAddReference()) {
+                setPreparedStatementHandle(cachedHandle.getHandle());
+                cachedPreparedStatementHandle = cachedHandle;
+                return true;
             }
         }
         return false;
@@ -1165,7 +1167,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             SQLServerResultSet emptyResultSet = buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
-        } else if (resultSet != null) {
+        } else {
             rsmd = resultSet.getMetaData();
         }
         loggerExternal.exiting(getClassNameLogging(), "getMetaData", rsmd);
@@ -1412,7 +1414,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n, byte x[]) throws SQLServerException {
+    public final void setBytes(int n, byte[] x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x});
         checkClosed();
@@ -1421,7 +1423,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public final void setBytes(int n, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1574,11 +1576,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
 
-            if (JDBCType.UNKNOWN == targetJDBCType) {
-                if (obj instanceof java.util.UUID) {
-                    javaType = JavaType.STRING;
-                    targetJDBCType = JDBCType.GUID;
-                }
+            if (JDBCType.UNKNOWN == targetJDBCType && obj instanceof java.util.UUID) {
+                javaType = JavaType.STRING;
+                targetJDBCType = JDBCType.GUID;
             }
 
             setObject(param, obj, javaType, targetJDBCType, null, null, forceEncrypt, index, tvpName);
@@ -1974,37 +1974,39 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
-        if ((null == tvpName) || (0 == tvpName.length())) {
-            // Check if the CallableStatement/PreparedStatement is a stored procedure call
-            if (null != this.procedureName) {
-                SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
-                pmd.isTVP = true;
+        if (((null == tvpName) || (0 == tvpName.length())) &&
+        // Check if the CallableStatement/PreparedStatement is a stored procedure call
+                (null != this.procedureName)) {
+            SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
+            pmd.isTVP = true;
 
-                if (!pmd.procedureIsFound) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_StoredProcedureNotFound"));
-                    Object[] msgArgs = {this.procedureName};
-                    SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
+            if (!pmd.procedureIsFound) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                Object[] msgArgs = {this.procedureName};
+                SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
+            }
+
+            try {
+                String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
+                String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
+
+                if (null != tvpSchema) {
+                    tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
+                } else {
+                    tvpName = tvpNameWithoutSchema;
                 }
-
-                try {
-                    String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
-                    String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
-
-                    if (null != tvpSchema) {
-                        tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
-                    } else {
-                        tvpName = tvpNameWithoutSchema;
-                    }
-                } catch (SQLException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null,
-                            0, e);
-                }
+            } catch (SQLException e) {
+                throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null, 0,
+                        e);
             }
         }
+
         return tvpName;
     }
 
+    /**
+     * @deprecated
+     */
     @Deprecated
     @Override
     public final void setUnicodeStream(int n, java.io.InputStream x, int length) throws SQLException {
@@ -2021,7 +2023,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             batchParamValues = new ArrayList<>();
 
         final int numParams = inOutParam.length;
-        Parameter paramValues[] = new Parameter[numParams];
+        Parameter[] paramValues = new Parameter[numParams];
         for (int i = 0; i < numParams; i++)
             paramValues[i] = inOutParam[i].cloneForBatch();
         batchParamValues.add(paramValues);
@@ -2046,7 +2048,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         discardLastExecutionResults();
 
         try {
-            int updateCounts[];
+            int[] updateCounts;
 
             localUserSQL = userSQL;
 
@@ -2210,7 +2212,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         discardLastExecutionResults();
 
         try {
-            long updateCounts[];
+            long[] updateCounts;
 
             localUserSQL = userSQL;
 
@@ -2265,7 +2267,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             if (rs.getColumnCount() != valueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
-                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                Object[] msgArgs = {columnList != null ? columnList.size() : 0, valueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
@@ -2773,7 +2775,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         private static final long serialVersionUID = 5225705304799552318L;
         private final SQLServerPreparedStatement stmt;
         SQLServerException batchException;
-        long updateCounts[];
+        long[] updateCounts;
 
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
             super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
@@ -2785,6 +2787,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return true;
         }
 
+        @Override
         final void processResponse(TDSReader tdsReader) throws SQLServerException {
             ensureExecuteResultsReader(tdsReader);
             processExecuteResults();
@@ -2819,7 +2822,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
-            Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
+            Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
             System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
 

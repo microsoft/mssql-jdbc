@@ -20,8 +20,8 @@ import java.util.logging.Logger;
 
 final class DriverJDBCVersion {
     // The 4.2 driver is compliant to JDBC 4.2.
-    static final int major = 4;
-    static final int minor = 2;
+    static final int MAJOR = 4;
+    static final int MINOR = 2;
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
 

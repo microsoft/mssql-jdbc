@@ -1136,23 +1136,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
      * 
-     * @param AADSecurePrincipalId
+     * @param aadSecurePrincipalId
      *        Active Directory Service Principal Id.
      * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
-    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+    void setAADSecurePrincipalId(String aadSecurePrincipalId);
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
      * 
-     * @param AADSecurePrincipalSecret
+     * @param aadSecurePrincipalSecret
      *        Active Directory Service Principal secret.
      * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
-    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+    void setAADSecurePrincipalSecret(String aadSecurePrincipalSecret);
 
     /**
      * Returns value of 'maxResultBuffer' from Connection String.

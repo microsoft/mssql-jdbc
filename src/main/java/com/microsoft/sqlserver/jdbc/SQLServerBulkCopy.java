@@ -2316,7 +2316,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)) {
                                     byte[] bytes = null;
                                     try {
-                                        bytes = ParameterUtils.HexToBin(colValueStr);
+                                        bytes = ParameterUtils.hexToBin(colValueStr);
                                     } catch (SQLServerException e) {
                                         throw new SQLServerException(
                                                 SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
@@ -2416,7 +2416,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                         iStream = new ByteArrayInputStream((byte[]) colValue);
                                     } else
                                         iStream = new ByteArrayInputStream(
-                                                ParameterUtils.HexToBin(colValue.toString()));
+                                                ParameterUtils.hexToBin(colValue.toString()));
                                 }
                                 // We do not need to check for null values here as it is already checked above.
                                 tdsWriter.writeStream(iStream, DataTypes.UNKNOWN_STREAM_LENGTH, true);
@@ -2436,7 +2436,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 srcBytes = (byte[]) colValue;
                             } else {
                                 try {
-                                    srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                                    srcBytes = ParameterUtils.hexToBin(colValue.toString());
                                 } catch (SQLServerException e) {
                                     throw new SQLServerException(
                                             SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
@@ -2808,7 +2808,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     srcBytes = (byte[]) colValue;
                 } else {
                     try {
-                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                        srcBytes = ParameterUtils.hexToBin(colValue.toString());
                     } catch (SQLServerException e) {
                         throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                     }
@@ -2825,7 +2825,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     srcBytes = (byte[]) colValue;
                 } else {
                     try {
-                        srcBytes = ParameterUtils.HexToBin(colValue.toString());
+                        srcBytes = ParameterUtils.hexToBin(colValue.toString());
                     } catch (SQLServerException e) {
                         throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                     }
@@ -3483,7 +3483,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case LONGVARBINARY:
                     byte[] byteArrayValue;
                     if (value instanceof String) {
-                        byteArrayValue = ParameterUtils.HexToBin((String) value);
+                        byteArrayValue = ParameterUtils.hexToBin((String) value);
                     } else {
                         byteArrayValue = (byte[]) value;
                     }

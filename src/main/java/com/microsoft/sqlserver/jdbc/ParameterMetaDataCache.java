@@ -20,8 +20,8 @@ import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
  */
 class ParameterMetaDataCache {
 
-    static int CACHE_SIZE = 2000; // Size of the cache in number of entries
-    static int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
+    static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
+    static final int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
     static CryptoCache cache = new CryptoCache();
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
@@ -187,7 +187,7 @@ class ParameterMetaDataCache {
                 }
                 count++;
             }
-            
+
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
