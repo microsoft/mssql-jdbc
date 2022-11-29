@@ -1630,7 +1630,7 @@ final class TDSChannel implements Serializable {
             String serverCert = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
 
-            isFips = Boolean.valueOf(
+            isFips = Boolean.parseBoolean(
                     con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
             if (isFips) {
                 validateFips(trustStoreType, trustStoreFileName);
@@ -3864,8 +3864,8 @@ final class TDSWriter {
                     minutesOffset = 0;
                     timestampString = stringValue;
                 } else {
-                    minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
-                            + Integer.valueOf(offsetString.substring(4, 6));
+                    minutesOffset = 60 * Integer.parseInt(offsetString.substring(1, 3))
+                            + Integer.parseInt(offsetString.substring(4, 6));
                     timestampString = stringValue.substring(0, lastColon - 4);
 
                     if (offsetString.startsWith("-"))
@@ -3883,12 +3883,12 @@ final class TDSWriter {
 
                 calendar = new GregorianCalendar(timeZone);
 
-                int year = Integer.valueOf(timestampString.substring(0, 4));
-                int month = Integer.valueOf(timestampString.substring(5, 7));
-                int day = Integer.valueOf(timestampString.substring(8, 10));
-                int hour = Integer.valueOf(timestampString.substring(11, 13));
-                int minute = Integer.valueOf(timestampString.substring(14, 16));
-                int second = Integer.valueOf(timestampString.substring(17, 19));
+                int year = Integer.parseInt(timestampString.substring(0, 4));
+                int month = Integer.parseInt(timestampString.substring(5, 7));
+                int day = Integer.parseInt(timestampString.substring(8, 10));
+                int hour = Integer.parseInt(timestampString.substring(11, 13));
+                int minute = Integer.parseInt(timestampString.substring(14, 16));
+                int second = Integer.parseInt(timestampString.substring(17, 19));
 
                 subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
                         .scaleByPowerOfTen(9).intValue() : 0;
@@ -5045,7 +5045,7 @@ final class TDSWriter {
                     } else {
                         writeByte((byte) 8);
                     }
-                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
+                    writeLong(Long.parseLong(currentColumnStringValue));
                 }
                 break;
 
@@ -5057,7 +5057,7 @@ final class TDSWriter {
                         writeTVPSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
                     else
                         writeByte((byte) 1);
-                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
+                    writeByte((byte) (Boolean.parseBoolean(currentColumnStringValue) ? 1 : 0));
                 }
                 break;
 
@@ -5069,7 +5069,7 @@ final class TDSWriter {
                         writeByte((byte) 4);
                     else
                         writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                    writeInt(Integer.parseInt(currentColumnStringValue));
                 }
                 break;
 
@@ -5080,10 +5080,10 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                        writeInt(Integer.valueOf(currentColumnStringValue));
+                        writeInt(Integer.parseInt(currentColumnStringValue));
                     } else {
                         writeByte((byte) 2); // length of datatype
-                        writeShort(Short.valueOf(currentColumnStringValue).shortValue());
+                        writeShort(Short.parseShort(currentColumnStringValue));
                     }
                 }
                 break;
@@ -5126,11 +5126,11 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue));
+                        writeDouble(Double.parseDouble(currentColumnStringValue));
                         break;
                     }
                     writeByte((byte) 8); // len of data bytes
-                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
+                    long bits = Double.doubleToLongBits(Double.parseDouble(currentColumnStringValue));
                     long mask = 0xFF;
                     int nShift = 0;
                     for (int i = 0; i < 8; i++) {
@@ -5148,10 +5148,10 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                        writeInt(Float.floatToRawIntBits(Float.parseFloat(currentColumnStringValue)));
                     } else {
                         writeByte((byte) 4);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                        writeInt(Float.floatToRawIntBits(Float.parseFloat(currentColumnStringValue)));
                     }
                 }
                 break;
