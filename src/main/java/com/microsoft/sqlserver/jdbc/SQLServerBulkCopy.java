@@ -2683,7 +2683,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case TIMEN:
                 int timeBulkScale = variantType.getScale();
-                int timeHeaderLength = 0x08; // default
+                int timeHeaderLength;
                 if (2 >= timeBulkScale) {
                     timeHeaderLength = 0x06;
                 } else if (4 >= timeBulkScale) {
@@ -2691,13 +2691,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 } else {
                     timeHeaderLength = 0x08;
                 }
-                writeBulkCopySqlVariantHeader(timeHeaderLength, TDSType.TIMEN.byteValue(), (byte) 1, tdsWriter); // depending
-                                                                                                                 // on
-                                                                                                                 // scale,
-                                                                                                                 // the
-                                                                                                                 // header
-                                                                                                                 // length
-                // defers
+                // depending on scale, the header length defers
+                writeBulkCopySqlVariantHeader(timeHeaderLength, TDSType.TIMEN.byteValue(), (byte) 1, tdsWriter);
                 tdsWriter.writeByte((byte) timeBulkScale);
                 tdsWriter.writeTime((java.sql.Timestamp) colValue, timeBulkScale);
                 break;
@@ -2714,13 +2709,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
 
             case DATETIME2N:
-                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter); // 1 is
-                                                                                                        // probbytes for
-                                                                                                        // time
+                // 1 if probbytes for time
+                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter);
                 tdsWriter.writeByte((byte) 0x03);
                 String timeStampValue = colValue.toString();
-                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03); // datetime2 in sql_variant has
-                                                                                       // up to scale 3 support
+                // datetime2 in sql_variant has up to scale 3 support
+                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03);
                 // Send only the date part
                 tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
                 break;
@@ -3074,7 +3068,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             if ((baseSrcJdbcType == JDBCType.DATE) || (baseSrcJdbcType == JDBCType.TIMESTAMP)
                     || (baseSrcJdbcType == JDBCType.TIME) || (baseSrcJdbcType == JDBCType.DATETIMEOFFSET)
                     || (baseSrcJdbcType == JDBCType.DATETIME) || (baseSrcJdbcType == JDBCType.SMALLDATETIME)) {
-                colValue = getEncryptedTemporalBytes(tdsWriter, baseSrcJdbcType, colValue, srcColOrdinal,
+                colValue = getEncryptedTemporalBytes(tdsWriter, baseSrcJdbcType, colValue,
                         destCryptoMeta.baseTypeInfo.getScale());
             } else {
                 TypeInfo destTypeInfo = destCryptoMeta.getBaseTypeInfo();
@@ -3343,7 +3337,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     private byte[] getEncryptedTemporalBytes(TDSWriter tdsWriter, JDBCType srcTemporalJdbcType, Object colValue,
-            int srcColOrdinal, int scale) throws SQLServerException {
+            int scale) throws SQLServerException {
         long utcMillis;
         GregorianCalendar calendar;
 

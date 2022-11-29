@@ -60,6 +60,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final String EXECUTE_BATCH_STRING = "executeBatch";
     private static final String ACTIVITY_ID = " ActivityId: ";
 
+    /**
+     * internal class name used in tracing
+     */
+    private static final String INTERNAL_CLASSNAME = "SQLServerPreparedStatement";
+
     /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
@@ -203,7 +208,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     // Internal function used in tracing
     String getClassNameInternal() {
-        return "SQLServerPreparedStatement";
+        return INTERNAL_CLASSNAME;
     }
 
     /**
@@ -1075,8 +1080,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved
             // is retrieved.
             if ((null != cachedHandle)
-                    && ((!connection.isColumnEncryptionSettingEnabled()
-                            || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)))
+                    && (!connection.isColumnEncryptionSettingEnabled()
+                            || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved))
                     && cachedHandle.tryAddReference()) {
                 setPreparedStatementHandle(cachedHandle.getHandle());
                 cachedPreparedStatementHandle = cachedHandle;
@@ -2773,6 +2778,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * Always update serialVersionUID when prompted.
          */
         private static final long serialVersionUID = 5225705304799552318L;
+
         private final SQLServerPreparedStatement stmt;
         SQLServerException batchException;
         long[] updateCounts;

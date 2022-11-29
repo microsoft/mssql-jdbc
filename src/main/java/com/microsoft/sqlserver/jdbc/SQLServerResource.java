@@ -58,6 +58,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_queryTimedOut", "The query has timed out."},
         {"R_queryCanceled", "The query was canceled."},
         {"R_errorReadingStream", "An error occurred while reading the value from the stream object. Error: \"{0}\""},
+        {"R_read", "The stream read operation returned an invalid value for the amount of data read."},
+
         {"R_streamReadReturnedInvalidValue", "The stream read operation returned an invalid value for the amount of data read."},
         {"R_mismatchedStreamLength", "The stream value is not the specified length. The specified length was {0}, the actual length is {1}."},
         {"R_notSupported", "This operation is not supported."},

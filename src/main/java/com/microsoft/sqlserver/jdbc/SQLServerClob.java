@@ -654,24 +654,28 @@ final class SQLServerClobWriter extends java.io.Writer {
         this.streamPos = streamPos;
     }
 
+    @Override
     public void write(char[] cbuf) throws IOException {
         if (null == cbuf)
             return;
         write(new String(cbuf));
     }
 
+    @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
         if (null == cbuf)
             return;
         write(new String(cbuf, off, len));
     }
 
+    @Override
     public void write(int b) throws java.io.IOException {
         char[] c = new char[1];
         c[0] = (char) b;
         write(new String(c));
     }
 
+    @Override
     public void write(String str, int off, int len) throws IOException {
         checkClosed();
         try {
@@ -685,6 +689,7 @@ final class SQLServerClobWriter extends java.io.Writer {
         }
     }
 
+    @Override
     public void write(String str) throws IOException {
         if (null == str)
             return;
@@ -721,12 +726,14 @@ final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
         this.streamPos = streamPos;
     }
 
+    @Override
     public void write(byte[] b) throws IOException {
         if (null == b)
             return;
         write(b, 0, b.length);
     }
 
+    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         if (null == b)
             return;

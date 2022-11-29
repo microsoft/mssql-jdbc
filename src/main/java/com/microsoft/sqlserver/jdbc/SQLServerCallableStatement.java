@@ -74,6 +74,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private transient Closeable activeStream;
 
     // Internal function used in tracing
+    @Override
     String getClassNameInternal() {
         return "SQLServerCallableStatement";
     }
@@ -184,6 +185,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return inOutParam[i - 1];
     }
 
+    @Override
     void startResults() {
         super.startResults();
         outParamIndex = -1;
@@ -192,6 +194,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         assert null == activeStream;
     }
 
+    @Override
     void processBatch() throws SQLServerException {
         processResults();
 
@@ -254,6 +257,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 super("ExecDoneHandler");
             }
 
+            @Override
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
@@ -297,6 +301,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 foundParam = false;
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 srv.setFromTDS(tdsReader);
                 foundParam = true;
@@ -352,8 +357,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // of sp_[cursor][prep]exec params.
             outParamIndex -= outParamIndexAdjustment;
             if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {
-                getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: "
-                        + outParamIndexAdjustment);
+                if (getStatementLogger().isLoggable(java.util.logging.Level.INFO)) {
+                    getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex
+                            + "; adjustment: " + outParamIndexAdjustment);
+                }
                 connection.throwInvalidTDS();
             }
 
@@ -532,7 +539,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -545,7 +555,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))

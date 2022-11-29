@@ -209,7 +209,7 @@ final class SQLServerParser {
         return value;
     }
 
-    private static String findColumnAfterParameter(SQLServerTokenIterator iter) throws SQLServerException {
+    private static String findColumnAfterParameter(SQLServerTokenIterator iter) {
         StringBuilder sb = new StringBuilder();
         while (0 == sb.length() && iter.hasNext()) {
             Token t = iter.next();

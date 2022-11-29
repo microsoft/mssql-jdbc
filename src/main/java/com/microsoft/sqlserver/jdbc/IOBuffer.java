@@ -2228,8 +2228,6 @@ final class TDSChannel implements Serializable {
         assert 0 <= nLength && nLength <= data.length;
         assert 0 <= nStartOffset && nStartOffset <= data.length;
 
-        final char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
         final char[] printableChars = {'.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
                 '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ' ', '!', '\"', '#',
                 '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7',
@@ -2284,8 +2282,8 @@ final class TDSChannel implements Serializable {
             // Fill up the line with as many bytes as we can (up to 16 bytes)
             for (nBytesThisLine = 0; nBytesThisLine < 16 && nBytesLogged < nLength; nBytesThisLine++, nBytesLogged++) {
                 int nUnsignedByteVal = (data[nStartOffset + nBytesLogged] + 256) % 256;
-                logLine[3 * nBytesThisLine] = HEXCHARS[nUnsignedByteVal / 16];
-                logLine[3 * nBytesThisLine + 1] = HEXCHARS[nUnsignedByteVal % 16];
+                logLine[3 * nBytesThisLine] = Util.HEXCHARS[nUnsignedByteVal / 16];
+                logLine[3 * nBytesThisLine + 1] = Util.HEXCHARS[nUnsignedByteVal % 16];
                 logLine[50 + nBytesThisLine] = printableChars[nUnsignedByteVal];
             }
 

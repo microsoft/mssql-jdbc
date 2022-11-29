@@ -276,6 +276,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int read(byte[] b, int offset, int maxBytes) throws IOException {
         checkClosed();
         if (logger.isLoggable(java.util.logging.Level.FINER))

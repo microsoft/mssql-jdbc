@@ -1483,7 +1483,11 @@ final class AsciiFilteredInputStream extends InputStream {
     public int read(byte[] b) throws IOException {
         int bytesRead = containedStream.read(b);
         if (bytesRead > 0) {
-            assert bytesRead <= b.length;
+            if (bytesRead > b.length) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
+                throw new IOException(form.format(new Object[] {b.length, bytesRead}));
+            }
+
             for (int i = 0; i < bytesRead; i++)
                 b[i] = ASCII_FILTER[b[i] & 0xFF];
         }
@@ -1494,7 +1498,11 @@ final class AsciiFilteredInputStream extends InputStream {
     public int read(byte[] b, int offset, int maxBytes) throws IOException {
         int bytesRead = containedStream.read(b, offset, maxBytes);
         if (bytesRead > 0) {
-            assert offset + bytesRead <= b.length;
+            if (offset + bytesRead > b.length) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
+                throw new IOException(form.format(new Object[] {b.length, bytesRead}));
+            }
+
             for (int i = 0; i < bytesRead; i++)
                 b[offset + i] = ASCII_FILTER[b[offset + i] & 0xFF];
         }
