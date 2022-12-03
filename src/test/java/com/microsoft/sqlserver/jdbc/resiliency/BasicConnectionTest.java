@@ -11,9 +11,11 @@ import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import javax.sql.PooledConnection;
 
@@ -22,7 +24,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -265,6 +269,47 @@ public class BasicConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             e.printStackTrace();
             fail(e.toString());
+        }
+    }
+
+    /**
+     * Test PreparedStatement Cache is cleared after reconnect
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testPreparedStatementCacheShouldBeCleared() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int cacheSize = 2;
+            String query = String.format("/*testPreparedStatementCacheShouldBeCleared_%s*/SELECT 1; -- ",
+                    UUID.randomUUID().toString());
+            int discardedStatementCount = 1;
+
+            // enable caching
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
+
+            // add new statements to fill cache
+            for (int i = 0; i < cacheSize; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + String.valueOf(i))) {
+                    pstmt.execute();
+                    pstmt.execute();
+                }
+            }
+
+            // nothing should be discarded yet
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
+
+            ResiliencyUtils.killConnection(con, connectionString);
+
+            // add 1 more - if cache was not cleared this would cause it to be discarded
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
+                pstmt.execute();
+                pstmt.execute();
+            }
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
         }
     }
 
