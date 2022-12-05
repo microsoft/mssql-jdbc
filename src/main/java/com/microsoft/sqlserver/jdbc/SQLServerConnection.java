@@ -3756,7 +3756,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         false);
                             }
                             try {
-                                // Invalidate statement caches.
+                                // Invalidate statement caches in case of server reset
                                 if (null != preparedStatementHandleCache)
                                     preparedStatementHandleCache.clear();
 
