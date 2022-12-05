@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [10.2.2] HotFix & Stable Release
+### Fixed issues
+- Clear prepared statement cache on idle connection resiliency reconnections [1982](https://github.com/microsoft/mssql-jdbc/pull/1982)
+
+to be back ported:
+- Fixed double connection issue when enabling TDS 8.0 and SSL by reusing original socket connection [1817](https://github.com/microsoft/mssql-jdbc/pull/1817)
+- Added check for DONE_ERROR status token which may occur from a killed session on the server [1857](https://github.com/microsoft/mssql-jdbc/pull/1857)
+- Fixed issue where the driver may assert when canceling a statement [1872](https://github.com/microsoft/mssql-jdbc/pull/1872)
+- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
+- Fixed callable statement index out of bounds error [1898](https://github.com/microsoft/mssql-jdbc/pull/1898)
+- Fixed check for DONE token when fetching result sets [1943](https://github.com/microsoft/mssql-jdbc/pull/1943)
+
 ## [10.2.1] HotFix & Stable Release
 ### Fixed issues
 - Refactored Idle Connection Resiliency timeout to use existing SharedTimer [1794](https://github.com/microsoft/mssql-jdbc/pull/1794)
