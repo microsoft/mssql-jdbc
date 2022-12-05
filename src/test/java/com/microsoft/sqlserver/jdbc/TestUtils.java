@@ -75,18 +75,20 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
 
     private TestUtils() {}
-    
+
     /**
      * Checks if the connection session recovery object has negotiated reflection.
+     * 
      * @param con
      * @return
      */
     public static boolean isConnectionRecoveryNegotiated(Connection con) {
         return ((SQLServerConnection) con).getSessionRecovery().isConnectionRecoveryNegotiated();
     }
-    
+
     /**
      * Checks if connection is dead.
+     * 
      * @param con
      * @return
      * @throws SQLServerException
@@ -354,6 +356,18 @@ public final class TestUtils {
      */
     public static void dropTypeIfExists(String typeName, java.sql.Statement stmt) throws SQLException {
         dropObjectIfExists(typeName, "TT", stmt);
+    }
+
+    /**
+     * Drops user defined types
+     *
+     * @param typeName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName)
+                + "') DROP TYPE " + typeName);
     }
 
     /**
