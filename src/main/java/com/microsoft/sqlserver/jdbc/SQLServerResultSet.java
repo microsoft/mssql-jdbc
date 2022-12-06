@@ -393,7 +393,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                // An ICR unprocessedResponseCount decrement is unnecessary here because we are throwing an exception
+                // above on doneToken errors.
+                // If we didn't throw an exception, we would decrement only on a DONE_ERROR and if the subsequent token
+                // is a final doneToken. eg. tds status flag of 0x0002 && tdsToken.isFinal().
 
                 return false;
             }
@@ -5382,6 +5385,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+
+                if (doneToken.isFinal()) {
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
+
                 if (doneToken.isFinal() && doneToken.isError()) {
                     short status = tdsReader.peekStatusFlag();
                     SQLServerError databaseError = getDatabaseError();
@@ -5390,7 +5398,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
