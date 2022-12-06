@@ -389,8 +389,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-
                 return false;
             }
         }
@@ -5386,7 +5384,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                if (doneToken.isFinal()) {
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
