@@ -145,27 +145,6 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void testCallableStatementSpPrepare() throws SQLException {
-        connection.setPrepareMethod("prepare");
-
-        try (Statement statement = connection.createStatement();) {
-            statement.executeUpdate("create procedure " + procName + " as select 1 --");
-
-            try (CallableStatement callableStatement = connection.prepareCall("{call " + procName + "}")) {
-                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
-                }
-
-                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
-                }
-            }
-        }
-    }
-
     /**
      * Tests CallableStatement.getString() with uniqueidentifier parameter
      * 
