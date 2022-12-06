@@ -172,7 +172,7 @@ class StreamDone extends StreamPacket {
      * @return true if final
      */
     /* L0 */ final boolean isFinal() {
-        return (status & 0x0001) == 0;
+        return (status & TDS.DONE_MORE) == 0;
     }
 
     /**
@@ -181,7 +181,7 @@ class StreamDone extends StreamPacket {
      * @return true if error
      */
     /* L0 */ final boolean isError() {
-        return (status & 0x0002) != 0;
+        return (((status & TDS.DONE_ERROR) != 0) || ((status & TDS.DONE_SRVERROR) != 0));
     }
 
     /**
@@ -190,7 +190,7 @@ class StreamDone extends StreamPacket {
      * @return true if the row count is present
      */
     /* L0 */ final boolean updateCountIsValid() {
-        return (status & 0x0010) != 0;
+        return (status & TDS.DONE_COUNT) != 0;
     }
 
     /**
@@ -199,7 +199,7 @@ class StreamDone extends StreamPacket {
      * @return true if cancelled
      */
     /* L0 */ final boolean isAttnAck() {
-        return (status & 0x0020) != 0;
+        return (status & TDS.DONE_ATTN) != 0;
     }
 
     /**

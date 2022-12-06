@@ -381,22 +381,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
-                // Continue to read the error message if DONE packet has error flag
-                int packetType = tdsReader.peekTokenType();
-                if (TDS.TDS_DONE == packetType) {
-                    short status = tdsReader.peekStatusFlag();
-                    // check if status flag has DONE_ERROR set i.e., 0x2
-                    if ((status & 0x0002) != 0) {
-                        // Consume the DONE packet if there is error
-                        StreamDone doneToken = new StreamDone();
-                        doneToken.setFromTDS(tdsReader);
-                        if (doneToken.isFinal()) {
-                            // Response is completely processed, hence decrement unprocessed response count.
-                            stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-                        }
-                        return true;
-                    }
+                short status = tdsReader.peekStatusFlag();
+                if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    SQLServerError databaseError = this.getDatabaseError();
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
+
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 return false;
             }
@@ -1796,8 +1789,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         RowType fetchBufferCurrentRowType = RowType.UNKNOWN;
         try {
             fetchBufferCurrentRowType = fetchBuffer.nextRow();
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
+            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
                 return false;
+            }
         } catch (SQLServerException e) {
             currentRow = AFTER_LAST_ROW;
             rowErrorException = e;
@@ -5384,10 +5378,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-                if (doneToken.isFinal()) {
-                    // Response is completely processed, hence decrement unprocessed response count.
-                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                if (doneToken.isFinal() && doneToken.isError()) {
+                    short status = tdsReader.peekStatusFlag();
+                    SQLServerError databaseError = getDatabaseError();
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
+                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
+
+                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
@@ -5474,8 +5473,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             while (null != tdsReader && !done && fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
-                    && null != fetchBufferTokenHandler.getDatabaseError()) {
+            if (null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
