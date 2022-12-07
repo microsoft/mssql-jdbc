@@ -2126,10 +2126,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
                             if (null != columnList && columnList.size() > 0) {
-                                int positionInSource = columnList.indexOf(c.getColumnName()) + 1;
-                                columnMappings.put(positionInSource, i);
-                                batchRecord.addColumnMetadata(positionInSource, c.getColumnName(), jdbctype,
-                                        ti.getPrecision(), ti.getScale());
+                                int columnIndex = columnList.indexOf(c.getColumnName());
+                                if (columnIndex > -1) {
+                                    columnMappings.put(columnIndex + 1, i);
+                                    batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
+                                            ti.getPrecision(), ti.getScale());
+                                }
                             } else {
                                 batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
                                         ti.getScale());
