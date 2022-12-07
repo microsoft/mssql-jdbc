@@ -77,7 +77,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
     /** map */
     Map<String, Integer> map = new ConcurrentHashMap<>();
-    
+
     /** atomic integer */
     AtomicInteger ai = new AtomicInteger(0);
 
@@ -255,8 +255,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+
                 if (doneToken.isFinal()) {
-                    // Response is completely processed, hence decrement unprocessed response count.
                     connection.getSessionRecovery().decrementUnprocessedResponseCount();
                 }
 
@@ -452,8 +452,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(streamType, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader(),
-                this);
+                resultsReader(), this);
 
         activeStream = (Closeable) value;
         return value;
@@ -464,8 +463,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 new InputStreamGetterArgs(StreamType.SQLXML, getIsResponseBufferingAdaptive(),
                         getIsResponseBufferingAdaptive(), toString()),
                 null, // calendar
-                resultsReader(),
-                this);
+                resultsReader(), this);
 
         if (null != value)
             activeStream = value.getStream();
