@@ -735,7 +735,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " (c1 varchar(1) not null, c2 varchar(3) not null)";
+                    + " (c1 varchar(1), c2 varchar(3))";
             stmt.execute(createTable);
 
             pstmt.setString(1, "One");
@@ -749,14 +749,12 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 Object[] expected = new Object[2];
 
-                expected[0] = 1;
+                expected[0] = "1";
                 expected[1] = "One";
                 rs.next();
 
                 for (int i = 0; i < expected.length; i++) {
-                    if (null != rs.getObject(i + 1)) {
-                        assertEquals(expected[i].toString(), rs.getObject(i + 1).toString());
-                    }
+                    assertEquals(expected[i], rs.getObject(i + 1));
                 }
             }
         }
