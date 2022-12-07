@@ -301,7 +301,7 @@ public class BasicConnectionTest extends AbstractTest {
             // nothing should be discarded yet
             assertEquals(0, con.getDiscardedServerPreparedStatementCount());
 
-            ResiliencyUtils.killConnection(con, connectionString);
+            ResiliencyUtils.killConnection(con, connectionString, 0);
 
             // add 1 more - if cache was not cleared this would cause it to be discarded
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
