@@ -29,7 +29,7 @@ public class PropertyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
         setConnection();
     }
 
@@ -39,12 +39,13 @@ public class PropertyTest extends AbstractTest {
         sb.append(connectionString).append(";").append(prop).append("=").append(val).append(";");
         try (Connection c = ResiliencyUtils.getConnection(sb.toString())) {
             try (Statement s = c.createStatement()) {
-                ResiliencyUtils.killConnection(c, connectionString);
+                ResiliencyUtils.killConnection(c, connectionString, 0);
                 s.executeQuery("SELECT 1");
                 fail(TestResource.getResource("R_expectedExceptionNotThrown") + prop + "=" + val);
             }
         } catch (SQLException e) {
-            assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(), e.getMessage().matches(expectedErrMsg));
+            assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(),
+                    e.getMessage().matches(expectedErrMsg));
         }
     }
 
