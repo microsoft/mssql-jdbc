@@ -207,9 +207,6 @@ public class EnclaveTest extends AESetup {
             createTable(CHAR_TABLE_AE, cekJks, charTable);
             populateCharNormalCase(createCharValues(false));
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -226,9 +223,6 @@ public class EnclaveTest extends AESetup {
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             populateCharNormalCase(createCharValues(false));
             testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -251,9 +245,6 @@ public class EnclaveTest extends AESetup {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(48 == pmd.getParameterCount(), "parameter count: " + pmd.getParameterCount());
             }
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -275,9 +266,6 @@ public class EnclaveTest extends AESetup {
             pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
                     + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
             pstmt.execute();
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -305,9 +293,6 @@ public class EnclaveTest extends AESetup {
                     assertTrue(3 == rs.getInt(3), "rs.getInt(3)=" + rs.getInt(3));
                 }
             }
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -335,9 +320,6 @@ public class EnclaveTest extends AESetup {
                     assertTrue(rs.getString(3).equalsIgnoreCase("test"), "rs.getString(3)=" + rs.getString(3));
                 }
             }
-        } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -366,8 +348,6 @@ public class EnclaveTest extends AESetup {
             pstmt.execute();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")), e.getMessage());
-            System.out.println("exception: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
