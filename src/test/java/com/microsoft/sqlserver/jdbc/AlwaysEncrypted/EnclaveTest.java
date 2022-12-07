@@ -320,7 +320,10 @@ public class EnclaveTest extends AESetup {
                     assertTrue(rs.getString(3).equalsIgnoreCase("test"), "rs.getString(3)=" + rs.getString(3));
                 }
             }
-        }
+        } catch (Exception e) {
+		System.out.println("exception: "+e.getMessage());
+		e.printStackTrace();
+	}
     }
 
     /**
