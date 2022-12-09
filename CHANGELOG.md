@@ -8,9 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Clear prepared statement cache on idle connection resiliency reconnections [1982](https://github.com/microsoft/mssql-jdbc/pull/1982)
 - Fix for setting KeepAlive extended options [1986](https://github.com/microsoft/mssql-jdbc/pull/1986)
 - Fixed issue where the driver may assert when canceling a statement [1987](https://github.com/microsoft/mssql-jdbc/pull/1987)
-- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
 - Fixed callable statement index out of bounds error [1988](https://github.com/microsoft/mssql-jdbc/pull/1988)
 - Fixed issue not checking for DONE token errors so exceptions are ignored [1990](https://github.com/microsoft/mssql-jdbc/pull/1990)
+
+to be back ported:
+- Fixed double connection issue when enabling TDS 8.0 and SSL by reusing original socket connection [1817](https://github.com/microsoft/mssql-jdbc/pull/1817)
+- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
 
 ## [10.2.1] HotFix & Stable Release
 ### Fixed issues

@@ -502,6 +502,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crClientSSLStateNotRecoverable", "The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible."},
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
-    };
+        {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
+        };
 }
 // @formatter:on

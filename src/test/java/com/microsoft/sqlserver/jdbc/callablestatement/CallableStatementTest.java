@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,6 +36,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -43,12 +45,24 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 public class CallableStatementTest extends AbstractTest {
-    private static String tableNameGUID = RandomUtil.getIdentifier("uniqueidentifier_Table");
-    private static String outputProcedureNameGUID = RandomUtil.getIdentifier("uniqueidentifier_SP");
-    private static String setNullProcedureName = RandomUtil.getIdentifier("CallableStatementTest_setNull_SP");
-    private static String inputParamsProcedureName = RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP");
-    private static String getObjectLocalDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP");
-    private static String getObjectOffsetDateTimeProcedureName = RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP");
+    private static String tableNameGUID = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_Table"));
+    private static String outputProcedureNameGUID = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("uniqueidentifier_SP"));
+    private static String setNullProcedureName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_setNull_SP"));
+    private static String inputParamsProcedureName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
+    private static String getObjectLocalDateTimeProcedureName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP"));
+    private static String getObjectOffsetDateTimeProcedureName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_getObjectOffsetDateTime_SP"));
+    private static String manyParamsTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Table"));
+    private static String manyParamProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Procedure"));
+    private static String manyParamUserDefinedType = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
 
     /**
      * Setup before test
@@ -57,23 +71,76 @@ public class CallableStatementTest extends AbstractTest {
      */
     @BeforeAll
     public static void setupTest() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
 
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName), stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
+            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
+            TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropTableIfExists(manyParamsTable, stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
             createSetNullProcedure(stmt);
             createInputParamsProcedure(stmt);
             createGetObjectLocalDateTimeProcedure(stmt);
+            createUserDefinedType();
+            createTableManyParams();
+            createProcedureManyParams();
             createGetObjectOffsetDateTimeProcedure(stmt);
+        }
+    }
+
+    // Test Needs more work to be configured to run on azureDB as there are slight differences
+    // between the regular SQL Server vs. azureDB
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testCallableStatementManyParameters() throws SQLException {
+        String tempPass = UUID.randomUUID().toString();
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
+        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'" + tempPass + "', "
+                + "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
+        String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
+        String grantExecute = "GRANT EXECUTE ON " + manyParamProc + " TO NewUser;";
+
+        // Need to create a user with limited permissions in order to run through the code block we are testing
+        // The user created will execute sp_sproc_columns internally by the driver, which should not return all
+        // the column names as the user has limited permissions
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(dropLogin);
+                stmt.execute(dropUser);
+                stmt.execute(createLogin);
+                stmt.execute(createUser);
+                stmt.execute(grantExecute);
+            }
+        }
+
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=" + tempPass + ";")) {
+            BigDecimal money = new BigDecimal("9999.99");
+
+            // Should not throw an "Index is out of range error"
+            // Should not throw R_parameterNotDefinedForProcedure
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamProc + "(?,?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setObject("@p1", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p2", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p3", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p4", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p5", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p6", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p7", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p8", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p9", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p10", money, microsoft.sql.Types.MONEY);
+                callableStatement.execute();
+            }
         }
     }
 
@@ -139,7 +206,6 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
-
     /**
      * Tests getObject(n, java.time.LocalDateTime.class).
      *
@@ -148,7 +214,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testGetObjectAsLocalDateTime() throws SQLException {
         String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName) + " (?)}";
-        try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
+        try (Connection con = DriverManager.getConnection(connectionString);
+                CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP);
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
@@ -186,8 +253,10 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
-        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName) + " (?, ?)}";
-        try (Connection con = DriverManager.getConnection(connectionString); CallableStatement cs = con.prepareCall(sql)) {
+        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName)
+                + " (?, ?)}";
+        try (Connection con = DriverManager.getConnection(connectionString);
+                CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP_WITH_TIMEZONE);
             cs.registerOutParameter(2, Types.TIMESTAMP_WITH_TIMEZONE);
 
@@ -259,12 +328,12 @@ public class CallableStatementTest extends AbstractTest {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameGUID), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(setNullProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName), stmt);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName), stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
+            TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
         }
     }
 
@@ -296,8 +365,7 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createGetObjectLocalDateTimeProcedure(Statement stmt) throws SQLException {
         String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName)
-                + "(@p1 datetime2(7) OUTPUT) AS "
-                + "SELECT @p1 = '2018-03-11T02:00:00.1234567'";
+                + "(@p1 datetime2(7) OUTPUT) AS " + "SELECT @p1 = '2018-03-11T02:00:00.1234567'";
         stmt.execute(sql);
     }
 
@@ -306,5 +374,34 @@ public class CallableStatementTest extends AbstractTest {
                 + "(@p1 DATETIMEOFFSET OUTPUT, @p2 DATETIMEOFFSET OUTPUT) AS "
                 + "SELECT @p1 = '2018-01-02T11:22:33.123456700+12:34', @p2 = NULL";
         stmt.execute(sql);
+    }
+
+    private static void createProcedureManyParams() throws SQLException {
+        String type = manyParamUserDefinedType;
+        String sql = "CREATE PROCEDURE " + manyParamProc + " @p1 " + type + ", @p2 " + type + ", @p3 " + type + ", @p4 "
+                + type + ", @p5 " + type + ", @p6 " + type + ", @p7 " + type + ", @p8 " + type + ", @p9 " + type
+                + ", @p10 " + type + " AS INSERT INTO " + manyParamsTable
+                + " VALUES(@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createTableManyParams() throws SQLException {
+        String type = manyParamUserDefinedType;
+        String sql = "CREATE TABLE" + manyParamsTable + " (c1 " + type + " null, " + "c2 " + type + " null, " + "c3 "
+                + type + " null, " + "c4 " + type + " null, " + "c5 " + type + " null, " + "c6 " + type + " null, "
+                + "c7 " + type + " null, " + "c8 " + type + " null, " + "c9 " + type + " null, " + "c10 " + type
+                + " null);";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createUserDefinedType() throws SQLException {
+        String TVPCreateCmd = "CREATE TYPE " + manyParamUserDefinedType + " FROM MONEY";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(TVPCreateCmd);
+        }
     }
 }
