@@ -389,6 +389,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
+                // decrementUnprocessedResponseCount() is not necessary here. It will over decrement if added.
+
                 return false;
             }
         }
@@ -5377,6 +5379,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
                 if (doneToken.isFinal() && doneToken.isError()) {
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
                     short status = tdsReader.peekStatusFlag();
                     SQLServerError databaseError = getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
