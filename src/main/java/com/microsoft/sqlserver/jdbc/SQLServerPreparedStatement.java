@@ -2805,12 +2805,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 try {
 
                     // If the command was interrupted, that means the TDS.PKT_CANCEL_REQ was sent to the server.
-                    // Since the cancellation request was sent, stop processing the batch query and process the
-                    // cancellation request and then return.
+                    // Since the cancelation request was sent, stop processing the batch query and process the
+                    // cancelation request and then return.
                     //
                     // Otherwise, if we do continue processing the batch query, in the case where a query requires
                     // prepexec/sp_prepare, the TDS request for prepexec/sp_prepare will be sent regardless of
-                    // query cancellation. This will cause a TDS token error in the post processing when we
+                    // query cancelation. This will cause a TDS token error in the post processing when we
                     // close the query.
                     if (batchCommand.wasInterrupted()) {
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
