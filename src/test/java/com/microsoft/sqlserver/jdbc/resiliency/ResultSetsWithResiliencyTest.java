@@ -39,16 +39,16 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = AbstractSQLGenerator.escapeIdentifier("resilencyTestTable");
     static int numberOfRows = 10;
 
-    private static String callableStatementICROnDoneTestSp = RandomUtil.getIdentifier("CallableStatement_ICROnDoneTest_SP");
-    private static String callableStatementICROnDoneErrorTestSp = RandomUtil.getIdentifier("CallableStatement_ICROnDoneErrorTest_SP");
+    private static String callableStatementICROnDoneTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneTest_SP"));
+    private static String callableStatementICROnDoneErrorTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneErrorTest_SP"));
     private static String createClientCursorInitTableQuery = "create table %s (col1 int, col2 varchar(8000), col3 int identity(1,1))";
     private static String createFetchBufferTableQuery = "create table %s (col1 int not null)";
     private static String insertIntoFetchBufferTableQuery = "insert into %s (col1) values (%s);";
-    private static final String clientCursorInitTable1 = AbstractSQLGenerator.escapeIdentifier("clientCursorInitTable1");
-    private static final String clientCursorInitTable2 = AbstractSQLGenerator.escapeIdentifier("clientCursorInitTable2");
-    private static final String clientCursorInitTable3 = AbstractSQLGenerator.escapeIdentifier("clientCursorInitTable3");
-    private static final String fetchBufferTestTable1 = AbstractSQLGenerator.escapeIdentifier("fetchBufferTestTable1");
-    private static final String fetchBufferTestTable2 = AbstractSQLGenerator.escapeIdentifier("fetchBufferTestTable2");
+    private static final String clientCursorInitTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable1"));
+    private static final String clientCursorInitTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable2"));
+    private static final String clientCursorInitTable3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable3"));
+    private static final String fetchBufferTestTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable1"));
+    private static final String fetchBufferTestTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable2"));
     private static final String clientCursorInitTableQuery1 = "select * from " + clientCursorInitTable1;
     private static final String clientCursorInitTableQuery2 = "select * from " + clientCursorInitTable2;
     private static final String clientCursorInitTableQuery3 = "select * from " + clientCursorInitTable3;
@@ -68,8 +68,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             TestUtils.dropTableIfExists(clientCursorInitTable3, s);
             TestUtils.dropTableIfExists(fetchBufferTestTable1, s);
             TestUtils.dropTableIfExists(fetchBufferTestTable2, s);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneTestSp), s);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneErrorTestSp), s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneTestSp, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneErrorTestSp, s);
 
             createTable(s);
             insertData(s);
@@ -295,7 +295,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
     @Test
     public void testCallableStatementOnDone() throws SQLException {
-        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneTestSp) + " (?, ?)}";
+        String sql = "{CALL " + callableStatementICROnDoneTestSp + " (?, ?)}";
 
         try (Connection con = ResiliencyUtils.getConnection(connectionString)) {
 
@@ -320,9 +320,9 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testCallableStatementErrorOnDone() throws SQLException {
         String errorCallableStmt = "{CALL "
-                + AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneErrorTestSp) + " (?, ?)}";
+                + callableStatementICROnDoneErrorTestSp + " (?, ?)}";
         String validCallableStmt = "{CALL "
-                + AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneTestSp) + " (?, ?)}";
+                + callableStatementICROnDoneTestSp + " (?, ?)}";
 
         try (Connection con = ResiliencyUtils.getConnection(connectionString)) {
 
@@ -552,14 +552,14 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     }
 
     private static void createCallableStatementOnDoneTestSp(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneTestSp)
+        String sql = "CREATE PROCEDURE " + callableStatementICROnDoneTestSp
                 + "(@p1 datetime2(7) OUTPUT, @p2 datetime2(7) OUTPUT) AS "
                 + "SELECT @p1 = '2018-03-11T02:00:00.1234567'; SELECT @p2 = '2022-03-11T02:00:00.1234567';";
         stmt.execute(sql);
     }
 
     private static void createCallableStatementOnDoneErrorTestSp(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneErrorTestSp)
+        String sql = "CREATE PROCEDURE " + callableStatementICROnDoneErrorTestSp
                 + "(@p1 datetime2(7) OUTPUT, @p2 datetime2(7) OUTPUT) AS "
                 + "SELECT @p1 = '2018-03-11T02:00:00.1234567'; SELECT @p2 = '2022-03-11T02:00:00.1234567'; "
                 + errorQuery;
@@ -575,8 +575,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             TestUtils.dropTableIfExists(clientCursorInitTable3, s);
             TestUtils.dropTableIfExists(fetchBufferTestTable1, s);
             TestUtils.dropTableIfExists(fetchBufferTestTable2, s);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneTestSp), s);
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(callableStatementICROnDoneErrorTestSp), s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneTestSp, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneErrorTestSp, s);
         }
     }
 }
