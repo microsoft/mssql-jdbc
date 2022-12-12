@@ -95,7 +95,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail("Driver should not have succesfully reconnected but it did.");
+                // driver should not have successfully reconnected but it did
+                fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (SQLServerException e) {
             if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable"))) {
@@ -118,14 +119,14 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail("Driver should not have succesfully reconnected but it did.");
+                // driver should not have successfully reconnected but it did
+                fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (SQLServerException e) {
             assertTrue(
                     "08S01" == e.getSQLState()
                             || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")),
                     e.getMessage());
-
         }
     }
 
@@ -194,6 +195,12 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 } catch (SQLException e) {
                     // may get different error message depending on SQL servers.
                     // Local servers will report a TDS error where as Azure servers will have a DONE error
+                    if (!(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
+                            || e.getMessage().contains(TestResource.getResource("R_sessionKilled"))
+                            || e.getMessage().contains(TestResource.getResource("R_connectionReset")))) {
+                        e.printStackTrace();
+                    }
+
                     assertTrue(
                             e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
                                     || e.getMessage().contains(TestResource.getResource("R_sessionKilled"))
@@ -206,6 +213,87 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 TestUtils.dropTableIfExists(table1, s);
                 TestUtils.dropTableIfExists(table2, s);
                 TestUtils.dropTableIfExists(table3, s);
+            }
+        }
+    }
+
+    /*
+     * Test killing a session while retrieving multiple result sets
+     */
+    @Test
+    public void testMultipleResultSets() throws Exception {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            boolean results = s.execute("SELECT 1;SELECT 2");
+            int rsCount = 0;
+            do {
+                if (results) {
+                    try (ResultSet rs = s.getResultSet()) {
+                        rsCount++;
+
+                        while (rs.next()) {
+                            ResiliencyUtils.killConnection(c, connectionString, 0);
+                            assertTrue(rs.getString(1).equals(String.valueOf(rsCount)));
+                        }
+                    }
+                }
+                results = s.getMoreResults();
+            } while (results);
+        } catch (SQLException e) {
+            if (!("08S01" == e.getSQLState()
+                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")))) {
+                e.printStackTrace();
+            }
+            assertTrue(
+                    "08S01" == e.getSQLState()
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")),
+                    e.getMessage());
+        }
+    }
+
+    /*
+     * Test killing a session while retrieving result set that causes an exception
+     */
+    @Test
+    public void testResultSetWithException() throws Exception {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery("SELECT 1/0")) {
+
+            while (rs.next()) {
+                ResiliencyUtils.killConnection(c, connectionString, 0);
+                // driver should not have successfully reconnected but it did
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (SQLException e) {
+            if (!e.getMessage().contains("Divide by zero error")) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /*
+     * Test killing a session while retrieving multiple result sets that causes an exception
+     */
+    @Test
+    public void testMultipleResultSetsWithException() throws Exception {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            boolean results = s.execute("SELECT 1;SELECT 1/0");
+            int rsCount = 0;
+            do {
+                if (results) {
+                    try (ResultSet rs = s.getResultSet()) {
+                        rsCount++;
+
+                        while (rs.next()) {
+                            ResiliencyUtils.killConnection(c, connectionString, 0);
+                            assertTrue(rs.getString(1).equals(String.valueOf(rsCount)));
+                        }
+                    }
+                }
+                results = s.getMoreResults();
+            } while (results);
+        } catch (SQLException e) {
+            if (!e.getMessage().contains("Divide by zero error")) {
+                e.printStackTrace();
             }
         }
     }
