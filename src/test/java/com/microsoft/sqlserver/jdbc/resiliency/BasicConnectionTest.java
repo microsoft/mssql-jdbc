@@ -345,7 +345,7 @@ public class BasicConnectionTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             int queriesToSend = 5;
             String query = String.format("/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
-                    UUID.randomUUID().toString());
+                    UUID.randomUUID());
 
             for (int i = 0; i < queriesToSend; ++i) {
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con

@@ -385,18 +385,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
+                // decrementUnprocessedResponseCount() outside the "if" is not necessary here. It will over decrement if added.
+
                 short status = tdsReader.peekStatusFlag();
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    StreamDone doneToken = new StreamDone();
+                    doneToken.setFromTDS(tdsReader);
+                    if (doneToken.isFinal()) {
+                        stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                    }
                     SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
-
-                // An ICR unprocessedResponseCount decrement is unnecessary here because we are throwing an exception
-                // above on doneToken errors.
-                // If we didn't throw an exception, we would decrement only on a DONE_ERROR and if the subsequent token
-                // is a final doneToken. eg. tds status flag of 0x0002 && tdsToken.isFinal().
 
                 return false;
             }
