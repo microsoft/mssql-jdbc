@@ -71,6 +71,7 @@ public abstract class AbstractTest {
 
     protected static String trustStorePath = "";
 
+    protected static String trustServerCertificate = "";
     protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
@@ -133,6 +134,10 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
+
+        trustServerCertificate = getConfiguredProperty("trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate",
+                trustServerCertificate);
 
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
