@@ -152,7 +152,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void getStringGUIDTest() throws SQLException {
 
-        String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID) + "(?)}";
+        String sql = "{call " + outputProcedureNameGUID + "(?)}";
 
         try (SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) connection.prepareCall(sql)) {
 
@@ -181,7 +181,7 @@ public class CallableStatementTest extends AbstractTest {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setSendStringParametersAsUnicode(true);
-        String sql = "{? = call " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName) + " (?,?)}";
+        String sql = "{? = call " + setNullProcedureName + " (?,?)}";
         try (Connection connection = ds.getConnection();
                 SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(sql);
                 SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(sql)) {
@@ -213,7 +213,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @Test
     public void testGetObjectAsLocalDateTime() throws SQLException {
-        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName) + " (?)}";
+        String sql = "{CALL " + getObjectLocalDateTimeProcedureName + " (?)}";
         try (Connection con = DriverManager.getConnection(connectionString);
                 CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP);
@@ -253,7 +253,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
-        String sql = "{CALL " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName)
+        String sql = "{CALL " + getObjectOffsetDateTimeProcedureName
                 + " (?, ?)}";
         try (Connection con = DriverManager.getConnection(connectionString);
                 CallableStatement cs = con.prepareCall(sql)) {
@@ -283,7 +283,7 @@ public class CallableStatementTest extends AbstractTest {
      */
     @Test
     public void inputParamsTest() throws SQLException {
-        String call = "{CALL " + AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName) + " (?,?)}";
+        String call = "{CALL " + inputParamsProcedureName + " (?,?)}";
 
         // the historical way: no leading '@', parameter names respected (not positional)
         try (CallableStatement cs = connection.prepareCall(call)) {
@@ -338,25 +338,25 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createGUIDStoredProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(outputProcedureNameGUID)
+        String sql = "CREATE PROCEDURE " + outputProcedureNameGUID
                 + "(@p1 uniqueidentifier OUTPUT) AS SELECT @p1 = c1 FROM "
-                + AbstractSQLGenerator.escapeIdentifier(tableNameGUID) + Constants.SEMI_COLON;
+                + tableNameGUID + Constants.SEMI_COLON;
         stmt.execute(sql);
     }
 
     private static void createGUIDTable(Statement stmt) throws SQLException {
-        String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameGUID)
+        String sql = "CREATE TABLE " + tableNameGUID
                 + " (c1 uniqueidentifier null)";
         stmt.execute(sql);
     }
 
     private static void createSetNullProcedure(Statement stmt) throws SQLException {
-        stmt.execute("create procedure " + AbstractSQLGenerator.escapeIdentifier(setNullProcedureName)
+        stmt.execute("create procedure " + setNullProcedureName
                 + " (@p1 nvarchar(255), @p2 nvarchar(255) output) as select @p2=@p1 return 0");
     }
 
     private static void createInputParamsProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(inputParamsProcedureName)
+        String sql = "CREATE PROCEDURE " + inputParamsProcedureName
                 + "    @p1 nvarchar(max) = N'parameter1', " + "    @p2 nvarchar(max) = N'parameter2' " + "AS "
                 + "BEGIN " + "    SET NOCOUNT ON; " + "    SELECT @p1 + @p2 AS result; " + "END ";
 
@@ -364,13 +364,13 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createGetObjectLocalDateTimeProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectLocalDateTimeProcedureName)
+        String sql = "CREATE PROCEDURE " + getObjectLocalDateTimeProcedureName
                 + "(@p1 datetime2(7) OUTPUT) AS " + "SELECT @p1 = '2018-03-11T02:00:00.1234567'";
         stmt.execute(sql);
     }
 
     private static void createGetObjectOffsetDateTimeProcedure(Statement stmt) throws SQLException {
-        String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(getObjectOffsetDateTimeProcedureName)
+        String sql = "CREATE PROCEDURE " + getObjectOffsetDateTimeProcedureName
                 + "(@p1 DATETIMEOFFSET OUTPUT, @p2 DATETIMEOFFSET OUTPUT) AS "
                 + "SELECT @p1 = '2018-01-02T11:22:33.123456700+12:34', @p2 = NULL";
         stmt.execute(sql);
