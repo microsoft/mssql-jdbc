@@ -3996,8 +3996,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         false);
                             }
                             try {
-                                if (null != preparedStatementHandleCache)
+                                if (null != preparedStatementHandleCache) {
                                     preparedStatementHandleCache.clear();
+                                }
 
                                 sessionRecovery.reconnect(newCommand);
                             } catch (InterruptedException e) {
