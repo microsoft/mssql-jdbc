@@ -360,6 +360,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable1, stmt);
                 createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable1));
                 insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable1, 1), 10);
             }
@@ -367,6 +368,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             ResiliencyUtils.killConnection(con, connectionString, 1);
 
             try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable2, stmt);
                 createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable2));
                 insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable2, 1), 10);
             }
@@ -393,6 +395,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public void testResultSetErrorFetchBufferOnDone() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable1, stmt);
                 createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable1));
                 insertData(stmt, errorQuery, 10);
             } catch (SQLServerException se) {
@@ -405,6 +408,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
             ResiliencyUtils.killConnection(con, connectionString, 1);
 
             try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable2, stmt);
                 createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable2));
                 insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable2, 1), 10);
             }
