@@ -9,13 +9,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -36,6 +39,24 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     static String tableName = AbstractSQLGenerator.escapeIdentifier("resilencyTestTable");
     static int numberOfRows = 10;
 
+    private static String callableStatementICROnDoneTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneTest_SP"));
+    private static String callableStatementICROnDoneErrorTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneErrorTest_SP"));
+    private static String createClientCursorInitTableQuery = "create table %s (col1 int, col2 varchar(8000), col3 int identity(1,1))";
+    private static String createFetchBufferTableQuery = "create table %s (col1 int not null)";
+    private static String insertIntoFetchBufferTableQuery = "insert into %s (col1) values (%s);";
+    private static final String clientCursorInitTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable1"));
+    private static final String clientCursorInitTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable2"));
+    private static final String clientCursorInitTable3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable3"));
+    private static final String fetchBufferTestTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable1"));
+    private static final String fetchBufferTestTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable2"));
+    private static final String clientCursorInitTableQuery1 = "select * from " + clientCursorInitTable1;
+    private static final String clientCursorInitTableQuery2 = "select * from " + clientCursorInitTable2;
+    private static final String clientCursorInitTableQuery3 = "select * from " + clientCursorInitTable3;
+    private static final String fetchBufferTableQuery1 = "select * from " + fetchBufferTestTable1;
+    private static final String fetchBufferTableQuery2 = "select * from " + fetchBufferTestTable2;
+    private static final String mockErrorMsg = "This is a mock query error.";
+    private static final String errorQuery = "RAISERROR('" + mockErrorMsg + "', 16, 1)";
+
     @BeforeAll
     public static void setupTests() throws Exception {
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
@@ -43,8 +64,23 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {
             TestUtils.dropTableIfExists(tableName, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable1, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable2, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable3, s);
+            TestUtils.dropTableIfExists(fetchBufferTestTable1, s);
+            TestUtils.dropTableIfExists(fetchBufferTestTable2, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneTestSp, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneErrorTestSp, s);
+
             createTable(s);
             insertData(s);
+
+            createCallableStatementOnDoneTestSp(s);
+            createCallableStatementOnDoneErrorTestSp(s);
+
+            createTable(s, String.format(createClientCursorInitTableQuery, clientCursorInitTable1));
+            createTable(s, String.format(createClientCursorInitTableQuery, clientCursorInitTable2));
+            createTable(s, String.format(createClientCursorInitTableQuery, clientCursorInitTable3));
         }
     }
 
@@ -86,7 +122,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testFullBufferingWithPartiallyParsedResultSet() throws SQLException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=full");
-                Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
+             Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("SELECT * FROM sys.syslanguages")) {
                 // Partially parsed
@@ -113,7 +149,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public void testAdaptiveBufferingWithPartiallyBufferedResultSet() throws SQLException {
         // The table must contain enough rows to partially buffer the result set.
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=adaptive");
-                Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
+             Statement s = c.createStatement(); Statement s2 = c.createStatement()) {
             int sessionId = ResiliencyUtils.getSessionId(c);
             try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
                 ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
@@ -127,6 +163,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                     "08S01" == e.getSQLState()
                             || e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable")),
                     e.getMessage());
+
         }
     }
 
@@ -141,9 +178,9 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         String table3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("killSessionTestTable3"));
 
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();
-                PreparedStatement ps1 = c.prepareStatement("INSERT INTO " + table1 + " values (?)");
-                PreparedStatement ps2 = c.prepareStatement("INSERT INTO " + table2 + " values (?)");
-                PreparedStatement ps3 = c.prepareStatement("INSERT INTO " + table3 + " values (?)")) {
+             PreparedStatement ps1 = c.prepareStatement("INSERT INTO " + table1 + " values (?)");
+             PreparedStatement ps2 = c.prepareStatement("INSERT INTO " + table2 + " values (?)");
+             PreparedStatement ps3 = c.prepareStatement("INSERT INTO " + table3 + " values (?)")) {
             TestUtils.dropTableIfExists(table1, s);
             TestUtils.dropTableIfExists(table2, s);
             TestUtils.dropTableIfExists(table3, s);
@@ -189,7 +226,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                         + table2 + ") and e2.name not in (select name  FROM " + table1
                         + " ) and e3.name not in (SELECT name FROM " + table2
                         + ") and e4.name not in (SELECT name FROM " + table3 + ");");
-                        ResultSet rs = ps.executeQuery()) {
+                     ResultSet rs = ps.executeQuery()) {
 
                     fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                 } catch (SQLException e) {
@@ -213,6 +250,188 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 TestUtils.dropTableIfExists(table1, s);
                 TestUtils.dropTableIfExists(table2, s);
                 TestUtils.dropTableIfExists(table3, s);
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetClientCursorInitializerOnDone() throws SQLException {
+        try (Connection con = ResiliencyUtils.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            boolean hasResults = stmt.execute(clientCursorInitTableQuery1+ "; " + clientCursorInitTableQuery2);
+            while(hasResults) {
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {}
+                hasResults = stmt.getMoreResults();
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (ResultSet rs = con.createStatement()
+                    .executeQuery(clientCursorInitTableQuery3)) {
+                while(rs.next()) {}
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetErrorClientCursorInitializerOnDone() throws SQLException {
+        try (Connection con = ResiliencyUtils.getConnection(connectionString); Statement stmt = con.createStatement()) {
+
+            try {
+                boolean hasResults = stmt.execute(clientCursorInitTableQuery1 + "; " + errorQuery);
+                while(hasResults) {
+                    ResultSet rs = stmt.getResultSet();
+                    while (rs.next()) {}
+                    hasResults = stmt.getMoreResults();
+                }
+            } catch (SQLServerException se) {
+                if (!se.getMessage().equals(mockErrorMsg)) {
+                    se.printStackTrace();
+                    fail("Mock Sql Server error message was expected.");
+                }
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (ResultSet rs = con.createStatement()
+                    .executeQuery(clientCursorInitTableQuery3)) {
+                while (rs.next()) {}
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementOnDone() throws SQLException {
+        String sql = "{CALL " + callableStatementICROnDoneTestSp + " (?, ?)}";
+
+        try (Connection con = ResiliencyUtils.getConnection(connectionString)) {
+
+            try (CallableStatement cs = con.prepareCall(sql)) {
+                cs.registerOutParameter(1, Types.TIMESTAMP);
+                cs.registerOutParameter(2, Types.TIMESTAMP);
+                cs.execute();
+                cs.execute();
+                cs.execute();
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (CallableStatement cs2 = con.prepareCall(sql)) {
+                cs2.registerOutParameter(1, Types.TIMESTAMP);
+                cs2.registerOutParameter(2, Types.TIMESTAMP);
+                cs2.execute();
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementErrorOnDone() throws SQLException {
+        String errorCallableStmt = "{CALL "
+                + callableStatementICROnDoneErrorTestSp + " (?, ?)}";
+        String validCallableStmt = "{CALL "
+                + callableStatementICROnDoneTestSp + " (?, ?)}";
+
+        try (Connection con = ResiliencyUtils.getConnection(connectionString)) {
+
+            try (CallableStatement cs = con.prepareCall(errorCallableStmt)) {
+                cs.registerOutParameter(1, Types.TIMESTAMP);
+                cs.registerOutParameter(2, Types.TIMESTAMP);
+                cs.execute();
+            } catch (SQLServerException se) {
+                if (!se.getMessage().equals(mockErrorMsg)) {
+                    se.printStackTrace();
+                    fail("Mock Sql Server error message was expected.");
+                }
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (CallableStatement cs2 = con.prepareCall(validCallableStmt)) {
+                cs2.registerOutParameter(1, Types.TIMESTAMP);
+                cs2.registerOutParameter(2, Types.TIMESTAMP);
+                cs2.execute();
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetFetchBufferOnDone() throws SQLException {
+
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable1, stmt);
+                createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable1));
+                insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable1, 1), 10);
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable2, stmt);
+                createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable2));
+                insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable2, 1), 10);
+            }
+
+            try (Statement stmt = con.createStatement()) {
+                boolean hasResults = stmt.execute(fetchBufferTableQuery1 + "; " + fetchBufferTableQuery2);
+                while(hasResults) {
+                    ResultSet rs = stmt.getResultSet();
+                    while (rs.next()) {}
+                    hasResults = stmt.getMoreResults();
+                }
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (Statement stmt = con.createStatement()) {
+                ResultSet rs = stmt.executeQuery(fetchBufferTableQuery2);
+                while (rs.next()) {}
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetErrorFetchBufferOnDone() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable1, stmt);
+                createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable1));
+                insertData(stmt, errorQuery, 10);
+            } catch (SQLServerException se) {
+                if (!se.getMessage().equals(mockErrorMsg)) {
+                    se.printStackTrace();
+                    fail("Mock Sql Server error message was expected.");
+                }
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(fetchBufferTestTable2, stmt);
+                createTable(stmt, String.format(createFetchBufferTableQuery, fetchBufferTestTable2));
+                insertData(stmt, String.format(insertIntoFetchBufferTableQuery, fetchBufferTestTable2, 1), 10);
+            }
+
+            try (Statement stmt = con.createStatement()) {
+                boolean hasResults = stmt.execute(fetchBufferTableQuery1 + "; " + errorQuery);
+                while(hasResults) {
+                    ResultSet rs = stmt.getResultSet();
+                    while (rs.next()) {}
+                    hasResults = stmt.getMoreResults();
+                }
+            } catch (SQLServerException se) {
+                if (!se.getMessage().equals(mockErrorMsg)) {
+                    se.printStackTrace();
+                    fail("Mock Sql Server error message was expected.");
+                }
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            try (Statement stmt = con.createStatement()) {
+                ResultSet rs = stmt.executeQuery(fetchBufferTableQuery2);
+                while (rs.next()) {}
             }
         }
     }
@@ -256,7 +475,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testResultSetWithException() throws Exception {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT 1/0")) {
+             ResultSet rs = s.executeQuery("SELECT 1/0")) {
 
             while (rs.next()) {
                 ResiliencyUtils.killConnection(c, connectionString, 0);
@@ -298,13 +517,38 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         }
     }
 
+    private static void createCallableStatementOnDoneTestSp(Statement stmt) throws SQLException {
+        String sql = "CREATE PROCEDURE " + callableStatementICROnDoneTestSp
+                + "(@p1 datetime2(7) OUTPUT, @p2 datetime2(7) OUTPUT) AS "
+                + "SELECT @p1 = '2018-03-11T02:00:00.1234567'; SELECT @p2 = '2022-03-11T02:00:00.1234567';";
+        stmt.execute(sql);
+    }
+
+    private static void createCallableStatementOnDoneErrorTestSp(Statement stmt) throws SQLException {
+        String sql = "CREATE PROCEDURE " + callableStatementICROnDoneErrorTestSp
+                + "(@p1 datetime2(7) OUTPUT, @p2 datetime2(7) OUTPUT) AS "
+                + "SELECT @p1 = '2018-03-11T02:00:00.1234567'; SELECT @p2 = '2022-03-11T02:00:00.1234567'; "
+                + errorQuery;
+        stmt.execute(sql);
+    }
+
     private static void createTable(Statement s) throws SQLException {
         s.execute("CREATE TABLE " + tableName + " (id int IDENTITY, data varchar(50));");
+    }
+
+    private static void createTable(Statement s, String query) throws SQLException {
+        s.execute(query);
     }
 
     private static void insertData(Statement s) throws SQLException {
         for (int i = 1; i <= numberOfRows; i++) {
             s.executeUpdate("INSERT INTO " + tableName + " VALUES ('testData" + i + "');");
+        }
+    }
+
+    private static void insertData(Statement s, String query, int rows) throws SQLException {
+        for (int i = 0; i < rows; i++) {
+            s.executeUpdate(query);
         }
     }
 
@@ -320,9 +564,9 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     }
 
     private void verifyResultSetResponseBuffering(String responseBuffering,
-            boolean strongReferenceToResultSet) throws SQLException, InterruptedException {
+                                                  boolean strongReferenceToResultSet) throws SQLException, InterruptedException {
         try (Connection c = ResiliencyUtils.getConnection(connectionString + ";responseBuffering=" + responseBuffering);
-                Statement s = c.createStatement()) {
+             Statement s = c.createStatement()) {
             ResiliencyUtils.killConnection(c, connectionString, 0);
             if (strongReferenceToResultSet) {
                 try (ResultSet rs = s.executeQuery("SELECT * FROM " + tableName + " ORDER BY id;")) {
@@ -338,6 +582,13 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public static void cleanUp() throws SQLException {
         try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable1, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable2, s);
+            TestUtils.dropTableIfExists(clientCursorInitTable3, s);
+            TestUtils.dropTableIfExists(fetchBufferTestTable1, s);
+            TestUtils.dropTableIfExists(fetchBufferTestTable2, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneTestSp, s);
+            TestUtils.dropProcedureIfExists(callableStatementICROnDoneErrorTestSp, s);
         }
     }
 }
