@@ -241,7 +241,7 @@ public class StatementTest extends AbstractTest {
 
                         assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                     } catch (SQLException e) {
-                        assertEquals(TestResource.getResource("R_queryCancelled"), e.getMessage());
+                        assertEquals(TestResource.getResource("R_queryCanceled"), e.getMessage());
                     }
 
                     assertEquals(false, NUM_TABLE_ROWS * NUM_TABLE_ROWS == numSelectedRows,
@@ -346,7 +346,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").equalsIgnoreCase(
+                                    assertTrue(TestResource.getResource("R_queryCanceled").equalsIgnoreCase(
                                             e.getMessage()), TestResource.getResource("R_unexpectedException"));
                                 }
 
@@ -435,7 +435,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()),
+                                    assertTrue(TestResource.getResource("R_queryCanceled").contains(e.getMessage()),
                                             TestResource.getResource("R_unexpectedException"));
                                 }
 
@@ -534,7 +534,7 @@ public class StatementTest extends AbstractTest {
 
                                     assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
                                 } catch (SQLException e) {
-                                    assertTrue(TestResource.getResource("R_queryCancelled").contains(e.getMessage()),
+                                    assertTrue(TestResource.getResource("R_queryCanceled").contains(e.getMessage()),
                                             TestResource.getResource("R_unexpectedException"));
                                 }
                                 elapsedMillis += System.currentTimeMillis();

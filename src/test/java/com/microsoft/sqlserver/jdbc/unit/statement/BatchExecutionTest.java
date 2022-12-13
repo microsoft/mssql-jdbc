@@ -96,7 +96,7 @@ public class BatchExecutionTest extends AbstractTest {
                         try {
                             statement.executeBatch();
                         } catch (SQLException e) {
-                            assertEquals(TestResource.getResource("R_queryCancelled"), e.getMessage());
+                            assertEquals(TestResource.getResource("R_queryCanceled"), e.getMessage());
                         }
                         cancelThread.join();
                     }
