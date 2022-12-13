@@ -1242,7 +1242,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Cancel the currently executing statement.
         if (null != currentCommand)
-            currentCommand.interrupt(SQLServerException.getErrString("R_queryCancelled"));
+            currentCommand.interrupt(SQLServerException.getErrString("R_queryCanceled"));
         loggerExternal.exiting(getClassNameLogging(), "cancel");
     }
 
