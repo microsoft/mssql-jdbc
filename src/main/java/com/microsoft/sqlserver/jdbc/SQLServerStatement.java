@@ -1480,7 +1480,10 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // Handling DONE/DONEPROC/DONEINPROC tokens is a little tricky...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-                connection.getSessionRecovery().decrementUnprocessedResponseCount();
+
+                if (doneToken.isFinal()) {
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // If the done token has the attention ack bit set, then record
                 // it as the attention ack DONE token. We may or may not throw
