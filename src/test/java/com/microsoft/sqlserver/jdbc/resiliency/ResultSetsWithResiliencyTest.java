@@ -131,7 +131,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is not completely parsed, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail("Driver should not have succesfully reconnected but it did.");
+                // driver should not have successfully reconnected but it did
+                fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (SQLServerException e) {
             if (!e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientUnrecoverable"))) {
@@ -154,7 +155,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 ResiliencyUtils.killConnection(sessionId, connectionString, c, 0);
                 // ResultSet is partially buffered, connection recovery is disabled.
                 s2.execute("SELECT 1");
-                fail("Driver should not have succesfully reconnected but it did.");
+                // driver should not have successfully reconnected but it did
+                fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (SQLServerException e) {
             assertTrue(
@@ -230,6 +232,12 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
                 } catch (SQLException e) {
                     // may get different error message depending on SQL servers.
                     // Local servers will report a TDS error where as Azure servers will have a DONE error
+                    if (!(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
+                            || e.getMessage().contains(TestResource.getResource("R_sessionKilled"))
+                            || e.getMessage().contains(TestResource.getResource("R_connectionReset")))) {
+                        e.printStackTrace();
+                    }
+
                     assertTrue(
                             e.getMessage().matches(TestUtils.formatErrorMsg("R_serverError"))
                                     || e.getMessage().contains(TestResource.getResource("R_sessionKilled"))
