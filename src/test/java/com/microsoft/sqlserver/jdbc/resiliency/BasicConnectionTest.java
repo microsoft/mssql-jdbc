@@ -14,18 +14,21 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import javax.sql.PooledConnection;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -298,6 +301,68 @@ public class BasicConnectionTest extends AbstractTest {
             s.executeQuery("SELECT 1");
         } catch (SQLException e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementCacheShouldBeCleared() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int cacheSize = 2;
+            String query = String.format("/*testPreparedStatementCacheShouldBeCleared_%s*/SELECT 1; -- ",
+                    UUID.randomUUID().toString());
+            int discardedStatementCount = 1;
+
+            // enable caching
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
+
+            // add new statements to fill cache
+            for (int i = 0; i < cacheSize; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + i)) {
+                    pstmt.execute();
+                    pstmt.execute();
+                }
+            }
+
+            // nothing should be discarded yet
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // add 1 more - if cache was not cleared this would cause it to be discarded
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
+                pstmt.execute();
+                pstmt.execute();
+            }
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
+        }
+    }
+
+    @Test
+    public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int queriesToSend = 5;
+            String query = String.format("/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
+                    UUID.randomUUID());
+
+            for (int i = 0; i < queriesToSend; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + i)) {
+                    pstmt.executeQuery();
+                    pstmt.executeQuery();
+                }
+            }
+
+            // Kill the connection. If the unprocessedResponseCount is negative, test will fail.
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // Should successfully recover.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
+                pstmt.executeQuery();
+                pstmt.executeQuery();
+            }
         }
     }
 

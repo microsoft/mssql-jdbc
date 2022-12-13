@@ -390,15 +390,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
+                // decrementUnprocessedResponseCount() outside the "if" is not necessary here. It will over decrement if added.
+
                 short status = tdsReader.peekStatusFlag();
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    StreamDone doneToken = new StreamDone();
+                    doneToken.setFromTDS(tdsReader);
+                    if (doneToken.isFinal()) {
+                        stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                    }
                     SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
-
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 return false;
             }
@@ -5389,6 +5394,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+
+                if (doneToken.isFinal()) {
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
+
                 if (doneToken.isFinal() && doneToken.isError()) {
                     short status = tdsReader.peekStatusFlag();
                     SQLServerError databaseError = getDatabaseError();
@@ -5397,7 +5407,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
