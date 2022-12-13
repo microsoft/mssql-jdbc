@@ -48,7 +48,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerVSMEnclaveProvider() {}
+    public SQLServerVSMEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {

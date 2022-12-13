@@ -23,7 +23,7 @@ final class ScrollWindow implements Serializable {
     private static final long serialVersionUID = 3028807583846251111L;
 
     /** Set of marks for the rows in the window */
-    private TDSReaderMark[] rowMark;
+    private transient TDSReaderMark[] rowMark;
 
     /** Set of flags indicating which rows have been updated through the ResultSet */
     private boolean[] updatedRow;

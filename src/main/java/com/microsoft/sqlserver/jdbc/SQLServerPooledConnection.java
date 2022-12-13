@@ -46,7 +46,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     private String factoryUser, factoryPassword;
 
     /** logger */
-    private java.util.logging.Logger pcLogger;
+    private transient java.util.logging.Logger pcLogger;
 
     /** trace ID */
     private final String traceID;
@@ -55,10 +55,10 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
     static private final AtomicInteger basePooledConnectionID = new AtomicInteger(0);
 
     /** reentrant lock for connection */
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     /** reentrant lock for ConnectionEventListener */
-    private final Lock listenersLock = new ReentrantLock();
+    private final transient Lock listenersLock = new ReentrantLock();
 
     SQLServerPooledConnection(SQLServerDataSource ds, String user, String password) throws SQLException {
         listeners = new Vector<>();

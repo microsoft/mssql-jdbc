@@ -55,6 +55,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      */
     private static final long serialVersionUID = -1624082547992040463L;
 
+    /**
+     * SQL State Invalid descriptor index
+     */
+    private static final String SQLSTATE_INVALID_DESCRIPTOR_INDEX = "07009";
+
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
 
@@ -207,7 +212,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private int rowCount;
 
     /** The current row's column values */
-    private final Column[] columns;
+    private final transient Column[] columns;
 
     /** The CekTable retrieved from the COLMETADATA token for this resultset */
     private CekTable cekTable = null;
@@ -245,7 +250,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /** fetch buffer */
-    private final FetchBuffer fetchBuffer;
+    private final transient FetchBuffer fetchBuffer;
 
     @Override
     public SensitivityClassification getSensitivityClassification() {
@@ -603,7 +608,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (index < 1 || index > nCols) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
             Object[] msgArgs = {index};
-            SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
+            SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs),
+                    SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
         }
     }
 
@@ -725,7 +731,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         }
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumnName"));
         Object[] msgArgs = {userProvidedColumnName};
-        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
+        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs),
+                SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
 
         return 0;
     }
@@ -3111,7 +3118,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Verify that the column is updatable (i.e. that it is not a computed column).
         if (!columns[index - 1].isUpdatable()) {
             SQLServerException.makeFromDriverError(stmt.connection, stmt,
-                    SQLServerException.getErrString("R_cantUpdateColumn"), "07009", false);
+                    SQLServerException.getErrString("R_cantUpdateColumn"), SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
         }
 
         // Column values on the insert row are always updatable,

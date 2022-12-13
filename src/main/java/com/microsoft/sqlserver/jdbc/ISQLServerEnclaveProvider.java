@@ -440,11 +440,11 @@ abstract class BaseAttestationResponse {
         ByteBuffer enclavePKBuffer = ByteBuffer.wrap(enclavePK).order(ByteOrder.LITTLE_ENDIAN);
         byte[] rsa1 = new byte[4];
         enclavePKBuffer.get(rsa1);
-        // bit count unused
+        enclavePKBuffer.getInt(); // bit count unused
         int publicExponentLength = enclavePKBuffer.getInt();
         int publicModulusLength = enclavePKBuffer.getInt();
-        // prime 1 unused
-        // prime 2 unused
+        enclavePKBuffer.getInt(); // prime 1 unused
+        enclavePKBuffer.getInt(); // prime 2 unused
         byte[] exponent = new byte[publicExponentLength];
         enclavePKBuffer.get(exponent);
         byte[] modulus = new byte[publicModulusLength];
