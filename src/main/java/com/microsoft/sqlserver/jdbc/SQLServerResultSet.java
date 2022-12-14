@@ -396,8 +396,6 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
-
                 return false;
             }
         }
