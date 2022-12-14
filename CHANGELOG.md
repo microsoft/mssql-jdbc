@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.2.2] HotFix & Stable Release
+### Fixed issues
+- Fix connecting to the wrong SQLServer host [2005](https://github.com/microsoft/mssql-jdbc/pull/2005)
+- Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented and clear cache on recovery [2004](https://github.com/microsoft/mssql-jdbc/pull/2004)
+- Fixed callable statement index out of bounds error [2002](https://github.com/microsoft/mssql-jdbc/pull/2002)
+- Fixed check for DONE token when fetching result sets [2001](https://github.com/microsoft/mssql-jdbc/pull/2001)
+- Added locks to encrypt/decrypt in truststore password obfuscation [2000](https://github.com/microsoft/mssql-jdbc/pull/2000)
+
 ## [11.2.1] HotFix & Stable Release
 ### Fixed issues
 - Made com.microsoft.azure:msal4j an optional dependency again [1893](https://github.com/microsoft/mssql-jdbc/pull/1893)
