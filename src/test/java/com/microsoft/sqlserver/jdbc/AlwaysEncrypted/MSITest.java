@@ -123,7 +123,9 @@ public class MSITest extends AESetup {
         ds.setAuthentication("ActiveDirectoryMSI");
         AbstractTest.updateDataSource(connStr, ds);
 
-        testSimpleConnect(connStr);
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
     }
 
     /*
@@ -144,7 +146,10 @@ public class MSITest extends AESetup {
         ds.setMSIClientId(msiClientId);
         AbstractTest.updateDataSource(connStr, ds);
 
-        testSimpleConnect(connStr);
+
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
     }
 
     /*
