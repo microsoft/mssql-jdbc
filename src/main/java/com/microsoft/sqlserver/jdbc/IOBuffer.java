@@ -47,6 +47,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -2402,10 +2403,6 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
-    // list of addresses for ip selection by type preference
-    private static ArrayList<InetAddress> addressList = new ArrayList<>();
-    private static final Lock addressListLock = new ReentrantLock();
-
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2741,30 +2738,27 @@ final class SocketFinder {
     }
 
     /**
-     * Helper function which traverses through list of InetAddresses to find a resolved one
-     * 
+     * Finds a first resolved InetAddresses by IP version preference.
+     *
+     * @param addresses
+     *
+     * @param ipv6first
+     *
      * @param hostName
      * 
      * @param portNumber
      *        Port Number
      * @return First resolved address or unresolved address if none found
-     * @throws IOException
-     * @throws SQLServerException
      */
-    private InetSocketAddress getInetAddressByIPPreference(String hostName,
-            int portNumber) throws IOException, SQLServerException {
-        addressListLock.lock();
-        try {
-            InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
-            for (int i = 0; i < addressList.size(); i++) {
-                addr = new InetSocketAddress(addressList.get(i), portNumber);
-                if (!addr.isUnresolved())
-                    return addr;
-            }
-            return addr;
-        } finally {
-            addressListLock.unlock();
+    private InetSocketAddress getInetAddressByIPPreference(InetAddress addresses[], boolean ipv6first,
+                                                           String hostName, int portNumber) {
+        InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
+        for (InetAddress inetAddress : fillAddressList(addresses, ipv6first)) {
+            addr = new InetSocketAddress(inetAddress, portNumber);
+            if (!addr.isUnresolved())
+                return addr;
         }
+        return addr;
     }
 
     /**
@@ -2790,25 +2784,21 @@ final class SocketFinder {
         switch (pref) {
             case IPV6_FIRST:
                 // Try to connect to first choice of IP address type
-                fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(hostName, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No unresolved addresses of preferred type, try the other
-                fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(hostName, portNumber);
+                addr = getInetAddressByIPPreference(addresses, true, hostName, portNumber);
+                if (addr.isUnresolved()) {
+                    // No resolved addresses of preferred type, try the other
+                    addr = getInetAddressByIPPreference(addresses, false, hostName, portNumber);
+                }
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
             case IPV4_FIRST:
                 // Try to connect to first choice of IP address type
-                fillAddressList(addresses, false);
-                addr = getInetAddressByIPPreference(hostName, portNumber);
-                if (!addr.isUnresolved())
-                    return getConnectedSocket(addr, timeoutInMilliSeconds);
-                // No unresolved addresses of preferred type, try the other
-                fillAddressList(addresses, true);
-                addr = getInetAddressByIPPreference(hostName, portNumber);
+                addr = getInetAddressByIPPreference(addresses, false, hostName, portNumber);
+                if (addr.isUnresolved()) {
+                    // No resolved addresses of preferred type, try the other
+                    addr = getInetAddressByIPPreference(addresses, true, hostName, portNumber);
+                }
                 if (!addr.isUnresolved())
                     return getConnectedSocket(addr, timeoutInMilliSeconds);
                 break;
@@ -2839,33 +2829,29 @@ final class SocketFinder {
     }
 
     /**
-     * Fills static array of IP Addresses with addresses of the preferred protocol version.
+     * Returns a list of IP Addresses with addresses of the preferred protocol version.
      * 
      * @param addresses
      *        Array of all addresses
      * @param ipv6first
      *        Boolean switch for IPv6 first
      */
-    private void fillAddressList(InetAddress[] addresses, boolean ipv6first) {
-        addressListLock.lock();
-        try {
-            addressList.clear();
-            if (ipv6first) {
-                for (InetAddress addr : addresses) {
-                    if (addr instanceof Inet6Address) {
-                        addressList.add(addr);
-                    }
-                }
-            } else {
-                for (InetAddress addr : addresses) {
-                    if (addr instanceof Inet4Address) {
-                        addressList.add(addr);
-                    }
+    private List<InetAddress> fillAddressList(InetAddress[] addresses, boolean ipv6first) {
+        List<InetAddress> addressList = new ArrayList<>();
+        if (ipv6first) {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet6Address) {
+                    addressList.add(addr);
                 }
             }
-        } finally {
-            addressListLock.unlock();
+        } else {
+            for (InetAddress addr : addresses) {
+                if (addr instanceof Inet4Address) {
+                    addressList.add(addr);
+                }
+            }
         }
+        return addressList;
     }
 
     private Socket getConnectedSocket(InetAddress inetAddr, int portNumber,
