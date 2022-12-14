@@ -392,7 +392,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     }
                     SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
-                    Object[] msgArgs = {status};
+                    Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
                     SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
                 }
 
@@ -1794,8 +1794,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         RowType fetchBufferCurrentRowType = RowType.UNKNOWN;
         try {
             fetchBufferCurrentRowType = fetchBuffer.nextRow();
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
+            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)) {
                 return false;
+            }
         } catch (SQLServerException e) {
             currentRow = AFTER_LAST_ROW;
             rowErrorException = e;
@@ -5489,8 +5490,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             while (null != tdsReader && !done && fetchBufferCurrentRowType.equals(RowType.UNKNOWN))
                 TDSParser.parse(tdsReader, fetchBufferTokenHandler);
 
-            if (fetchBufferCurrentRowType.equals(RowType.UNKNOWN)
-                    && null != fetchBufferTokenHandler.getDatabaseError()) {
+            if (null != fetchBufferTokenHandler.getDatabaseError()) {
                 SQLServerException.makeFromDatabaseError(stmt.connection, null,
                         fetchBufferTokenHandler.getDatabaseError().getErrorMessage(),
                         fetchBufferTokenHandler.getDatabaseError(), false);
@@ -5550,6 +5550,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             tdsReader = responseTDSReader;
             discardFetchBuffer();
         }
+
     }
 
     /**
