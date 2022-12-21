@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -25,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
@@ -197,6 +199,100 @@ public class DateAndTimeTypeTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    /*
+     * Test to make sure that a Timestamp is treated as a datetime object.
+     */
+    @Test
+    public void testSendTimestampAsDatetime() throws Exception { 
+        String expected = "2010-02-01T23:59:59.997";
+        String actual = null;
+        String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime"); 
+            PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            Timestamp ts = Timestamp.valueOf("2010-02-01 23:59:59.996"); // if cast to a datetime, 996ms is rounded up to 997ms
+
+            /*
+            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+            */
+            stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                actual = rs.getString("value");
+            }
+
+        }
+
+        assertEquals(expected, actual.toString());
+    }
+
+    /*
+     * Test to make sure that a Timestamp is treated as a datetime2 object.
+     */
+    @Test
+    public void testSendTimestampAsDatetime2() throws Exception { 
+        String expected = "2010-02-02T23:59:59.1234567";
+        String actual = null;
+        String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2"); 
+            PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            Timestamp ts = Timestamp.valueOf("2010-02-02 23:59:59.1234567");
+
+            /*
+            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+            */
+            stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                actual = rs.getString("value");
+            }
+
+        }
+
+        assertEquals(expected, actual);
+    }
+
+    /*
+     * Test to make sure that a Timestamp is treated as a datetime2 object.
+     */
+    @Test
+    public void testSendTimestampAsDatetimeoffset() throws Exception { 
+        String expected = "2010-02-03T23:59:59.7654321Z";
+        String actual = null;
+        String query = "SELECT CONVERT(VARCHAR(40), ?, 127) as [value]";
+
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetimeoffset"); 
+            PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            Timestamp ts = Timestamp.valueOf("2010-02-03 23:59:59.7654321");
+
+            /*
+            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+            */
+            stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                actual = rs.getString("value");
+            }
+
+        }
+
+        assertEquals(expected, actual);
     }
 
     @BeforeEach
