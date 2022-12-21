@@ -928,7 +928,7 @@ final class Parameter {
             }
 
             /*
-                For older versions of SQL server and for some reason the datetimeParameterType
+                For older versions of SQL server and if for some reason the datetimeParameterType
                 connection property cannot be determined, we fall back to the "datetime"
                 format.
             */
