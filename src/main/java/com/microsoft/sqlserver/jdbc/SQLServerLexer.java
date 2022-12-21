@@ -20,7 +20,8 @@ import org.antlr.v4.runtime.dfa.DFA;
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 class SQLServerLexer extends Lexer {
     static {
-        RuntimeMetaData.checkVersion("4.9.2", RuntimeMetaData.VERSION);
+        RuntimeMetaData.checkVersion("4.9.3", RuntimeMetaData.VERSION);
+
     }
 
     protected static final DFA[] _decisionToDFA;
