@@ -900,7 +900,7 @@ final class Parameter {
         /**
          * Generates the SQL datatype to use for Java date-based values. This
          * setting can be controlled by setting the "datetimeParameterType" connection
-         * string. It defaults to "datetime2" for SQL Server 2018+ and always
+         * string. It defaults to "datetime2" for SQL Server 2008+ and always
          * uses "datetime" for older SQL Server installations.
          */
         String getDatetimeDataType(SQLServerConnection con, Integer scale) {
