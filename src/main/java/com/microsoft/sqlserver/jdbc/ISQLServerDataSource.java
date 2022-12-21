@@ -354,7 +354,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the value of the datetimeParameterType connection property. This method was added in SQL Server JDBC Driver
-     * 9.4.0. Returns the setting of the datetimeParameterType connection property.
+     * 12.2. Returns the setting of the datetimeParameterType connection property.
      * 
      * @return Returns the value of the datetimeParameterType property.
      */

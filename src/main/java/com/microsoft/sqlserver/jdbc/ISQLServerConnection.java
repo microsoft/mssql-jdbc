@@ -235,8 +235,8 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
-     * Sets the value of the datetimeParameterType connection property. This controls how SQL Server 2008+
-     * handles converting Java dates objects into SQL datatypes. By default, the value is set to "datetime2".
+     * Sets the value of the datetimeParameterType connection property, which controls how date and time parameters are sent to the server against SQL Server 2008+.
+     * This setting can affect server-side date conversions and comparisons during statement execution, particularly against SQL Server 2016+. By default, the value is set to "datetime2".
      * Valid values are: datetime, datetime2 or datetimeoffset.
      * 
      * @param datetimeParameterTypeValue
