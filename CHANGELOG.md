@@ -5,7 +5,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [11.2.2] HotFix & Stable Release
 ### Fixed issues
-- Fix connecting to the wrong SQLServer host [2005](https://github.com/microsoft/mssql-jdbc/pull/2005)
 - Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented and clear cache on recovery [2004](https://github.com/microsoft/mssql-jdbc/pull/2004)
 - Fixed callable statement index out of bounds error [2002](https://github.com/microsoft/mssql-jdbc/pull/2002)
 - Fixed check for DONE token when fetching result sets [2001](https://github.com/microsoft/mssql-jdbc/pull/2001)
