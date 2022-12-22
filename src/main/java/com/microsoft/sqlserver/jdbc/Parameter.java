@@ -894,7 +894,6 @@ final class Parameter {
             }
         }
 
-
         /**
          * Generates the SQL datatype to use for Java date-based values. This
          * setting can be controlled by setting the "datetimeParameterType" connection
@@ -905,31 +904,29 @@ final class Parameter {
             String datatype;
 
             if (con.isKatmaiOrLater()) {
-                switch (con.getDatetimeParameterType()){
-                    case "datetime2":
-                        datatype = SSType.DATETIME2.toString();
-                        if (scale != null){
-                            datatype += "(" + scale + ")";
-                        }
-                        return datatype;
-                    case "datetimeoffset":
-                        datatype = SSType.DATETIMEOFFSET.toString();
-                        if (scale != null){
-                            datatype += "(" + scale + ")";
-                        }
-                        return datatype;
-                    case "datetime":
-                    default:
-                        return SSType.DATETIME.toString();
-
+                String paramType = con.getDatetimeParameterType();
+                if (paramType.equalsIgnoreCase(DatetimeType.DATETIME2.toString())) {
+                    datatype = SSType.DATETIME2.toString();
+                    if (scale != null) {
+                        datatype += "(" + scale + ")";
+                    }
+                    return datatype;
+                } else if (paramType.equalsIgnoreCase(DatetimeType.DATETIMEOFFSET.toString())) {
+                    datatype = SSType.DATETIMEOFFSET.toString();
+                    if (scale != null) {
+                        datatype += "(" + scale + ")";
+                    }
+                    return datatype;
+                } else {
+                    return SSType.DATETIME.toString();
                 }
             }
 
             /*
-                For older versions of SQL server and if for some reason the datetimeParameterType
-                connection property cannot be determined, we fall back to the "datetime"
-                format.
-            */
+             * For older versions of SQL server and if for some reason the datetimeParameterType
+             * connection property cannot be determined, we fall back to the "datetime"
+             * format.
+             */
             return SSType.DATETIME.toString();
         }
 
