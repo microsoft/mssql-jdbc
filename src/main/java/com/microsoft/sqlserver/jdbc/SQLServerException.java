@@ -276,7 +276,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     // This code is same as the conversion logic that previously existed in connecthelper.
-    static void ConvertConnectExceptionToSQLServerException(String hostName, int portNumber, SQLServerConnection conn,
+    static void convertConnectExceptionToSQLServerException(String hostName, int portNumber, SQLServerConnection conn,
             Exception ex) throws SQLServerException {
         Exception connectException = ex;
         // Throw the exception if exception was caught by code above (stored in connectException).
@@ -395,7 +395,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @return error string concatenated by ClientConnectionId(in string format) if applicable, otherwise, return
      *         original error string.
      */
-    static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) throws SQLServerException {
+    static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) {
         if (null != conn && conn.attachConnId()) {
             UUID clientConnId = conn.getClientConIdInternal();
             assert null != clientConnId;

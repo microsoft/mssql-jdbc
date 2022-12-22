@@ -823,7 +823,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     /* ----------------- JDBC API methods ------------------ */
 
-    private void moverInit() throws SQLServerException {
+    private void moverInit() {
         fillLOBs();
         cancelInsert();
         cancelUpdates();
@@ -3521,7 +3521,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(int index, byte x[]) throws SQLException {
+    public void updateBytes(int index, byte[] x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x});
 
@@ -3532,7 +3532,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public void updateBytes(int index, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x, forceEncrypt});
 
@@ -4352,7 +4352,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(String columnName, byte x[]) throws SQLServerException {
+    public void updateBytes(String columnName, byte[] x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x});
 
@@ -4363,7 +4363,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public void updateBytes(String columnName, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x, forceEncrypt});
 

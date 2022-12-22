@@ -1179,12 +1179,10 @@ final class DataTypes {
             case NVARCHAR:
             case LONGNVARCHAR:
             case NCLOB:
-                // assert MAX_VARTYPE_MAX_CHARS == NTEXT_MAX_CHARS;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_CHARS;
                 break;
 
             default:
-                // assert MAX_VARTYPE_MAX_BYTES == IMAGE_TEXT_MAX_BYTES;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_BYTES;
                 break;
         }

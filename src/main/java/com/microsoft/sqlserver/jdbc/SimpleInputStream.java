@@ -76,7 +76,7 @@ abstract class BaseInputStream extends InputStream {
             tdsReader.stream();
     }
 
-    void closeHelper() throws IOException {
+    void closeHelper() {
         if (isAdaptive && null != dtv) {
             if (logger.isLoggable(java.util.logging.Level.FINER))
                 logger.finer(toString() + " closing the adaptive stream.");
@@ -134,8 +134,7 @@ final class SimpleInputStream extends BaseInputStream {
     /**
      * Initializes the input stream.
      */
-    SimpleInputStream(TDSReader tdsReader, int payLoadLength, InputStreamGetterArgs getterArgs,
-            ServerDTVImpl dtv) throws SQLServerException {
+    SimpleInputStream(TDSReader tdsReader, int payLoadLength, InputStreamGetterArgs getterArgs, ServerDTVImpl dtv) {
         super(tdsReader, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
         setLoggingInfo(getterArgs.logContext);
         this.payloadLength = payLoadLength;
@@ -169,7 +168,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
-    private boolean isEOS() throws IOException {
+    private boolean isEOS() {
         assert streamPos <= payloadLength;
         return (streamPos == payloadLength);
     }
@@ -277,7 +276,8 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
-    public int read(byte b[], int offset, int maxBytes) throws IOException {
+    @Override
+    public int read(byte[] b, int offset, int maxBytes) throws IOException {
         checkClosed();
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length "

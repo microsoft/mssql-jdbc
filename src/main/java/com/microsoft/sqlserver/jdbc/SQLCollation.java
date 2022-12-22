@@ -76,7 +76,7 @@ final class SQLCollation implements java.io.Serializable {
     }
 
     boolean isEqual(SQLCollation col) {
-        return ((col != null && col.info == info && col.sortId == sortId) ? true : false);
+        return (col != null && col.info == info && col.sortId == sortId);
     }
 
     /**

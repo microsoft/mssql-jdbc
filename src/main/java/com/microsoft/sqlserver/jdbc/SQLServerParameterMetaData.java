@@ -367,17 +367,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         // Do not need to wrapper SQLServerException again
         catch (SQLServerException e) {
             throw e;
-        } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
-        } catch (StringIndexOutOfBoundsException e) {
+        } catch (SQLException | StringIndexOutOfBoundsException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
         }
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        boolean f = iface.isInstance(this);
-        return f;
+        return iface.isInstance(this);
     }
 
     @Override

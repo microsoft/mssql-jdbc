@@ -18,10 +18,10 @@ import java.util.Set;
 
 
 enum TVPType {
-    ResultSet,
-    ISQLServerDataRecord,
-    SQLServerDataTable,
-    Null
+    RESULTSET,
+    ISQLSERVERDATARECORD,
+    SQLSERVERDATATABLE,
+    NULL
 }
 
 
@@ -44,9 +44,9 @@ enum TVPType {
  */
 class TVP {
 
-    String TVPName;
-    String TVP_owningSchema;
-    String TVP_dbName;
+    String tvpName;
+    String tvpOwningSchema;
+    String tvpDbName;
     ResultSet sourceResultSet = null;
     SQLServerDataTable sourceDataTable = null;
     Map<Integer, SQLServerMetaData> columnMetadata = null;
@@ -57,12 +57,12 @@ class TVP {
 
     // MultiPartIdentifierState
     enum MPIState {
-        MPI_Value,
-        MPI_ParseNonQuote,
-        MPI_LookForSeparator,
-        MPI_LookForNextCharOrSeparator,
-        MPI_ParseQuote,
-        MPI_RightQuote,
+        MPI_VALUE,
+        MPI_PARSE_NONQUOTE,
+        MPI_LOOK_FOR_SEPARATOR,
+        MPI_LOOK_FOR_NEXT_CHAR_OR_SEPARATOR,
+        MPI_PARSE_QUOTE,
+        MPI_RIGHT_QUOTE,
     }
 
     void initTVP(TVPType type, String tvpPartName) throws SQLServerException {
@@ -72,7 +72,7 @@ class TVP {
     }
 
     TVP(String tvpPartName) throws SQLServerException {
-        initTVP(TVPType.Null, tvpPartName);
+        initTVP(TVPType.NULL, tvpPartName);
     }
 
     // Name used in CREATE TYPE
@@ -80,21 +80,21 @@ class TVP {
         if (tvpPartName == null) {
             tvpPartName = tvpDataTable.getTvpName();
         }
-        initTVP(TVPType.SQLServerDataTable, tvpPartName);
+        initTVP(TVPType.SQLSERVERDATATABLE, tvpPartName);
         sourceDataTable = tvpDataTable;
         sourceDataTableRowIterator = sourceDataTable.getIterator();
         populateMetadataFromDataTable();
     }
 
     TVP(String tvpPartName, ResultSet tvpResultSet) throws SQLServerException {
-        initTVP(TVPType.ResultSet, tvpPartName);
+        initTVP(TVPType.RESULTSET, tvpPartName);
         sourceResultSet = tvpResultSet;
         // Populate TVP metadata from ResultSetMetadata.
         populateMetadataFromResultSet();
     }
 
     TVP(String tvpPartName, ISQLServerDataRecord tvpRecord) throws SQLServerException {
-        initTVP(TVPType.ISQLServerDataRecord, tvpPartName);
+        initTVP(TVPType.ISQLSERVERDATARECORD, tvpPartName);
         sourceRecord = tvpRecord;
         columnNames = new HashSet<>();
 
@@ -106,11 +106,11 @@ class TVP {
     }
 
     boolean isNull() {
-        return (TVPType.Null == tvpType);
+        return (TVPType.NULL == tvpType);
     }
 
     Object[] getRowData() throws SQLServerException {
-        if (TVPType.ResultSet == tvpType) {
+        if (TVPType.RESULTSET == tvpType) {
             int colCount = columnMetadata.size();
             Object[] rowData = new Object[colCount];
             for (int i = 0; i < colCount; i++) {
@@ -129,7 +129,7 @@ class TVP {
                 }
             }
             return rowData;
-        } else if (TVPType.SQLServerDataTable == tvpType) {
+        } else if (TVPType.SQLSERVERDATATABLE == tvpType) {
             Map.Entry<Integer, Object[]> rowPair = sourceDataTableRowIterator.next();
             return rowPair.getValue();
         } else
@@ -137,13 +137,13 @@ class TVP {
     }
 
     boolean next() throws SQLServerException {
-        if (TVPType.ResultSet == tvpType) {
+        if (TVPType.RESULTSET == tvpType) {
             try {
                 return sourceResultSet.next();
             } catch (SQLException e) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
             }
-        } else if (TVPType.SQLServerDataTable == tvpType) {
+        } else if (TVPType.SQLSERVERDATATABLE == tvpType) {
             return sourceDataTableRowIterator.hasNext();
         } else if (null != sourceRecord) {
             return sourceRecord.next();
@@ -158,8 +158,8 @@ class TVP {
                 throw new SQLServerException(SQLServerException.getErrString("R_TVPEmptyMetadata"), null);
             }
             dataTableMetaData.entrySet()
-                    .forEach(E -> columnMetadata.put(E.getKey(), new SQLServerMetaData(E.getValue().columnName,
-                            E.getValue().javaSqlType, E.getValue().precision, E.getValue().scale)));
+                    .forEach(e -> columnMetadata.put(e.getKey(), new SQLServerMetaData(e.getValue().columnName,
+                            e.getValue().javaSqlType, e.getValue().precision, e.getValue().scale)));
         }
     }
 
@@ -203,7 +203,7 @@ class TVP {
             SQLServerSortOrder columnSortOrder = columnPair.getValue().sortOrder;
             int columnSortOrdinal = columnPair.getValue().sortOrdinal;
 
-            if (SQLServerSortOrder.Unspecified != columnSortOrder) {
+            if (SQLServerSortOrder.UNSPECIFIED != columnSortOrder) {
                 // check if there's no way sort order could be monotonically increasing
                 if (columnCount <= columnSortOrdinal) {
                     MessageFormat form = new MessageFormat(
@@ -263,12 +263,12 @@ class TVP {
 
         // Right quote character to use given the left quote character found.
         char rightQuoteChar = ' ';
-        MPIState state = MPIState.MPI_Value;
+        MPIState state = MPIState.MPI_VALUE;
 
         for (int index = 0; index < name.length(); ++index) {
             char testchar = name.charAt(index);
             switch (state) {
-                case MPI_Value:
+                case MPI_VALUE:
                     int quoteIndex;
                     if (Character.isWhitespace(testchar)) // skip the whitespace
                         continue;
@@ -281,7 +281,7 @@ class TVP {
                         // If we are at left quote, record the corresponding right quote for the left quote
                         rightQuoteChar = rightQuote.charAt(quoteIndex);
                         sb.setLength(0);
-                        state = MPIState.MPI_ParseQuote;
+                        state = MPIState.MPI_PARSE_QUOTE;
                     } else if (-1 != rightQuote.indexOf(testchar)) {
                         // If we shouldn't see a right quote
                         MessageFormat form = new MessageFormat(
@@ -290,15 +290,15 @@ class TVP {
                     } else {
                         sb.setLength(0);
                         sb.append(testchar);
-                        state = MPIState.MPI_ParseNonQuote;
+                        state = MPIState.MPI_PARSE_NONQUOTE;
                     }
                     break;
 
-                case MPI_ParseNonQuote:
+                case MPI_PARSE_NONQUOTE:
                     if (testchar == separator) {
                         parsedNames[stringCount] = sb.toString(); // set the currently parsed string
                         stringCount = incrementStringCount(parsedNames, stringCount);
-                        state = MPIState.MPI_Value;
+                        state = MPIState.MPI_VALUE;
                     }
                     // Quotes are not valid inside a non-quoted name
                     else if ((-1 != rightQuote.indexOf(testchar)) || (-1 != leftQuote.indexOf(testchar))) {
@@ -314,25 +314,25 @@ class TVP {
                         // start to record the white space, if we are parsing a name like "foo bar" we should return
                         // "foo bar"
                         whitespaceSB.append(testchar);
-                        state = MPIState.MPI_LookForNextCharOrSeparator;
+                        state = MPIState.MPI_LOOK_FOR_NEXT_CHAR_OR_SEPARATOR;
                     } else
                         sb.append(testchar);
 
                     break;
 
-                case MPI_LookForNextCharOrSeparator:
+                case MPI_LOOK_FOR_NEXT_CHAR_OR_SEPARATOR:
                     if (!Character.isWhitespace(testchar)) {
                         // If it is not whitespace
                         if (testchar == separator) {
                             stringCount = incrementStringCount(parsedNames, stringCount);
-                            state = MPIState.MPI_Value;
+                            state = MPIState.MPI_VALUE;
                         } else {
                             // If its not a separator and not whitespace
                             sb.append(whitespaceSB);
                             sb.append(testchar);
                             // Need to set the name here in case the string ends here.
                             parsedNames[stringCount] = sb.toString();
-                            state = MPIState.MPI_ParseNonQuote;
+                            state = MPIState.MPI_PARSE_NONQUOTE;
                         }
                     } else {
                         if (null == whitespaceSB) {
@@ -342,24 +342,24 @@ class TVP {
                     }
                     break;
 
-                case MPI_ParseQuote:
+                case MPI_PARSE_QUOTE:
                     // if are on a right quote see if we are escaping the right quote or ending the quoted string
                     if (testchar == rightQuoteChar)
-                        state = MPIState.MPI_RightQuote;
+                        state = MPIState.MPI_RIGHT_QUOTE;
                     else
                         sb.append(testchar); // Append what we are currently parsing
                     break;
 
-                case MPI_RightQuote:
+                case MPI_RIGHT_QUOTE:
                     if (testchar == rightQuoteChar) {
                         // If the next char is a another right quote then we were escaping the right quote
                         sb.append(testchar);
-                        state = MPIState.MPI_ParseQuote;
+                        state = MPIState.MPI_PARSE_QUOTE;
                     } else if (testchar == separator) {
                         // If its a separator then record what we've parsed
                         parsedNames[stringCount] = sb.toString();
                         stringCount = incrementStringCount(parsedNames, stringCount);
-                        state = MPIState.MPI_Value;
+                        state = MPIState.MPI_VALUE;
                     } else if (!Character.isWhitespace(testchar)) {
                         // If it is not white space we got problems
                         MessageFormat form = new MessageFormat(
@@ -369,17 +369,17 @@ class TVP {
                         // It is a whitespace character
                         // the following char should be whitespace, separator, or end of string anything else is bad
                         parsedNames[stringCount] = sb.toString();
-                        state = MPIState.MPI_LookForSeparator;
+                        state = MPIState.MPI_LOOK_FOR_SEPARATOR;
                     }
                     break;
 
-                case MPI_LookForSeparator:
+                case MPI_LOOK_FOR_SEPARATOR:
                     if (!Character.isWhitespace(testchar)) {
                         // If it is not whitespace
                         if (testchar == separator) {
                             // If it is a separator
                             stringCount = incrementStringCount(parsedNames, stringCount);
-                            state = MPIState.MPI_Value;
+                            state = MPIState.MPI_VALUE;
                         } else {
                             // not a separator
                             MessageFormat form = new MessageFormat(
@@ -398,17 +398,17 @@ class TVP {
 
         // Resolve final states after parsing the string
         switch (state) {
-            case MPI_Value: // These states require no extra action
-            case MPI_LookForSeparator:
-            case MPI_LookForNextCharOrSeparator:
+            case MPI_VALUE: // These states require no extra action
+            case MPI_LOOK_FOR_SEPARATOR:
+            case MPI_LOOK_FOR_NEXT_CHAR_OR_SEPARATOR:
                 break;
 
-            case MPI_ParseNonQuote: // Dump what ever was parsed
-            case MPI_RightQuote:
+            case MPI_PARSE_NONQUOTE: // Dump what ever was parsed
+            case MPI_RIGHT_QUOTE:
                 parsedNames[stringCount] = sb.toString();
                 break;
 
-            case MPI_ParseQuote: // Invalid Ending States
+            case MPI_PARSE_QUOTE: // Invalid Ending States
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidThreePartName"));
                 throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
@@ -428,9 +428,9 @@ class TVP {
                 }
             }
         }
-        this.TVPName = parsedNames[2];
-        this.TVP_owningSchema = parsedNames[1];
-        this.TVP_dbName = parsedNames[0];
+        this.tvpName = parsedNames[2];
+        this.tvpOwningSchema = parsedNames[1];
+        this.tvpDbName = parsedNames[0];
     }
 
     /*
@@ -451,15 +451,15 @@ class TVP {
     }
 
     String getTVPName() {
-        return TVPName;
+        return tvpName;
     }
 
     String getDbNameTVP() {
-        return TVP_dbName;
+        return tvpDbName;
     }
 
     String getOwningSchemaNameTVP() {
-        return TVP_owningSchema;
+        return tvpOwningSchema;
     }
 
     int getTVPColumnCount() {

@@ -59,7 +59,7 @@ class SharedTimer implements Serializable {
     private final AtomicInteger refCount = new AtomicInteger();
 
     private static volatile SharedTimer instance;
-    private ScheduledThreadPoolExecutor executor;
+    private transient ScheduledThreadPoolExecutor executor;
 
     private SharedTimer() {
         executor = new ScheduledThreadPoolExecutor(1, task -> {

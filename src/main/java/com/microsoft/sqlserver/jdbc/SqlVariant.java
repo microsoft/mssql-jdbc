@@ -40,7 +40,7 @@ enum sqlVariantProbBytes {
     private final int intValue;
 
     private static final int MAXELEMENTS = 23;
-    private static final sqlVariantProbBytes valuesTypes[] = new sqlVariantProbBytes[MAXELEMENTS];
+    private static final sqlVariantProbBytes[] valuesTypes = new sqlVariantProbBytes[MAXELEMENTS];
 
     private sqlVariantProbBytes(int intValue) {
         this.intValue = intValue;

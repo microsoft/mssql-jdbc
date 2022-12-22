@@ -11,7 +11,7 @@ package com.microsoft.sqlserver.jdbc;
  */
 
 final class StreamSSPI extends StreamPacket {
-    byte sspiBlob[];
+    byte[] sspiBlob;
 
     StreamSSPI() {
         super(TDS.TDS_SSPI);

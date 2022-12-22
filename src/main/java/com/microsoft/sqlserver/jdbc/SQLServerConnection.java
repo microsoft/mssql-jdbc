@@ -1432,7 +1432,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int maxFieldSize; // default: 0 --> no limit
 
     final void setMaxFieldSize(int limit) throws SQLServerException {
-        // assert limit >= 0;
         if (maxFieldSize != limit) {
             if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
@@ -1464,7 +1463,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private int maxRows; // default: 0 --> no limit
 
     final void setMaxRows(int limit) throws SQLServerException {
-        // assert limit >= 0;
         if (maxRows != limit) {
             if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
@@ -1875,8 +1873,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw new SQLServerException(form.format(msgArgs), null);
             }
         } else {
-            KeyStoreAuthentication keyStoreAuthentication = KeyStoreAuthentication.valueOfString(keyStoreAuth);
-            switch (keyStoreAuthentication) {
+            KeyStoreAuthentication auth = KeyStoreAuthentication.valueOfString(keyStoreAuth);
+            switch (auth) {
                 case JAVA_KEYSTORE_PASSWORD:
                     setKeyStoreSecretAndLocation(keyStoreSecret, keyStoreLocation);
                     break;
@@ -2226,7 +2224,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 transparentNetworkIPResolution = isBooleanPropertyOn(sPropKey, sPropValue);
 
-                sPropKey = SQLServerDriverStringProperty.ENCRYPT.toString();
                 sPropKey = SQLServerDriverStringProperty.PREPARE_METHOD.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -2624,14 +2621,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         requestedPacketSize = TDS.INVALID_PACKET_SIZE;
                     }
 
-                    if (TDS.SERVER_PACKET_SIZE != requestedPacketSize) {
-                        // Complain if the packet size is not in the range acceptable to the server.
-                        if (requestedPacketSize < TDS.MIN_PACKET_SIZE || requestedPacketSize > TDS.MAX_PACKET_SIZE) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_invalidPacketSize"));
-                            Object[] msgArgs = {sPropValue};
-                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                        }
+                    // Complain if the packet size is not in the range acceptable to the server.
+                    if (TDS.SERVER_PACKET_SIZE != requestedPacketSize && (requestedPacketSize < TDS.MIN_PACKET_SIZE
+                            || requestedPacketSize > TDS.MAX_PACKET_SIZE)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPacketSize"));
+                        Object[] msgArgs = {sPropValue};
+                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
                 }
 
@@ -3464,8 +3459,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (sessionRecovery.isReconnectRunning()) {
             if (negotiatedEncryptionLevel != sessionRecovery.getSessionStateTable()
                     .getOriginalNegotiatedEncryptionLevel()) {
-                connectionlogger.warning(toString()
-                        + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                if (connectionlogger.isLoggable(Level.WARNING)) {
+                    connectionlogger.warning(toString()
+                            + " The server did not preserve SSL encryption during a recovery attempt, connection recovery is not possible.");
+                }
                 terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
                         SQLServerException.getErrString("R_crClientSSLStateNotRecoverable"));
                 // fails fast similar to pre-login errors.
@@ -3557,11 +3554,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // PL_OPTION_DATA
         byte[] preloginOptionData = {
                 // Driver major and minor version, 1 byte each
-                (byte) SQLJdbcVersion.major, (byte) SQLJdbcVersion.minor,
+                (byte) SQLJdbcVersion.MAJOR, (byte) SQLJdbcVersion.MINOR,
                 // Revision (Big Endian), 2 bytes
-                (byte) ((SQLJdbcVersion.patch & 0xff00) >> 8), (byte) (SQLJdbcVersion.patch & 0xff),
+                (byte) ((SQLJdbcVersion.PATCH & 0xff00) >> 8), (byte) (SQLJdbcVersion.PATCH & 0xff),
                 // Build (Little Endian), 2 bytes
-                (byte) (SQLJdbcVersion.build & 0xff), (byte) ((SQLJdbcVersion.build & 0xff00) >> 8),
+                (byte) (SQLJdbcVersion.BUILD & 0xff), (byte) ((SQLJdbcVersion.BUILD & 0xff00) >> 8),
 
                 // Encryption
                 // turn encryption off for TDS 8 since it's already enabled
@@ -4198,10 +4195,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        the new catalog
      */
     void setCatalogName(String sDB) {
-        if (sDB != null) {
-            if (sDB.length() > 0) {
-                sCatalog = sDB;
-            }
+        if (sDB != null && sDB.length() > 0) {
+            sCatalog = sDB;
         }
     }
 
@@ -4212,10 +4207,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        the new language
      */
     void setLanguageName(String language) {
-        if (language != null) {
-            if (language.length() > 0) {
-                sLanguage = language;
-            }
+        if (language != null && language.length() > 0) {
+            sLanguage = language;
         }
     }
 
@@ -4703,13 +4696,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public void setTypeMap(java.util.Map<String, Class<?>> map) throws SQLException {
         loggerExternal.entering(loggingClassName, "setTypeMap", map);
         checkClosed();
-        if (map != null && (map instanceof java.util.HashMap)) {
-            // we return an empty Hash map if the user gives this back make sure we accept it.
-            if (map.isEmpty()) {
-                loggerExternal.exiting(loggingClassName, "setTypeMap");
-                return;
-            }
-
+        // we return an empty Hash map if the user gives this back make sure we accept it.
+        if (map != null && (map instanceof java.util.HashMap) && map.isEmpty()) {
+            loggerExternal.exiting(loggingClassName, "setTypeMap");
+            return;
         }
         SQLServerException.throwNotSupportedException(this, null);
     }
@@ -6207,7 +6197,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
-        String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor;
+        String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         String serverName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getServerName()
@@ -6233,8 +6223,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         byte appNameBytes[] = toUCS16(appName);
         byte serverNameBytes[] = toUCS16(serverName);
         byte interfaceLibNameBytes[] = toUCS16(interfaceLibName);
-        byte interfaceLibVersionBytes[] = {(byte) SQLJdbcVersion.build, (byte) SQLJdbcVersion.patch,
-                (byte) SQLJdbcVersion.minor, (byte) SQLJdbcVersion.major};
+        byte interfaceLibVersionBytes[] = {(byte) SQLJdbcVersion.BUILD, (byte) SQLJdbcVersion.PATCH,
+                (byte) SQLJdbcVersion.MINOR, (byte) SQLJdbcVersion.MAJOR};
         byte databaseNameBytes[] = toUCS16(databaseName);
         byte netAddress[] = new byte[6];
         int dataLen = 0;

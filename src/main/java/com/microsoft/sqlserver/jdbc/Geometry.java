@@ -64,13 +64,13 @@ public class Geometry extends SQLServerSpatialDatatype {
 
         parseClr(this);
 
-        WKTsb = new StringBuffer();
-        WKTsbNoZM = new StringBuffer();
+        wktSb = new StringBuffer();
+        wktSbNoZM = new StringBuffer();
 
         constructWKT(this, internalType, numberOfPoints, numberOfFigures, numberOfSegments, numberOfShapes);
 
-        wkt = WKTsb.toString();
-        wktNoZM = WKTsbNoZM.toString();
+        wkt = wktSb.toString();
+        wktNoZM = wktSbNoZM.toString();
         isNull = false;
     }
 
@@ -169,10 +169,10 @@ public class Geometry extends SQLServerSpatialDatatype {
 
             parseClr(this);
 
-            WKTsb = new StringBuffer();
-            WKTsbNoZM = new StringBuffer();
+            wktSb = new StringBuffer();
+            wktSbNoZM = new StringBuffer();
             constructWKT(this, internalType, numberOfPoints, numberOfFigures, numberOfSegments, numberOfShapes);
-            wktNoZM = WKTsbNoZM.toString();
+            wktNoZM = wktSbNoZM.toString();
         }
         return wktNoZM;
     }
