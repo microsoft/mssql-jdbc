@@ -12,37 +12,38 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+
 /**
- * Internal class implements a cache data structure based on ConcurrentHashMap. The cache uses a scheduler to 
+ * Internal class implements a cache data structure based on ConcurrentHashMap. The cache uses a scheduler to
  * provide eviction for the cache entry according to the pre-defined time-to-live value.
  * 
- * This class is used as local caches for the column encrypted keys and the results of signature verification of 
+ * This class is used as local caches for the column encrypted keys and the results of signature verification of
  * column master key metadata. Refer to SQLServerColumnEncryptionAzureKeyVaultProvider for an example.
  */
-final class SimpleTtlCache<K,V> {    
+final class SimpleTtlCache<K, V> {
 
-    // This class clears cache entry when it is called by scheduler. 
+    // This class clears cache entry when it is called by scheduler.
     class CacheClear implements Runnable {
-    
+
         private K keylookupValue;
         final private java.util.logging.Logger logger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache.CacheClear");
-    
+                .getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache.CacheClear");
+
         CacheClear(K keylookupValue) {
             this.keylookupValue = keylookupValue;
         }
-    
+
         @Override
         public void run() {
             // remove() is a no-op if the key is not in the map.
             // It is a concurrentHashMap, update/remove operations are thread safe.
             if (cache.containsKey(keylookupValue)) {
                 V value = cache.get(keylookupValue);
-                
+
                 if (value instanceof SQLServerSymmetricKey) {
                     ((SQLServerSymmetricKey) value).zeroOutKey();
                 }
-                
+
                 cache.remove(keylookupValue);
                 if (logger.isLoggable(java.util.logging.Level.FINE)) {
                     logger.fine("Removed key from cache...");
@@ -51,11 +52,12 @@ final class SimpleTtlCache<K,V> {
         }
     }
 
-    private static final java.util.logging.Logger simpleCacheLogger = java.util.logging.Logger.getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache");
-    private static final long defaultTTLInHours = 2;  
+    private static final java.util.logging.Logger simpleCacheLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.SimpleTtlCache");
+    private static final long DEFAULT_TTL_IN_HOURS = 2;
 
     private final ConcurrentHashMap<K, V> cache;
-    private Duration cacheTtl = Duration.ofHours(defaultTTLInHours);  // The default time-to-live is set to 2 hours.
+    private Duration cacheTtl = Duration.ofHours(DEFAULT_TTL_IN_HOURS); // The default time-to-live is set to 2 hours.
 
     private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
         @Override
@@ -158,7 +160,7 @@ final class SimpleTtlCache<K,V> {
     V put(K key, V value) {
         V previousValue = null;
         long cacheTtlInSeconds = cacheTtl.getSeconds();
-        
+
         if (0 < cacheTtlInSeconds) {
             previousValue = cache.put(key, value);
             if (simpleCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {

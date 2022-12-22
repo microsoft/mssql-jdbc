@@ -777,7 +777,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         when an error occurs
      */
-    void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void updateBytes(int index, byte[] x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update
@@ -1283,7 +1283,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void updateBytes(String columnName, byte[] x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Updates the designated column with a <code>java.sql.Date</code> value. The updater methods are used to update

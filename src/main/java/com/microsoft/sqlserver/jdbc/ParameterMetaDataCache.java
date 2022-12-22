@@ -20,8 +20,8 @@ import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
  */
 class ParameterMetaDataCache {
 
-    static int CACHE_SIZE = 2000; // Size of the cache in number of entries
-    static int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
+    static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
+    static final int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
     static CryptoCache cache = new CryptoCache();
     static private java.util.logging.Logger metadataCacheLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache");
@@ -44,7 +44,7 @@ class ParameterMetaDataCache {
     static boolean getQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
             SQLServerConnection connection, SQLServerStatement stmt, String userSql) throws SQLServerException {
 
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(connection, userSql);
         ConcurrentLinkedHashMap<String, CryptoMetadata> metadataMap = cache.getCacheEntry(encryptionValues.getKey());
 
         if (metadataMap == null) {
@@ -143,7 +143,7 @@ class ParameterMetaDataCache {
     static boolean addQueryMetadata(Parameter[] params, ArrayList<String> parameterNames,
             SQLServerConnection connection, SQLServerStatement stmt, String userSql) throws SQLServerException {
 
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(connection, userSql);
         if (encryptionValues.getKey() == null) {
             return false;
         }
@@ -187,7 +187,7 @@ class ParameterMetaDataCache {
                 }
                 count++;
             }
-            
+
             if (metadataCacheLogger.isLoggable(java.util.logging.Level.FINEST)) {
                 metadataCacheLogger.finest("Cache successfully trimmed.");
             }
@@ -209,7 +209,7 @@ class ParameterMetaDataCache {
      *        The query executed by the user
      */
     static void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection, String userSql) {
-        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(stmt, connection, userSql);
+        AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(connection, userSql);
         if (encryptionValues.getKey() == null) {
             return;
         }
@@ -229,8 +229,8 @@ class ParameterMetaDataCache {
      *        The query executed by the user
      * @return A key value pair containing cache lookup key and enclave lookup key
      */
-    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerStatement statement,
-            SQLServerConnection connection, String userSql) {
+    private static AbstractMap.SimpleEntry<String, String> getCacheLookupKeys(SQLServerConnection connection,
+            String userSql) {
 
         StringBuilder cacheLookupKeyBuilder = new StringBuilder();
         cacheLookupKeyBuilder.append(":::");

@@ -42,7 +42,6 @@ final class StreamRetValue extends StreamPacket {
     }
 
     CryptoMetadata getCryptoMetadata(TDSReader tdsReader) throws SQLServerException {
-        CryptoMetadata cryptoMeta = (new StreamColumns()).readCryptoMetadata(tdsReader);
-        return cryptoMeta;
+        return (new StreamColumns()).readCryptoMetadata(tdsReader);
     }
 }

@@ -351,15 +351,15 @@ abstract class BaseAttestationRequest {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
-        byte[] x = new byte[BIG_INTEGER_SIZE];
-        byte[] y = new byte[BIG_INTEGER_SIZE];
-        sr.get(x);
-        sr.get(y);
+        byte[] xx = new byte[BIG_INTEGER_SIZE];
+        byte[] yy = new byte[BIG_INTEGER_SIZE];
+        sr.get(xx);
+        sr.get(yy);
         /*
          * Server returns X and Y coordinates, create a key using the point of the server and our key parameters.
          * Public/Private key parameters are the same.
          */
-        ECPublicKeySpec keySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(1, x), new BigInteger(1, y)),
+        ECPublicKeySpec keySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(1, xx), new BigInteger(1, yy)),
                 ((ECPrivateKey) privateKey).getParams());
         KeyAgreement ka = KeyAgreement.getInstance("ECDH");
         ka.init(privateKey);
@@ -417,8 +417,8 @@ abstract class BaseAttestationResponse {
     protected byte[] enclavePK;
     protected int sessionInfoSize;
     protected byte[] sessionID = new byte[8];
-    protected int DHPKsize;
-    protected int DHPKSsize;
+    protected int dhpkSize;
+    protected int dhpkSsize;
     protected byte[] DHpublicKey;
     protected byte[] publicKeySig;
 

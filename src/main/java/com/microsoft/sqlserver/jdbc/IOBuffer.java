@@ -665,7 +665,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -726,7 +726,7 @@ final class TDSChannel implements Serializable {
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
-            SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(host, port, con, ex);
         }
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
@@ -886,7 +886,7 @@ final class TDSChannel implements Serializable {
             return n;
         }
 
-        private final byte oneByte[] = new byte[1];
+        private final byte[] oneByte = new byte[1];
 
         @Override
         public int read() throws IOException {
@@ -904,11 +904,11 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public int read(byte b[], int offset, int maxBytes) throws IOException {
+        public int read(byte[] b, int offset, int maxBytes) throws IOException {
             return readInternal(b, offset, maxBytes);
         }
 
-        private int readInternal(byte b[], int offset, int maxBytes) throws IOException {
+        private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Reading " + maxBytes + " bytes...");
 
@@ -972,7 +972,7 @@ final class TDSChannel implements Serializable {
             messageStarted = false;
         }
 
-        private final byte singleByte[] = new byte[1];
+        private final byte[] singleByte = new byte[1];
 
         @Override
         public void write(int b) throws IOException {
@@ -1134,7 +1134,7 @@ final class TDSChannel implements Serializable {
             return bytesAvailable;
         }
 
-        private final byte oneByte[] = new byte[1];
+        private final byte[] oneByte = new byte[1];
 
         @Override
         public int read() throws IOException {
@@ -1631,7 +1631,7 @@ final class TDSChannel implements Serializable {
             String serverCert = con.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.SERVER_CERTIFICATE.toString());
 
-            isFips = Boolean.valueOf(
+            isFips = Boolean.parseBoolean(
                     con.activeConnectionProperties.getProperty(SQLServerDriverBooleanProperty.FIPS.toString()));
             if (isFips) {
                 validateFips(trustStoreType, trustStoreFileName);
@@ -2225,13 +2225,11 @@ final class TDSChannel implements Serializable {
      * @param messageDetail
      *        other loggable details about the payload
      */
-    /* L0 */ void logPacket(byte data[], int nStartOffset, int nLength, String messageDetail) {
+    void logPacket(byte[] data, int nStartOffset, int nLength, String messageDetail) {
         assert 0 <= nLength && nLength <= data.length;
         assert 0 <= nStartOffset && nStartOffset <= data.length;
 
-        final char hexChars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
-        final char printableChars[] = {'.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
+        final char[] printableChars = {'.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.',
                 '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', ' ', '!', '\"', '#',
                 '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7',
                 '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -2251,7 +2249,7 @@ final class TDSChannel implements Serializable {
         // 012345678911111111112222222222333333333344444444445555555555666666
         // 01234567890123456789012345678901234567890123456789012345
         //
-        final char lineTemplate[] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        final char[] lineTemplate = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                 ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
 
@@ -2259,7 +2257,7 @@ final class TDSChannel implements Serializable {
 
                 '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'};
 
-        char logLine[] = new char[lineTemplate.length];
+        char[] logLine = new char[lineTemplate.length];
         System.arraycopy(lineTemplate, 0, logLine, 0, lineTemplate.length);
 
         // Logging builds up a string buffer for the entire log trace
@@ -2285,8 +2283,8 @@ final class TDSChannel implements Serializable {
             // Fill up the line with as many bytes as we can (up to 16 bytes)
             for (nBytesThisLine = 0; nBytesThisLine < 16 && nBytesLogged < nLength; nBytesThisLine++, nBytesLogged++) {
                 int nUnsignedByteVal = (data[nStartOffset + nBytesLogged] + 256) % 256;
-                logLine[3 * nBytesThisLine] = hexChars[nUnsignedByteVal / 16];
-                logLine[3 * nBytesThisLine + 1] = hexChars[nUnsignedByteVal % 16];
+                logLine[3 * nBytesThisLine] = Util.HEXCHARS[nUnsignedByteVal / 16];
+                logLine[3 * nBytesThisLine + 1] = Util.HEXCHARS[nUnsignedByteVal % 16];
                 logLine[50 + nBytesThisLine] = printableChars[nUnsignedByteVal];
             }
 
@@ -2538,7 +2536,7 @@ final class SocketFinder {
             Thread.currentThread().interrupt();
 
             close(selectedSocket);
-            SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         } catch (IOException ex) {
             close(selectedSocket);
             // The code below has been moved from connectHelper.
@@ -2550,7 +2548,7 @@ final class SocketFinder {
             // That would be a bit awkward, because connecthelper(the caller of open)
             // just wraps IOException into SQLServerException and throws SQLServerException.
             // Instead, it would be good to wrap all exceptions at one place - Right here, their origin.
-            SQLServerException.ConvertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
+            SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
 
         }
 
@@ -2750,8 +2748,8 @@ final class SocketFinder {
      *        Port Number
      * @return First resolved address or unresolved address if none found
      */
-    private InetSocketAddress getInetAddressByIPPreference(InetAddress addresses[], boolean ipv6first,
-                                                           String hostName, int portNumber) {
+    private InetSocketAddress getInetAddressByIPPreference(InetAddress addresses[], boolean ipv6first, String hostName,
+            int portNumber) {
         InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
         for (InetAddress inetAddress : fillAddressList(addresses, ipv6first)) {
             addr = new InetSocketAddress(inetAddress, portNumber);
@@ -2779,7 +2777,7 @@ final class SocketFinder {
     private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
-        InetAddress addresses[] = InetAddress.getAllByName(hostName);
+        InetAddress[] addresses = InetAddress.getAllByName(hostName);
         IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
         switch (pref) {
             case IPV6_FIRST:
@@ -3315,7 +3313,7 @@ final class TDSWriter {
     // Intermediate array used to convert typically "small" values such as fixed-length types
     // (byte, int, long, etc.) and Strings from their native form to bytes for sending to
     // the channel buffers.
-    private byte valueBytes[] = new byte[256];
+    private byte[] valueBytes = new byte[256];
 
     // Monotonically increasing packet number associated with the current message
     private int packetNum = 0;
@@ -3853,8 +3851,8 @@ final class TDSWriter {
                     minutesOffset = 0;
                     timestampString = stringValue;
                 } else {
-                    minutesOffset = 60 * Integer.valueOf(offsetString.substring(1, 3))
-                            + Integer.valueOf(offsetString.substring(4, 6));
+                    minutesOffset = 60 * Integer.parseInt(offsetString.substring(1, 3))
+                            + Integer.parseInt(offsetString.substring(4, 6));
                     timestampString = stringValue.substring(0, lastColon - 4);
 
                     if (offsetString.startsWith("-"))
@@ -3872,12 +3870,12 @@ final class TDSWriter {
 
                 calendar = new GregorianCalendar(timeZone);
 
-                int year = Integer.valueOf(timestampString.substring(0, 4));
-                int month = Integer.valueOf(timestampString.substring(5, 7));
-                int day = Integer.valueOf(timestampString.substring(8, 10));
-                int hour = Integer.valueOf(timestampString.substring(11, 13));
-                int minute = Integer.valueOf(timestampString.substring(14, 16));
-                int second = Integer.valueOf(timestampString.substring(17, 19));
+                int year = Integer.parseInt(timestampString.substring(0, 4));
+                int month = Integer.parseInt(timestampString.substring(5, 7));
+                int day = Integer.parseInt(timestampString.substring(8, 10));
+                int hour = Integer.parseInt(timestampString.substring(11, 13));
+                int minute = Integer.parseInt(timestampString.substring(14, 16));
+                int second = Integer.parseInt(timestampString.substring(17, 19));
 
                 subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
                         .scaleByPowerOfTen(9).intValue() : 0;
@@ -4267,7 +4265,7 @@ final class TDSWriter {
                     bytesToWrite = charsToWrite / 2;
 
                 streamString = new String(streamCharBuffer, 0, currentPacketSize);
-                byte[] bytes = ParameterUtils.HexToBin(streamString.trim());
+                byte[] bytes = ParameterUtils.hexToBin(streamString.trim());
                 writeInt(bytesToWrite);
                 writeBytes(bytes, 0, bytesToWrite);
             }
@@ -4895,9 +4893,7 @@ final class TDSWriter {
 
         try {
             writeTVPRows(value);
-        } catch (NumberFormatException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
-        } catch (ClassCastException e) {
+        } catch (NumberFormatException | ClassCastException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_TVPInvalidColumnValue"), e);
         }
     }
@@ -4918,13 +4914,12 @@ final class TDSWriter {
             // is used, the tdsWriter of the calling preparedStatement is overwritten by the SQLServerResultSet#next()
             // method when fetching new rows.
             // Therefore, we need to send TVP data row by row before fetching new row.
-            if ((TVPType.ResultSet == value.tvpType)
-                    && ((null != value.sourceResultSet) && (value.sourceResultSet instanceof SQLServerResultSet))) {
+            if ((TVPType.RESULTSET == value.tvpType) && (value.sourceResultSet instanceof SQLServerResultSet)) {
                 SQLServerResultSet sourceResultSet = (SQLServerResultSet) value.sourceResultSet;
-                SQLServerStatement src_stmt = (SQLServerStatement) sourceResultSet.getStatement();
+                SQLServerStatement srcStmt = (SQLServerStatement) sourceResultSet.getStatement();
                 int resultSetServerCursorId = sourceResultSet.getServerCursorId();
 
-                if (con.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+                if (con.equals(srcStmt.getConnection()) && 0 != resultSetServerCursorId) {
                     cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
                     cachedTVPHeaders.put(stagingBuffer.array(), 0, ((Buffer) stagingBuffer).position());
 
@@ -5037,7 +5032,7 @@ final class TDSWriter {
                     } else {
                         writeByte((byte) 8);
                     }
-                    writeLong(Long.valueOf(currentColumnStringValue).longValue());
+                    writeLong(Long.parseLong(currentColumnStringValue));
                 }
                 break;
 
@@ -5049,7 +5044,7 @@ final class TDSWriter {
                         writeTVPSqlVariantHeader(3, TDSType.BIT1.byteValue(), (byte) 0);
                     else
                         writeByte((byte) 1);
-                    writeByte((byte) (Boolean.valueOf(currentColumnStringValue).booleanValue() ? 1 : 0));
+                    writeByte((byte) (Boolean.parseBoolean(currentColumnStringValue) ? 1 : 0));
                 }
                 break;
 
@@ -5061,7 +5056,7 @@ final class TDSWriter {
                         writeByte((byte) 4);
                     else
                         writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                    writeInt(Integer.valueOf(currentColumnStringValue).intValue());
+                    writeInt(Integer.parseInt(currentColumnStringValue));
                 }
                 break;
 
@@ -5072,10 +5067,10 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0);
-                        writeInt(Integer.valueOf(currentColumnStringValue));
+                        writeInt(Integer.parseInt(currentColumnStringValue));
                     } else {
                         writeByte((byte) 2); // length of datatype
-                        writeShort(Short.valueOf(currentColumnStringValue).shortValue());
+                        writeShort(Short.parseShort(currentColumnStringValue));
                     }
                 }
                 break;
@@ -5118,11 +5113,11 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0);
-                        writeDouble(Double.valueOf(currentColumnStringValue));
+                        writeDouble(Double.parseDouble(currentColumnStringValue));
                         break;
                     }
                     writeByte((byte) 8); // len of data bytes
-                    long bits = Double.doubleToLongBits(Double.valueOf(currentColumnStringValue).doubleValue());
+                    long bits = Double.doubleToLongBits(Double.parseDouble(currentColumnStringValue));
                     long mask = 0xFF;
                     int nShift = 0;
                     for (int i = 0; i < 8; i++) {
@@ -5140,10 +5135,10 @@ final class TDSWriter {
                 else {
                     if (isSqlVariant) {
                         writeTVPSqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                        writeInt(Float.floatToRawIntBits(Float.parseFloat(currentColumnStringValue)));
                     } else {
                         writeByte((byte) 4);
-                        writeInt(Float.floatToRawIntBits(Float.valueOf(currentColumnStringValue).floatValue()));
+                        writeInt(Float.floatToRawIntBits(Float.parseFloat(currentColumnStringValue)));
                     }
                 }
                 break;
@@ -5247,7 +5242,7 @@ final class TDSWriter {
                 isShortValue = columnPair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentObject);
                 if (currentObject instanceof String)
-                    dataLength = ParameterUtils.HexToBin(currentObject.toString()).length;
+                    dataLength = ParameterUtils.hexToBin(currentObject.toString()).length;
                 else
                     dataLength = isNull ? 0 : ((byte[]) currentObject).length;
                 if (!isShortValue) {
@@ -5266,7 +5261,7 @@ final class TDSWriter {
                         if (dataLength > 0) {
                             writeInt(dataLength);
                             if (currentObject instanceof String)
-                                writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                                writeBytes(ParameterUtils.hexToBin(currentObject.toString()));
                             else
                                 writeBytes((byte[]) currentObject);
                         }
@@ -5279,7 +5274,7 @@ final class TDSWriter {
                     else {
                         writeShort((short) dataLength);
                         if (currentObject instanceof String)
-                            writeBytes(ParameterUtils.HexToBin(currentObject.toString()));
+                            writeBytes(ParameterUtils.hexToBin(currentObject.toString()));
                         else
                             writeBytes((byte[]) currentObject);
                     }
@@ -5457,9 +5452,9 @@ final class TDSWriter {
             Map.Entry<Integer, SQLServerMetaData> pair = columnsIterator.next();
             SQLServerMetaData metaData = pair.getValue();
 
-            if (SQLServerSortOrder.Ascending == metaData.sortOrder)
+            if (SQLServerSortOrder.ASCENDING == metaData.sortOrder)
                 flags = TDS.TVP_ORDERASC_FLAG;
-            else if (SQLServerSortOrder.Descending == metaData.sortOrder)
+            else if (SQLServerSortOrder.DESCENDING == metaData.sortOrder)
                 flags = TDS.TVP_ORDERDESC_FLAG;
             if (metaData.isUniqueKey)
                 flags |= TDS.TVP_UNIQUE_FLAG;
@@ -5498,7 +5493,7 @@ final class TDSWriter {
         return cryptoMeta;
     }
 
-    void writeEncryptedRPCByteArray(byte bValue[]) throws SQLServerException {
+    void writeEncryptedRPCByteArray(byte[] bValue) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         long nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5556,7 +5551,7 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCByteArray(String sName, byte bValue[], boolean bOut, JDBCType jdbcType,
+    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
@@ -5849,7 +5844,7 @@ final class TDSWriter {
                                                                           : minutesSinceMidnight;
 
             // minutesSinceMidnight for (23:59:30)
-            int maxMinutesSinceMidnight_SmallDateTime = 1440;
+            int maxMinutesSinceMidnightSmallDateTime = 1440;
             // Verification for smalldatetime to be within valid range of (1900.01.01) to (2079.06.06)
             // smalldatetime for unencrypted does not allow insertion of 2079.06.06 23:59:59 and it is rounded up
             // to 2079.06.07 00:00:00, therefore, we are checking minutesSinceMidnight for that condition. If it's not
@@ -5859,7 +5854,7 @@ final class TDSWriter {
             if ((daysSinceSQLBaseDate < DDC.daysSinceBaseDate(1900, 1, TDS.BASE_YEAR_1900)
                     || daysSinceSQLBaseDate > DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900))
                     || (daysSinceSQLBaseDate == DDC.daysSinceBaseDate(2079, 157, TDS.BASE_YEAR_1900)
-                            && minutesSinceMidnight >= maxMinutesSinceMidnight_SmallDateTime)) {
+                            && minutesSinceMidnight >= maxMinutesSinceMidnightSmallDateTime)) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
                 Object[] msgArgs = {SSType.SMALLDATETIME};
                 throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW,
@@ -5980,9 +5975,8 @@ final class TDSWriter {
      * #507919
      */
     private int getRoundedSubSecondNanos(int subSecondNanos) {
-        int roundedNanos = ((subSecondNanos + (Nanos.PER_MAX_SCALE_INTERVAL / 2)) / Nanos.PER_MAX_SCALE_INTERVAL)
+        return ((subSecondNanos + (Nanos.PER_MAX_SCALE_INTERVAL / 2)) / Nanos.PER_MAX_SCALE_INTERVAL)
                 * Nanos.PER_MAX_SCALE_INTERVAL;
-        return roundedNanos;
     }
 
     /**
@@ -6110,7 +6104,7 @@ final class TDSWriter {
                         DriverError.NOT_SET, null);
             }
 
-            byte encodedBytes[] = new byte[3];
+            byte[] encodedBytes = new byte[3];
             encodedBytes[0] = (byte) ((daysIntoCE >> 0) & 0xFF);
             encodedBytes[1] = (byte) ((daysIntoCE >> 8) & 0xFF);
             encodedBytes[2] = (byte) ((daysIntoCE >> 16) & 0xFF);
@@ -6145,7 +6139,7 @@ final class TDSWriter {
                 || SSType.DATETIMEOFFSET == ssType : UNEXPECTED_SSTYPE + ssType;
 
         // store the time and minutesOffset portion of DATETIME2 and DATETIMEOFFSET to be used with date portion
-        byte encodedBytesForEncryption[] = null;
+        byte[] encodedBytesForEncryption = null;
 
         int secondsSinceMidnight = 0;
         long divisor = 0;
@@ -6220,8 +6214,7 @@ final class TDSWriter {
             byte[] encodedBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
             if (SSType.TIME == ssType) {
-                byte[] cipherText = SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
-                return cipherText;
+                return SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
             } else if (SSType.DATETIME2 == ssType) {
                 // for DATETIME2 sends both date and time part together for encryption
                 encodedBytesForEncryption = new byte[encodedLength + 3];
@@ -6679,7 +6672,7 @@ final class TDSReader implements Serializable {
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
     private final transient Lock lock = new ReentrantLock();
 
-    private final byte valueBytes[] = new byte[256];
+    private final byte[] valueBytes = new byte[256];
 
     protected transient SensitivityClassification sensitivityClassification;
 
@@ -6961,8 +6954,7 @@ final class TDSReader implements Serializable {
          * The number of bytes that can be read from the current chunk, without including the next chunk that is
          * buffered. This is so the driver can confirm if the next chunk sent is new packet or just continuation
          */
-        int available = currentPacket.payloadLength - payloadOffset;
-        return available;
+        return currentPacket.payloadLength - payloadOffset;
     }
 
     final int peekTokenType() throws SQLServerException {
@@ -6974,11 +6966,10 @@ final class TDSReader implements Serializable {
         return currentPacket.payload[payloadOffset] & 0xFF;
     }
 
-    final short peekStatusFlag() throws SQLServerException {
+    final short peekStatusFlag() {
         // skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
         if (payloadOffset + 3 <= currentPacket.payloadLength) {
-            short value = Util.readShort(currentPacket.payload, payloadOffset + 1);
-            return value;
+            return Util.readShort(currentPacket.payload, payloadOffset + 1);
         }
 
         return 0;
@@ -7014,7 +7005,7 @@ final class TDSReader implements Serializable {
 
     final String readUnicodeString(int length) throws SQLServerException {
         int byteLength = 2 * length;
-        byte bytes[] = new byte[byteLength];
+        byte[] bytes = new byte[byteLength];
         readBytes(bytes, 0, byteLength);
         return Util.readUnicodeString(bytes, 0, byteLength, con);
 
@@ -7133,7 +7124,7 @@ final class TDSReader implements Serializable {
                 int intBitsLo = readInt();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte value[] = new byte[8];
+                    byte[] value = new byte[8];
                     Util.writeIntBigEndian(intBitsHi, value, 0);
                     Util.writeIntBigEndian(intBitsLo, value, 4);
                     return value;
@@ -7145,7 +7136,7 @@ final class TDSReader implements Serializable {
 
             case 4: // smallmoney
                 if (JDBCType.BINARY == jdbcType) {
-                    byte value[] = new byte[4];
+                    byte[] value = new byte[4];
                     Util.writeIntBigEndian(readInt(), value, 0);
                     return value;
                 }
@@ -7192,7 +7183,7 @@ final class TDSReader implements Serializable {
                 ticksSinceMidnight = readInt();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte value[] = new byte[8];
+                    byte[] value = new byte[8];
                     Util.writeIntBigEndian(daysSinceSQLBaseDate, value, 0);
                     Util.writeIntBigEndian(ticksSinceMidnight, value, 4);
                     return value;
@@ -7210,7 +7201,7 @@ final class TDSReader implements Serializable {
                 ticksSinceMidnight = readUnsignedShort();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte value[] = new byte[4];
+                    byte[] value = new byte[4];
                     Util.writeShortBigEndian((short) daysSinceSQLBaseDate, value, 0);
                     Util.writeShortBigEndian((short) ticksSinceMidnight, value, 2);
                     return value;
@@ -7293,7 +7284,7 @@ final class TDSReader implements Serializable {
     }
 
     private int readDaysIntoCE() throws SQLServerException {
-        byte value[] = new byte[TDS.DAYS_INTO_CE_LENGTH];
+        byte[] value = new byte[TDS.DAYS_INTO_CE_LENGTH];
         readBytes(value, 0, value.length);
 
         int daysIntoCE = 0;
@@ -7315,7 +7306,7 @@ final class TDSReader implements Serializable {
     private long readNanosSinceMidnight(int scale) throws SQLServerException {
         assert 0 <= scale && scale <= TDS.MAX_FRACTIONAL_SECONDS_SCALE;
 
-        byte value[] = new byte[TDS.nanosSinceMidnightLength(scale)];
+        byte[] value = new byte[TDS.nanosSinceMidnightLength(scale)];
         readBytes(value, 0, value.length);
 
         long hundredNanosSinceMidnight = 0;
@@ -7330,7 +7321,7 @@ final class TDSReader implements Serializable {
         return 100 * hundredNanosSinceMidnight;
     }
 
-    final static String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
+    final static String GUID_TEMPLATE = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
 
     final Object readGUID(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
         // GUIDs must be exactly 16 bytes
@@ -7338,7 +7329,7 @@ final class TDSReader implements Serializable {
             throwInvalidTDS();
 
         // Read in the GUID's binary value
-        byte guid[] = new byte[16];
+        byte[] guid = new byte[16];
         readBytes(guid, 0, 16);
 
         switch (jdbcType) {
@@ -7346,30 +7337,30 @@ final class TDSReader implements Serializable {
             case VARCHAR:
             case LONGVARCHAR:
             case GUID: {
-                StringBuilder sb = new StringBuilder(guidTemplate.length());
+                StringBuilder sb = new StringBuilder(GUID_TEMPLATE.length());
                 for (int i = 0; i < 4; i++) {
-                    sb.append(Util.hexChars[(guid[3 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[3 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[3 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[3 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[5 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[5 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[5 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[5 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[7 - i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[7 - i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[7 - i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[7 - i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 2; i++) {
-                    sb.append(Util.hexChars[(guid[8 + i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[8 + i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[8 + i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[8 + i] & 0x0F]);
                 }
                 sb.append('-');
                 for (int i = 0; i < 6; i++) {
-                    sb.append(Util.hexChars[(guid[10 + i] & 0xF0) >> 4]);
-                    sb.append(Util.hexChars[guid[10 + i] & 0x0F]);
+                    sb.append(Util.HEXCHARS[(guid[10 + i] & 0xF0) >> 4]);
+                    sb.append(Util.HEXCHARS[guid[10 + i] & 0x0F]);
                 }
 
                 try {

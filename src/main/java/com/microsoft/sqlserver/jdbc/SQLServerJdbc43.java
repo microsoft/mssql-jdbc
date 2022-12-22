@@ -25,8 +25,8 @@ import jdk.net.ExtendedSocketOptions;
 
 final class DriverJDBCVersion {
     // The 4.3 driver is compliant to JDBC 4.3.
-    static final int major = 4;
-    static final int minor = 3;
+    static final int MAJOR = 4;
+    static final int MINOR = 3;
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
 

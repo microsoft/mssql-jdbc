@@ -87,7 +87,7 @@ class IdleConnectionResiliency {
         this.unprocessedResponseCount.set(0);
     }
 
-    void parseInitialSessionStateData(byte[] data, byte[][] sessionStateInitial) throws SQLServerException {
+    void parseInitialSessionStateData(byte[] data, byte[][] sessionStateInitial) {
         int bytesRead = 0;
 
         // Contains StateId, StateLen, StateValue
@@ -253,7 +253,7 @@ class SessionStateTable {
     static final long MASTER_RECOVERY_DISABLE_SEQ_NUMBER = 0XFFFFFFFF;
     private boolean masterRecoveryDisabled;
     private byte[][] sessionStateInitial;
-    private SessionStateValue sessionStateDelta[];
+    private SessionStateValue[] sessionStateDelta;
     private AtomicInteger unRecoverableSessionStateCount = new AtomicInteger(0);
     private String originalCatalog;
     private String originalLanguage;

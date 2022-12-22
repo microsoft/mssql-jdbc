@@ -274,8 +274,10 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      *        - Callback function used for authenticating to AAD.
      * @throws SQLServerException
      *         when an error occurs
+     *         
+     * @deprecated
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     public SQLServerColumnEncryptionAzureKeyVaultProvider(
             SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
         if (null == authenticationCallback) {

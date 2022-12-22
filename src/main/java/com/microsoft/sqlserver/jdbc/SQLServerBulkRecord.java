@@ -152,11 +152,9 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
             for (Entry<Integer, ColumnMetadata> entry : columnMetadata.entrySet()) {
                 // duplicate check is not performed in case of same
                 // positionInTable value
-                if (null != entry && entry.getKey() != positionInTable) {
-                    if (null != entry.getValue() && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"),
-                                null);
-                    }
+                if (null != entry && entry.getKey() != positionInTable && null != entry.getValue()
+                        && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"), null);
                 }
             }
         }
