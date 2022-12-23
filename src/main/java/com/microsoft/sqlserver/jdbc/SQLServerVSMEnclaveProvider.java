@@ -333,12 +333,12 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * Signature Blob - signatureSize bytes
          */
         ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
-        // packageSize
-        // version
-        // signatureScheme
+        enclaveReportPackageBuffer.getInt(); // packageSize
+        enclaveReportPackageBuffer.getInt(); // version
+        enclaveReportPackageBuffer.getInt(); // signatureScheme
         int signedStatementSize = enclaveReportPackageBuffer.getInt();
         int signatureSize = enclaveReportPackageBuffer.getInt();
-        // reserved
+        enclaveReportPackageBuffer.getInt(); // reserved
 
         byte[] signedStatement = new byte[signedStatementSize];
         enclaveReportPackageBuffer.get(signedStatement, 0, signedStatementSize);

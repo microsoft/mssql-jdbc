@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -90,13 +91,18 @@ public class ParameterMetaDataCacheTest extends AESetup {
     public void testParameterMetaDataCacheTrim() throws Exception {
         Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
                 .getDeclaredField("CACHE_SIZE");
+        Field modifier = Field.class.getDeclaredField("CACHE_SIZE");
+        modifier.setAccessible(true);
+        modifier.setInt(cacheSize, cacheSize.getModifiers() & ~Modifier.FINAL);
+        cacheSize.setAccessible(true);
+        cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
+
         Field maximumWeightedCapacity = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
                 .getDeclaredField("MAX_WEIGHTED_CAPACITY");
-
-        cacheSize.setAccessible(true);
+        modifier = Field.class.getDeclaredField("MAX_WEIGHTED_CAPACITY");
+        modifier.setAccessible(true);
+        modifier.setInt(maximumWeightedCapacity, maximumWeightedCapacity.getModifiers() & ~Modifier.FINAL);
         maximumWeightedCapacity.setAccessible(true);
-
-        cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
         maximumWeightedCapacity.set(
                 maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
 
