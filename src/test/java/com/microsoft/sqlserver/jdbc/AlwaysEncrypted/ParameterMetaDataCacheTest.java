@@ -89,19 +89,18 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCacheTrim() throws Exception {
+        Field modifiers = Field.class.getDeclaredField("modifiers");
+        modifiers.setAccessible(true);
+
         Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
                 .getDeclaredField("CACHE_SIZE");
-        Field modifier = Field.class.getDeclaredField("CACHE_SIZE");
-        modifier.setAccessible(true);
-        modifier.setInt(cacheSize, cacheSize.getModifiers() & ~Modifier.FINAL);
+        modifiers.setInt(cacheSize, cacheSize.getModifiers() & ~Modifier.FINAL);
         cacheSize.setAccessible(true);
         cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
 
         Field maximumWeightedCapacity = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
                 .getDeclaredField("MAX_WEIGHTED_CAPACITY");
-        modifier = Field.class.getDeclaredField("MAX_WEIGHTED_CAPACITY");
-        modifier.setAccessible(true);
-        modifier.setInt(maximumWeightedCapacity, maximumWeightedCapacity.getModifiers() & ~Modifier.FINAL);
+        modifiers.setInt(maximumWeightedCapacity, maximumWeightedCapacity.getModifiers() & ~Modifier.FINAL);
         maximumWeightedCapacity.setAccessible(true);
         maximumWeightedCapacity.set(
                 maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
