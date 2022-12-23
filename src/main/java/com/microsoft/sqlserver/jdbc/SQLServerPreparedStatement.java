@@ -2983,6 +2983,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 if (null == batchCommand.batchException)
                                     batchCommand.batchException = e;
 
+                                processBatch();
+                                continue;
                             }
 
                             // In batch execution, we have a special update count
