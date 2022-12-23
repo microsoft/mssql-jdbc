@@ -329,11 +329,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     static final int EXECUTE_BATCH = 4;
     static final int EXECUTE_QUERY_INTERNAL = 5;
 
-    /**
-     * internal class name used in tracing
-     */
-    private static final String INTERNAL_CLASSNAME = "SQLServerStatement";
-
     /** execute method */
     int executeMethod = EXECUTE_NOT_SET;
 
@@ -555,7 +550,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // (e.g. "SQLServerStatement" or "SQLServerPreparedStatement"),
         // its unique ID, and its parent connection.
         int statementID = nextStatementID();
-        String classN = INTERNAL_CLASSNAME;
+        String classN = getClass().getSimpleName();
         traceID = classN + ":" + statementID;
 
         /** logging classname */

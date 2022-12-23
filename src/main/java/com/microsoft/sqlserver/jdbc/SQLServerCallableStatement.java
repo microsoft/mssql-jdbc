@@ -73,12 +73,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /** Currently active Stream Note only one stream can be active at a time */
     private transient Closeable activeStream;
 
-    // Internal function used in tracing
-    @Override
-    String getClassNameInternal() {
-        return "SQLServerCallableStatement";
-    }
-
     /** map */
     private Map<String, Integer> map = new ConcurrentHashMap<>();
 
