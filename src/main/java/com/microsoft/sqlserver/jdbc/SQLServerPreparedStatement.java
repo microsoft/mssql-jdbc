@@ -60,11 +60,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final String EXECUTE_BATCH_STRING = "executeBatch";
     private static final String ACTIVITY_ID = " ActivityId: ";
 
-    /**
-     * internal class name used in tracing
-     */
-    private static final String INTERNAL_CLASSNAME = "SQLServerPreparedStatement";
-
     /** batch statement delimiter */
     final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
 
@@ -205,11 +200,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * crypto meta batch
      */
     private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
-
-    // Internal function used in tracing
-    String getClassNameInternal() {
-        return INTERNAL_CLASSNAME;
-    }
 
     /**
      * Constructs a SQLServerPreparedStatement.
