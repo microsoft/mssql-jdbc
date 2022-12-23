@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -51,30 +52,83 @@ public class BatchExecutionTest extends AbstractTest {
     private static String ctstable1;
     private static String ctstable2;
     private static String ctstable3;
-    private static String ctstable3Procedure;
+    private static String ctstable4;
+    private static String ctstable3Procedure1;
 
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
     @Test
     public void testBatchUpdateCountFalseOnFirstPstmtPrepexec() throws Exception {
         long[] expectedUpdateCount = {1, 1, 1, 1, -3, -3, -3, -3, -3, -3};
         testBatchUpdateCountWith(10, 6, false, "prepexec", expectedUpdateCount);
     }
 
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
     @Test
     public void testBatchUpdateCountTrueOnFirstPstmtPrepexec() throws Exception {
         long[] expectedUpdateCount = {1, 1, -3, -3, -3};
         testBatchUpdateCountWith(5, 4, true, "prepexec", expectedUpdateCount);
     }
 
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
     @Test
     public void testBatchUpdateCountFalseOnFirstPstmtSpPrepare() throws Exception {
         long[] expectedUpdateCount = {1, 1, 1, 1, -3, -3, -3, -3, -3, -3};
         testBatchUpdateCountWith(10, 6, false, "prepare", expectedUpdateCount);
     }
 
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
     @Test
     public void testBatchUpdateCountTrueOnFirstPstmtSpPrepare() throws Exception {
         long[] expectedUpdateCount = {1, 1, -3, -3, -3};
         testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
+    }
+
+    /**
+     * This tests the updateCount when the error query does not cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testBatchUpdateCount() throws Exception {
+        long[] expectedUpdateCount = {1, 1, 1, 1, -3, 1, 1, 1, 1, 1};
+
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                    "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable4) + " values(?)")) {
+                for (int i = 1; i <= 10; i++) {
+                    if (i == 5) {
+                        pstmt.setInt(1, -1);
+                    } else {
+                        pstmt.setInt(1, i);
+                    }
+                    pstmt.addBatch();
+                }
+
+                try {
+                    pstmt.executeBatch();
+                } catch (BatchUpdateException e) {
+                    System.out.println(Arrays.toString(e.getLargeUpdateCounts()));
+                    assertArrayEquals(expectedUpdateCount, e.getLargeUpdateCounts(),
+                            "Actual: " + Arrays.toString(e.getLargeUpdateCounts()));
+                }
+            }
+        }
     }
 
     /**
@@ -176,11 +230,11 @@ public class BatchExecutionTest extends AbstractTest {
             connection.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirstPreparedStatement);
             connection.setPrepareMethod(prepareMethod);
             try (CallableStatement cstmt = connection.prepareCall(
-                    AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure) + " @duration=?, @value=?")) {
-                cstmt.setQueryTimeout(2);
+                    AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure1) + " @duration=?, @value=?")) {
+                cstmt.setQueryTimeout(7);
                 for (int i = 1; i <= numOfInserts; i++) {
                     if (i == errorQueryIndex) {
-                        cstmt.setString(1, "00:00:05");
+                        cstmt.setString(1, "00:00:14");
                     } else {
                         cstmt.setString(1, "00:00:00");
                     }
@@ -253,7 +307,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void createProcedure() throws SQLException {
-        String sql1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure) + "\n"
+        String sql1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure1) + "\n"
                 + "@value int,\n" + "@duration varchar(8)\n" + "AS\n" + "BEGIN\n" + "WAITFOR DELAY @duration;\n"
                 + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(ctstable3) + " VALUES (@value);\n" + "END";
 
@@ -272,9 +326,12 @@ public class BatchExecutionTest extends AbstractTest {
                     + " (KEY_ID int,  COF_NAME varchar(32),  PRICE float, TYPE_ID int, primary key(KEY_ID), foreign key(TYPE_ID) references "
                     + AbstractSQLGenerator.escapeIdentifier(ctstable1) + ")";
             String sql3 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable3) + "(C1 int)";
+            String sql4 = "create table " + AbstractSQLGenerator.escapeIdentifier(ctstable4)
+                    + "(C1 int check (C1 > 0))";
             stmt.execute(sql1);
             stmt.execute(sql2);
             stmt.execute(sql3);
+            stmt.execute(sql4);
 
             String sqlin2 = "insert into " + AbstractSQLGenerator.escapeIdentifier(ctstable1)
                     + " values (1,'COFFEE-Desc')";
@@ -388,7 +445,8 @@ public class BatchExecutionTest extends AbstractTest {
         ctstable1 = RandomUtil.getIdentifier("ctstable1");
         ctstable2 = RandomUtil.getIdentifier("ctstable2");
         ctstable3 = RandomUtil.getIdentifier("ctstable3");
-        ctstable3Procedure = RandomUtil.getIdentifier("ctstable3Procedure");
+        ctstable4 = RandomUtil.getIdentifier("ctstable4");
+        ctstable3Procedure1 = RandomUtil.getIdentifier("ctstable3Procedure1");
 
         dropTable();
         createTable();
@@ -399,7 +457,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     private static void dropProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure1), stmt);
         }
     }
 
@@ -408,6 +466,7 @@ public class BatchExecutionTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable4), stmt);
         }
     }
 
