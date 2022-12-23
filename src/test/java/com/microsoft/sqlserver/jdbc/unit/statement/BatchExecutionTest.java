@@ -105,20 +105,20 @@ public class BatchExecutionTest extends AbstractTest {
         try (Connection connection = PrepUtil.getConnection(connectionString)) {
             connection.setAutoCommit(false);
 
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "if object_id('test_table') is not null drop table test_table")) {
+            try (PreparedStatement statement = connection
+                    .prepareStatement("if object_id('test_table') is not null drop table test_table")) {
                 statement.execute();
             }
             connection.commit();
 
-            try (PreparedStatement statement = connection.prepareStatement(
-                    "create table test_table (column_name bit)")) {
+            try (PreparedStatement statement = connection
+                    .prepareStatement("create table test_table (column_name bit)")) {
                 statement.execute();
             }
             connection.commit();
 
-            for (long delayInMilliseconds : new long[] { 1, 2, 4, 8, 16, 32, 64, 128 }) {
-                for (int numberOfCommands : new int[] { 1, 2, 4, 8, 16, 32, 64 }) {
+            for (long delayInMilliseconds : new long[] {1, 2, 4, 8, 16, 32, 64, 128}) {
+                for (int numberOfCommands : new int[] {1, 2, 4, 8, 16, 32, 64}) {
                     int parameterCount = 512;
 
                     try (PreparedStatement statement = connection.prepareStatement(
@@ -170,11 +170,13 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private void testBatchUpdateCountWith(int numOfInserts, int errorQueryIndex,
-                                          boolean prepareOnFirstPreparedStatement, String prepareMethod, long[] expectedUpdateCount) throws Exception {
+            boolean prepareOnFirstPreparedStatement, String prepareMethod,
+            long[] expectedUpdateCount) throws Exception {
         try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
             connection.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirstPreparedStatement);
             connection.setPrepareMethod(prepareMethod);
-            try (CallableStatement cstmt = connection.prepareCall(AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure) + " @duration=?, @value=?")) {
+            try (CallableStatement cstmt = connection.prepareCall(
+                    AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure) + " @duration=?, @value=?")) {
                 cstmt.setQueryTimeout(2);
                 for (int i = 1; i <= numOfInserts; i++) {
                     if (i == errorQueryIndex) {
@@ -189,8 +191,8 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     cstmt.executeBatch();
                 } catch (BatchUpdateException e) {
-                    assertArrayEquals(expectedUpdateCount, e.getLargeUpdateCounts(), "Actual: "
-                            + Arrays.toString(e.getLargeUpdateCounts()));
+                    assertArrayEquals(expectedUpdateCount, e.getLargeUpdateCounts(),
+                            "Actual: " + Arrays.toString(e.getLargeUpdateCounts()));
                 }
             }
         }
@@ -251,19 +253,14 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void createProcedure() throws SQLException {
-        String sql1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure)+ "\n" +
-                            "@value int,\n" +
-                            "@duration varchar(8)\n" +
-                            "AS\n" +
-                            "BEGIN\n" +
-                            "WAITFOR DELAY @duration;\n" +
-                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(ctstable3) + " VALUES (@value);\n" +
-                            "END";
+        String sql1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure) + "\n"
+                + "@value int,\n" + "@duration varchar(8)\n" + "AS\n" + "BEGIN\n" + "WAITFOR DELAY @duration;\n"
+                + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(ctstable3) + " VALUES (@value);\n" + "END";
 
         try (Connection connection = PrepUtil.getConnection(connectionString);
-             Statement stmt = (SQLServerStatement) connection.createStatement()) {
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
             stmt.execute(sql1);
-        };
+        } ;
     }
 
     private static void createTable() throws SQLException {
@@ -401,7 +398,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private static void dropProcedure() throws SQLException {
-         try (Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure), stmt);
         }
     }
