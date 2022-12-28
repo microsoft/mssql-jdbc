@@ -93,9 +93,10 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDB)
     public void testCallableStatementManyParameters() throws SQLException {
+                String tempPass = UUID.randomUUID().toString();
         String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
         String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
-        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'P4ssword', " +
+        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'" + tempPass + "', " +
                 "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
         String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
         String grantExecute = "GRANT EXECUTE ON " + manyParamProc + " TO NewUser;";
@@ -113,7 +114,7 @@ public class CallableStatementTest extends AbstractTest {
             }
         }
 
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=P4ssword;")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=" + tempPass + ";")) {
             BigDecimal money = new BigDecimal("9999.99");
 
             // Should not throw an "Index is out of range error"
