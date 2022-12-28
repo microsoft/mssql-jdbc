@@ -30,7 +30,12 @@ import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.PrepUtil;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -48,12 +53,30 @@ import com.microsoft.sqlserver.testframework.Constants;
 public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
 
+    private static final String expectedSqlState = "S0001";
+
+    private static final int expectedErrorCode = 8134;
+
     static final String uuid = UUID.randomUUID().toString();
 
     @BeforeAll
     public static void setupTests() throws Exception {
         connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
+    }
+
+    @BeforeEach
+    public void init() throws Exception {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+        }
+    }
+
+    @AfterEach
+    public void cleanUp() throws Exception {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+        }
     }
 
     /**
@@ -594,6 +617,39 @@ public class ResultSetTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
+        }
+    }
+
+    @Test
+    public void testResultSetFetchBufferSqlErrorState() throws Exception {
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            try (Statement stmt = connection.createStatement()) {
+                ResultSet rs = stmt.executeQuery("select 1/0");
+                rs.next();
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (SQLException e) {
+                assertEquals(expectedSqlState, e.getSQLState());
+                assertEquals(expectedErrorCode, e.getErrorCode());
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetClientCursorInitializerSqlErrorState() throws Exception {
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int)");
+            boolean hasResults = stmt.execute("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + "; select 1/0");
+            while(hasResults) {
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {}
+                hasResults = stmt.getMoreResults();
+            }
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            assertEquals(expectedSqlState, e.getSQLState());
+            assertEquals(expectedErrorCode, e.getErrorCode());
         }
     }
 }

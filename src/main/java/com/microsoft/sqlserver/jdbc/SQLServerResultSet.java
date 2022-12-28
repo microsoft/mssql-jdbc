@@ -393,7 +393,12 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
-                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+
+                    if (null != databaseError) {
+                        SQLServerException.makeFromDatabaseError(stmt.connection, null, form.format(msgArgs), databaseError, false);
+                    } else {
+                        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+                    }
                 }
 
                 return false;
@@ -5393,7 +5398,12 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     SQLServerError databaseError = getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
-                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+
+                    if (null != databaseError) {
+                        SQLServerException.makeFromDatabaseError(stmt.connection, null, form.format(msgArgs), databaseError, false);
+                    } else {
+                        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+                    }
                 }
 
 
