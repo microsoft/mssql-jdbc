@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [10.2.3] HotFix & Stable Release
+### Fixed issues
+- Fixed incorrect update counts when timeout occurs in batch queries [2024](https://github.com/microsoft/mssql-jdbc/pull/2024)
+- Fixed incorrect token expiration date when using Azure Functions [2025](https://github.com/microsoft/mssql-jdbc/pull/2025)
+- Fixed null SQL state and zero error code when database exception is thrown [2027](https://github.com/microsoft/mssql-jdbc/pull/2027)
+
 ## [10.2.2] HotFix & Stable Release
 ### Fixed issues
 - Clear prepared statement cache on idle connection resiliency reconnections [1982](https://github.com/microsoft/mssql-jdbc/pull/1982)
