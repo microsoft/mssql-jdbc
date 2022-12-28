@@ -2889,6 +2889,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 if (null == batchCommand.batchException)
                                     batchCommand.batchException = e;
 
+                                if (batchCommand.batchException.getSQLState()
+                                        .equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                                    processBatch();
+                                    continue;
+                                }
                             }
 
                             // In batch execution, we have a special update count
