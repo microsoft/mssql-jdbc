@@ -408,16 +408,10 @@ class SQLServerSecurityUtility {
 
                     int startIndex_ATX;
 
-                    // Fetch expires_on
-                    if (isAzureFunction) {
-                        startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
-                    } else {
-                        startIndex_ATX = result
-                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
-                    }
+                    // Fetch expires_in (this is in seconds)
+                    startIndex_ATX = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
 
                     String accessTokenExpiry = result.substring(startIndex_ATX,
                             result.indexOf("\"", startIndex_ATX + 1));
