@@ -55,7 +55,7 @@ public class ResultSetTest extends AbstractTest {
 
     private static final String expectedSqlState = "S0001";
 
-    private static final int expectedErrorCodeFetchBuffer = 8134;
+    private static final int expectedErrorCode = 8134;
 
     static final String uuid = UUID.randomUUID().toString();
 
@@ -620,7 +620,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     @Test
-    public void testResultSetSqlErrorState() throws Exception {
+    public void testResultSetFetchBufferSqlErrorState() throws Exception {
         try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
             try (Statement stmt = connection.createStatement()) {
                 ResultSet rs = stmt.executeQuery("select 1/0");
@@ -628,8 +628,28 @@ public class ResultSetTest extends AbstractTest {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLException e) {
                 assertEquals(expectedSqlState, e.getSQLState());
-                assertEquals(expectedErrorCodeFetchBuffer, e.getErrorCode());
+                assertEquals(expectedErrorCode, e.getErrorCode());
             }
+        }
+    }
+
+    @Test
+    public void testResultSetClientCursorInitializerSqlErrorState() throws Exception {
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (col1 int)");
+            stmt.setQueryTimeout(1);
+            boolean hasResults = stmt.execute("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + "; select 1/0");
+            while(hasResults) {
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {}
+                hasResults = stmt.getMoreResults();
+            }
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            assertEquals(expectedSqlState, e.getSQLState());
+            assertEquals(expectedErrorCode, e.getErrorCode());
         }
     }
 }
