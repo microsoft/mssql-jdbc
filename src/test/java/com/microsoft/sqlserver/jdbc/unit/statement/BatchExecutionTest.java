@@ -123,7 +123,6 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     pstmt.executeBatch();
                 } catch (BatchUpdateException e) {
-                    System.out.println(Arrays.toString(e.getLargeUpdateCounts()));
                     assertArrayEquals(expectedUpdateCount, e.getLargeUpdateCounts(),
                             "Actual: " + Arrays.toString(e.getLargeUpdateCounts()));
                 }
