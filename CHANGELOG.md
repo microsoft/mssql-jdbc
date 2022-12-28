@@ -5,10 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [11.2.3] HotFix & Stable Release
 ### Fixed issues
-- Fixed incorrect update counts when timeout occurs in batch queries [2022](https://github.com/microsoft/mssql-jdbc/pull/2022)
+- Fixed null SQL state and zero error code when database exception is thrown [2022](https://github.com/microsoft/mssql-jdbc/pull/2022)
+- Fixed incorrect update counts when timeout occurs in batch queries [2021](https://github.com/microsoft/mssql-jdbc/pull/2021)
 - Fixed incorrect token expiration date when using Azure Functions [2020](https://github.com/microsoft/mssql-jdbc/pull/2020)
 - Fixed connecting to the wrong SQLServer host [2019](https://github.com/microsoft/mssql-jdbc/pull/2019)
-- Fixed null SQL state and zero error code when database exception is thrown [2018](https://github.com/microsoft/mssql-jdbc/pull/2018)
 
 ## [11.2.2] HotFix & Stable Release
 ### Fixed issues
