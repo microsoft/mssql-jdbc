@@ -63,7 +63,7 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testBatchUpdateCountFalseOnFirstPstmtPrepexec() throws Exception {
         long[] expectedUpdateCount = {1, 1, 1, 1, -3, -3, -3, -3, -3, -3};
-        testBatchUpdateCountWith(10, 6, false, "prepexec", expectedUpdateCount);
+        testBatchUpdateCountWith(10, 6, false, expectedUpdateCount);
     }
 
     /**
@@ -74,29 +74,7 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testBatchUpdateCountTrueOnFirstPstmtPrepexec() throws Exception {
         long[] expectedUpdateCount = {1, 1, -3, -3, -3};
-        testBatchUpdateCountWith(5, 4, true, "prepexec", expectedUpdateCount);
-    }
-
-    /**
-     * This tests the updateCount when the error query does cause a SQL state HY008.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testBatchUpdateCountFalseOnFirstPstmtSpPrepare() throws Exception {
-        long[] expectedUpdateCount = {1, 1, 1, 1, -3, -3, -3, -3, -3, -3};
-        testBatchUpdateCountWith(10, 6, false, "prepare", expectedUpdateCount);
-    }
-
-    /**
-     * This tests the updateCount when the error query does cause a SQL state HY008.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testBatchUpdateCountTrueOnFirstPstmtSpPrepare() throws Exception {
-        long[] expectedUpdateCount = {1, 1, -3, -3, -3};
-        testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
+        testBatchUpdateCountWith(5, 4, true, expectedUpdateCount);
     }
 
     /**
@@ -214,11 +192,9 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     private void testBatchUpdateCountWith(int numOfInserts, int errorQueryIndex,
-            boolean prepareOnFirstPreparedStatement, String prepareMethod,
-            long[] expectedUpdateCount) throws Exception {
+            boolean prepareOnFirstPreparedStatement, long[] expectedUpdateCount) throws Exception {
         try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
             connection.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirstPreparedStatement);
-            connection.setPrepareMethod(prepareMethod);
             try (CallableStatement cstmt = connection.prepareCall(
                     AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure1) + " @duration=?, @value=?")) {
                 cstmt.setQueryTimeout(7);
