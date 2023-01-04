@@ -638,7 +638,6 @@ public class ResultSetTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (col1 int)");
-            stmt.setQueryTimeout(1);
             boolean hasResults = stmt.execute("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + "; select 1/0");
             while(hasResults) {
