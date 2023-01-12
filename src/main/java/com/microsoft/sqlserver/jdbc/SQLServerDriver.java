@@ -557,6 +557,7 @@ enum PrepareMethod {
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
+    INTERFACE_NAME("interfaceName", "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR),
     PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
@@ -758,6 +759,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue()), false,
                     TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.INTERFACE_NAME.toString(),
+                SQLServerDriverStringProperty.INTERFACE_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue(), false,
                     new String[] {KeyStoreAuthentication.JAVA_KEYSTORE_PASSWORD.toString()}),

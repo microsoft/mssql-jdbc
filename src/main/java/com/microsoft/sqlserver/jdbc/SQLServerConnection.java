@@ -2104,6 +2104,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 else
                     activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
 
+                sPropKey = SQLServerDriverStringProperty.INTERFACE_NAME.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue)
+                    validateMaxSQLLoginName(sPropKey, sPropValue);
+                else
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriverStringProperty.INTERFACE_NAME.getDefaultValue());
+
                 sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -6197,7 +6204,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
-        String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
+        String interfaceLibName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INTERFACE_NAME.toString());
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
         String serverName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getServerName()
