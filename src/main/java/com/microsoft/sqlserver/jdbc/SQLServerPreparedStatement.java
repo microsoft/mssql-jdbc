@@ -624,7 +624,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
                     // If we are AE_v3, remove the failed entry and try again.
-                    ParameterMetaDataCache.removeCacheEntry(this, connection, preparedSQL);
+                    ParameterMetaDataCache.removeCacheEntry(connection, preparedSQL);
                     inRetry = true;
                     doExecutePreparedStatement(command);
                 } else {
