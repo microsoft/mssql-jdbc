@@ -20,6 +20,10 @@ import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.Builder;
  */
 class ParameterMetaDataCache {
 
+    private ParameterMetaDataCache() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     static final int CACHE_SIZE = 2000; // Size of the cache in number of entries
     static final int MAX_WEIGHTED_CAPACITY = 2300; // Size of cache + threshold, above which we trim.
     static CryptoCache cache = new CryptoCache();
@@ -97,7 +101,7 @@ class ParameterMetaDataCache {
                         SQLServerSecurityUtility.decryptSymmetricKey(cryptoCopy, connection, stmt);
                     } catch (SQLServerException e) {
 
-                        removeCacheEntry(stmt, connection, userSql);
+                        removeCacheEntry(connection, userSql);
 
                         for (Parameter paramToCleanup : params) {
                             paramToCleanup.cryptoMeta = null;
@@ -208,7 +212,7 @@ class ParameterMetaDataCache {
      * @param userSql
      *        The query executed by the user
      */
-    static void removeCacheEntry(SQLServerStatement stmt, SQLServerConnection connection, String userSql) {
+    static void removeCacheEntry(SQLServerConnection connection, String userSql) {
         AbstractMap.SimpleEntry<String, String> encryptionValues = getCacheLookupKeys(connection, userSql);
         if (encryptionValues.getKey() == null) {
             return;

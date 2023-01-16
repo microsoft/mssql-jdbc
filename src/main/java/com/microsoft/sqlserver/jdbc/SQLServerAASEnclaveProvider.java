@@ -182,7 +182,7 @@ class AASAttestationParameters extends BaseAttestationRequest {
     // Type 1 is AAS, sent as Little Endian 0x10000000
     private static final byte[] ENCLAVE_TYPE = new byte[] {0x1, 0x0, 0x0, 0x0};
     // Nonce length is always 256
-    private static byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
+    private static final byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
     private byte[] nonce = new byte[256];
 
     AASAttestationParameters(String attestationUrl) throws SQLServerException, IOException {
@@ -278,10 +278,10 @@ class AASAttestationResponse extends BaseAttestationResponse {
         this.dhpkSize = response.getInt();
         this.dhpkSsize = response.getInt();
 
-        DHpublicKey = new byte[dhpkSize];
+        dhPublicKey = new byte[dhpkSize];
         publicKeySig = new byte[dhpkSsize];
 
-        response.get(DHpublicKey, 0, dhpkSize);
+        response.get(dhPublicKey, 0, dhpkSize);
         response.get(publicKeySig, 0, dhpkSsize);
 
         if (0 != response.remaining()) {
@@ -318,12 +318,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 String authorityUrl = new URL(attestationUrl).getAuthority();
                 URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
-                String wellKnownUrlJson = new String(Util.convertInputStreamToString(con.getInputStream()));
+                String wellKnownUrlJson = Util.convertInputStreamToString(con.getInputStream());
                 JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
                 URLConnection jwksCon = jwksUrl.openConnection();
-                String jwksUrlJson = new String(Util.convertInputStreamToString(jwksCon.getInputStream()));
+                String jwksUrlJson = Util.convertInputStreamToString(jwksCon.getInputStream());
                 JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
                 certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));

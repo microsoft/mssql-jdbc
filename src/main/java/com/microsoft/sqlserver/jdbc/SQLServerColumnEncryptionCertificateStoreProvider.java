@@ -21,9 +21,9 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
 
     String name = "MSSQL_CERTIFICATE_STORE";
 
-    static final String localMachineDirectory = "LocalMachine";
-    static final String currentUserDirectory = "CurrentUser";
-    static final String myCertificateStore = "My";
+    static final String LOCAL_MACHINE_DIRECTORY = "LocalMachine";
+    static final String CURRENT_USER_DIRECTORY = "CurrentUser";
+    static final String MY_CERTIFICATE_STORE = "My";
 
     static {
         if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {

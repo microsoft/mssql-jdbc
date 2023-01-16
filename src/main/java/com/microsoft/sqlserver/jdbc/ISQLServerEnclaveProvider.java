@@ -419,7 +419,7 @@ abstract class BaseAttestationResponse {
     protected byte[] sessionID = new byte[8];
     protected int dhpkSize;
     protected int dhpkSsize;
-    protected byte[] DHpublicKey;
+    protected byte[] dhPublicKey;
     protected byte[] publicKeySig;
 
     @SuppressWarnings("unused")
@@ -458,7 +458,7 @@ abstract class BaseAttestationResponse {
         PublicKey pub = factory.generatePublic(spec);
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(pub);
-        sig.update(DHpublicKey);
+        sig.update(dhPublicKey);
         if (!sig.verify(publicKeySig)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
                     "0", false);
@@ -466,7 +466,7 @@ abstract class BaseAttestationResponse {
     }
 
     byte[] getDHpublicKey() {
-        return DHpublicKey;
+        return dhPublicKey;
     }
 
     byte[] getSessionID() {

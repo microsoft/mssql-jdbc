@@ -583,6 +583,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
         static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
+
+        private ActiveDirectoryAuthentication() {
+            throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+        }
     }
 
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
@@ -5140,12 +5144,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_DTC_ENLIST:
             case ENVCHANGE_XACT_BEGIN:
                 rolledBackTransaction = false;
-                byte[] transactionDescriptor = getTransactionDescriptor();
+                byte[] descriptor = getTransactionDescriptor();
 
-                if (transactionDescriptor.length != tdsReader.readUnsignedByte())
+                if (descriptor.length != tdsReader.readUnsignedByte())
                     tdsReader.throwInvalidTDS();
 
-                tdsReader.readBytes(transactionDescriptor, 0, transactionDescriptor.length);
+                tdsReader.readBytes(descriptor, 0, descriptor.length);
 
                 if (connectionlogger.isLoggable(Level.FINER)) {
                     String op;

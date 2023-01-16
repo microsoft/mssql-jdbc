@@ -64,6 +64,10 @@ final class SQLServerCertificateUtils {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.SQLServerCertificateUtils");
     private static final String logContext = Thread.currentThread().getStackTrace()[1].getClassName() + ": ";
 
+    private SQLServerCertificateUtils() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     static KeyManager[] getKeyManagerFromFile(String certPath, String keyPath,
             String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
         if (keyPath != null && keyPath.length() > 0) {
@@ -322,7 +326,7 @@ final class SQLServerCertificateUtils {
     private static final String RSA_ALG = "RSA";
 
     private static KeyManager[] readPKCS12Certificate(String certPath,
-            String keyPassword) throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
         KeyStore keystore = KeyStore.getInstance(PKCS12_ALG);
         try (FileInputStream certStream = new FileInputStream(certPath)) {
             keystore.load(certStream, keyPassword.toCharArray());
@@ -351,7 +355,7 @@ final class SQLServerCertificateUtils {
     }
 
     private static PrivateKey loadPrivateKeyFromPKCS8(
-            String key) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+            String key) throws NoSuchAlgorithmException, InvalidKeySpecException {
         StringBuilder sb = new StringBuilder(key);
         deleteFirst(sb, PEM_PRIVATE_START);
         deleteFirst(sb, PEM_PRIVATE_END);
@@ -369,7 +373,7 @@ final class SQLServerCertificateUtils {
     }
 
     private static PrivateKey loadPrivateKeyFromPKCS1(String key,
-            String keyPass) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+            String keyPass) throws IOException {
         SQLServerBouncyCastleLoader.loadBouncyCastle();
         try (PEMParser pemParser = new PEMParser(new StringReader(key))) {
             Object object = pemParser.readObject();

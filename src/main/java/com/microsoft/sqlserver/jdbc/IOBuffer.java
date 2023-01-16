@@ -1289,7 +1289,7 @@ final class TDSChannel implements Serializable {
             filteredStream.flush();
         }
 
-        private final byte singleByte[] = new byte[1];
+        private final byte[] singleByte = new byte[1];
 
         @Override
         public void write(int b) throws IOException {
@@ -2748,7 +2748,7 @@ final class SocketFinder {
      *        Port Number
      * @return First resolved address or unresolved address if none found
      */
-    private InetSocketAddress getInetAddressByIPPreference(InetAddress addresses[], boolean ipv6first, String hostName,
+    private InetSocketAddress getInetAddressByIPPreference(InetAddress[] addresses, boolean ipv6first, String hostName,
             int portNumber) {
         InetSocketAddress addr = InetSocketAddress.createUnresolved(hostName, portNumber);
         for (InetAddress inetAddress : fillAddressList(addresses, ipv6first)) {
@@ -6263,7 +6263,7 @@ final class TDSWriter {
                         DriverError.NOT_SET, null);
             }
 
-            byte encodedBytes[] = new byte[3];
+            byte[] encodedBytes = new byte[3];
             encodedBytes[0] = (byte) ((daysIntoCE >> 0) & 0xFF);
             encodedBytes[1] = (byte) ((daysIntoCE >> 8) & 0xFF);
             encodedBytes[2] = (byte) ((daysIntoCE >> 16) & 0xFF);
@@ -6560,7 +6560,7 @@ final class TDSWriter {
 
     void sendEnclavePackage(String sql, ArrayList<byte[]> enclaveCEKs) throws SQLServerException {
         if (null != con && con.isAEv2()) {
-            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && 0 < enclaveCEKs.size()
+            if (null != sql && !sql.isEmpty() && null != enclaveCEKs && !(enclaveCEKs.isEmpty())
                     && con.enclaveEstablished()) {
                 byte[] b = con.generateEnclavePackage(sql, enclaveCEKs);
                 if (null != b && 0 != b.length) {
