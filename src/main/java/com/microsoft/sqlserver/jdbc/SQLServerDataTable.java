@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+
 /**
  * Represents the data table for SQL Server.
  */
@@ -132,9 +133,9 @@ public final class SQLServerDataTable {
     public void addRow(Object... values) throws SQLServerException {
         lock.lock();
         try {
-            int columnCount = columnMetadata.size();
+            int count = columnMetadata.size();
 
-            if ((null != values) && values.length > columnCount) {
+            if ((null != values) && values.length > count) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_moreDataInRowThanColumnInTVP"));
                 Object[] msgArgs = {};
@@ -142,7 +143,7 @@ public final class SQLServerDataTable {
             }
 
             Iterator<Entry<Integer, SQLServerDataColumn>> columnsIterator = columnMetadata.entrySet().iterator();
-            Object[] rowValues = new Object[columnCount];
+            Object[] rowValues = new Object[count];
             int currentColumn = 0;
             while (columnsIterator.hasNext()) {
                 Object val = null;

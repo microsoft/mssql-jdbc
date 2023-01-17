@@ -26,7 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -243,7 +243,7 @@ class JWTCertificateEntry {
 class AASAttestationResponse extends BaseAttestationResponse {
 
     private byte[] attestationToken;
-    private static Hashtable<String, JWTCertificateEntry> certificateCache = new Hashtable<>();
+    private static ConcurrentHashMap<String, JWTCertificateEntry> certificateCache = new ConcurrentHashMap<>();
 
     AASAttestationResponse(byte[] b) throws SQLServerException {
         /*-

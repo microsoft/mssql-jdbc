@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.crypto.KeyAgreement;
@@ -501,10 +502,10 @@ class EnclaveSession {
 
 
 final class EnclaveSessionCache {
-    private Hashtable<String, EnclaveCacheEntry> sessionCache;
+    private ConcurrentHashMap<String, EnclaveCacheEntry> sessionCache;
 
     EnclaveSessionCache() {
-        sessionCache = new Hashtable<>(0);
+        sessionCache = new ConcurrentHashMap<>(0);
     }
 
     void addEntry(String servername, String catalog, String attestationUrl, BaseAttestationRequest b,

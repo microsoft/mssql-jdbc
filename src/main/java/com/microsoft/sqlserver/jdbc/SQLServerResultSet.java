@@ -289,18 +289,21 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 super(name);
             }
 
+            @Override
             boolean onColInfo(TDSReader tdsReader) throws SQLServerException {
                 colInfo = new StreamColInfo();
                 colInfo.setFromTDS(tdsReader);
                 return true;
             }
 
+            @Override
             boolean onTabName(TDSReader tdsReader) throws SQLServerException {
                 tabName = new StreamTabName();
                 tabName.setFromTDS(tdsReader);
                 return true;
             }
 
+            @Override
             boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
                 columnMetaData = new StreamColumns(
                         Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection));

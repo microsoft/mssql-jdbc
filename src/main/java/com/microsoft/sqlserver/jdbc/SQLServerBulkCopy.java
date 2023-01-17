@@ -221,7 +221,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             this.dateTimeFormatter = dateTimeFormatter;
         }
 
-        BulkColumnMetaData(Column column, String collationName, String encryptionType) throws SQLServerException {
+        BulkColumnMetaData(Column column, String collationName, String encryptionType) {
             this(column);
             this.collationName = collationName;
             this.encryptionType = encryptionType;
