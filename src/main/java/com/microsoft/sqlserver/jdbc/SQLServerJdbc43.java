@@ -9,11 +9,10 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketOption;
 import java.sql.BatchUpdateException;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import jdk.net.ExtendedSocketOptions;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 
 /**
@@ -27,6 +26,10 @@ final class DriverJDBCVersion {
     // The 4.3 driver is compliant to JDBC 4.3.
     static final int MAJOR = 4;
     static final int MINOR = 3;
+
+    private DriverJDBCVersion() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
 
@@ -62,17 +65,37 @@ final class DriverJDBCVersion {
         return pid;
     }
 
+    @SuppressWarnings("unchecked")
     static void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
-        Set<SocketOption<?>> options = tcpSocket.supportedOptions();
-        if (options.contains(ExtendedSocketOptions.TCP_KEEPIDLE)
-                && options.contains(ExtendedSocketOptions.TCP_KEEPINTERVAL)) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+        Method setOptionMethod = null;
+        SocketOption<Integer> keepIdleOption = null;
+        SocketOption<Integer> keepIntervalOption = null;
+
+        try {
+            setOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+            keepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+            keepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+            
+            if (setOptionMethod != null && keepIdleOption != null && keepIntervalOption != null) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+                }
+
+                setOptionMethod.invoke(tcpSocket, keepIdleOption, 30); // 30 seconds
+                setOptionMethod.invoke(tcpSocket, keepIntervalOption, 1); // 1 second
+
+            } else if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
             }
-            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPIDLE, 30); // 30 seconds
-            tcpSocket.setOption(ExtendedSocketOptions.TCP_KEEPINTERVAL, 1); // 1 second
-        } else if (logger.isLoggable(Level.FINER)) {
-            logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
+                | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+            }
         }
     }
+
 }
