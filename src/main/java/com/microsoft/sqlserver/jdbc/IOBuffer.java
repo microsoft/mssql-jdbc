@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -25,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -717,7 +720,7 @@ final class TDSChannel implements Serializable {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
-            DriverJDBCVersion.setSocketOptions(tcpSocket, this);
+            setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
             int socketTimeout = con.getSocketTimeoutMilliseconds();
@@ -731,6 +734,39 @@ final class TDSChannel implements Serializable {
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
 
+    @SuppressWarnings("unchecked")
+    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+        Method setOptionMethod = null;
+        SocketOption<Integer> keepIdleOption = null;
+        SocketOption<Integer> keepIntervalOption = null;
+
+        try {
+            setOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+            keepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+            keepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+
+            if (setOptionMethod != null && keepIdleOption != null && keepIntervalOption != null) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+                }
+
+                setOptionMethod.invoke(tcpSocket, keepIdleOption, 30); // 30 seconds
+                setOptionMethod.invoke(tcpSocket, keepIntervalOption, 1); // 1 second
+
+            } else if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
+                | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+            }
+        }
+    }
+    
     /**
      * Disables SSL on this TDS channel.
      */

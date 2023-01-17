@@ -5,14 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketOption;
 import java.sql.BatchUpdateException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 
 /**
@@ -26,8 +19,6 @@ final class DriverJDBCVersion {
     // The 4.3 driver is compliant to JDBC 4.3.
     static final int MAJOR = 4;
     static final int MINOR = 3;
-
-    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.DriverJDBCVersion");
 
     static final boolean checkSupportsJDBC43() {
         return true;
@@ -60,38 +51,4 @@ final class DriverJDBCVersion {
     static int getProcessId() {
         return pid;
     }
-
-    @SuppressWarnings("unchecked")
-    static void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
-        Method setOptionMethod = null;
-        SocketOption<Integer> keepIdleOption = null;
-        SocketOption<Integer> keepIntervalOption = null;
-
-        try {
-            setOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
-            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
-            keepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
-            keepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
-
-            if (setOptionMethod != null && keepIdleOption != null && keepIntervalOption != null) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
-                }
-
-                setOptionMethod.invoke(tcpSocket, keepIdleOption, 30); // 30 seconds
-                setOptionMethod.invoke(tcpSocket, keepIntervalOption, 1); // 1 second
-
-            } else if (logger.isLoggable(Level.FINER)) {
-                logger.finer(
-                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
-            }
-        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
-                | InvocationTargetException e) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(
-                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
-            }
-        }
-    }
-
 }
