@@ -603,6 +603,13 @@ final class TDSChannel implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
+    /**
+     * From jdk.net.ExtendedSocketOption for setting TCP keep-alive options
+     */
+    private static Method socketSetOptionMethod = null;
+    private static SocketOption<Integer> socketKeepIdleOption = null;
+    private static SocketOption<Integer> socketKeepIntervalOption = null;
+
     final Logger getLogger() {
         return logger;
     }
@@ -734,29 +741,25 @@ final class TDSChannel implements Serializable {
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
     }
 
+    /**
+     * Set TCP keep-alive options for idle connection resiliency
+     */
     @SuppressWarnings("unchecked")
     private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
-        Method setOptionMethod = null;
-        SocketOption<Integer> keepIdleOption = null;
-        SocketOption<Integer> keepIntervalOption = null;
-
         try {
-            setOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
-            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
-            keepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
-            keepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
-
-            if (setOptionMethod != null && keepIdleOption != null && keepIntervalOption != null) {
+            if (socketSetOptionMethod == null) {
+                socketSetOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+                Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+                socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+                socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+            } else {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
                 }
 
-                setOptionMethod.invoke(tcpSocket, keepIdleOption, 30); // 30 seconds
-                setOptionMethod.invoke(tcpSocket, keepIntervalOption, 1); // 1 second
+                socketSetOptionMethod.invoke(tcpSocket, socketKeepIdleOption, 30); // 30 seconds
+                socketSetOptionMethod.invoke(tcpSocket, socketKeepIntervalOption, 1); // 1 second
 
-            } else if (logger.isLoggable(Level.FINER)) {
-                logger.finer(
-                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
             }
         } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
                 | InvocationTargetException e) {
@@ -766,7 +769,7 @@ final class TDSChannel implements Serializable {
             }
         }
     }
-    
+
     /**
      * Disables SSL on this TDS channel.
      */
