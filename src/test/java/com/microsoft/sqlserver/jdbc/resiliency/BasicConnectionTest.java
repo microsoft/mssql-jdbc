@@ -57,7 +57,7 @@ public class BasicConnectionTest extends AbstractTest {
         org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
 
         basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
-                + ";password=" + azurePassword + ";loginTimeout=30;Authentication=ActiveDirectoryPassword");
+                + ";password=" + azurePassword + ";loginTimeout=90;Authentication=ActiveDirectoryPassword");
     }
 
     @Test
