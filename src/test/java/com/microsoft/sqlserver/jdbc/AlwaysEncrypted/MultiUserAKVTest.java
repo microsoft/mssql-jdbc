@@ -587,7 +587,7 @@ public class MultiUserAKVTest extends AESetup {
 
         assertTrue(dataToSign.length > 0);
 
-        Method method = provider.getClass().getDeclaredMethod("AzureKeyVaultSignHashedData", byte[].class,
+        Method method = provider.getClass().getDeclaredMethod("azureKeyVaultSignHashedData", byte[].class,
                 String.class);
         method.setAccessible(true);
 
