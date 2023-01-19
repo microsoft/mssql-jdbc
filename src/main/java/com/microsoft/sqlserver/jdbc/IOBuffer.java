@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -25,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -600,6 +603,13 @@ final class TDSChannel implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
+    /**
+     * From jdk.net.ExtendedSocketOption for setting TCP keep-alive options
+     */
+    private static Method socketSetOptionMethod = null;
+    private static SocketOption<Integer> socketKeepIdleOption = null;
+    private static SocketOption<Integer> socketKeepIntervalOption = null;
+
     final Logger getLogger() {
         return logger;
     }
@@ -717,7 +727,7 @@ final class TDSChannel implements Serializable {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
             tcpSocket.setKeepAlive(true);
-            DriverJDBCVersion.setSocketOptions(tcpSocket, this);
+            setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
             int socketTimeout = con.getSocketTimeoutMilliseconds();
@@ -729,6 +739,35 @@ final class TDSChannel implements Serializable {
             SQLServerException.convertConnectExceptionToSQLServerException(host, port, con, ex);
         }
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
+    }
+
+    /**
+     * Set TCP keep-alive options for idle connection resiliency
+     */
+    @SuppressWarnings("unchecked")
+    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+        try {
+            if (socketSetOptionMethod == null) {
+                socketSetOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+                Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+                socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+                socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+            } else {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+                }
+
+                socketSetOptionMethod.invoke(tcpSocket, socketKeepIdleOption, 30); // 30 seconds
+                socketSetOptionMethod.invoke(tcpSocket, socketKeepIntervalOption, 1); // 1 second
+
+            }
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
+                | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+            }
+        }
     }
 
     /**

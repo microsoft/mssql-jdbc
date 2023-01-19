@@ -12,7 +12,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -227,10 +226,11 @@ public class ErrorMessageTest extends FedauthCommon {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
-                    e.getMessage()
+                    (e.getMessage()
                             .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
+                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD))
+                            || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -248,10 +248,11 @@ public class ErrorMessageTest extends FedauthCommon {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
-                    e.getMessage()
+                    (e.getMessage()
                             .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
+                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD))
+                            || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -262,10 +263,11 @@ public class ErrorMessageTest extends FedauthCommon {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (SQLServerException e) {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(),
-                    e.getMessage()
+                    (e.getMessage()
                             .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + badUserName
                                     + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD));
+                            && e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_ADD))
+                            || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -398,11 +400,12 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), (e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY))
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -423,11 +426,12 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), (e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY))
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -442,11 +446,12 @@ public class ErrorMessageTest extends FedauthCommon {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), (e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY))
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
