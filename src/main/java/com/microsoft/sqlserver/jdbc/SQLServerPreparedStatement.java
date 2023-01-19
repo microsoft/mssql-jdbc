@@ -624,7 +624,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
                     // If we are AE_v3, remove the failed entry and try again.
-                    ParameterMetaDataCache.removeCacheEntry(this, connection, preparedSQL);
+                    ParameterMetaDataCache.removeCacheEntry(connection, preparedSQL);
                     inRetry = true;
                     doExecutePreparedStatement(command);
                 } else {
@@ -2470,7 +2470,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
         // For ] or ", they can be escaped by ]] or "", watch out for this too.
         if (checkSQLLength(1) && "[".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
-            int tempint = localUserSQL.indexOf("]", 1);
+            int tempint = localUserSQL.indexOf(']', 1);
 
             // ] has not been found, this is wrong.
             if (tempint < 0) {
@@ -2481,7 +2481,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
-                tempint = localUserSQL.indexOf("]", tempint + 2);
+                tempint = localUserSQL.indexOf(']', tempint + 2);
             }
 
             // we've found a ] that is actually trying to close the square bracket.
@@ -2493,7 +2493,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // do the same for ""
         if (checkSQLLength(1) && "\"".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
-            int tempint = localUserSQL.indexOf("\"", 1);
+            int tempint = localUserSQL.indexOf('"', 1);
 
             // \" has not been found, this is wrong.
             if (tempint < 0) {
@@ -2504,7 +2504,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
-                tempint = localUserSQL.indexOf("\"", tempint + 2);
+                tempint = localUserSQL.indexOf('"', tempint + 2);
             }
 
             // we've found a " that is actually trying to close the quote.
@@ -2571,7 +2571,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // handle [] case
             if (localUserSQL.charAt(0) == '[') {
-                int tempint = localUserSQL.indexOf("]", 1);
+                int tempint = localUserSQL.indexOf(']', 1);
 
                 // ] has not been found, this is wrong.
                 if (tempint < 0) {
@@ -2583,7 +2583,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                    tempint = localUserSQL.indexOf("]", tempint + 1);
+                    tempint = localUserSQL.indexOf(']', tempint + 1);
                 }
 
                 // we've found a ] that is actually trying to close the square bracket.
@@ -2595,7 +2595,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // handle "" case
             if (localUserSQL.charAt(0) == '\"') {
-                int tempint = localUserSQL.indexOf("\"", 1);
+                int tempint = localUserSQL.indexOf('"', 1);
 
                 // \" has not been found, this is wrong.
                 if (tempint < 0) {
@@ -2607,7 +2607,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                    tempint = localUserSQL.indexOf("\"", tempint + 1);
+                    tempint = localUserSQL.indexOf('"', tempint + 1);
                 }
 
                 // we've found a " that is actually trying to close the quote.

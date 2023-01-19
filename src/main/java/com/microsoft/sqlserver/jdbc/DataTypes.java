@@ -1107,6 +1107,10 @@ enum JDBCType {
 
 
 final class DataTypes {
+    private DataTypes() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     // ResultSet & CallableStatement getXXX conversions (SSType --> JDBCType)
     static final void throwConversionError(String fromType, String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));

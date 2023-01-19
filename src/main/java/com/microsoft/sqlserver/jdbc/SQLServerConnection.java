@@ -583,6 +583,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
         static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
         static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
+
+        private ActiveDirectoryAuthentication() {
+            throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+        }
     }
 
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
@@ -5140,12 +5144,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             case ENVCHANGE_DTC_ENLIST:
             case ENVCHANGE_XACT_BEGIN:
                 rolledBackTransaction = false;
-                byte[] transactionDescriptor = getTransactionDescriptor();
+                byte[] descriptor = getTransactionDescriptor();
 
-                if (transactionDescriptor.length != tdsReader.readUnsignedByte())
+                if (descriptor.length != tdsReader.readUnsignedByte())
                     tdsReader.throwInvalidTDS();
 
-                tdsReader.readBytes(transactionDescriptor, 0, transactionDescriptor.length);
+                tdsReader.readBytes(descriptor, 0, descriptor.length);
 
                 if (connectionlogger.isLoggable(Level.FINER)) {
                     String op;
@@ -6134,6 +6138,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 this.loginAckToken = null;
             }
 
+            @Override
             boolean onSSPI(TDSReader tdsReader) throws SQLServerException {
                 StreamSSPI ack = new StreamSSPI();
                 ack.setFromTDS(tdsReader);
@@ -6146,6 +6151,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return true;
             }
 
+            @Override
             boolean onLoginAck(TDSReader tdsReader) throws SQLServerException {
                 loginAckToken = new StreamLoginAck();
                 loginAckToken.setFromTDS(tdsReader);
@@ -7281,11 +7287,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             dstBegin += makeParamName(nParam++, sqlDst, dstBegin);
             srcBegin = srcEnd + 1;
 
-            if (params[paramIndex++].isOutput()) {
-                if (!isReturnValueSyntax || paramIndex > 1) {
-                    System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
-                    dstBegin += OUT.length;
-                }
+            if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
+                System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
+                dstBegin += OUT.length;
             }
         }
 
@@ -7715,8 +7719,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method will always return 0 and is for backwards compatibility only.
      */
     @Deprecated
     @Override
@@ -7725,8 +7729,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method is a no-op for backwards compatibility only.
      */
     @Deprecated
     @Override

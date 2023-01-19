@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
@@ -60,7 +59,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
     }
 
-    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
+    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
     }
 
@@ -595,7 +594,12 @@ abstract class SQLServerClobBase extends SQLServerLob {
             // Make sure the new value length wouldn't exceed the maximum
             // allowed
             DataTypes.getCheckedLength(con, getJdbcType(), pos + len, false);
-            assert pos + len <= Integer.MAX_VALUE;
+
+            if (pos + len > Integer.MAX_VALUE) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+                Object[] msgArgs = {pos};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
+            }
 
             // Start with the original value, up to the starting position
             StringBuilder sb = new StringBuilder((int) pos + len);

@@ -312,6 +312,9 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(), encryptOption);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public void setEncrypt(boolean encryptOption) {
@@ -524,14 +527,17 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
     }
+
     @Override
     public void setDatetimeParameterType(String datetimeParameterType) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(), datetimeParameterType);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                datetimeParameterType);
     }
 
     @Override
     public String getDatetimeParameterType() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(), SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue());
     }
 
     @Override
@@ -992,6 +998,9 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public void setJASSConfigurationName(String configurationName) {
@@ -999,6 +1008,9 @@ public class SQLServerDataSource
                 configurationName);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public String getJASSConfigurationName() {
@@ -1019,9 +1031,9 @@ public class SQLServerDataSource
     }
 
     /**
-     * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
+     * @deprecated This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
      *
-     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
+     *             Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      *
      * @param managedIdentityClientId
      *        Client ID of the user-assigned Managed Identity.
@@ -1034,9 +1046,9 @@ public class SQLServerDataSource
     }
 
     /**
-     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
+     * @deprecated This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
      *
-     * Returns the value for the connection property 'msiClientId'.
+     *             Returns the value for the connection property 'msiClientId'.
      *
      * @return msiClientId property value
      */
@@ -1138,6 +1150,9 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public String getAADSecurePrincipalId() {
@@ -1145,6 +1160,9 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
@@ -1152,6 +1170,9 @@ public class SQLServerDataSource
                 AADSecurePrincipalId);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
     @Deprecated
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
@@ -1218,7 +1239,7 @@ public class SQLServerDataSource
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
      * This method will always return 0 and is for backwards compatibility only.
      */
     @Deprecated
@@ -1226,8 +1247,8 @@ public class SQLServerDataSource
     public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *            This method is a no-op for backwards compatibility only.
      */
     @Deprecated
     @Override
@@ -1311,7 +1332,7 @@ public class SQLServerDataSource
     private void setIntProperty(Properties props, String propKey, int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        props.setProperty(propKey, Integer.valueOf(propValue).toString());
+        props.setProperty(propKey, Integer.toString(propValue));
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 

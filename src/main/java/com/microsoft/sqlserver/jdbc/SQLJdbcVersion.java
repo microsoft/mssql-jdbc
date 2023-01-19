@@ -16,4 +16,8 @@ final class SQLJdbcVersion {
      * 2. Set to "" (empty String) for official release.
      */
     static final String RELEASE_EXT = "-preview";
+
+    private SQLJdbcVersion() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
 }

@@ -644,8 +644,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method will always return 0 and is for backwards compatibility only.
      */
     @Deprecated
     @Override
@@ -654,8 +654,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method is a no-op for backwards compatibility only.
      */
     @Deprecated
     @Override

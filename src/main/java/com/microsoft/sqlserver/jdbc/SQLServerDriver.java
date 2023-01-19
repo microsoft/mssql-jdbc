@@ -430,7 +430,7 @@ enum ApplicationIntent {
     }
 
     static ApplicationIntent valueOfString(String value) throws SQLServerException {
-        ApplicationIntent applicationIntent = ApplicationIntent.READ_WRITE;
+        ApplicationIntent applicationIntent;
         assert value != null;
         // handling turkish i issues
         value = value.toUpperCase(Locale.US).toLowerCase(Locale.US);
@@ -473,7 +473,7 @@ enum DatetimeType {
     }
 
     static DatetimeType valueOfString(String value) throws SQLServerException {
-        DatetimeType datetimeType = DatetimeType.DATETIME2;
+        DatetimeType datetimeType;
 
         assert value != null;
 
@@ -836,8 +836,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
                     SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue(), false,
-                    new String[] {DatetimeType.DATETIME.toString(), 
-                            DatetimeType.DATETIME2.toString(), 
+                    new String[] {DatetimeType.DATETIME.toString(), DatetimeType.DATETIME2.toString(),
                             DatetimeType.DATETIMEOFFSET.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),
                     SQLServerDriverStringProperty.USER.getDefaultValue(), true, null),

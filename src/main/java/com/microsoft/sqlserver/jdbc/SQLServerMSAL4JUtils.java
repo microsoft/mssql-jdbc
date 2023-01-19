@@ -43,6 +43,10 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = " Access token expires on the following date: ";
 
+    private SQLServerMSAL4JUtils() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 

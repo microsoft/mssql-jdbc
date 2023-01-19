@@ -1985,7 +1985,7 @@ final class AppDTVImpl extends DTVImpl {
         }
 
         void execute(DTV dtv, String strValue) throws SQLServerException {
-            JDBCType jdbcType = dtv.getJdbcType();
+            JDBCType type = dtv.getJdbcType();
 
             // Normally we let the server convert the string to whatever backend
             // type it is going into. However, if the app says that the string
@@ -1993,14 +1993,14 @@ final class AppDTVImpl extends DTVImpl {
             // now so that GetTypeDefinitionOp can generate a type definition
             // with the correct scale.
 
-            if ((JDBCType.DECIMAL == jdbcType) || (JDBCType.NUMERIC == jdbcType) || (JDBCType.MONEY == jdbcType)
-                    || (JDBCType.SMALLMONEY == jdbcType)) {
+            if ((JDBCType.DECIMAL == type) || (JDBCType.NUMERIC == type) || (JDBCType.MONEY == type)
+                    || (JDBCType.SMALLMONEY == type)) {
                 assert null != strValue;
 
                 try {
                     dtv.setValue(new BigDecimal(strValue), JavaType.BIGDECIMAL);
                 } catch (NumberFormatException e) {
-                    DataTypes.throwConversionError("String", jdbcType.toString());
+                    DataTypes.throwConversionError("String", type.toString());
                 }
             }
 
@@ -2008,7 +2008,7 @@ final class AppDTVImpl extends DTVImpl {
             // type, but we are being told that it is binary, then we need to convert
             // the hexized text value to binary here because the server doesn't do
             // this conversion for us.
-            else if (jdbcType.isBinary()) {
+            else if (type.isBinary()) {
                 assert null != strValue;
                 dtv.setValue(ParameterUtils.hexToBin(strValue), JavaType.BYTEARRAY);
             }
@@ -2017,8 +2017,8 @@ final class AppDTVImpl extends DTVImpl {
             // then do the conversion now so that the decision to use a "short" or "long"
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
-            else if (null != collation && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType
-                    || JDBCType.LONGVARCHAR == jdbcType || JDBCType.CLOB == jdbcType)) {
+            else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
+                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
                 byte[] nativeEncoding = null;
 
                 if (null != strValue) {
@@ -2204,7 +2204,7 @@ final class AppDTVImpl extends DTVImpl {
             // executeOp should have handled null Reader as a null String.
             assert null != readerValue;
 
-            JDBCType jdbcType = dtv.getJdbcType();
+            JDBCType type = dtv.getJdbcType();
             long readerLength = DataTypes.getCheckedLength(con, dtv.getJdbcType(),
                     dtv.getStreamSetterArgs().getLength(), true);
 
@@ -2213,7 +2213,7 @@ final class AppDTVImpl extends DTVImpl {
             // type, but we are being told that it is binary, then we need to convert
             // the hexized text value to binary here because the server doesn't do
             // this conversion for us.
-            jdbcType.isBinary()) {
+            type.isBinary()) {
                 String stringValue = DDC.convertReaderToString(readerValue, (int) readerLength);
 
                 // If we were given an input stream length that we had to match and
@@ -2229,8 +2229,8 @@ final class AppDTVImpl extends DTVImpl {
             }
 
             // If the reader value is to be sent as MBCS, then convert the value to an MBCS InputStream
-            else if (null != collation && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType
-                    || JDBCType.LONGVARCHAR == jdbcType || JDBCType.CLOB == jdbcType)) {
+            else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
+                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
                 ReaderInputStream streamValue = new ReaderInputStream(readerValue, collation.getCharset(),
                         readerLength);
 

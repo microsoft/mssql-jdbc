@@ -39,6 +39,10 @@ class CertificateDetails {
 
 class KeyStoreProviderCommon {
 
+    private KeyStoreProviderCommon() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     static final String RSA_ENCRYPTION_ALGORITHM = "RSA_OAEP";
     static byte[] version = new byte[] {0x01};
 

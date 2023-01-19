@@ -10,6 +10,10 @@ package com.microsoft.sqlserver.jdbc;
  */
 
 final class ParameterUtils {
+    private ParameterUtils() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     static byte[] hexToBin(String hexV) throws SQLServerException {
         int len = hexV.length();
         char[] orig = hexV.toCharArray();

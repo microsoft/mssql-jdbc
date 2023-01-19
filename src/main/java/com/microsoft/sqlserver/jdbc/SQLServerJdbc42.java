@@ -20,6 +20,11 @@ final class DriverJDBCVersion {
     static final int MAJOR = 4;
     static final int MINOR = 2;
 
+    private DriverJDBCVersion() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
+
     static final boolean checkSupportsJDBC43() {
         return false;
     }

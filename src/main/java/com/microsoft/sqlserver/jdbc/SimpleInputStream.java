@@ -220,6 +220,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int available() throws IOException {
         checkClosed();
         assert streamPos <= payloadLength;
@@ -258,6 +259,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public int read(byte[] b) throws IOException {
         checkClosed();
         return read(b, 0, b.length);
@@ -317,6 +319,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @param readLimit
      *        the number of bytes to hold
      */
+    @Override
     public void mark(int readLimit) {
         if (null != tdsReader && readLimit > 0) {
             currentMark = tdsReader.mark();
@@ -331,6 +334,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public void reset() throws IOException {
         resetHelper();
         streamPos = markedStreamPos;

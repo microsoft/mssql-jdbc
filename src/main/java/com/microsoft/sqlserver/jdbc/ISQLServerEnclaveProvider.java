@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.crypto.KeyAgreement;
@@ -419,7 +420,7 @@ abstract class BaseAttestationResponse {
     protected byte[] sessionID = new byte[8];
     protected int dhpkSize;
     protected int dhpkSsize;
-    protected byte[] DHpublicKey;
+    protected byte[] dhPublicKey;
     protected byte[] publicKeySig;
 
     @SuppressWarnings("unused")
@@ -458,7 +459,7 @@ abstract class BaseAttestationResponse {
         PublicKey pub = factory.generatePublic(spec);
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(pub);
-        sig.update(DHpublicKey);
+        sig.update(dhPublicKey);
         if (!sig.verify(publicKeySig)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
                     "0", false);
@@ -466,7 +467,7 @@ abstract class BaseAttestationResponse {
     }
 
     byte[] getDHpublicKey() {
-        return DHpublicKey;
+        return dhPublicKey;
     }
 
     byte[] getSessionID() {
@@ -501,10 +502,10 @@ class EnclaveSession {
 
 
 final class EnclaveSessionCache {
-    private Hashtable<String, EnclaveCacheEntry> sessionCache;
+    private ConcurrentHashMap<String, EnclaveCacheEntry> sessionCache;
 
     EnclaveSessionCache() {
-        sessionCache = new Hashtable<>(0);
+        sessionCache = new ConcurrentHashMap<>(0);
     }
 
     void addEntry(String servername, String catalog, String attestationUrl, BaseAttestationRequest b,

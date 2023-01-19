@@ -36,6 +36,10 @@ import java.util.TimeZone;
 
 final class DDC {
 
+    private DDC() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     /**
      * Convert an Integer object to desired target user type.
      * 

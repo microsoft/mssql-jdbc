@@ -196,7 +196,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // used when allowEncryptedValueModifications is on and encryption is turned off in connection
         String encryptionType = null;
 
-        BulkColumnMetaData(Column column) throws SQLServerException {
+        BulkColumnMetaData(Column column) {
             this.cryptoMeta = column.getCryptoMetadata();
             TypeInfo typeInfo = column.getTypeInfo();
             this.columnName = column.getColumnName();
@@ -212,7 +212,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         // This constructor is needed for the source meta data.
         BulkColumnMetaData(String colName, boolean isNullable, int precision, int scale, int jdbcType,
-                DateTimeFormatter dateTimeFormatter) throws SQLServerException {
+                DateTimeFormatter dateTimeFormatter) {
             this.columnName = colName;
             this.isNullable = isNullable;
             this.precision = precision;
@@ -221,7 +221,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             this.dateTimeFormatter = dateTimeFormatter;
         }
 
-        BulkColumnMetaData(Column column, String collationName, String encryptionType) throws SQLServerException {
+        BulkColumnMetaData(Column column, String collationName, String encryptionType) {
             this(column);
             this.collationName = collationName;
             this.encryptionType = encryptionType;
@@ -267,7 +267,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
      * smalldatetime/datetime value.
      */
-    private static final int sourceBulkRecordTemporalMaxPrecision = 50;
+    private static final int SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION = 50;
 
     /**
      * Constructs a SQLServerBulkCopy using the specified open instance of SQLServerConnection.
@@ -739,7 +739,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
          */
         srcColumnIndex = columnMappings.get(idx).sourceColumnOrdinal;
 
-        byte flags[] = destColumnMetadata.get(destColumnIndex).flags;
+        byte[] flags = destColumnMetadata.get(destColumnIndex).flags;
         // If AllowEncryptedValueModification is set to true (and of course AE is off),
         // the driver will not sent AE information, so, we need to set Encryption bit flag to 0.
         if (null == srcColumnMetadata.get(srcColumnIndex).cryptoMeta
@@ -848,7 +848,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
          */
         int destColNameLen = columnMappings.get(idx).destinationColumnName.length();
         String destColName = columnMappings.get(idx).destinationColumnName;
-        byte colName[] = new byte[2 * destColNameLen];
+        byte[] colName = new byte[2 * destColNameLen];
 
         for (int i = 0; i < destColNameLen; ++i) {
             int c = destColName.charAt(i);
@@ -1385,7 +1385,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
+                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
                                     + ")";
                         } else {
                             return SSType.SMALLDATETIME.toString();
@@ -1393,7 +1393,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     case DATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? sourceBulkRecordTemporalMaxPrecision : bulkPrecision)
+                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
                                     + ")";
                         } else {
                             return SSType.DATETIME.toString();
@@ -1552,10 +1552,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         boolean insertRowByRow = false;
 
         if (null != sourceResultSet && sourceResultSet instanceof SQLServerResultSet) {
-            SQLServerStatement src_stmt = (SQLServerStatement) ((SQLServerResultSet) sourceResultSet).getStatement();
+            SQLServerStatement srcStmt = (SQLServerStatement) ((SQLServerResultSet) sourceResultSet).getStatement();
             int resultSetServerCursorId = ((SQLServerResultSet) sourceResultSet).getServerCursorId();
 
-            if (connection.equals(src_stmt.getConnection()) && 0 != resultSetServerCursorId) {
+            if (connection.equals(srcStmt.getConnection()) && 0 != resultSetServerCursorId) {
                 insertRowByRow = true;
             }
 
@@ -1797,7 +1797,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
         } else if (null != serverBulkData) {
             Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
-            if (null == columnOrdinals || 0 == columnOrdinals.size()) {
+            if (null == columnOrdinals || columnOrdinals.isEmpty()) {
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             } else {
                 srcColumnCount = columnOrdinals.size();
@@ -2278,12 +2278,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                     // writeReader is unicode.
                                     tdsWriter.writeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
                                 } else {
-                                    if ((SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
-                                            || (SSType.VARBINARYMAX == destSSType) || (SSType.IMAGE == destSSType)) {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, true);
-                                    } else {
-                                        tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false);
-                                    }
+                                    tdsWriter.writeNonUnicodeReader(reader, DataTypes.UNKNOWN_STREAM_LENGTH,
+                                            (SSType.BINARY == destSSType) || (SSType.VARBINARY == destSSType)
+                                                    || (SSType.VARBINARYMAX == destSSType)
+                                                    || (SSType.IMAGE == destSSType));
                                 }
                                 reader.close();
                             } catch (IOException e) {
@@ -3227,8 +3225,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 case java.sql.Types.TIME: {
                     String time = connection.baseYear() + "-01-01 " + valueStr;
-                    Timestamp ts = java.sql.Timestamp.valueOf(time);
-                    return ts;
+                    return java.sql.Timestamp.valueOf(time);
                 }
                 case java.sql.Types.DATE:
                     return java.sql.Date.valueOf(valueStr);
@@ -3319,19 +3316,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 default:
                     break;
             }
-        } catch (IndexOutOfBoundsException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        } catch (NumberFormatException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
-            Object[] msgArgs = {JDBCType.of(srcJdbcType)};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        } catch (IllegalArgumentException e) {
+        } catch (IndexOutOfBoundsException | IllegalArgumentException e) {
+            // IllegalArgumentsException includes NumberFormatException
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingError"));
             Object[] msgArgs = {JDBCType.of(srcJdbcType)};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
+
         // unreachable code. Need to do to compile from Eclipse.
         return value;
     }

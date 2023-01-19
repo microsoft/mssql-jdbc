@@ -180,11 +180,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private static final String ASC_OR_DESC = "ASC_OR_DESC";
-    private static final String ATTR_NAME = "ATTR_NAME";
-    private static final String ATTR_TYPE_NAME = "ATTR_TYPE_NAME";
-    private static final String ATTR_SIZE = "ATTR_SIZE";
-    private static final String ATTR_DEF = "ATTR_DEF";
-    private static final String BASE_TYPE = "BASE_TYPE";
     private static final String BUFFER_LENGTH = "BUFFER_LENGTH";
     private static final String CARDINALITY = "CARDINALITY";
     private static final String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
@@ -241,19 +236,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SOURCE_DATA_TYPE = "SOURCE_DATA_TYPE";
     private static final String SQL_DATA_TYPE = "SQL_DATA_TYPE";
     private static final String SQL_DATETIME_SUB = "SQL_DATETIME_SUB";
-    private static final String SS_DATA_TYPE = "SS_DATA_TYPE";
-    private static final String SUPERTABLE_NAME = "SUPERTABLE_NAME";
-    private static final String SUPERTYPE_CAT = "SUPERTYPE_CAT";
-    private static final String SUPERTYPE_NAME = "SUPERTYPE_NAME";
-    private static final String SUPERTYPE_SCHEM = "SUPERTYPE_SCHEM";
     private static final String TABLE_CAT = "TABLE_CAT";
     private static final String TABLE_NAME = "TABLE_NAME";
     private static final String TABLE_SCHEM = "TABLE_SCHEM";
     private static final String TABLE_TYPE = "TABLE_TYPE";
     private static final String TYPE = "TYPE";
-    private static final String TYPE_CAT = "TYPE_CAT";
     private static final String TYPE_NAME = "TYPE_NAME";
-    private static final String TYPE_SCHEM = "TYPE_SCHEM";
     private static final String UPDATE_RULE = "UPDATE_RULE";
     private static final String FUNCTION_CAT = "FUNCTION_CAT";
     private static final String FUNCTION_NAME = "FUNCTION_NAME";

@@ -209,12 +209,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                  */
                 if ("*".equals(columns.get(i))) {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
-                        if ("?".equals(params.get(valueListOffset).get(j))) {
-                            if (!md.isAutoIncrement(mdIndex + j)) {
-                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
-                                queryMetaMap.put(mapIndex++, qm);
-                                i++;
-                            }
+                        if ("?".equals(params.get(valueListOffset).get(j)) && (!md.isAutoIncrement(mdIndex + j))) {
+                            QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
+                            queryMetaMap.put(mapIndex++, qm);
+                            i++;
                         }
                     }
                     mdIndex += params.get(valueListOffset).size();

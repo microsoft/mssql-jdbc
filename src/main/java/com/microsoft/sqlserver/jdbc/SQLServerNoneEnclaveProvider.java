@@ -203,10 +203,10 @@ class NoneAttestationResponse extends BaseAttestationResponse {
             this.dhpkSize = response.getInt();
             this.dhpkSsize = response.getInt();
 
-            DHpublicKey = new byte[dhpkSize];
+            dhPublicKey = new byte[dhpkSize];
             publicKeySig = new byte[dhpkSsize];
 
-            response.get(DHpublicKey, 0, dhpkSize);
+            response.get(dhPublicKey, 0, dhpkSize);
             response.get(publicKeySig, 0, dhpkSsize);
         }
 
