@@ -603,13 +603,6 @@ final class TDSChannel implements Serializable {
 
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Channel");
 
-    /**
-     * From jdk.net.ExtendedSocketOption for setting TCP keep-alive options
-     */
-    private static Method socketSetOptionMethod = null;
-    private static SocketOption<Integer> socketKeepIdleOption = null;
-    private static SocketOption<Integer> socketKeepIntervalOption = null;
-
     final Logger getLogger() {
         return logger;
     }
@@ -744,28 +737,21 @@ final class TDSChannel implements Serializable {
     /**
      * Set TCP keep-alive options for idle connection resiliency
      */
-    @SuppressWarnings("unchecked")
     private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
         try {
-            if (socketSetOptionMethod == null) {
-                socketSetOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
-                Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
-                socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
-                socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
-            } else {
+            if (SQLServerDriver.socketSetOptionMethod != null && SQLServerDriver.socketKeepIdleOption != null
+                    && SQLServerDriver.socketKeepIntervalOption != null) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
                 }
 
-                socketSetOptionMethod.invoke(tcpSocket, socketKeepIdleOption, 30); // 30 seconds
-                socketSetOptionMethod.invoke(tcpSocket, socketKeepIntervalOption, 1); // 1 second
-
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIdleOption, 30); // 30 seconds
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIntervalOption, 1); // 1 second
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException
-                | InvocationTargetException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
             if (logger.isLoggable(Level.FINER)) {
-                logger.finer(
-                        channel.toString() + ": KeepAlive extended socket options not supported on this platform.");
+                logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform. "
+                        + e.getMessage());
             }
         }
     }
