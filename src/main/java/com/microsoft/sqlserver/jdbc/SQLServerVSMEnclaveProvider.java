@@ -27,7 +27,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -119,7 +119,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         }
     }
 
-    private static Hashtable<String, X509CertificateEntry> certificateCache = new Hashtable<>();
+    private static ConcurrentHashMap<String, X509CertificateEntry> certificateCache = new ConcurrentHashMap<>();
 
     private byte[] getAttestationCertificates() throws IOException {
         byte[] certData = null;
