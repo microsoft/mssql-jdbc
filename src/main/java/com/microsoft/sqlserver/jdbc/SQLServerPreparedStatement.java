@@ -2739,7 +2739,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if ("--".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
-            int temp = localUserSQL.indexOf("\n") + 1;
+            int temp = localUserSQL.indexOf('\n') + 1;
             if (temp <= 0) {
                 localUserSQL = "";
                 return false;

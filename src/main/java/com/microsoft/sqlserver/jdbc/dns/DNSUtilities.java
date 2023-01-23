@@ -30,7 +30,7 @@ public class DNSUtilities {
     /**
      * default constructor
      */
-    public DNSUtilities() {
+    private DNSUtilities() {
         // default constructor
     }
 

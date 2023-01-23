@@ -183,7 +183,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String BUFFER_LENGTH = "BUFFER_LENGTH";
     private static final String CARDINALITY = "CARDINALITY";
     private static final String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
-    private static final String CLASS_NAME = "CLASS_NAME";
     private static final String COLUMN_DEF = "COLUMN_DEF";
     private static final String COLUMN_NAME = "COLUMN_NAME";
     private static final String COLUMN_SIZE = "COLUMN_SIZE";

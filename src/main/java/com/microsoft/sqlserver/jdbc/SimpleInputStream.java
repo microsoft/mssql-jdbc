@@ -100,6 +100,7 @@ abstract class BaseInputStream extends InputStream {
      * 
      * @return true if mark and reset are supported.
      */
+    @Override
     public boolean markSupported() {
         return true;
     }
@@ -146,6 +147,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public void close() throws IOException {
         if (null == tdsReader)
             return;
@@ -184,6 +186,7 @@ final class SimpleInputStream extends BaseInputStream {
      * @exception IOException
      *            if an I/O error occurs.
      */
+    @Override
     public long skip(long n) throws IOException {
         checkClosed();
         if (logger.isLoggable(java.util.logging.Level.FINER))

@@ -316,7 +316,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "10.1.0", forRemoval = true)
     public void setEncrypt(boolean encryptOption) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
                 Boolean.toString(encryptOption));
@@ -1002,7 +1002,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 configurationName);
@@ -1012,7 +1012,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
@@ -1038,7 +1038,7 @@ public class SQLServerDataSource
      * @param managedIdentityClientId
      *        Client ID of the user-assigned Managed Identity.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public void setMSIClientId(String managedIdentityClientId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1052,7 +1052,7 @@ public class SQLServerDataSource
      *
      * @return msiClientId property value
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1154,7 +1154,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.4.1", forRemoval = true)
     public String getAADSecurePrincipalId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
@@ -1164,7 +1164,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.4.1", forRemoval = true)
     public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 AADSecurePrincipalId);
@@ -1240,17 +1240,17 @@ public class SQLServerDataSource
 
     /**
      * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
+     *             This method will always return 0 and is for backwards compatibility only.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
      * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
-     *            This method is a no-op for backwards compatibility only.
+     *             This method is a no-op for backwards compatibility only.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public int getMsiTokenCacheTtl() {
         return 0;
