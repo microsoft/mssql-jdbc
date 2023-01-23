@@ -46,6 +46,10 @@ class SQLServerSecurityUtility {
     // Environment variable for additionally allowed tenants. The tenantIds are comma delimited
     private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
 
+    private SQLServerSecurityUtility() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+    
     /**
      * Give the hash of given plain text
      * 
