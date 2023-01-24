@@ -1174,7 +1174,7 @@ public class SQLServerDataSource
      * @deprecated
      */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.4.1", forRemoval = true)
     public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
                 AADSecurePrincipalSecret);
