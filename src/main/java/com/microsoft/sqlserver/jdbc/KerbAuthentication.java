@@ -5,8 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
@@ -72,11 +70,9 @@ final class KerbAuthentication extends SSPIAuthentication {
                 String configName = con.activeConnectionProperties.getProperty(
                         SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                         SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
-                Subject currentSubject;
+                Subject currentSubject = Subject.current();
                 KerbCallback callback = new KerbCallback(con);
                 try {
-                    AccessControlContext context = AccessController.getContext();
-                    currentSubject = Subject.getSubject(context);
                     if (null == currentSubject) {
                         lc = new LoginContext(configName, callback);
                         lc.login();
