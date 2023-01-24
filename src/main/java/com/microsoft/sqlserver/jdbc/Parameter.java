@@ -423,7 +423,6 @@ final class Parameter {
 
         private final Parameter param;
         private final SQLServerConnection con;
-        private BigDecimal providedDecimal;
 
         GetTypeDefinitionOp(Parameter param, SQLServerConnection con) {
             this.param = param;
@@ -529,15 +528,23 @@ final class Parameter {
                         if (userProvidesPrecision) {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
-                    } else if (dtv.getJavaType() == JavaType.BIGDECIMAL
-                            && (providedDecimal = (BigDecimal) dtv.getValue(dtv.getJdbcType(), scale, null, null,
-                                    typeInfo, cryptoMeta, null, null)) != null
-                            && providedDecimal.precision() >= scale) {
-                                param.typeDefinition = SSType.DECIMAL.toString() + "(" + providedDecimal.precision() 
-                                + "," + scale + ")";
                     } else {
-                        param.typeDefinition = SSType.DECIMAL.toString() + "(" 
-                            + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                        BigDecimal bigDecimal = null;
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL &&
+                                null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
+
+                            String plainValue = bigDecimal.abs().toPlainString();
+                            String[] plainValueArray = plainValue.split("\\.");
+                            int precision = plainValueArray.length == 2 ? plainValueArray[0].length() + plainValueArray[1].length() : plainValueArray[0].length();
+                            int scale = plainValueArray.length == 2 ? plainValueArray[1].length() : 0;
+
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + precision
+                                    + "," + scale + ")";
+
+                        } else {
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
+                                    + "," + scale + ")";
+                        }
                     }
 
                     break;
