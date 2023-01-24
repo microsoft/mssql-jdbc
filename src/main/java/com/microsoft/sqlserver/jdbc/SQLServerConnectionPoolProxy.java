@@ -125,6 +125,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void abort(Executor executor) throws SQLException {
         if (!bIsOpen || (null == wrappedConnection))
             return;

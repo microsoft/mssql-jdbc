@@ -24,6 +24,7 @@ final class ActivityCorrelator {
     }
 
     // Get the current ActivityId in TLS
+    @SuppressWarnings("deprecation")
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
         Thread thread = Thread.currentThread();

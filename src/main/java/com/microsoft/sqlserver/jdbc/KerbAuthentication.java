@@ -52,7 +52,7 @@ final class KerbAuthentication extends SSPIAuthentication {
      * 
      * @throws SQLServerException
      */
-    @SuppressWarnings("deprecated")
+    @SuppressWarnings("deprecation")
     private void initAuthInit() throws SQLServerException {
         try {
             // If we need to support NTLM as well, we can use null
