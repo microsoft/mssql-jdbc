@@ -1456,10 +1456,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalSubtraction() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
-                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("select (test_column - ?), " 
-                    + "(test_column - ?), (test_column - ?), (test_column - ?) from " + tableName)) {
+                    + "(test_column - ?), (test_column - ?), (test_column - ?) from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1495,10 +1495,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalAddition() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
-                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("select (test_column + ?), " 
-                    + "(test_column + ?), (test_column + ?), (test_column + ?) from " + tableName)) {
+                    + "(test_column + ?), (test_column + ?), (test_column + ?) from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1534,10 +1534,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalMultiplication() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
-                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("select (test_column * ?), " 
-                    + "(test_column * ?), (test_column * ?), (test_column * ?) from " + tableName)) {
+                    + "(test_column * ?), (test_column * ?), (test_column * ?) from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1573,10 +1573,10 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalDivision() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("create table " + tableName + " (test_column decimal(10,5))");
-                stmt.executeUpdate("insert into " + tableName + " values (99999.12345)");
+                stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (test_column decimal(10,5))");
+                stmt.executeUpdate("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("select (test_column / ?), " 
-                    + "(test_column / ?), (test_column / ?), (test_column / ?) from " + tableName)) {
+                    + "(test_column / ?), (test_column / ?), (test_column / ?) from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
 
                     /* Division has some unique properties in sql server math operations.
                      * Notably in this case we cannot compare a result with an infinite trailing decimal
