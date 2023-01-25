@@ -156,6 +156,7 @@ class KeyVaultTokenCredential implements TokenCredential {
      *        The context for requesting the token including the scope.
      * @return The cached access token if it's not expired.
      */
+    @SuppressWarnings("deprecation")
     private Mono<AccessToken> authenticateWithConfidentialClientCache(TokenRequestContext request) {
         return Mono.fromFuture(() -> {
             SilentParameters.SilentParametersBuilder parametersBuilder = SilentParameters

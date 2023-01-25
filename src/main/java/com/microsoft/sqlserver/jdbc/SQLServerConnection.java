@@ -4387,6 +4387,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void abort(Executor executor) throws SQLException {
         loggerExternal.entering(loggingClassName, "abort", executor);
 
@@ -6826,6 +6827,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void setNetworkTimeout(Executor executor, int timeout) throws SQLException {
         loggerExternal.entering(loggingClassName, SET_NETWORK_TIMEOUT_PERM, timeout);
 
@@ -7993,6 +7995,7 @@ final class SQLServerConnectionSecurityManager {
      * @throws SecurityException
      *         when an error occurs
      */
+    @SuppressWarnings("deprecation")
     public void checkConnect() throws SecurityException {
         SecurityManager security = System.getSecurityManager();
         if (null != security) {
@@ -8006,6 +8009,7 @@ final class SQLServerConnectionSecurityManager {
      * @throws SecurityException
      *         when an error occurs
      */
+    @SuppressWarnings("deprecation")
     public void checkLink() throws SecurityException {
         SecurityManager security = System.getSecurityManager();
         if (null != security) {
