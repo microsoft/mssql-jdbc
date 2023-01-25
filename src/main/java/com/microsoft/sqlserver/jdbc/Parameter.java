@@ -429,7 +429,7 @@ final class Parameter {
             this.con = con;
         }
 
-        private void setTypeDefinition(DTV dtv)throws SQLServerException {
+        private void setTypeDefinition(DTV dtv) {
             switch (dtv.getJdbcType()) {
                 case TINYINT:
                     param.typeDefinition = SSType.TINYINT.toString();
@@ -533,13 +533,12 @@ final class Parameter {
                         if (dtv.getJavaType() == JavaType.BIGDECIMAL &&
                                 null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
-                            String plainValue = bigDecimal.abs().toPlainString();
-                            String[] plainValueArray = plainValue.split("\\.");
-                            int precision = plainValueArray.length == 2 ? plainValueArray[0].length() + plainValueArray[1].length() : plainValueArray[0].length();
-                            int scale = plainValueArray.length == 2 ? plainValueArray[1].length() : 0;
-
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + precision
-                                    + "," + scale + ")";
+                            String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" +
+                                    // Precision
+                                    (plainValueArray.length == 2 ? plainValueArray[0].length() + plainValueArray[1].length() : plainValueArray[0].length()) + "," +
+                                    // Scale
+                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
 
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
