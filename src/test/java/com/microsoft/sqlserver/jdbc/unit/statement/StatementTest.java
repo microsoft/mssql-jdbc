@@ -86,11 +86,11 @@ public class StatementTest extends AbstractTest {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
-                    stmt.executeUpdate("CREATE TABLE " + tableName
-                            + " (col1 INT, col2 VARCHAR(" + TEST_STRING.length() + "))");
+                    stmt.executeUpdate(
+                            "CREATE TABLE " + tableName + " (col1 INT, col2 VARCHAR(" + TEST_STRING.length() + "))");
                     for (int i = 0; i < NUM_TABLE_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + tableName
-                                + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
+                        stmt.executeUpdate(
+                                "INSERT INTO " + tableName + " (col1, col2) VALUES (" + i + ", '" + TEST_STRING + "')");
                 }
                 con.commit();
             }
@@ -112,8 +112,7 @@ public class StatementTest extends AbstractTest {
         public void testCancelBeforeExecute() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.cancel();
-                try (ResultSet rs = stmt
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                     int numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -134,8 +133,8 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         public void testErrorInRequest() throws Exception {
-            try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(
-                    "UPDATE " + tableName + " SET col2 = ? WHERE col1 = ?")) {
+            try (Connection con = getConnection(); PreparedStatement ps = con
+                    .prepareStatement("UPDATE " + tableName + " SET col2 = ? WHERE col1 = ?")) {
                 ps.setString(1, TEST_STRING);
                 for (int i = 0; i < MIN_TABLE_ROWS; i++) {
                     ps.setInt(2, i);
@@ -219,8 +218,7 @@ public class StatementTest extends AbstractTest {
                 }
 
                 try (ResultSet rs = stmt.executeQuery(
-                        "SELECT " + "a.col1, a.col2 FROM " + tableName
-                                + " a CROSS JOIN " + tableName + " b")) {
+                        "SELECT " + "a.col1, a.col2 FROM " + tableName + " a CROSS JOIN " + tableName + " b")) {
 
                     // Scan the first MIN_TABLE_ROWS rows
                     int numSelectedRows = 0;
@@ -297,8 +295,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + tableName
-                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + tableName + " SET col2 = 'New Value!' WHERE col1 = "
+                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -325,8 +323,7 @@ public class StatementTest extends AbstractTest {
                         try (Statement stmt = con.createStatement(SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY,
                                 ResultSet.CONCUR_READ_ONLY)) {
                             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
-                            try (ResultSet rs = stmt.executeQuery(
-                                    "SELECT * FROM " + tableName)) {
+                            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
                                 // Time how long it takes for execution to be cancelled...
                                 long elapsedMillis = -System.currentTimeMillis();
@@ -389,8 +386,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + tableName
-                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + tableName + " SET col2 = 'New Value!' WHERE col1 = "
+                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -413,8 +410,7 @@ public class StatementTest extends AbstractTest {
                         //
                         // Need to use adaptive response buffering when executing the statement.
                         // Otherwise, we would block in executeQuery()...
-                        try (PreparedStatement stmt = con.prepareStatement(
-                                "SELECT * FROM " + tableName,
+                        try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM " + tableName,
                                 SQLServerResultSet.TYPE_SS_DIRECT_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                             ((SQLServerStatement) stmt).setResponseBuffering("adaptive");
                             try (ResultSet rs = stmt.executeQuery()) {
@@ -484,8 +480,8 @@ public class StatementTest extends AbstractTest {
                 // and leave it non-responsive for now...
                 conLock.setAutoCommit(false);
                 try (Statement stmtLock = conLock.createStatement()) {
-                    stmtLock.executeUpdate("UPDATE " + tableName
-                            + " SET col2 = 'New Value!' WHERE col1 = " + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
+                    stmtLock.executeUpdate("UPDATE " + tableName + " SET col2 = 'New Value!' WHERE col1 = "
+                            + (NUM_TABLE_ROWS - MIN_TABLE_ROWS));
 
                     try (Connection con = getConnection()) {
                         // In SQL Azure, both ALLOW_SNAPSHOT_ISOLATION and READ_COMMITTED_SNAPSHOT options
@@ -503,8 +499,7 @@ public class StatementTest extends AbstractTest {
                             con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                         }
 
-                        try (PreparedStatement stmt = con.prepareStatement(
-                                "SELECT * FROM " + tableName,
+                        try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM " + tableName,
                                 SQLServerResultSet.TYPE_SS_SERVER_CURSOR_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
 
                             // Start up a thread to cancel the following SELECT after 3 seconds of blocking.
@@ -565,8 +560,7 @@ public class StatementTest extends AbstractTest {
         public void testCancelAfterResponse() throws Exception {
             int numSelectedRows;
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                try (ResultSet rs = stmt
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                     numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -578,8 +572,7 @@ public class StatementTest extends AbstractTest {
                 stmt.cancel();
 
                 // Verify that the query can be re-executed without error
-                try (ResultSet rs = stmt
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                     numSelectedRows = 0;
                     while (rs.next())
                         ++numSelectedRows;
@@ -697,8 +690,7 @@ public class StatementTest extends AbstractTest {
 
                     final Runnable runner = new Runnable() {
                         public void run() {
-                            try (ResultSet rs = stmt.executeQuery(
-                                    "SELECT * FROM " + tableName)) {
+                            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
                                 while (rs.next())
                                     ++numExecuteSuccesses;
@@ -862,8 +854,10 @@ public class StatementTest extends AbstractTest {
 
     @Nested
     public class TCStatement {
-        private final String table1Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatement1"));
-        private final String table2Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatement2"));
+        private final String table1Name = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatement1"));
+        private final String table2Name = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatement2"));
 
         /**
          * test statement.closeOnCompltetion method
@@ -933,8 +927,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE TABLE " + table1Name + " (col1 INT)");
                 stmt.executeUpdate("CREATE TABLE " + table2Name + " (col1 INT)");
 
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT * FROM " + table2Name)) {} catch (Exception e) {
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + table2Name)) {} catch (Exception e) {
                     assertEquals(stmt.isClosed(), true, TestResource.getResource("R_statementShouldBeClosed"));
                 }
             }
@@ -1085,10 +1078,10 @@ public class StatementTest extends AbstractTest {
 
             try (Connection conn = getConnection();
                     Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-                String query = "CREATE PROCEDURE " + procName
-                        + " @col1Value varchar(512) OUTPUT," + " @col2Value int OUTPUT," + " @col3Value float OUTPUT,"
-                        + " @col4Value decimal(10,5) OUTPUT," + " @col5Value uniqueidentifier OUTPUT,"
-                        + " @col6Value xml OUTPUT," + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT,"
+                String query = "CREATE PROCEDURE " + procName + " @col1Value varchar(512) OUTPUT,"
+                        + " @col2Value int OUTPUT," + " @col3Value float OUTPUT," + " @col4Value decimal(10,5) OUTPUT,"
+                        + " @col5Value uniqueidentifier OUTPUT," + " @col6Value xml OUTPUT,"
+                        + " @col7Value varbinary(max) OUTPUT," + " @col8Value text OUTPUT,"
                         + " @col9Value ntext OUTPUT," + " @col10Value varbinary(max) OUTPUT,"
                         + " @col11Value date OUTPUT," + " @col12Value time OUTPUT," + " @col13Value datetime2 OUTPUT,"
                         + " @col14Value datetimeoffset OUTPUT," + " @col15Value decimal(10,10) OUTPUT,"
@@ -1105,8 +1098,7 @@ public class StatementTest extends AbstractTest {
 
                 // Test JDBC 4.1 methods for CallableStatement
                 try (CallableStatement cstmt = conn
-                        .prepareCall("{call " + procName
-                                + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
+                        .prepareCall("{call " + procName + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
                     cstmt.registerOutParameter(2, java.sql.Types.INTEGER);
                     cstmt.registerOutParameter("col3Value", java.sql.Types.FLOAT);
@@ -1230,8 +1222,10 @@ public class StatementTest extends AbstractTest {
 
     @Nested
     public class TCStatementParam {
-        private final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
-        private final String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
+        private final String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
+        private final String procName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
 
         /**
          * 
@@ -1261,8 +1255,7 @@ public class StatementTest extends AbstractTest {
                     }
                 }
 
-                try (CallableStatement cstmt = con
-                        .prepareCall("{  ? = CALL " + procName + " (?,?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procName + " (?,?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
                     cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1293,8 +1286,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE PROCEDURE " + procName
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT,  @p4_smallint smallint OUTPUT, @p5_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p2_smallint, @p5_smallint_out=@p4_smallint RETURN @p2_smallint + 1");
 
-                try (CallableStatement cstmt = con.prepareCall(
-                        "{  ? = CALL " + procName + " (?,?, ?, ?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procName + " (?,?, ?, ?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("32"), Types.SMALLINT);
                     cstmt.registerOutParameter(3, Types.SMALLINT);
@@ -1327,8 +1319,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE PROCEDURE " + procName
                         + " ( @p2_smallint smallint,  @p3_smallint_out smallint OUTPUT) AS SELECT @p3_smallint_out=@p3_smallint_out +1 RETURN @p2_smallint + 1");
 
-                try (CallableStatement cstmt = con
-                        .prepareCall("{  ? = CALL " + procName + " (?,?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{  ? = CALL " + procName + " (?,?)}")) {
                     cstmt.registerOutParameter(1, Types.INTEGER);
                     cstmt.setObject(2, Short.valueOf("1"), Types.SMALLINT);
                     cstmt.setObject(3, Short.valueOf("100"), Types.SMALLINT);
@@ -1356,20 +1347,15 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("CREATE TABLE " + tableName
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hello')");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hi')");
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hello')");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hi')");
                 String query = "CREATE PROCEDURE " + procName
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * FROM "
-                        + tableName
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * FROM " + tableName
                         + " WHERE col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con
-                        .prepareCall("{CALL " + procName + "(?, ?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
                     try (ResultSet rs = cstmt.executeQuery()) {
@@ -1392,20 +1378,15 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("CREATE TABLE " + tableName
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hello')");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hi')");
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hello')");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hi')");
                 String query = "CREATE PROCEDURE " + procName
-                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * FROM "
-                        + tableName
+                        + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * FROM " + tableName
                         + " WHERE col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con
-                        .prepareCall("{CALL " + procName + "(?, ?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     try {
                         cstmt.getInt(2);
@@ -1430,23 +1411,21 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(1)");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(2)");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(3)");
-                try (PreparedStatement ps = con.prepareStatement("BEGIN TRAN " + "INSERT INTO "
-                        + tableName + " VALUES(4) " + "ROLLBACK")) {}
+                try (PreparedStatement ps = con
+                        .prepareStatement("BEGIN TRAN " + "INSERT INTO " + tableName + " VALUES(4) " + "ROLLBACK")) {}
                 con.setAutoCommit(false);
 
-                try (PreparedStatement ps2 = con.prepareStatement(
-                        "INSERT INTO " + tableName + " VALUES('a')")) {
+                try (PreparedStatement ps2 = con.prepareStatement("INSERT INTO " + tableName + " VALUES('a')")) {
                     try {
                         ps2.execute();
                     } catch (SQLException e) {}
                     try {
-                        stmt.executeUpdate(
-                                "INSERT INTO " + tableName + " VALUES(4)");
+                        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(4)");
                     } catch (SQLException ex) {}
                 }
             }
         }
-        
+
         /**
          * Tests result of math operation in prepared statement using subtraction
          * 
@@ -1459,7 +1438,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column - ?), "
-                    + "(test_column - ?), (test_column - ?), (test_column - ?) FROM " + tableName)) {
+                        + "(test_column - ?), (test_column - ?), (test_column - ?) FROM " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1498,7 +1477,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column + ?), "
-                    + "(test_column + ?), (test_column + ?), (test_column + ?) FROM " + tableName)) {
+                        + "(test_column + ?), (test_column + ?), (test_column + ?) FROM " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1537,7 +1516,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column * ?), "
-                    + "(test_column * ?), (test_column * ?), (test_column * ?) FROM " + tableName)) {
+                        + "(test_column * ?), (test_column * ?), (test_column * ?) FROM " + tableName)) {
                     BigDecimal value1 = new BigDecimal("1.5");
                     pstmt.setObject(1, value1);
                     BigDecimal value2 = new BigDecimal("0");
@@ -1575,10 +1554,11 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
-                try (PreparedStatement pstmt = con.prepareStatement("select (test_column / ?), " 
-                    + "(test_column / ?), (test_column / ?), (test_column / ?) FROM " + tableName)) {
+                try (PreparedStatement pstmt = con.prepareStatement("select (test_column / ?), "
+                        + "(test_column / ?), (test_column / ?), (test_column / ?) FROM " + tableName)) {
 
-                    /* Division has some unique properties in sql server math operations.
+                    /*
+                     * Division has some unique properties in sql server math operations.
                      * Notably in this case we cannot compare a result with an infinite trailing decimal
                      * and the returned value has an expanded precision.
                      */
@@ -1618,18 +1598,14 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
-                stmt.executeUpdate("CREATE TABLE " + tableName
-                        + " (col1 int, col2 text, col3 int identity(1,1))");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hello')");
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " VALUES(0, 'hi')");
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 int, col2 text, col3 int identity(1,1))");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hello')");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0, 'hi')");
                 String query = "CREATE PROCEDURE " + procName
                         + " @col1Value int, @col2Value varchar(512) OUTPUT AS BEGIN SELECT * FROM somenonexistenttable WHERE col1=@col1Value SET @col2Value='hi' END";
                 stmt.execute(query);
 
-                try (CallableStatement cstmt = con
-                        .prepareCall("{CALL " + procName + "(?, ?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?, ?)}")) {
                     cstmt.setInt(1, 0);
                     cstmt.registerOutParameter(2, Types.VARCHAR);
 
@@ -1648,15 +1624,13 @@ public class StatementTest extends AbstractTest {
         public void testRowError() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
 
-                stmt.executeUpdate("CREATE TABLE " + tableName
-                        + " (ROWID int IDENTITY, col1 int)");
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (ROWID int IDENTITY, col1 int)");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0)");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(1)");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(2)");
-                stmt.execute(
-                        "CREATE PROCEDURE " + procName + " @col1Value int AS "
-                                + " BEGIN " + "    SELECT col1 FROM " + tableName
-                                + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) ORDER BY ROWID" + " END");
+                stmt.execute("CREATE PROCEDURE " + procName + " @col1Value int AS " + " BEGIN "
+                        + "    SELECT col1 FROM " + tableName
+                        + "       WITH (UPDLOCK) WHERE (col1 = @col1Value) ORDER BY ROWID" + " END");
 
                 // For the test, lock each row in the table, one by one, for update
                 // on one connection and, on another connection, verify that the
@@ -1672,8 +1646,7 @@ public class StatementTest extends AbstractTest {
                     // locking it for update.
                     try (Connection testConn1 = getConnection()) {
                         testConn1.setAutoCommit(false);
-                        try (CallableStatement cstmt = testConn1
-                                .prepareCall("{CALL " + procName + "(?)}")) {
+                        try (CallableStatement cstmt = testConn1.prepareCall("{CALL " + procName + "(?)}")) {
                             cstmt.setInt(1, row);
 
                             // enable isCloseOnCompletion
@@ -1697,8 +1670,7 @@ public class StatementTest extends AbstractTest {
                                     stmt2.executeUpdate("SET LOCK_TIMEOUT 0");
 
                                     try (CallableStatement cstmt2 = testConn2.prepareCall(
-                                            "SELECT col1 FROM " + tableName
-                                                    + " WITH (UPDLOCK) ORDER BY ROWID")) {
+                                            "SELECT col1 FROM " + tableName + " WITH (UPDLOCK) ORDER BY ROWID")) {
 
                                         // Verify that the result set can be closed after
                                         // the lock timeout error
@@ -1745,7 +1717,8 @@ public class StatementTest extends AbstractTest {
 
     @Nested
     public class TCSparseColumnSetAndNBCROW {
-        private final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStatementSparseColumnSetAndNBCROW"));
+        private final String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatementSparseColumnSetAndNBCROW"));
 
         private Connection createConnectionAndPopulateData() throws Exception {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -1918,8 +1891,7 @@ public class StatementTest extends AbstractTest {
                     stmt.close();
                     rsmd.isSparseColumnSet(1);
                 }
-                try (ResultSet rs = con.createStatement()
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + tableName)) {
                     rsmd = (SQLServerResultSetMetaData) rs.getMetaData();
                     con.close();
                     rsmd.isSparseColumnSet(1);
@@ -1950,8 +1922,7 @@ public class StatementTest extends AbstractTest {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 } catch (SQLException e) {}
 
-                String createTableQuery = "CREATE TABLE " + tableName
-                        + "(col1 int IDENTITY(1,1)";
+                String createTableQuery = "CREATE TABLE " + tableName + "(col1 int IDENTITY(1,1)";
 
                 int noOfColumns = 128;
                 for (int i = 2; i <= noOfColumns; i++) {
@@ -1959,10 +1930,8 @@ public class StatementTest extends AbstractTest {
                 }
                 createTableQuery += ")";
                 stmt.executeUpdate(createTableQuery);
-                stmt.executeUpdate(
-                        "INSERT INTO " + tableName + " DEFAULT VALUES");
-                try (ResultSet rs = stmt
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                stmt.executeUpdate("INSERT INTO " + tableName + " DEFAULT VALUES");
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
                     rs.next();
 
                     // test that all columns except the first one are null
@@ -2006,8 +1975,7 @@ public class StatementTest extends AbstractTest {
                     } catch (SQLException e) {}
 
                     // construct a query to create a table with 100 columns
-                    String createTableQuery = "CREATE TABLE " + tableName
-                            + "(col1 int IDENTITY(1,1)";
+                    String createTableQuery = "CREATE TABLE " + tableName + "(col1 int IDENTITY(1,1)";
 
                     for (int i = 2; i <= noOfColumns; i++) {
                         createTableQuery = createTableQuery + ", col" + i + " int";
@@ -2048,8 +2016,7 @@ public class StatementTest extends AbstractTest {
 
                     // if there are no non-null columns
                     if (nonNullColumns.size() == 1)
-                        insertQuery = "INSERT INTO " + tableName
-                                + " DEFAULT VALUES";
+                        insertQuery = "INSERT INTO " + tableName + " DEFAULT VALUES";
 
                     log.fine("INSEER Query:" + insertQuery);
                     // populate the table by executing the insert query
@@ -2059,8 +2026,7 @@ public class StatementTest extends AbstractTest {
                 }
 
                 try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                        ResultSet rs = stmt
-                                .executeQuery("SELECT * FROM " + tableName)) {
+                        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
                     // Try accessing rows and columns randomly for 10 times
                     for (int j = 0; j < 10; j++) {
@@ -2259,10 +2225,14 @@ public class StatementTest extends AbstractTest {
     public class TCUpdateCountWithTriggers {
         private static final int NUM_ROWS = 3;
 
-        private final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTable1"));
-        private final String table2Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTable2"));
-        private final String sprocName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersProc"));
-        private final String triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTrigger"));
+        private final String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTable1"));
+        private final String table2Name = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTable2"));
+        private final String sprocName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersProc"));
+        private final String triggerName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountWithTriggersTrigger"));
 
         @BeforeEach
         public void setup() throws Exception {
@@ -2272,35 +2242,25 @@ public class StatementTest extends AbstractTest {
 
                     try {
                         stmt.executeUpdate("if EXISTS (SELECT * FROM sys.triggers where name = '"
-                                + TestUtils.escapeSingleQuotes((triggerName)) + "') drop trigger "
-                                + triggerName);
+                                + TestUtils.escapeSingleQuotes((triggerName)) + "') drop trigger " + triggerName);
                     } catch (SQLException e) {
                         fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
-                    stmt.executeUpdate(
-                            "CREATE TABLE " + tableName + " (col1 INT )");
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + tableName
-                                + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + i + ")");
 
-                    stmt.executeUpdate("CREATE TABLE " + table2Name
-                            + " (NAME VARCHAR(100), col2 int identity(1,1) )");
-                    stmt.executeUpdate("INSERT INTO " + table2Name
-                            + " (NAME) VALUES ('BLAH')");
-                    stmt.executeUpdate("INSERT INTO " + table2Name
-                            + " (NAME) VALUES ('FNORD')");
-                    stmt.executeUpdate("INSERT INTO " + table2Name
-                            + " (NAME) VALUES ('EEEP')");
+                    stmt.executeUpdate("CREATE TABLE " + table2Name + " (NAME VARCHAR(100), col2 int identity(1,1) )");
+                    stmt.executeUpdate("INSERT INTO " + table2Name + " (NAME) VALUES ('BLAH')");
+                    stmt.executeUpdate("INSERT INTO " + table2Name + " (NAME) VALUES ('FNORD')");
+                    stmt.executeUpdate("INSERT INTO " + table2Name + " (NAME) VALUES ('EEEP')");
 
-                    stmt.executeUpdate("Create Procedure " + sprocName + " AS "
-                            + "Begin " + "   Update " + table2Name + " SET "
-                            + " NAME = 'Update' Where NAME = 'TEST' " + "Return 0 " + "End");
+                    stmt.executeUpdate("Create Procedure " + sprocName + " AS " + "Begin " + "   Update " + table2Name
+                            + " SET " + " NAME = 'Update' Where NAME = 'TEST' " + "Return 0 " + "End");
 
-                    stmt.executeUpdate("CREATE Trigger " + triggerName + " ON "
-                            + tableName + " FOR DELETE AS " + "Begin "
-                            + "Declare @l_retstat Integer " + "Execute @l_retstat = "
-                            + sprocName + " " + "If (@l_retstat <> 0) "
-                            + "Begin " + "  Rollback Transaction " + "End " + "End");
+                    stmt.executeUpdate("CREATE Trigger " + triggerName + " ON " + tableName + " FOR DELETE AS "
+                            + "Begin " + "Declare @l_retstat Integer " + "Execute @l_retstat = " + sprocName + " "
+                            + "If (@l_retstat <> 0) " + "Begin " + "  Rollback Transaction " + "End " + "End");
 
                 }
                 con.commit();
@@ -2316,8 +2276,7 @@ public class StatementTest extends AbstractTest {
         public void testLastUpdateCountTrue() throws Exception {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
-                    PreparedStatement ps = con.prepareStatement(
-                            "DELETE FROM " + tableName + " WHERE col1 = ?")) {
+                    PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
                 int updateCount = ps.executeUpdate();
 
@@ -2336,8 +2295,7 @@ public class StatementTest extends AbstractTest {
         public void testLastUpdateCountFalse() throws Exception {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
-                    PreparedStatement ps = con.prepareStatement(
-                            "DELETE FROM " + tableName + " WHERE col1 = ?")) {
+                    PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " WHERE col1 = ?")) {
                 ps.setInt(1, 1);
                 int updateCount = ps.executeUpdate();
 
@@ -2356,10 +2314,9 @@ public class StatementTest extends AbstractTest {
         public void testPreparedStatementInsertExecInsert() throws Exception {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
-                    PreparedStatement ps = con.prepareStatement("INSERT INTO "
-                            + tableName + " (col1) VALUES (" + (NUM_ROWS + 1)
-                            + "); " + "EXEC " + sprocName + "; " + "UPDATE "
-                            + table2Name + " SET NAME = 'FISH'")) {
+                    PreparedStatement ps = con
+                            .prepareStatement("INSERT INTO " + tableName + " (col1) VALUES (" + (NUM_ROWS + 1) + "); "
+                                    + "EXEC " + sprocName + "; " + "UPDATE " + table2Name + " SET NAME = 'FISH'")) {
 
                 int updateCount = ps.executeUpdate();
 
@@ -2379,10 +2336,8 @@ public class StatementTest extends AbstractTest {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
                     Statement stmt = con.createStatement()) {
-                int updateCount = stmt.executeUpdate("INSERT INTO " + tableName
-                        + " (col1) VALUES (" + (NUM_ROWS + 1) + "); " + "EXEC "
-                        + sprocName + "; " + "UPDATE "
-                        + table2Name + " SET NAME = 'FISH'");
+                int updateCount = stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + (NUM_ROWS + 1)
+                        + "); " + "EXEC " + sprocName + "; " + "UPDATE " + table2Name + " SET NAME = 'FISH'");
 
                 // updateCount should be from the INSERT,
                 // which should have affected 1 (new) row in AbstractSQLGenerator.escapeIdentifier(tableName).
@@ -2403,7 +2358,8 @@ public class StatementTest extends AbstractTest {
     @Nested
     @Tag(Constants.xAzureSQLDW)
     public class TCUpdateCountAfterRaiseError {
-        private final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError"));
+        private final String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError"));
         private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
@@ -2414,11 +2370,9 @@ public class StatementTest extends AbstractTest {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
                     TestUtils.dropTriggerIfExists(triggerName, stmt);
-                    stmt.executeUpdate(
-                            "CREATE TABLE " + tableName + " (col1 INT )");
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + tableName
-                                + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + i + ")");
 
                     // Skip adding message for 50001 if the target server is SQL Azure, because SQL Azure does not
                     // support
@@ -2435,10 +2389,9 @@ public class StatementTest extends AbstractTest {
                         }
                     }
 
-                    stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON "
-                            + tableName + " FOR INSERT AS BEGIN DELETE FROM "
-                            + tableName
-                            + " WHERE col1 = 1 RAISERROR(50001, 17, 1) END");
+                    stmt.executeUpdate(
+                            "CREATE TRIGGER " + triggerName + " ON " + tableName + " FOR INSERT AS BEGIN DELETE FROM "
+                                    + tableName + " WHERE col1 = 1 RAISERROR(50001, 17, 1) END");
                 }
                 con.commit();
             }
@@ -2452,11 +2405,8 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testUpdateCountAfterRaiseError() throws Exception {
 
-            try (Connection con = getConnection();
-                    PreparedStatement pstmt = con
-                            .prepareStatement("UPDATE " + tableName
-                                    + " SET col1 = 5 WHERE col1 = 2 RAISERROR(50001, 17, 1) SELECT * FROM "
-                                    + tableName)) {
+            try (Connection con = getConnection(); PreparedStatement pstmt = con.prepareStatement("UPDATE " + tableName
+                    + " SET col1 = 5 WHERE col1 = 2 RAISERROR(50001, 17, 1) SELECT * FROM " + tableName)) {
 
                 // enable isCloseOnCompletion
                 try {
@@ -2509,8 +2459,7 @@ public class StatementTest extends AbstractTest {
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountFalse() throws Exception {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = false");
-                    PreparedStatement pstmt = con.prepareStatement(
-                            "INSERT INTO " + tableName + " VALUES (5)")) {
+                    PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)")) {
 
                 int updateCount = pstmt.executeUpdate();
                 assertEquals(updateCount, 1, "First result: should have been 1 row deleted");
@@ -2538,8 +2487,7 @@ public class StatementTest extends AbstractTest {
                 result = pstmt.getMoreResults();
                 assertEquals(result, false, "Third result: wrong result type; update count expected");
                 assertEquals(pstmt.getUpdateCount(), 1, "Third result: wrong number of rows inserted");
-                try (ResultSet rs = con.createStatement()
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + tableName)) {
                     int rowCount = 0;
                     while (rs.next())
                         ++rowCount;
@@ -2558,8 +2506,7 @@ public class StatementTest extends AbstractTest {
         public void testUpdateCountAfterErrorInTriggerLastUpdateCountTrue() throws Exception {
 
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = true");
-                    PreparedStatement pstmt = con.prepareStatement(
-                            "INSERT INTO " + tableName + " VALUES (5)")) {
+                    PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " VALUES (5)")) {
 
                 try {
                     pstmt.executeUpdate();
@@ -2588,8 +2535,7 @@ public class StatementTest extends AbstractTest {
                     assertEquals(pstmt.getUpdateCount(), 1, "Second result: wrong number of rows inserted");
                 }
 
-                try (ResultSet rs = con.createStatement()
-                        .executeQuery("SELECT * FROM " + tableName)) {
+                try (ResultSet rs = con.createStatement().executeQuery("SELECT * FROM " + tableName)) {
                     int rowCount = 0;
                     while (rs.next())
                         ++rowCount;
@@ -2629,11 +2575,9 @@ public class StatementTest extends AbstractTest {
                     } catch (Exception e) {
                         fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
                     }
-                    stmt.executeUpdate(
-                            "CREATE TABLE " + tableName + " (col1 INT )");
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 INT )");
                     for (int i = 0; i < NUM_ROWS; i++)
-                        stmt.executeUpdate("INSERT INTO " + tableName
-                                + " (col1) VALUES (" + i + ")");
+                        stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (" + i + ")");
 
                     assertEquals(stmt.isClosed(), false, TestResource.getResource("R_statementShouldBeOpened"));
                 }
@@ -2652,9 +2596,8 @@ public class StatementTest extends AbstractTest {
             try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount = true");
                     Statement stmt = con.createStatement();) {
 
-                boolean isResultSet = stmt
-                        .execute("set nocount on\n" + "insert into " + tableName
-                                + "(col1) values(" + (NUM_ROWS + 1) + ")\n" + "select 1");
+                boolean isResultSet = stmt.execute("set nocount on\n" + "insert into " + tableName + "(col1) values("
+                        + (NUM_ROWS + 1) + ")\n" + "select 1");
 
                 assertEquals(true, isResultSet, "execute() said first result was an update count");
 

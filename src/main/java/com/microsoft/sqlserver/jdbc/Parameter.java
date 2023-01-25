@@ -530,19 +530,21 @@ final class Parameter {
                         }
                     } else {
                         BigDecimal bigDecimal = null;
-                        if (dtv.getJavaType() == JavaType.BIGDECIMAL &&
-                                null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL
+                                && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
                             String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" +
-                                    // Precision
-                                    (plainValueArray.length == 2 ? plainValueArray[0].length() + plainValueArray[1].length() : plainValueArray[0].length()) + "," +
+                            // Precision
+                                    (plainValueArray.length == 2 ? plainValueArray[0].length()
+                                            + plainValueArray[1].length() : plainValueArray[0].length())
+                                    + "," +
                                     // Scale
                                     (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
 
                         } else {
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
-                                    + "," + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                    + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
                         }
                     }
 
