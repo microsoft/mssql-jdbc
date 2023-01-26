@@ -524,8 +524,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case "ACTIVEDIRECTORYMANAGEDIDENTITY":
                     this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY;
                     break;
-                case "DEFAULTAZURECREDENTIAL":
-                    this.authentication = SqlAuthentication.DEFAULT_AZURE_CREDENTIAL;
+                case "ACTIVEDIRECTORYDEFAULT":
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT;
                     break;
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
                     this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL;
@@ -2467,7 +2467,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 authenticationString = SqlAuthentication.valueOfString(sPropValue).toString().trim();
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())
                         && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                 .isEmpty())) {
                     MessageFormat form = new MessageFormat(
@@ -4816,8 +4816,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY;
                             break;
-                        case DEFAULT_AZURE_CREDENTIAL:
-                            workflow = TDS.ADALWORKFLOW_DEFAULTAZURECREDENTIAL;
+                        case ACTIVE_DIRECTORY_DEFAULT:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT;
                             break;
                         case ACTIVE_DIRECTORY_INTERACTIVE:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
@@ -5042,7 +5042,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 || ((authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
-                        || authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())
+                        || authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())
                         || authenticationString
@@ -5778,7 +5778,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Break out of the retry loop in successful case.
                 break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())) {
+            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
 
