@@ -71,7 +71,7 @@ enum SqlAuthentication {
     ACTIVE_DIRECTORY_MANAGED_IDENTITY("ActiveDirectoryManagedIdentity"),
     ACTIVE_DIRECTORY_SERVICE_PRINCIPAL("ActiveDirectoryServicePrincipal"),
     ACTIVE_DIRECTORY_INTERACTIVE("ActiveDirectoryInteractive"),
-    DEFAULT_AZURE_CREDENTIAL("DefaultAzureCredential");
+    ACTIVE_DIRECTORY_DEFAULT("ActiveDirectoryDefault");
 
     private final String name;
 
@@ -109,8 +109,8 @@ enum SqlAuthentication {
                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
             method = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())) {
-            method = SqlAuthentication.DEFAULT_AZURE_CREDENTIAL;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};

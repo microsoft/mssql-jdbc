@@ -131,7 +131,7 @@ final class TDS {
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
-    static final byte ADALWORKFLOW_DEFAULTAZURECREDENTIAL = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT = 0x03;
     static final byte ADALWORKFLOW_ACCESSTOKENCALLBACK = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
                                                                            // closest we have.
