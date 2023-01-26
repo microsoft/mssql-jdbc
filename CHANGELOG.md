@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.2.0] Preview Release
+### Added
+
+### Changed
+- Renamed driver DefaultAzureCredential authentication to ActiveDirectoryDefault [2055](https://github.com/microsoft/mssql-jdbc/pull/2055)
+- Fixed for BigDecimal Preciion/Scale [2051](https://github.com/microsoft/mssql-jdbc/pull/2051)
+- Update to check for ExtendedSocketOption class [2043](https://github.com/microsoft/mssql-jdbc/pull/2043)
+- Upgraded dependencies versions [2040](https://github.com/microsoft/mssql-jdbc/pull/2040) [1966](https://github.com/microsoft/mssql-jdbc/pull/1966)
+- Fixd NULL state and 0 error code for SQL exceptions [2018](https://github.com/microsoft/mssql-jdbc/pull/2018)
+- Fixed incorrect updateCount [2013](https://github.com/microsoft/mssql-jdbc/pull/2013)
+- Misc code cleanup and test fixes [2053](https://github.com/microsoft/mssql-jdbc/pull/2053) [2049](https://github.com/microsoft/mssql-jdbc/pull/2049) [2048](https://github.com/microsoft/mssql-jdbc/pull/2048) [2044](https://github.com/microsoft/mssql-jdbc/pull/2044) [2041](https://github.com/microsoft/mssql-jdbc/pull/2041) [2031](https://github.com/microsoft/mssql-jdbc/pull/2031) [2029](https://github.com/microsoft/mssql-jdbc/pull2029) [2016](https://github.com/microsoft/mssql-jdbc/pull/2016) [2014](https://github.com/microsoft/mssql-jdbc/pull/2014) [1991](https://github.com/microsoft/mssql-jdbc/pull/1991) [1977](https://github.com/microsoft/mssql-jdbc/pull/1977) [1974](https://github.com/microsoft/mssql-jdbc/pull/1974) [1970](https://github.com/microsoft/mssql-jdbc/pull/1970) [1969](https://github.com/microsoft/mssql-jdbc/pull/1969) [1962](https://github.com/microsoft/mssql-jdbc/pull/1962)
+- Added locks to encrypt/decrypt in truststore password obfuscation [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
+- Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented [1989](https://github.com/microsoft/mssql-jdbc/pull/1989)
+- Fixed race condition connecting to the wrong SQLServer host in configurable IPv6 [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
+
 ## [12.1.0] Preview Release
 ### Added
 - Added support for access token callback [1940](https://github.com/microsoft/mssql-jdbc/pull/1940)
