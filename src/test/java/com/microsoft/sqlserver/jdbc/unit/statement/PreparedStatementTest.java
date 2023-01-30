@@ -28,6 +28,9 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,13 +46,19 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest {
 
-    final String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
-    final String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
-    final String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
+    final static String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
+    final static String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
+    final static String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+        dropTables();
+    }
+
+    @AfterAll
+    public static void terminateVariation() throws Exception {
+        dropTables();
     }
 
     private void executeSQL(SQLServerConnection conn, String sql) throws SQLException {
@@ -118,8 +127,7 @@ public class PreparedStatementTest extends AbstractTest {
             String query = "select 1 --";
 
             for (int i = 0; i < cacheSize; i++) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement(query + i)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
                     pstmt.execute(); // sp_executesql
                     pstmt.execute(); // sp_prepare and sp_execute, handle created and cached
                 }
@@ -768,4 +776,13 @@ public class PreparedStatementTest extends AbstractTest {
 
         con.setUseBulkCopyForBatchInsert(true);
     }
+
+    private static void dropTables() throws Exception {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName3), stmt);
+        }
+    }
+
 }
