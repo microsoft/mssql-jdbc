@@ -42,7 +42,7 @@ The following samples are available:
 
 ### Pre-Requisites
 
-* Java 10
+* Java 11
 * [Maven](http://maven.apache.org/download.cgi)
 * An instance of SQL Server or SQL Azure Database that you can connect to.
 
