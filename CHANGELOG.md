@@ -5,15 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.2.0] Stable Release
 ### Added
+- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters  [1590](https://github.com/microsoft/mssql-jdbc/pull/1590)
 
 ### Changed
 - Renamed driver DefaultAzureCredential authentication to ActiveDirectoryDefault [2055](https://github.com/microsoft/mssql-jdbc/pull/2055)
-- Fixed BigDecimal Precision/Scale issue [2051](https://github.com/microsoft/mssql-jdbc/pull/2051)
 - Update to dynamically check for ExtendedSocketOption class [2043](https://github.com/microsoft/mssql-jdbc/pull/2043)
 - Upgraded dependency versions [2040](https://github.com/microsoft/mssql-jdbc/pull/2040) [1966](https://github.com/microsoft/mssql-jdbc/pull/1966)
+- Misc code cleanup and test fixes [2059](https://github.com/microsoft/mssql-jdbc/pull/2059) [2053](https://github.com/microsoft/mssql-jdbc/pull/2053) [2049](https://github.com/microsoft/mssql-jdbc/pull/2049) [2048](https://github.com/microsoft/mssql-jdbc/pull/2048) [2044](https://github.com/microsoft/mssql-jdbc/pull/2044) [2041](https://github.com/microsoft/mssql-jdbc/pull/2041) [2031](https://github.com/microsoft/mssql-jdbc/pull/2031) [2029](https://github.com/microsoft/mssql-jdbc/pull2029) [2016](https://github.com/microsoft/mssql-jdbc/pull/2016) [2014](https://github.com/microsoft/mssql-jdbc/pull/2014) [1991](https://github.com/microsoft/mssql-jdbc/pull/1991) [1977](https://github.com/microsoft/mssql-jdbc/pull/1977) [1974](https://github.com/microsoft/mssql-jdbc/pull/1974) [1970](https://github.com/microsoft/mssql-jdbc/pull/1970) [1969](https://github.com/microsoft/mssql-jdbc/pull/1969) [1962](https://github.com/microsoft/mssql-jdbc/pull/1962)
+
+### Fixed issues
+- Fixed BigDecimal Precision/Scale issue [2051](https://github.com/microsoft/mssql-jdbc/pull/2051)
 - Fixed NULL state and 0 error code for SQL exceptions [2018](https://github.com/microsoft/mssql-jdbc/pull/2018)
 - Fixed incorrect updateCount [2013](https://github.com/microsoft/mssql-jdbc/pull/2013)
-- Misc code cleanup and test fixes [2059](https://github.com/microsoft/mssql-jdbc/pull/2059) [2053](https://github.com/microsoft/mssql-jdbc/pull/2053) [2049](https://github.com/microsoft/mssql-jdbc/pull/2049) [2048](https://github.com/microsoft/mssql-jdbc/pull/2048) [2044](https://github.com/microsoft/mssql-jdbc/pull/2044) [2041](https://github.com/microsoft/mssql-jdbc/pull/2041) [2031](https://github.com/microsoft/mssql-jdbc/pull/2031) [2029](https://github.com/microsoft/mssql-jdbc/pull2029) [2016](https://github.com/microsoft/mssql-jdbc/pull/2016) [2014](https://github.com/microsoft/mssql-jdbc/pull/2014) [1991](https://github.com/microsoft/mssql-jdbc/pull/1991) [1977](https://github.com/microsoft/mssql-jdbc/pull/1977) [1974](https://github.com/microsoft/mssql-jdbc/pull/1974) [1970](https://github.com/microsoft/mssql-jdbc/pull/1970) [1969](https://github.com/microsoft/mssql-jdbc/pull/1969) [1962](https://github.com/microsoft/mssql-jdbc/pull/1962)
+- Fixed Azure Active Directory user name cache matching to be case insensitive [1923](https://github.com/microsoft/mssql-jdbc/pull/1923)
 - Fixed concurrency issues in encrypt/decrypt obfuscation methods for truststore password [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
 - Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented [1989](https://github.com/microsoft/mssql-jdbc/pull/1989)
 - Fixed race condition connecting to the wrong SQLServer host in configurable IPv6 [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
