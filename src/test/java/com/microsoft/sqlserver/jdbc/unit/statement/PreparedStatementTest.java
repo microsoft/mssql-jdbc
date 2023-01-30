@@ -57,12 +57,12 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     @BeforeEach
-    public static void testInit() throws Exception {
+    public void testInit() throws Exception {
         dropTables();
     }
 
     @AfterEach
-    public static void terminateVariation() throws Exception {
+    public void terminateVariation() throws Exception {
         dropTables();
     }
 
