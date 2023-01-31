@@ -59,7 +59,7 @@
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt>-preview</releaseExt>
+		<releaseExt></releaseExt>
 
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
