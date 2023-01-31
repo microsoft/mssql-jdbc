@@ -85,7 +85,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	}
 }
 
-jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}"
+jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${archiveVersion} for SQL Server",
