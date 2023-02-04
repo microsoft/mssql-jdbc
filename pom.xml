@@ -67,6 +67,9 @@
 		<azure-identity.version>1.7.0</azure-identity.version>
 		<msal.version>1.13.3</msal.version>
 		<osgi.jdbc.version>1.1.0</osgi.jdbc.version>
+		<osgi.jdbc.tck.version>8.1.0</osgi.jdbc.tck.version>
+		<org.eclipse.osgi.version>3.18.200</org.eclipse.osgi.version>
+		<bnd.version>6.3.1</bnd.version>
 		<antlr-runtime.version>4.9.3</antlr-runtime.version>
 		<com.google.code.gson.version>2.9.0</com.google.code.gson.version>
 		<bcprov-jdk15on.version>1.70</bcprov-jdk15on.version>
@@ -238,6 +241,17 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-params</artifactId>
 			<version>${junit.jupiter.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.test.cases.jdbc</artifactId>
+			<version>${osgi.jdbc.tck.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.platform</groupId>
+			<artifactId>org.eclipse.osgi</artifactId>
+			<version>${org.eclipse.osgi.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -506,6 +520,34 @@
 						<goals>
 							<goal>manifest</goal>
 						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Execute OSGi Compatibility Test -->
+			<plugin>
+				<groupId>biz.aQute.bnd</groupId>
+				<artifactId>bnd-testing-maven-plugin</artifactId>
+				<version>${bnd.version}</version>
+				<executions>
+					<execution>
+						<id>osgi-tck-testing</id>
+						<goals>
+							<goal>testing</goal>
+						</goals>
+						<configuration>
+							<bndruns>
+								<include>tck.bndrun</include>
+							</bndruns>
+							<failOnChanges>false</failOnChanges>
+							<includeDependencyManagement>true</includeDependencyManagement>
+							<resolve>true</resolve>
+							<scopes>
+								<scope>compile</scope>
+								<scope>runtime</scope>
+								<scope>provided</scope>
+								<scope>test</scope>
+							</scopes>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

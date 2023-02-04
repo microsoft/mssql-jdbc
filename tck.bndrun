@@ -1,0 +1,6 @@
+-runfw: org.eclipse.osgi
+-tester: biz.aQute.tester.junit-platform
+-runrequires: bnd.identity;id=com.microsoft.sqlserver.mssql-jdbc, \
+	bnd.identity;id=org.osgi.test.cases.jdbc, \
+	bnd.identity;id=junit-jupiter-engine, \
+	bnd.identity;id=junit-platform-launcher
