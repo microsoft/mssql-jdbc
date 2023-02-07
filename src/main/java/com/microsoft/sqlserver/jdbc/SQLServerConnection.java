@@ -144,6 +144,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** fedAuth requested flag */
     private boolean federatedAuthenticationRequested = false;
 
+    /** Access token callback class name */
+    private String accessTokenCallbackClass = null;
+
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
      * info
@@ -537,7 +540,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // If authenticationString not specified, check if access token callback was set.
                     // If access token callback is set, break.
                     if (null != activeConnectionProperties
-                            .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
+                            .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
+                            || null != activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())) {
                         this.authentication = SqlAuthentication.NOT_SPECIFIED;
                         break;
                     }
@@ -2460,6 +2464,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
                 }
 
+                sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setAccessTokenCallbackClass(sPropValue);
+
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -3501,7 +3513,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Build a TDS Pre-Login packet to send to the server.
         if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
                 || (null != accessTokenInByte) || null != activeConnectionProperties
-                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
+                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString()) ||
+                null != activeConnectionProperties
+                        .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())) {
             fedAuthRequiredByUser = true;
         }
 
@@ -3884,7 +3898,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (((null != authenticationString)
                             && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())))
                             || (null != accessTokenInByte) || null != activeConnectionProperties
-                                    .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
+                                    .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
+                            || null != activeConnectionProperties
+                                    .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())) {
                         fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
@@ -4828,7 +4844,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         default:
                             // If not specified, check if access token callback was set. If it is set, break.
                             if (null != activeConnectionProperties
-                                    .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
+                                    .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
+                                    || null != activeConnectionProperties
+                                    .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())) {
                                 workflow = TDS.ADALWORKFLOW_ACCESSTOKENCALLBACK;
                                 break;
                             }
@@ -5049,7 +5067,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString()))
                         && fedAuthRequiredPreLoginResponse)
                 || null != activeConnectionProperties
-                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())) {
+                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
+                || null != activeConnectionProperties
+                        .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
                     authenticationString, fedAuthRequiredPreLoginResponse);
@@ -5612,7 +5632,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
                 .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
-        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != callback) {
+        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass) {
+            try {
+                Object[] msgArgs = {"accessTokenCallbackClass", "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
+                SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class, accessTokenCallbackClass, null, msgArgs);
+                fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != callback) {
             fedAuthToken = callback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
         } else {
             fedAuthToken = getFedAuthToken(fedAuthInfo);
@@ -7618,6 +7646,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final boolean isPreparedStatementUnprepareBatchingEnabled() {
         return 1 < getServerPreparedStatementDiscardThreshold();
     }
+
+    /**
+     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     *
+     * @return accessTokenCallbackClass property value
+     */
+    public String getAccessTokenCallbackClass() {
+        if (null == this.accessTokenCallbackClass) {
+            return SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue();
+        }
+
+        return this.accessTokenCallbackClass;
+    };
+
+    /**
+     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     *
+     * @param accessTokenCallbackClass
+     */
+    public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
+        this.accessTokenCallbackClass = accessTokenCallbackClass;
+    };
 
     /**
      * Cleans up discarded prepared statement handles on the server using batched un-prepare actions if the batching

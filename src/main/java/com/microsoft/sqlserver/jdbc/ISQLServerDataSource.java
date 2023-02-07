@@ -1268,4 +1268,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return Access token callback delegate.
      */
     SQLServerAccessTokenCallback getAccessTokenCallback();
+
+    /**
+     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     *
+     * @return accessTokenCallbackClass property value
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

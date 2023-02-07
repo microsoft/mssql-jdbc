@@ -451,4 +451,18 @@ public interface ISQLServerConnection extends java.sql.Connection {
      */
     @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     *
+     * @return accessTokenCallbackClass property value
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

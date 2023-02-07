@@ -605,7 +605,8 @@ enum SQLServerDriverStringProperty {
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
     ENCRYPT("encrypt", EncryptOption.TRUE.toString()),
     SERVER_CERTIFICATE("serverCertificate", ""),
-    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString());
+    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
+    ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", "");
 
     private final String name;
     private final String defaultValue;
@@ -833,6 +834,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                    SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),

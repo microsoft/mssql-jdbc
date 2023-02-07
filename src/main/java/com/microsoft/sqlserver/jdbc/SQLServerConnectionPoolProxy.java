@@ -661,4 +661,24 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public void setMsiTokenCacheTtl(int timeToLive) {}
+
+    /**
+     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     *
+     * @return accessTokenCallbackClass property value
+     */
+    @Override
+    public String getAccessTokenCallbackClass() {
+        return wrappedConnection.getAccessTokenCallbackClass();
+    }
+
+    /**
+     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     *
+     * @param accessTokenCallbackClass
+     */
+    @Override
+    public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
+        wrappedConnection.setAccessTokenCallbackClass(accessTokenCallbackClass);
+    }
 }
