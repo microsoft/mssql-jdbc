@@ -735,7 +735,7 @@ final class TDSChannel implements Serializable {
     /**
      * Set TCP keep-alive options for idle connection resiliency
      */
-    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) {
         try {
             if (SQLServerDriver.socketSetOptionMethod != null && SQLServerDriver.socketKeepIdleOption != null
                     && SQLServerDriver.socketKeepIntervalOption != null) {

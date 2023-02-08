@@ -116,6 +116,12 @@ public abstract class AbstractTest {
 
     protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
 
+    /**
+     * Retries due to server throttling
+     */
+    protected static final int THROTTLE_RETRY_COUNT = 3; // max number of throttling retries
+    protected static final int THROTTLE_RETRY_INTERVAL = 60000; // default throttling retry interval in ms
+
     public static Properties properties = null;
 
     /**

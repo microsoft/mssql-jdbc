@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -49,15 +50,33 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.fedAuth)
-    public void testBasicConnectionAAD() throws SQLException {
-        String azureServer = getConfiguredProperty("azureServer");
-        String azureDatabase = getConfiguredProperty("azureDatabase");
-        String azureUserName = getConfiguredProperty("azureUserName");
-        String azurePassword = getConfiguredProperty("azurePassword");
-        org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
+    public void testBasicConnectionAAD() throws Exception {
+        // retry since this could fail due to server throttling
+        int retry = THROTTLE_RETRY_COUNT;
+        while (retry > 0) {
+            try {
+                String azureServer = getConfiguredProperty("azureServer");
+                String azureDatabase = getConfiguredProperty("azureDatabase");
+                String azureUserName = getConfiguredProperty("azureUserName");
+                String azurePassword = getConfiguredProperty("azurePassword");
+                org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
 
-        basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
-                + ";password=" + azurePassword + ";loginTimeout=90;Authentication=ActiveDirectoryPassword");
+                basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
+                        + azureUserName + ";password=" + azurePassword
+                        + ";loginTimeout=90;Authentication=ActiveDirectoryPassword");
+            } catch (Exception e) {
+                if (e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientAllRecoveryAttemptsFailed"))) {
+                    System.out.println(e.getMessage() + "Recovery failed retry #" + retry + " in "
+                            + THROTTLE_RETRY_INTERVAL + " ms");
+                    e.printStackTrace();
+
+                    Thread.sleep(THROTTLE_RETRY_INTERVAL);
+                    retry--;
+                } else {
+                    fail(e.getMessage());
+                }
+            }
+        }
     }
 
     @Test
@@ -288,6 +307,12 @@ public class BasicConnectionTest extends AbstractTest {
         ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
 
         SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
+        Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
+        physicalConnectionField.setAccessible(true);
+        Object c = physicalConnectionField.get(spc);
+        String accessToken = ds.getAccessToken();
+        TestUtils.setAccessTokenExpiry(c, accessToken);
 
         // Idle Connection Resiliency should reconnect after connection kill, second query should run successfully
         TestUtils.expireTokenToggle = false;
@@ -319,8 +344,7 @@ public class BasicConnectionTest extends AbstractTest {
 
             // add new statements to fill cache
             for (int i = 0; i < cacheSize; ++i) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement(query + i)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
                     pstmt.execute();
                     pstmt.execute();
                 }
@@ -344,12 +368,12 @@ public class BasicConnectionTest extends AbstractTest {
     public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             int queriesToSend = 5;
-            String query = String.format("/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
+            String query = String.format(
+                    "/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
                     UUID.randomUUID());
 
             for (int i = 0; i < queriesToSend; ++i) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
-                        .prepareStatement(query + i)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
                     pstmt.executeQuery();
                     pstmt.executeQuery();
                 }
