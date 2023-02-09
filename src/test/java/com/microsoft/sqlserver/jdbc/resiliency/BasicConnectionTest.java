@@ -306,11 +306,11 @@ public class BasicConnectionTest extends AbstractTest {
         AbstractTest.updateDataSource(cs, ds);
         ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
 
+        // change token expiry
         SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
         Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
         physicalConnectionField.setAccessible(true);
-        Object c = physicalConnectionField.get(spc);
+        Object c = physicalConnectionField.get(pc);
         String accessToken = ds.getAccessToken();
         TestUtils.setAccessTokenExpiry(c, accessToken);
 

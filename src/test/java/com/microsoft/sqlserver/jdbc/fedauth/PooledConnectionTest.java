@@ -54,13 +54,13 @@ public class PooledConnectionTest extends FedauthCommon {
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
         // suspend 60 secs
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 60, SqlAuthentication.ActiveDirectoryPassword);
+        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryPassword);
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 60, SqlAuthentication.ActiveDirectoryPassword);
+        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryPassword);
     }
 
     @Test
@@ -68,7 +68,7 @@ public class PooledConnectionTest extends FedauthCommon {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
         // suspend 60 secs
-        testPooledConnectionAccessTokenExpiredThenReconnect((long) 60, SqlAuthentication.ActiveDirectoryIntegrated);
+        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryIntegrated);
 
         // get another token
         getFedauthInfo();

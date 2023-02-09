@@ -178,8 +178,9 @@ class SQLServerMSAL4JUtils {
                     StringBuilder acc = new StringBuilder();
                     if (accountsInCache != null) {
                         for (IAccount account : accountsInCache) {
-                            if (acc.length() != 0)
+                            if (acc.length() != 0) {
                                 acc.append(", ");
+                            }
                             acc.append(account.username());
                         }
                     }
