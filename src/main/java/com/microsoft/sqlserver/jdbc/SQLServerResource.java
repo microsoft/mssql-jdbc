@@ -240,6 +240,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AADSecurePrincipalIdPropertyDescription", "The Application Id of a registered application which has been granted permission to the database connected."},
         {"R_AADSecurePrincipalSecretPropertyDescription", "A Secret defined for a registered application which has been granted permission to the database connected."},
         {"R_accessTokenCallbackClassPropertyDescription", "The class to instantiate as the SQLServerAccessTokenCallback for acquiring tokens."},
+        {"R_accessTokenCallbackPropertyDescription", "A SQLServerAccessTokenCallback object which is used to call a callback method to return an access token."},
         {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
         {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
         {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
