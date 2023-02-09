@@ -113,8 +113,7 @@ public final class TestUtils {
     public static boolean expireTokenToggle = false;
 
     public static final SQLServerAccessTokenCallback accessTokenCallback = new SQLServerAccessTokenCallback() {
-        @Override
-        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
+        @Override public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
             String scope = spn + "/.default";
             Set<String> scopes = new HashSet<>();
             scopes.add(scope);

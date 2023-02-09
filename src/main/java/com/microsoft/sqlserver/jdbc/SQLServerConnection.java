@@ -542,7 +542,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (null != activeConnectionProperties
                             .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                             || (null != activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                            && !((String) activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty())) {
+                            && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
                         this.authentication = SqlAuthentication.NOT_SPECIFIED;
                         break;
                     }
@@ -2458,7 +2458,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
                 if ((null != callback || (null != activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()) &&
-                        !((String) activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty()))
+                        !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty()))
                         && (!activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
                         || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
@@ -3519,8 +3519,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString()) ||
                 (null != activeConnectionProperties
                         .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                && !((String) activeConnectionProperties
-                        .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty())) {
+                && !activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
             fedAuthRequiredByUser = true;
         }
 
@@ -3906,7 +3906,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                             || (null != activeConnectionProperties
                                     .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                    && !((String) activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty())) {
+                    && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
                         fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
@@ -4853,7 +4853,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                                     || (null != activeConnectionProperties
                                     .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                            && !((String) activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty())) {
+                            && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
                                 workflow = TDS.ADALWORKFLOW_ACCESSTOKENCALLBACK;
                                 break;
                             }
@@ -5077,7 +5077,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                 || (null != activeConnectionProperties
                         .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-        && !((String) activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())).isEmpty())) {
+        && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
                     authenticationString, fedAuthRequiredPreLoginResponse);
@@ -5644,12 +5644,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             try {
                 Object[] msgArgs = {"accessTokenCallbackClass", "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
                 SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class, accessTokenCallbackClass, null, msgArgs);
-                fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.stsurl, fedAuthInfo.spn);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != callback) {
-            fedAuthToken = callback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+            fedAuthToken = callback.getAccessToken(fedAuthInfo.stsurl, fedAuthInfo.spn);
         } else {
             fedAuthToken = getFedAuthToken(fedAuthInfo);
         }

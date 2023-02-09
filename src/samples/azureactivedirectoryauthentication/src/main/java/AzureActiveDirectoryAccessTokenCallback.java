@@ -25,7 +25,7 @@ public class AzureActiveDirectoryAccessTokenCallback {
 
         SQLServerAccessTokenCallback callback = new SQLServerAccessTokenCallback() {
             @Override
-            public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
+            public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
 
                 String clientSecret = "<your-client-secret>";
                 String clientId = "<your-client-id>";
