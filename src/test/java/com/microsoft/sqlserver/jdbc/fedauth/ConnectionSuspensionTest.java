@@ -83,10 +83,13 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
 
+            TestUtils.setAccessTokenExpiry(connection, accessToken);
+            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
             while (secondsPassed < secondsBeforeExpiration) {
-                Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 2 minutes
+                Thread.sleep(TimeUnit.SECONDS.toMillis(90)); // Sleep for 90s
 
                 secondsPassed = (System.currentTimeMillis() - start) / 1000;
+
                 try (Statement stmt1 = connection.createStatement()) {
                     testUserName(connection, azureUserName, authentication);
 
@@ -150,10 +153,12 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
 
+                TestUtils.setAccessTokenExpiry(connection, accessToken);
+                secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
                 while (secondsPassed < secondsBeforeExpiration) {
-                    Thread.sleep(TimeUnit.MINUTES.toMillis(5)); // Sleep for 5 minutes
-
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(90)); // Sleep for 90s
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;
+
                     testUserName(connection, azureUserName, authentication);
                 }
 

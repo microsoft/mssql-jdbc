@@ -809,7 +809,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return sb.toString();
     }
 
-    private String generateAzureDWEmptyRS(Map<Integer, String> columns) throws SQLException {
+    private String generateAzureDWEmptyRS(Map<Integer, String> columns) {
         StringBuilder sb = new StringBuilder("SELECT TOP 0 ");
         for (Entry<Integer, String> p : columns.entrySet()) {
             sb.append("NULL AS ").append(p.getValue()).append(",");
@@ -950,7 +950,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getCrossReference(String cat1, String schem1, String tab1, String cat2, String schem2,
-            String tab2) throws SQLException, SQLTimeoutException {
+            String tab2) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -1014,8 +1014,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getExportedKeys(String cat, String schema,
-            String table) throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getExportedKeys(String cat, String schema, String table) throws SQLException {
         return getCrossReference(cat, schema, table, null, null, null);
     }
 
@@ -1032,12 +1031,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getImportedKeys(String cat, String schema,
-            String table) throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getImportedKeys(String cat, String schema, String table) throws SQLException {
         return getCrossReference(null, null, null, cat, schema, table);
     }
 
-    private ResultSet executeSPFkeys(String[] procParams) throws SQLException, SQLTimeoutException {
+    private ResultSet executeSPFkeys(String[] procParams) throws SQLException {
         if (!this.connection.isAzureDW()) {
             String tempTableName = "@jdbc_temp_fkeys_result";
             String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
@@ -1219,7 +1217,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public int getMaxConnections() throws SQLException, SQLTimeoutException {
+    public int getMaxConnections() throws SQLException {
         checkClosed();
         try (SQLServerResultSet rs = getResultSetFromInternalQueries(null,
                 "select maximum from sys.configurations where name = 'user connections'")) {
@@ -1439,7 +1437,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getSchemas() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getSchemas() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -1448,8 +1446,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     }
 
-    private java.sql.ResultSet getSchemasInternal(String catalog,
-            String schemaPattern) throws SQLException, SQLTimeoutException {
+    private java.sql.ResultSet getSchemasInternal(String catalog, String schemaPattern) throws SQLException {
 
         String s;
         // The schemas that return null for catalog name, these are prebuilt
@@ -1606,14 +1603,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getTableTypes() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getTableTypes() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         String s = "SELECT 'VIEW' 'TABLE_TYPE' UNION SELECT 'TABLE' UNION SELECT 'SYSTEM TABLE'";
-        SQLServerResultSet rs = getResultSetFromInternalQueries(null, s);
-        return rs;
+        return getResultSetFromInternalQueries(null, s);
     }
 
     @Override

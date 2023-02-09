@@ -28,6 +28,7 @@ import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
 import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
@@ -74,7 +75,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -108,7 +109,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
@@ -150,7 +151,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, "", authenticationString);
         } finally {
             executorService.shutdown();
@@ -177,11 +178,14 @@ class SQLServerMSAL4JUtils {
                     StringBuilder acc = new StringBuilder();
                     if (accountsInCache != null) {
                         for (IAccount account : accountsInCache) {
-                            if (acc.length() != 0) acc.append(", ");
+                            if (acc.length() != 0) {
+                                acc.append(", ");
+                            }
                             acc.append(account.username());
                         }
                     }
-                    logger.fine(logger.toString() + "Accounts in cache = " + acc + ", size = " + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
+                    logger.fine(logger.toString() + "Accounts in cache = " + acc + ", size = "
+                            + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
                 }
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
@@ -228,7 +232,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (ExecutionException e) {
+        } catch (MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -247,8 +251,7 @@ class SQLServerMSAL4JUtils {
         return null;
     }
 
-    private static SQLServerException getCorrectedException(ExecutionException e, String user,
-            String authenticationString) {
+    private static SQLServerException getCorrectedException(Exception e, String user, String authenticationString) {
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {

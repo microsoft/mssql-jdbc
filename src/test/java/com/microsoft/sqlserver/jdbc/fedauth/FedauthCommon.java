@@ -8,8 +8,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.testframework.Constants;
@@ -42,8 +43,8 @@ public class FedauthCommon extends AbstractTest {
     static String azureUserName = null;
     static String azurePassword = null;
     static String azureGroupUserName = null;
-    static String azureAADPrincipialId = null;
-    static String azureAADPrincipialSecret = null;
+    static String azureAADPrincipalId = null;
+    static String azureAADPrincipalSecret = null;
 
     static boolean enableADIntegrated = false;
 
@@ -84,6 +85,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
     static final String ERR_TCPIP_CONNECTION = TestResource.getResource("R_tcpipConnectionToHost");
     static final String ERR_MSG_REQUEST_THROTTLED = "Request was throttled";
+    static final String ERR_FAILED_FEDAUTH = TestResource.getResource("R_failedFedauth");
 
     enum SqlAuthentication {
         NotSpecified,
@@ -116,11 +118,6 @@ public class FedauthCommon extends AbstractTest {
     static String adPasswordConnectionStr;
     static String adIntegratedConnectionStr;
 
-    @BeforeEach
-    public void setupEachTest() {
-        getFedauthInfo();
-    }
-
     @BeforeAll
     public static void getConfigs() throws Exception {
         azureServer = getConfiguredProperty("azureServer");
@@ -128,8 +125,8 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
-        azureAADPrincipialId = getConfiguredProperty("AADSecurePrincipalId");
-        azureAADPrincipialSecret = getConfiguredProperty("AADSecurePrincipalSecret");
+        azureAADPrincipalId = getConfiguredProperty("AADSecurePrincipalId");
+        azureAADPrincipalSecret = getConfiguredProperty("AADSecurePrincipalSecret");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
@@ -151,6 +148,8 @@ public class FedauthCommon extends AbstractTest {
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
 
+        getFedauthInfo();
+
         // reset logging to avoid severe logs
         LogManager.getLogManager().reset();
     }
@@ -160,22 +159,48 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
-        try {
+        int retry = THROTTLE_RETRY_COUNT;
+        long interval = THROTTLE_RETRY_INTERVAL;
+        while (retry > 0) {
+            try {
+                final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
+                        .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                final CompletableFuture<IAuthenticationResult> future = clientApplication
+                        .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
+                                azureUserName, azurePassword.toCharArray()).build());
 
-            final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
-                    .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication
-                    .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
-                            azureUserName, azurePassword.toCharArray()).build());
+                final IAuthenticationResult authenticationResult = future.get();
 
-            final IAuthenticationResult authenticationResult = future.get();
-
-            secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                    .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-            accessToken = authenticationResult.accessToken();
-        } catch (Exception e) {
-            fail(e.getMessage());
+                secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                        .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
+                accessToken = authenticationResult.accessToken();
+                retry = 0;
+            } catch (MsalThrottlingException te) {
+                interval = ((MsalThrottlingException) te).retryInMs();
+                if (!checkForRetry(te, retry--, interval)) {
+                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
+                }
+            } catch (Exception e) {
+                if (!checkForRetry(e, retry--, interval)) {
+                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + e.getMessage());
+                }
+            }
         }
+    }
+
+    static boolean checkForRetry(Exception e, int retry, long interval) {
+        if (retry <= 0) {
+            return false;
+        }
+        try {
+            System.out.println(e.getMessage() + "Get FedAuth token failed retry #" + retry + " in " + interval + " ms");
+            e.printStackTrace();
+
+            Thread.sleep(interval);
+        } catch (InterruptedException ex) {
+            fail(ERR_FAILED_FEDAUTH + ex.getMessage());
+        }
+        return true;
     }
 
     void testUserName(Connection conn, String user, SqlAuthentication authentication) throws SQLException {
