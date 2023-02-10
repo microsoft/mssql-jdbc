@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -22,11 +21,8 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,11 +32,6 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
-import com.microsoft.aad.msal4j.ClientCredentialFactory;
-import com.microsoft.aad.msal4j.ClientCredentialParameters;
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
-import com.microsoft.aad.msal4j.IAuthenticationResult;
-import com.microsoft.aad.msal4j.IClientCredential;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -62,33 +53,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     static int loginTimeOutInSeconds = 10;
 
     String randomServer = RandomUtil.getIdentifier("Server");
-
-    public static class AccessTokenCallbackClass implements SQLServerAccessTokenCallback {
-        @Override
-        public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
-            String scope = spn + "/.default";
-            Set<String> scopes = new HashSet<>();
-            scopes.add(scope);
-
-            try {
-                ExecutorService executorService = Executors.newSingleThreadExecutor();
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
-                ConfidentialClientApplication clientApplication = ConfidentialClientApplication.builder(
-                        applicationClientID, credential).executorService(executorService).authority(stsurl).build();
-                CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(
-                        ClientCredentialParameters.builder(scopes).build());
-
-                IAuthenticationResult authenticationResult = future.get();
-                String accessToken = authenticationResult.accessToken();
-                long expiresOn = authenticationResult.expiresOnDate().getTime();
-
-                return new SqlAuthenticationToken(accessToken, expiresOn);
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-            return null;
-        }
-    }
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -1142,184 +1106,5 @@ public class SQLServerConnectionTest extends AbstractTest {
                 .getConnection(invalidServerNameField)) {} catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallback() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        AbstractTest.updateDataSource(cs, ds);
-        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
-
-        TestUtils.expireTokenToggle = false;
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        String conn1ID;
-        String conn2ID;
-
-        // Callback should provide valid token on connection open for all new connections
-        // When the access token hasn't expired, the connection ID should be the same
-        try (Connection conn1 = pc.getConnection()) {}
-        conn1ID = TestUtils.getConnectionID(pc);
-        try (Connection conn2 = pc.getConnection()) {}
-        conn2ID = TestUtils.getConnectionID(pc);
-        assertEquals(conn1ID, conn2ID);
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionMergeAccessTokenCallbackProperty() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-
-        // Access token callback property from ds.setAccessTokenCallback should merge supplied properties from URL
-        ds.setURL(cs);
-        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
-
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        String conn1ID;
-        String conn2ID;
-
-        try (Connection conn1 = pc.getConnection()) {}
-        conn1ID = TestUtils.getConnectionID(pc);
-        try (Connection conn2 = pc.getConnection()) {}
-        conn2ID = TestUtils.getConnectionID(pc);
-        assertEquals(conn1ID, conn2ID);
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallbackExpiredToken() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        AbstractTest.updateDataSource(cs, ds);
-        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
-
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        String conn1ID;
-        String conn2ID;
-
-        // When token expires after first connection, it should create a new connection to get a new token.
-        // Connection ID should not be the same.
-        TestUtils.expireTokenToggle = true;
-        pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        try (Connection conn1 = pc.getConnection()) {}
-        conn1ID = TestUtils.getConnectionID(pc);
-        // Sleep until token expires
-        Thread.sleep(720000);
-        try (Connection conn2 = pc.getConnection()) {}
-        conn2ID = TestUtils.getConnectionID(pc);
-
-        assertNotEquals(conn1ID, conn2ID);
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallbackClass() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        AbstractTest.updateDataSource(cs, ds);
-        ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
-
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        String conn1ID;
-        String conn2ID;
-
-        // Callback should provide valid token on connection open for all new connections
-        // When the access token hasn't expired, the connection ID should be the same
-        try (Connection conn1 = pc.getConnection()) {}
-        conn1ID = TestUtils.getConnectionID(pc);
-        try (Connection conn2 = pc.getConnection()) {}
-        conn2ID = TestUtils.getConnectionID(pc);
-        assertEquals(conn1ID, conn2ID);
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testAccessTokenCallbackClassConnection() throws Exception {
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "accessTokenCallbackClass", AccessTokenCallbackClass.class.getName());
-
-        try (Connection conn1 = DriverManager.getConnection(cs)) {}
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallbackClassExceptions() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "user");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        AbstractTest.updateDataSource(cs, ds);
-        ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
-        SQLServerPooledConnection pc;
-
-        // Should fail with user set
-        try {
-             pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        }  catch (SQLServerException e) {
-            assertEquals(TestResource.getResource("R_AccessTokenCallbackWithUserPassword"), e.getMessage());
-        }
-
-        ds.setUser(null);
-        ds.setPassword(UUID.randomUUID().toString());
-
-        // Should fail with password set
-        try {
-             pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        }  catch (SQLServerException e) {
-            assertEquals(TestResource.getResource("R_AccessTokenCallbackWithUserPassword"), e.getMessage());
-        }
-
-        // Should pass with no user or password set
-        ds.setUser("");
-        ds.setPassword("");
-        pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        try (Connection conn1 = pc.getConnection()) {}
     }
 }

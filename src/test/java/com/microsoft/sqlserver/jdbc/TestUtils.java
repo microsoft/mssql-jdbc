@@ -96,6 +96,8 @@ public final class TestUtils {
 
     public static final int TEST_TOKEN_EXPIRY_SECONDS = 120; // token expiry time in secs
 
+    public static String ACCESS_TOKEN_CALLBACK = null;
+
     static String applicationKey;
     static String applicationClientID;
 
@@ -113,7 +115,8 @@ public final class TestUtils {
     public static boolean expireTokenToggle = false;
 
     public static final SQLServerAccessTokenCallback accessTokenCallback = new SQLServerAccessTokenCallback() {
-        @Override public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
+        @Override
+        public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
             String scope = spn + "/.default";
             Set<String> scopes = new HashSet<>();
             scopes.add(scope);
@@ -131,9 +134,11 @@ public final class TestUtils {
                 String accessToken = authenticationResult.accessToken();
                 long expiresOn = authenticationResult.expiresOnDate().getTime();
 
+                ACCESS_TOKEN_CALLBACK = accessToken;
+
                 if (expireTokenToggle) {
                     Date now = new Date();
-                    long minutesToExpireWithin = 10 * 60 * 1000; // Expire within 10 minutes
+                    long minutesToExpireWithin = TEST_TOKEN_EXPIRY_SECONDS * 1000; // Expire within 2 minutes
                     return new SqlAuthenticationToken(accessToken, now.getTime() + minutesToExpireWithin);
                 } else {
                     return new SqlAuthenticationToken(accessToken, expiresOn);
@@ -155,6 +160,26 @@ public final class TestUtils {
                     System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
             SqlAuthenticationToken newFedAuthToken = new SqlAuthenticationToken(accessToken, newExpiry);
             fedAuthTokenField.set(con, newFedAuthToken);
+        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+            Assert.fail("Failed to set token expiry: " + e.getMessage());
+        }
+    }
+
+    public static void setAccessTokenExpiry(Object con) {
+        Field fedAuthTokenField;
+        Field wrappedConnection;
+        try {
+            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
+            fedAuthTokenField.setAccessible(true);
+
+            wrappedConnection = SQLServerConnectionPoolProxy.class.getDeclaredField("wrappedConnection");
+            wrappedConnection.setAccessible(true);
+            Object wrappedConnectionObj = wrappedConnection.get(con);
+
+            Date newExpiry = new Date(
+                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
+            SqlAuthenticationToken newFedAuthToken = new SqlAuthenticationToken(ACCESS_TOKEN_CALLBACK, newExpiry);
+            fedAuthTokenField.set(wrappedConnectionObj, newFedAuthToken);
         } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
             Assert.fail("Failed to set token expiry: " + e.getMessage());
         }

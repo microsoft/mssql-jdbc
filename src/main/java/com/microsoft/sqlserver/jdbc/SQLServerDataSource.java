@@ -1298,7 +1298,8 @@ public class SQLServerDataSource
      */
     @Override
     public String getAccessTokenCallbackClass() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(), null);
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                null);
     }
 
     /**

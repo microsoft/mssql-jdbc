@@ -541,8 +541,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // If access token callback is set, break.
                     if (null != activeConnectionProperties
                             .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
-                            || (null != activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                            && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
+                            || (null != activeConnectionProperties
+                                    .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                    && !activeConnectionProperties.getProperty(
+                                            SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                            .isEmpty())) {
                         this.authentication = SqlAuthentication.NOT_SPECIFIED;
                         break;
                     }
@@ -2457,12 +2460,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
-                if ((null != callback || (null != activeConnectionProperties.get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()) &&
-                        !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty()))
-                        && (!activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty())) {
+                if ((null != callback || (null != activeConnectionProperties
+                        .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                        && !activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                .isEmpty()))
+                        && (!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                .isEmpty()
+                                || !activeConnectionProperties
+                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())) {
                     throw new SQLServerException(
                             SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
                 }
@@ -3515,12 +3521,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         // Build a TDS Pre-Login packet to send to the server.
         if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
-                || (null != accessTokenInByte) || null != activeConnectionProperties
-                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString()) ||
-                (null != activeConnectionProperties
+                || (null != accessTokenInByte)
+                || null != activeConnectionProperties
+                        .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
+                || (null != activeConnectionProperties
                         .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                && !activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
+                        && !activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                .isEmpty())) {
             fedAuthRequiredByUser = true;
         }
 
@@ -3902,11 +3910,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // Or AccessToken is not null, mean token based authentication is used.
                     if (((null != authenticationString)
                             && (!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())))
-                            || (null != accessTokenInByte) || null != activeConnectionProperties
+                            || (null != accessTokenInByte)
+                            || null != activeConnectionProperties
                                     .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                             || (null != activeConnectionProperties
                                     .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                    && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
+                                    && !activeConnectionProperties.getProperty(
+                                            SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                            .isEmpty())) {
                         fedAuthRequiredPreLoginResponse = (preloginResponse[optionOffset] == 1);
                     }
                     break;
@@ -4852,8 +4863,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             if (null != activeConnectionProperties
                                     .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                                     || (null != activeConnectionProperties
-                                    .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-                            && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
+                                            .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                            && !activeConnectionProperties.getProperty(
+                                                    SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS
+                                                            .toString())
+                                                    .isEmpty())) {
                                 workflow = TDS.ADALWORKFLOW_ACCESSTOKENCALLBACK;
                                 break;
                             }
@@ -5077,7 +5091,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString())
                 || (null != activeConnectionProperties
                         .get(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
-        && !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString()).isEmpty())) {
+                        && !activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
+                                .isEmpty())) {
             federatedAuthenticationInfoRequested = true;
             fedAuthFeatureExtensionData = new FederatedAuthenticationFeatureExtensionData(TDS.TDS_FEDAUTH_LIBRARY_ADAL,
                     authenticationString, fedAuthRequiredPreLoginResponse);
@@ -5640,10 +5656,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         SQLServerAccessTokenCallback callback = (SQLServerAccessTokenCallback) activeConnectionProperties
                 .get(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString());
 
-        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass && !accessTokenCallbackClass.isEmpty()) {
+        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass
+                && !accessTokenCallbackClass.isEmpty()) {
             try {
-                Object[] msgArgs = {"accessTokenCallbackClass", "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
-                SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class, accessTokenCallbackClass, null, msgArgs);
+                Object[] msgArgs = {"accessTokenCallbackClass",
+                        "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
+                SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class,
+                        accessTokenCallbackClass, null, msgArgs);
                 fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.stsurl, fedAuthInfo.spn);
             } catch (Exception e) {
                 throw new RuntimeException(e);

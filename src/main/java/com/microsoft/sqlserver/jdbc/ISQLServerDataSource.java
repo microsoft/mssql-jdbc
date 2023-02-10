@@ -347,7 +347,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the SQL server datatype to use for Java datetime and timestamp values.
      * 
      * @param datetimeParameterType
-     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are: 
+     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are:
      *        datetime, datetime2 or datetimeoffset.
      */
     void setDatetimeParameterType(String datetimeParameterType);
