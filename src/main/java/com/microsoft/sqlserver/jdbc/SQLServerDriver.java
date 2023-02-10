@@ -834,6 +834,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            // Callback needs to be in list despite not being settable within connection string.
+            // The reason for this is for calls to mergeURLAndSuppliedProperties to work when setting the callback.
             new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
                     SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
