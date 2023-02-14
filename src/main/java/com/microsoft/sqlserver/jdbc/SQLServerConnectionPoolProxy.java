@@ -663,9 +663,9 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
-     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
-     * @return accessTokenCallbackClass property value
+     * @return accessTokenCallbackClass
      */
     @Override
     public String getAccessTokenCallbackClass() {
@@ -673,7 +673,8 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
      */

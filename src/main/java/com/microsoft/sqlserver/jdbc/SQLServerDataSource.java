@@ -1281,7 +1281,8 @@ public class SQLServerDataSource
     }
 
     /**
-     * Sets the connection property 'accessTokenCallbackClass' on the connection.
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
      */
@@ -1292,9 +1293,9 @@ public class SQLServerDataSource
     }
 
     /**
-     * Returns the value for the connection property 'accessTokenCallbackClass'.
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
-     * @return accessTokenCallbackClass property value
+     * @return accessTokenCallbackClass
      */
     @Override
     public String getAccessTokenCallbackClass() {

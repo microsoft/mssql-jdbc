@@ -440,7 +440,7 @@ public class PooledConnectionTest extends FedauthCommon {
             pc = (SQLServerPooledConnection) ds.getPooledConnection();
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {
-            assertEquals(TestResource.getResource("R_AccessTokenCallbackWithUserPassword"), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
         }
 
         ds.setUser("");
@@ -451,7 +451,7 @@ public class PooledConnectionTest extends FedauthCommon {
             pc = (SQLServerPooledConnection) ds.getPooledConnection();
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {
-            assertEquals(TestResource.getResource("R_AccessTokenCallbackWithUserPassword"), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
         }
 
         // Should pass with no user or password set

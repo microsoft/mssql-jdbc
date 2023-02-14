@@ -201,7 +201,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_objectNullOrEmpty", "The {0} is null or empty."},
             {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
             {"R_connectTimedOut", "connect timed out"},
-            {"R_AccessTokenCallbackWithUserPassword", "Cannot set the access token callback if \"User\", \"UserName\" or \"Password\" has been set."},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
             {"R_failedFedauth", "Failed to acquire fedauth token: "}};
 }
