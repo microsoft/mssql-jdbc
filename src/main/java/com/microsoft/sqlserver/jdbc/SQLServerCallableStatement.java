@@ -1365,7 +1365,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // If the server didn't return anything (eg. the param names for the sp_sproc_columns), user might not
         // have required permissions to view all the parameterNames. And, there's also the case depending on the permissions,
         // @RETURN_VALUE may or may not be present. So, the parameterNames list might have an additional +1 parameter.
-        if (null != parameterNames && (parameterNames.size() == 1 || parameterNames.size() == 0)) {
+        if (null != parameterNames && parameterNames.size() <= 1) {
             return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
         }
 
