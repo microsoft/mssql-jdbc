@@ -128,7 +128,7 @@ repositories {
 
 dependencies {
     implementation 'org.osgi:org.osgi.core:6.0.0',
-			'org.osgi:org.osgi.compendium:5.0.0'
+			'org.osgi:org.osgi.service.jdbc:1.1.0'
 	compileOnly 'com.azure:azure-security-keyvault-keys:4.5.2',
 			'com.azure:azure-identity:1.7.0',
 			'org.antlr:antlr4-runtime:4.9.3',
