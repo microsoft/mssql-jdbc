@@ -4151,7 +4151,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /*
      * Executes a connection-level command
      */
-    private void connectionCommand(String sql, String logContext) throws SQLServerException {
+    void connectionCommand(String sql, String logContext) throws SQLServerException {
         final class ConnectionCommand extends UninterruptableTDSCommand {
             /**
              * Always update serialVersionUID when prompted.
