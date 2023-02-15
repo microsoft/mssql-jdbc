@@ -415,6 +415,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AECertHashEmpty", "Internal error. Empty certificate thumbprint specified in certificate path {0}."},
         {"R_AECertNotFound", "Certificate with thumbprint {2} not found in certificate store {1} in certificate location {0}. Verify the certificate path in the column master key definition in the database is correct, and the certificate has been imported correctly into the certificate location/store."},
         {"R_AEMaloc", "Memory allocation failure."},
+        {"R_InvalidAccessTokenCallbackClass", "Invalid accessTokenCallbackClass: {0}"},
         {"R_AEKeypathLong", "Internal error. Specified certificate path has {0} bytes, which exceeds maximum length of {1} bytes."},
         {"R_AEECEKLenBad", "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
         {"R_AEECEKSigLenBad", "The specified encrypted column encryption key''s signature length {0} does not match the length {1} when using the column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},

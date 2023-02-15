@@ -116,7 +116,7 @@ public final class TestUtils {
 
     public static final SQLServerAccessTokenCallback accessTokenCallback = new SQLServerAccessTokenCallback() {
         @Override
-        public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
+        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
             String scope = spn + "/.default";
             Set<String> scopes = new HashSet<>();
             scopes.add(scope);

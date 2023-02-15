@@ -17,5 +17,5 @@ public interface SQLServerAccessTokenCallback {
      *
      * @return Returns a {@link SqlAuthenticationToken}.
      */
-    SqlAuthenticationToken getAccessToken(String stsurl, String spn);
+    SqlAuthenticationToken getAccessToken(String spn, String stsurl);
 }

@@ -66,7 +66,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
     public static class AccessTokenCallbackClass implements SQLServerAccessTokenCallback {
         @Override
-        public SqlAuthenticationToken getAccessToken(String stsurl, String spn) {
+        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
             String scope = spn + "/.default";
             Set<String> scopes = new HashSet<>();
             scopes.add(scope);
@@ -454,9 +454,19 @@ public class PooledConnectionTest extends FedauthCommon {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
         }
 
-        // Should pass with no user or password set
+        // Should fail with invalid accessTokenCallbackClass value
+        ds.setAccessTokenCallbackClass("Invalid");
         ds.setUser("");
         ds.setPassword("");
+        try {
+            pc = (SQLServerPooledConnection) ds.getPooledConnection();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidAccessTokenCallbackClass")));
+        }
+
+        // Should pass with no user or password set
+        ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
         pc = (SQLServerPooledConnection) ds.getPooledConnection();
         try (Connection conn1 = pc.getConnection()) {}
     }
