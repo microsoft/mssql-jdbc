@@ -206,6 +206,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether server is Azure MI */
     private Boolean isAzureMI = null;
 
+    /** flag indicating whether server supports transactions */
+    private Boolean supportsTransactions = null;
+
     /** shared timer */
     private SharedTimer sharedTimer;
 
@@ -7892,6 +7895,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;
+    }
+
+    /**
+     * Checks if the connection established to server supports transactions.
+     *
+     * @return True if server supports transactions, otherwise false
+     */
+    boolean supportsTransactions() throws SQLServerException {
+        if (supportsTransactions != null) {
+            return supportsTransactions;
+        }
+
+        try {
+            this.connectionCommand("SELECT @@TRANCOUNT", "SQLServerConnection.supportsTransactions");
+        } catch (SQLServerException e) {
+            if (e.getMessage().equals(SQLServerException.getErrString("R_transactionsNotSupported"))) {
+                return supportsTransactions = false;
+            }
+            throw e;
+        }
+
+        return supportsTransactions = true;
     }
 
     /**

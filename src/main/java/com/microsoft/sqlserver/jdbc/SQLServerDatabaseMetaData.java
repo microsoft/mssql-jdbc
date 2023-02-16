@@ -2171,7 +2171,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public boolean supportsTransactions() throws SQLServerException {
         checkClosed();
-        return true;
+        return connection.supportsTransactions();
     }
 
     @Override
