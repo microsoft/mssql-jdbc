@@ -91,6 +91,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidParameterNumber", "The parameter number {0} is not valid."},
         {"R_noMetadata", "There is no metadata."},
         {"R_resultsetClosed", "The result set is closed."},
+        {"R_transactionsNotSupported", "'@@TRANCOUNT' is not supported."},
         {"R_invalidColumnName", "The column name {0} is not valid."},
         {"R_resultsetNotUpdatable", "The result set is not updatable."},
         {"R_indexOutOfRange", "The index {0} is out of range."},

@@ -2171,15 +2171,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public boolean supportsTransactions() throws SQLServerException {
         checkClosed();
-        try {
-            connection.connectionCommand("SELECT @@TRANCOUNT", "SQLServerDatabaseMetaData.supportsTransactions");
-        } catch (SQLServerException e) {
-            if (e.getMessage().equals("'@@TRANCOUNT' is not supported.")) {
-                return false;
-            }
-            throw e;
-        }
-        return true;
+        return connection.supportsTransactions();
     }
 
     @Override
