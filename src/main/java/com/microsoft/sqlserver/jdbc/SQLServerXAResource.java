@@ -24,6 +24,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
+import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
 
 /**
  * Implements Transaction id used to recover transactions.
@@ -751,9 +752,24 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     }
                 }
             }
-        } catch (SQLServerException | SQLTimeoutException ex) {
+        } catch (SQLTimeoutException ex) {
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + " exception:" + ex);
+            XAException e = new XAException(ex.toString());
+            e.errorCode = XAException.XAER_RMFAIL;
+            throw e;
+
+        } catch (SQLServerException ex) {
+            if (xaLogger.isLoggable(Level.FINER))
+                xaLogger.finer(toString() + " exception:" + ex);
+
+            if (ex.getMessage().equals(SQLServerException.getErrString("R_noServerResponse"))
+                    || TransientError.isTransientError(ex.getSQLServerError())) {
+                XAException e = new XAException(ex.toString());
+                e.errorCode = XAException.XAER_RMFAIL;
+                throw e;
+            }
+
             XAException e = new XAException(ex.toString());
             e.errorCode = XAException.XAER_RMERR;
             throw e;
