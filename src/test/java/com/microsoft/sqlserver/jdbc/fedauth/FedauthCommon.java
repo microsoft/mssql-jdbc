@@ -87,6 +87,8 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_REQUEST_THROTTLED = "Request was throttled";
     static final String ERR_FAILED_FEDAUTH = TestResource.getResource("R_failedFedauth");
 
+    static PublicClientApplication publicClientApplication = null;
+
     enum SqlAuthentication {
         NotSpecified,
         SqlPassword,
@@ -163,9 +165,12 @@ public class FedauthCommon extends AbstractTest {
         long interval = THROTTLE_RETRY_INTERVAL;
         while (retry > 0) {
             try {
-                final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
-                        .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
-                final CompletableFuture<IAuthenticationResult> future = clientApplication
+                if (null == publicClientApplication) {
+                    publicClientApplication = PublicClientApplication.builder(fedauthClientId)
+                            .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                }
+
+                final CompletableFuture<IAuthenticationResult> future = publicClientApplication
                         .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
                                 azureUserName, azurePassword.toCharArray()).build());
 
@@ -177,6 +182,7 @@ public class FedauthCommon extends AbstractTest {
                 retry = 0;
             } catch (MsalThrottlingException te) {
                 interval = ((MsalThrottlingException) te).retryInMs();
+                System.out.println("MSAL retry interval: " + interval);
                 if (!checkForRetry(te, retry--, interval)) {
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
                 }
@@ -193,7 +199,8 @@ public class FedauthCommon extends AbstractTest {
             return false;
         }
         try {
-            System.out.println(e.getMessage() + "Get FedAuth token failed retry #" + retry + " in " + interval + " ms");
+            System.out.println(e.getMessage() + "Get FedAuth token failed retry #" + (THROTTLE_RETRY_COUNT - retry + 1)
+                    + " in " + interval + " ms");
             e.printStackTrace();
 
             Thread.sleep(interval);
