@@ -32,6 +32,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -100,6 +101,8 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
+
+    protected static PublicClientApplication fedauthPcaApp = null;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
