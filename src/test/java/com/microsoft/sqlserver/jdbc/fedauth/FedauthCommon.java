@@ -161,7 +161,7 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
-        while (retry < THROTTLE_RETRY_COUNT) {
+        while (retry <= THROTTLE_RETRY_COUNT) {
             try {
                 if (null == fedauthPcaApp) {
                     fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
@@ -177,10 +177,9 @@ public class FedauthCommon extends AbstractTest {
                 secondsBeforeExpiration = TimeUnit.MILLISECONDS
                         .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
                 accessToken = authenticationResult.accessToken();
-                retry = THROTTLE_RETRY_COUNT;
+                retry = THROTTLE_RETRY_COUNT + 1;
             } catch (MsalThrottlingException te) {
-                interval = ((MsalThrottlingException) te).retryInMs();
-                System.out.println("MSAL retry interval: " + interval);
+                interval = te.retryInMs();
                 if (!checkForRetry(te, retry++, interval)) {
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
                 }
