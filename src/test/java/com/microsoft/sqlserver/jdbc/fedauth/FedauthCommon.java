@@ -193,7 +193,7 @@ public class FedauthCommon extends AbstractTest {
     }
 
     static boolean checkForRetry(Exception e, int retry, long interval) {
-        if (retry < THROTTLE_RETRY_COUNT) {
+        if (retry > THROTTLE_RETRY_COUNT) {
             return false;
         }
         try {
