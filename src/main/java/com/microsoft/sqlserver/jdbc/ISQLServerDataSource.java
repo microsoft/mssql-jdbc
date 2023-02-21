@@ -347,7 +347,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the SQL server datatype to use for Java datetime and timestamp values.
      * 
      * @param datetimeParameterType
-     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are: 
+     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are:
      *        datetime, datetime2 or datetimeoffset.
      */
     void setDatetimeParameterType(String datetimeParameterType);
@@ -1268,4 +1268,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return Access token callback delegate.
      */
     SQLServerAccessTokenCallback getAccessTokenCallback();
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

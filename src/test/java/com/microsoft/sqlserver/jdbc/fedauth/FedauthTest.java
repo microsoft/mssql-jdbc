@@ -40,9 +40,12 @@ public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
 
+    private static String accessTokenCallbackConnectionString;
+
     @BeforeAll
     public static void setupTests() throws Exception {
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
+        accessTokenCallbackConnectionString = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";";
         setConnection();
     }
 
@@ -350,6 +353,18 @@ public class FedauthTest extends FedauthCommon {
                 + ";AADSecurePrincipalId=" + azureAADPrincipalId + ";AADSecurePrincipalSecret="
                 + azureAADPrincipalSecret;
         validateException(url, "R_BothUserPasswordandDeprecated");
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testAccessTokenCallbackClassConnection() throws Exception {
+        String cs = TestUtils.addOrOverrideProperty(accessTokenCallbackConnectionString, "accessTokenCallbackClass",
+                PooledConnectionTest.AccessTokenCallbackClass.class.getName());
+        try (Connection conn1 = DriverManager.getConnection(cs)) {}
     }
 
     private static void validateException(String url, String resourceKey) {

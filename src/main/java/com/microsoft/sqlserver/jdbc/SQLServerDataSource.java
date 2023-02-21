@@ -1281,6 +1281,29 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    @Override
+    public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                accessTokenCallbackClass);
+    }
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    @Override
+    public String getAccessTokenCallbackClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                null);
+    }
+
+    /**
      * Sets a property string value.
      *
      * @param props

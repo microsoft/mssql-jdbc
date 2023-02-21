@@ -605,7 +605,8 @@ enum SQLServerDriverStringProperty {
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
     ENCRYPT("encrypt", EncryptOption.TRUE.toString()),
     SERVER_CERTIFICATE("serverCertificate", ""),
-    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString());
+    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
+    ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", "");
 
     private final String name;
     private final String defaultValue;
@@ -833,6 +834,12 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            // Callback needs to be in list despite not being settable within connection string.
+            // The reason for this is for calls to mergeURLAndSuppliedProperties to work when setting the callback.
+            new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                    SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                    SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
@@ -931,6 +938,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES_PROPERTY_ONLY = {
             // default required available choices
             // property name value property (if appropriate)
+            new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                    SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(),
                     SQLServerDriverStringProperty.ACCESS_TOKEN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
@@ -1073,6 +1082,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     // replace with the driver approved name
                     fixedup.setProperty(newname, val);
                 } else if ("gsscredential".equalsIgnoreCase(newname) && (props.get(name) instanceof GSSCredential)) {
+                    fixedup.put(newname, props.get(name));
+                } else if ("accessTokenCallback".equalsIgnoreCase(newname)
+                        && (props.get(name) instanceof SQLServerAccessTokenCallback)) {
                     fixedup.put(newname, props.get(name));
                 } else {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidpropertyValue"));

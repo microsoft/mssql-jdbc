@@ -1667,7 +1667,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     && !name.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString())) {
                 String val = info[index].value;
                 // skip empty strings
-                if (0 != val.length()) {
+                if (null != val && 0 != val.length()) {
                     // special case these server name, instance name and port
                     // number as these go in the front
                     if (name.equals(SQLServerDriverStringProperty.SERVER_NAME.toString())) {

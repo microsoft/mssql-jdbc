@@ -240,7 +240,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * Valid values are: datetime, datetime2 or datetimeoffset.
      * 
      * @param datetimeParameterTypeValue
-     *        The datatype to use when encoding Java dates into SQL Server. Valid values are: 
+     *        The datatype to use when encoding Java dates into SQL Server. Valid values are:
      *        datetime, datetime2 or datetimeoffset.
      * 
      * @throws SQLServerException
@@ -451,4 +451,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      */
     @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }
