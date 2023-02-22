@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -17,7 +18,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.aad.msal4j.IAccount;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -365,6 +375,39 @@ public class FedauthTest extends FedauthCommon {
         String cs = TestUtils.addOrOverrideProperty(accessTokenCallbackConnectionString, "accessTokenCallbackClass",
                 PooledConnectionTest.AccessTokenCallbackClass.class.getName());
         try (Connection conn1 = DriverManager.getConnection(cs)) {}
+    }
+
+    @Test
+    public void testAccessTokenCache() {
+        try {
+            Set<IAccount> accountsInCache = fedauthPcaApp.getAccounts().join();
+            assertTrue(null != accountsInCache && !accountsInCache.isEmpty());
+
+            IAccount account = getAccountByUsername(accountsInCache, azureUserName);
+            assertNotNull(account);
+
+            SilentParameters silentParameters = SilentParameters
+                    .builder(Collections.singleton(spn + "/.default"), account).build();
+
+            // this will fail if not cached
+            CompletableFuture<IAuthenticationResult> future = fedauthPcaApp.acquireTokenSilently(silentParameters);
+            IAuthenticationResult authenticationResult = future.get();
+            assertNotNull(authenticationResult.accessToken());
+            assertEquals(authenticationResult.account().username(), azureUserName);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private IAccount getAccountByUsername(Set<IAccount> accounts, String username) {
+        if (!accounts.isEmpty()) {
+            for (IAccount account : accounts) {
+                if (account.username().equalsIgnoreCase(username)) {
+                    return account;
+                }
+            }
+        }
+        return null;
     }
 
     private static void validateException(String url, String resourceKey) {
