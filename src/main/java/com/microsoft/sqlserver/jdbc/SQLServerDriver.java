@@ -1289,10 +1289,10 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     @Override
-    public DriverPropertyInfo[] getPropertyInfo(String url, Properties Info) throws SQLServerException {
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
 
-        Properties connProperties = parseAndMergeProperties(url, Info);
+        Properties connProperties = parseAndMergeProperties(url, info);
         // This means we are not the right driver throw an exception.
         if (null == connProperties)
             throw new SQLServerException(null, SQLServerException.getErrString("R_invalidConnection"), null, 0, false);
