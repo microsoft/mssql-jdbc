@@ -44,7 +44,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     private boolean isDeterministic = false;
     // Each block in the AES is 128 bits
     private int blockSizeInBytes = 16;
-    private int KEYSIZEInBytes = SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE / 8;
     private byte[] version = new byte[] {0x01};
     // Added so that java hashing algorithm is similar to c#
     private byte[] versionSize = new byte[] {1};
@@ -60,7 +59,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * 1 block of cipher Text)
      */
     private int minimumCipherTextLengthInBytesWithAuthenticationTag = minimumCipherTextLengthInBytesNoAuthenticationTag
-            + KEYSIZEInBytes;
+            + SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_INBYTES;
 
     /**
      * Initializes a new instance of SQLServerAeadAes256CbcHmac256Algorithm with a given key, encryption type and
@@ -127,7 +126,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         int numBlocks = plainText.length / blockSizeInBytes + 1;
 
         int hmacStartIndex = 1;
-        int authenticationTagLen = hasAuthenticationTag ? KEYSIZEInBytes : 0;
+        int authenticationTagLen = hasAuthenticationTag ? SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_INBYTES
+                                                        : 0;
         int ivStartIndex = hmacStartIndex + authenticationTagLen;
         int cipherStartIndex = ivStartIndex + blockSizeInBytes;
 
@@ -236,8 +236,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         // Read authentication tag
         if (hasAuthenticationTag) {
             authenticationTagOffset = startIndex;
-            // authentication tag size is KEYSIZEInBytes
-            startIndex += KEYSIZEInBytes;
+            // authentication tag size is SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_INBYTES
+            startIndex += SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_INBYTES;
         }
 
         // Read IV from cipher text
@@ -330,7 +330,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             int length) throws NoSuchAlgorithmException, InvalidKeyException {
         assert (cipherText != null);
         byte[] computedHash;
-        byte[] authenticationTag = new byte[KEYSIZEInBytes];
+        byte[] authenticationTag = new byte[SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_INBYTES];
 
         Mac hmac = Mac.getInstance(HMAC_SHA_256);
         SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);

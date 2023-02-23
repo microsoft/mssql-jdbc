@@ -6265,7 +6265,7 @@ final class TDSWriter {
                 int month = cal.get(Calendar.MONTH);
                 int date = cal.get(Calendar.DATE);
 
-                // Set the cutover as early as possible (pure Gregorian behavior)
+                // Set the scaledNanosToEncodedBytes as early as possible (pure Gregorian behavior)
                 cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
 
                 // Initialize the date field by field (preserving the "wall calendar" value)
@@ -6366,7 +6366,7 @@ final class TDSWriter {
     }
 
     private byte[] scaledNanosToEncodedBytes(long scaledNanos, int encodedLength) {
-        byte encodedBytes[] = new byte[encodedLength];
+        byte[] encodedBytes = new byte[encodedLength];
         for (int i = 0; i < encodedLength; i++)
             encodedBytes[i] = (byte) ((scaledNanos >> (8 * i)) & 0xFF);
         return encodedBytes;

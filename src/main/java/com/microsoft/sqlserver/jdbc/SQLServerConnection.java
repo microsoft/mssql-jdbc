@@ -6826,9 +6826,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         checkClosed();
 
         if (this.holdability != holdability) {
-            assert ResultSet.HOLD_CURSORS_OVER_COMMIT == holdability
-                    || ResultSet.CLOSE_CURSORS_AT_COMMIT == holdability : "invalid holdability " + holdability;
-
             connectionCommand(
                     (holdability == ResultSet.CLOSE_CURSORS_AT_COMMIT) ? "SET CURSOR_CLOSE_ON_COMMIT ON"
                                                                        : "SET CURSOR_CLOSE_ON_COMMIT OFF",
@@ -7960,12 +7957,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             this.connectionCommand("SELECT @@TRANCOUNT", "SQLServerConnection.supportsTransactions");
         } catch (SQLServerException e) {
             if (e.getMessage().equals(SQLServerException.getErrString("R_transactionsNotSupported"))) {
-                return supportsTransactions == false;
+                return Boolean.FALSE.equals(supportsTransactions);
             }
             throw e;
         }
 
-        return supportsTransactions == true;
+        return Boolean.TRUE.equals(supportsTransactions);
     }
 
     /**

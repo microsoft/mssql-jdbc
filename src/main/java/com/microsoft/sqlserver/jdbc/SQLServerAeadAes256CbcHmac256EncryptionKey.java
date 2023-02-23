@@ -22,6 +22,8 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
 
     // This is the key size in the bits, since we are using AES256, it will 256
     static final int KEYSIZE = 256;
+    static final int KEYSIZE_INBYTES = KEYSIZE / 8;
+
     // Name of algorithm associated with this key
     private final String algorithmName;
     // Salt used to derive encryption key
@@ -52,17 +54,16 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
                 + " and key length:" + KEYSIZE;
         ivKeySaltFormat = "Microsoft SQL Server cell IV key with encryption algorithm:" + this.algorithmName
                 + " and key length:" + KEYSIZE;
-        int KEYSIZEInBytes = (KEYSIZE / 8);
-        if (rootKey.length != KEYSIZEInBytes) {
+        if (rootKey.length != KEYSIZE_INBYTES) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeySize"));
-            Object[] msgArgs = {rootKey.length, KEYSIZEInBytes, this.algorithmName};
+            Object[] msgArgs = {rootKey.length, KEYSIZE_INBYTES, this.algorithmName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
 
         // Derive encryption key
 
-        byte[] encKeyBuff = new byte[KEYSIZEInBytes];
+        byte[] encKeyBuff = new byte[KEYSIZE_INBYTES];
         try {
             // By default Java is big endian, we are getting bytes in little endian(LE in UTF-16LE)
             // to make it compatible with C# driver which is little endian
@@ -72,14 +73,14 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
             encryptionKey = new SQLServerSymmetricKey(encKeyBuff);
 
             // Derive mac key from root key
-            byte[] macKeyBuff = new byte[KEYSIZEInBytes];
+            byte[] macKeyBuff = new byte[KEYSIZE_INBYTES];
             macKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(macKeySaltFormat.getBytes(UTF_16LE), rootKey,
                     macKeyBuff.length);
 
             macKey = new SQLServerSymmetricKey(macKeyBuff);
 
             // Derive the initialization vector from root key
-            byte[] ivKeyBuff = new byte[KEYSIZEInBytes];
+            byte[] ivKeyBuff = new byte[KEYSIZE_INBYTES];
             ivKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(ivKeySaltFormat.getBytes(UTF_16LE), rootKey,
                     ivKeyBuff.length);
             ivKey = new SQLServerSymmetricKey(ivKeyBuff);
