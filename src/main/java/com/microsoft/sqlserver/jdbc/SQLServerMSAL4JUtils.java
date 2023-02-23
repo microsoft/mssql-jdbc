@@ -34,7 +34,6 @@ import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
-
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
 
@@ -58,7 +57,9 @@ class SQLServerMSAL4JUtils {
         try {
             final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
                     .authority(fedAuthInfo.stsurl).build();
+
             final CompletableFuture<IAuthenticationResult> future = pca.acquireToken(UserNamePasswordParameters
                     .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
                     .build());
@@ -93,8 +94,10 @@ class SQLServerMSAL4JUtils {
             scopes.add(scope);
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                    .builder(aadPrincipalID, credential).executorService(executorService).authority(fedAuthInfo.stsurl)
-                    .build();
+                    .builder(aadPrincipalID, credential).executorService(executorService)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                    .authority(fedAuthInfo.stsurl).build();
+
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
@@ -134,7 +137,9 @@ class SQLServerMSAL4JUtils {
 
             final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
                     .authority(fedAuthInfo.stsurl).build();
+
             final CompletableFuture<IAuthenticationResult> future = pca
                     .acquireToken(IntegratedWindowsAuthenticationParameters
                             .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
@@ -166,7 +171,7 @@ class SQLServerMSAL4JUtils {
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
-                    .authority(fedAuthInfo.stsurl).logPii((logger.isLoggable(Level.FINE))).build();
+                    .authority(fedAuthInfo.stsurl).build();
 
             CompletableFuture<IAuthenticationResult> future = null;
             IAuthenticationResult authenticationResult = null;
