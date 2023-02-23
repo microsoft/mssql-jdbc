@@ -336,7 +336,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);
         hmac.init(key);
         hmac.update(version, 0, version.length);
-        hmac.update(iv, 0, iv.length);F
+        hmac.update(iv, 0, iv.length);
         hmac.update(cipherText, offset, length);
         hmac.update(versionSize, 0, version.length);
         computedHash = hmac.doFinal();
