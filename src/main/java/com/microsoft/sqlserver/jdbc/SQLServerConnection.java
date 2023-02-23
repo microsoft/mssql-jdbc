@@ -151,7 +151,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean hasAccessTokenCallbackClass = false;
 
     /** Flag that determines whether the accessToken callback was set **/
-    private SQLServerAccessTokenCallback accessTokenCallback = null;
+    private transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
