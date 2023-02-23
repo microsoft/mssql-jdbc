@@ -177,7 +177,7 @@ public class SQLServerStatement implements ISQLServerStatement {
      * columnEncryptionSetting = true in the connection setting, Disabled if false. This may also be used to set other
      * behavior which overrides connection level setting.
      */
-    protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
+    protected SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING;
 
     /**
      * Returns the statement column encryption encryption setting

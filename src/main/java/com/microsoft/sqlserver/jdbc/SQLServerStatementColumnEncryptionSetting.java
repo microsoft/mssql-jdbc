@@ -15,21 +15,21 @@ public enum SQLServerStatementColumnEncryptionSetting {
     /**
      * if "Column Encryption Setting=Enabled" in the connection string, use Enabled. Otherwise, maps to Disabled.
      */
-    UseConnectionSetting,
+    USE_CONNECTION_SETTING,
 
     /**
      * Enables TCE for the command. Overrides the connection level setting for this command.
      */
-    Enabled,
+    ENABLED,
 
     /**
      * Parameters will not be encrypted, only the ResultSet will be decrypted. This is an optimization for queries that
      * do not pass any encrypted input parameters. Overrides the connection level setting for this command.
      */
-    ResultSetOnly,
+    RESULTSET_ONLY,
 
     /**
      * Disables TCE for the command.Overrides the connection level setting for this command.
      */
-    Disabled,
+    DISABLED,
 }

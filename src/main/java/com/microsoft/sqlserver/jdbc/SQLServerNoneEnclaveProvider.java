@@ -134,10 +134,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                     }
                 }
             }
+        } catch (SQLServerException e) {
+            throw (SQLServerException) e;
         } catch (SQLException | IOException e) {
-            if (e instanceof SQLServerException) {
-                throw (SQLServerException) e;
-            }
             throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0,
                     e);
         }

@@ -282,7 +282,7 @@ public class MultiUserAKVTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                        SQLServerStatementColumnEncryptionSetting.ENABLED)) {
 
             pstmt.setInt(1, customerId);
 
@@ -365,7 +365,7 @@ public class MultiUserAKVTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                    SQLServerStatementColumnEncryptionSetting.ENABLED)) {
                 pstmt.setInt(1, customerId);
                 pstmt.executeQuery();
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -379,7 +379,7 @@ public class MultiUserAKVTest extends AESetup {
              */
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(notRequiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                    SQLServerStatementColumnEncryptionSetting.ENABLED)) {
                 pstmt.setInt(1, customerId);
                 pstmt.executeQuery();
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -395,7 +395,7 @@ public class MultiUserAKVTest extends AESetup {
              */
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(requiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                    SQLServerStatementColumnEncryptionSetting.ENABLED)) {
                 pstmt.setInt(1, customerId);
                 pstmt.executeQuery();
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -406,7 +406,7 @@ public class MultiUserAKVTest extends AESetup {
             // Not required provider will replace the previous entry so required provider will not be found.
             con.registerColumnEncryptionKeyStoreProvidersOnConnection(notRequiredKeyStoreProvider);
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                    SQLServerStatementColumnEncryptionSetting.ENABLED)) {
                 pstmt.setInt(1, customerId);
                 pstmt.executeQuery();
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
@@ -449,7 +449,7 @@ public class MultiUserAKVTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                        SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                        SQLServerStatementColumnEncryptionSetting.ENABLED)) {
             pstmt.setInt(1, customerId);
 
             /*
@@ -503,7 +503,7 @@ public class MultiUserAKVTest extends AESetup {
              * contains the required provider
              */
             try (SQLServerPreparedStatement pstmt2 = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
-                    SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                    SQLServerStatementColumnEncryptionSetting.ENABLED)) {
                 pstmt2.setInt(1, customerId);
 
                 try {
@@ -527,7 +527,7 @@ public class MultiUserAKVTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sqlQuery,
-                        SQLServerStatementColumnEncryptionSetting.Enabled)) {
+                        SQLServerStatementColumnEncryptionSetting.ENABLED)) {
             pstmt.setInt(1, customId);
             pstmt.setString(2, customName);
             pstmt.executeUpdate();

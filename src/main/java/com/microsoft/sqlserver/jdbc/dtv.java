@@ -2140,11 +2140,11 @@ final class AppDTVImpl extends DTVImpl {
                 Integer dtvScale, biScale = bigDecimalValue.scale();
                 if (null == dtv.getScale() && JDBCType.DECIMAL == dtv.getJdbcType()) {
                     dtvScale = bigDecimalValue
-                            .precision() > SQLServerConnection.maxDecimalPrecision ? SQLServerConnection.maxDecimalPrecision
+                            .precision() > SQLServerConnection.MAX_DECIMAL_PRECISION ? SQLServerConnection.MAX_DECIMAL_PRECISION
                                     - (bigDecimalValue.precision() - biScale) : biScale;
-                    if (dtvScale > SQLServerConnection.maxDecimalPrecision) {
-                        dtv.setScale(SQLServerConnection.maxDecimalPrecision);
-                        dtvScale = SQLServerConnection.maxDecimalPrecision;
+                    if (dtvScale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
+                        dtv.setScale(SQLServerConnection.MAX_DECIMAL_PRECISION);
+                        dtvScale = SQLServerConnection.MAX_DECIMAL_PRECISION;
                     } else {
                         dtv.setScale(dtvScale);
                     }

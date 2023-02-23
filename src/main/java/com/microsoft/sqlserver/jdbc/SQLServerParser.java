@@ -95,7 +95,7 @@ final class SQLServerParser {
                                 }
                                 for (int i = 0; i < ls.size(); i++) {
                                     if ("?".equalsIgnoreCase(ls.get(i))) {
-                                        if (0 == tableValues.size()) {
+                                        if (tableValues.isEmpty()) {
                                             query.getColumns().add("?");
                                         } else {
                                             if (i < tableValues.size()) {
@@ -201,7 +201,7 @@ final class SQLServerParser {
             SQLServerLexer.OR_ASSIGN, SQLServerLexer.STAR, SQLServerLexer.DIVIDE, SQLServerLexer.MODULE,
             SQLServerLexer.PLUS, SQLServerLexer.MINUS, SQLServerLexer.LIKE, SQLServerLexer.IN, SQLServerLexer.BETWEEN);
 
-    static String findColumnAroundParameter(SQLServerTokenIterator iter) throws SQLServerException {
+    static String findColumnAroundParameter(SQLServerTokenIterator iter) {
         int index = iter.nextIndex();
         iter.previous();
         String value = findColumnBeforeParameter(iter);

@@ -230,7 +230,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
              * columnMetadata).
              */
             // case when the user has not provided the optional list of column names.
-            if (null == columnList || columnList.size() == 0) {
+            if (null == columnList || columnList.isEmpty()) {
                 valueData = valueList.get(index);
                 /*
                  * if the user has provided a wildcard for this column, fetch the set value from the batchParam.

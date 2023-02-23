@@ -64,7 +64,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * Regex to ignore delimiter when the field is enclosed in quotes.
      * 
      */
-    private static final String escapeSplitPattern = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+    private static final String ESCAPE_SPLIT_PATTERN = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     /*
      * Class names for logging.
@@ -207,7 +207,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             currentLine = fileReader.readLine();
             if (null != currentLine) {
                 columnNames = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
-                        currentLine.split(delimiter + escapeSplitPattern, -1)) : currentLine.split(delimiter, -1);
+                        currentLine.split(delimiter + ESCAPE_SPLIT_PATTERN, -1)) : currentLine.split(delimiter, -1);
             }
         }
     }
@@ -252,7 +252,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
              * empty strings are discarded. Empty string is returned if there is no value.
              */
             String[] data = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
-                    currentLine.split(delimiter + escapeSplitPattern, -1)) : currentLine.split(delimiter, -1);
+                    currentLine.split(delimiter + ESCAPE_SPLIT_PATTERN, -1)) : currentLine.split(delimiter, -1);
 
             // Cannot go directly from String[] to Object[] and expect it to act as an array.
 

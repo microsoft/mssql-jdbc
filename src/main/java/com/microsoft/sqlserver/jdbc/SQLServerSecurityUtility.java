@@ -49,7 +49,7 @@ class SQLServerSecurityUtility {
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
-    
+
     /**
      * Give the hash of given plain text
      * 
@@ -132,13 +132,11 @@ class SQLServerSecurityUtility {
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                 hasEntry);
-        if (hasEntry[0]) {
-            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
-                    || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
-                Object[] msgArgs = {keyInfo.keyPath, serverName};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
+        if (hasEntry[0] && ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty())
+                || (!trustedKeyPaths.contains(keyInfo.keyPath)))) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+            Object[] msgArgs = {keyInfo.keyPath, serverName};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
 
         SQLServerException lastException = null;
@@ -302,12 +300,11 @@ class SQLServerSecurityUtility {
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                 hasEntry);
-        if (hasEntry[0]) {
-            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyPath))) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
-                Object[] msgArgs = {keyPath, serverName};
-                throw new SQLServerException(form.format(msgArgs), null);
-            }
+        if (hasEntry[0]
+                && ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty()) || (!trustedKeyPaths.contains(keyPath)))) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+            Object[] msgArgs = {keyPath, serverName};
+            throw new SQLServerException(form.format(msgArgs), null);
         }
 
         SQLServerColumnEncryptionKeyStoreProvider provider = null;

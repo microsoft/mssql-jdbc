@@ -945,14 +945,14 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
                     SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue(), false, null),};
 
-    private static final String driverPropertiesSynonyms[][] = {
+    private static final String[][] driverPropertiesSynonyms = {
             {"database", SQLServerDriverStringProperty.DATABASE_NAME.toString()},
             {"userName", SQLServerDriverStringProperty.USER.toString()},
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
 
-    private static final String driverPropertyValuesSynonyms[][] = {
+    private static final String[][] driverPropertyValuesSynonyms = {
             {"ActiveDirectoryMSI", SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString()}};
 
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
@@ -1214,7 +1214,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
 
     @Override
-    public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
+    public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
@@ -1235,7 +1235,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
-        Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
+        Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
             result.connect(connectProperties, null);
@@ -1244,13 +1244,13 @@ public final class SQLServerDriver implements java.sql.Driver {
         return result;
     }
 
-    private Properties parseAndMergeProperties(String Url, Properties suppliedProperties) throws SQLServerException {
-        if (Url == null) {
+    private Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
+        if (url == null) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
         // Pull the URL properties into the connection properties
-        Properties connectProperties = Util.parseUrl(Url, drLogger);
+        Properties connectProperties = Util.parseUrl(url, drLogger);
         if (null == connectProperties)
             return null; // If we are the wrong driver dont throw an exception
 
@@ -1289,10 +1289,10 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     @Override
-    public DriverPropertyInfo[] getPropertyInfo(String Url, Properties Info) throws SQLServerException {
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties Info) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
 
-        Properties connProperties = parseAndMergeProperties(Url, Info);
+        Properties connProperties = parseAndMergeProperties(url, Info);
         // This means we are not the right driver throw an exception.
         if (null == connProperties)
             throw new SQLServerException(null, SQLServerException.getErrString("R_invalidConnection"), null, 0, false);

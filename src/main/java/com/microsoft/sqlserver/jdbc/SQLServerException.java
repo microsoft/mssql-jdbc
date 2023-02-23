@@ -66,7 +66,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
     static final int USER_ACCOUNT_LOCKED = 18486;
-    static java.util.logging.Logger exLogger = java.util.logging.Logger
+    static final java.util.logging.Logger exLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     // Facility for driver-specific error codes
@@ -117,13 +117,13 @@ public final class SQLServerException extends java.sql.SQLException {
             exLogger.fine("*** SQLException:" + id + " " + this.toString() + " " + errText);
         if (bStack && exLogger.isLoggable(Level.FINE)) {
             StringBuilder sb = new StringBuilder(100);
-            StackTraceElement st[] = this.getStackTrace();
+            StackTraceElement[] st = this.getStackTrace();
             for (StackTraceElement aSt : st)
                 sb.append(aSt.toString());
             Throwable t = this.getCause();
             if (t != null) {
                 sb.append("\n caused by ").append(t).append("\n");
-                StackTraceElement tst[] = t.getStackTrace();
+                StackTraceElement[] tst = t.getStackTrace();
                 for (StackTraceElement aTst : tst)
                     sb.append(aTst.toString());
             }

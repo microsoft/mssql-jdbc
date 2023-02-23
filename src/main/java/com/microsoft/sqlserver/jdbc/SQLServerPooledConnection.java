@@ -233,7 +233,7 @@ public class SQLServerPooledConnection implements PooledConnection, Serializable
                 // use internal close so there wont be an event due to us closing the connection, if not closed already.
                 lastProxyConnection.internalClose();
             if (null != physicalConnection) {
-                physicalConnection.DetachFromPool();
+                physicalConnection.detachFromPool();
                 physicalConnection.close();
             }
             physicalConnection = null;

@@ -69,7 +69,6 @@ final class TDSParser {
                         + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
             }
             if (readOnlyWarningsFlag && TDS.TDS_MSG != tdsTokenType) {
-                parsing = false;
                 return;
             }
             switch (tdsTokenType) {
