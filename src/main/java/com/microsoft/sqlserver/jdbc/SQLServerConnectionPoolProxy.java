@@ -41,7 +41,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     /**
      * Permission targets currently only callAbort is implemented
      */
-    private static final String callAbortPerm = "callAbort";
+    private static final String CALL_ABORT_PERM = "callAbort";
 
     /**
      * Generates the next unique connection id.
@@ -140,11 +140,11 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         SecurityManager secMgr = System.getSecurityManager();
         if (secMgr != null) {
             try {
-                java.sql.SQLPermission perm = new java.sql.SQLPermission(callAbortPerm);
+                java.sql.SQLPermission perm = new java.sql.SQLPermission(CALL_ABORT_PERM);
                 secMgr.checkPermission(perm);
             } catch (SecurityException ex) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
-                Object[] msgArgs = {callAbortPerm};
+                Object[] msgArgs = {CALL_ABORT_PERM};
                 throw new SQLServerException(form.format(msgArgs), null, 0, ex);
             }
         }
@@ -506,8 +506,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         try {
             t = iface.cast(this);
         } catch (ClassCastException e) {
-            SQLServerException newe = new SQLServerException(e.getMessage(), e);
-            throw newe;
+            throw new SQLServerException(e.getMessage(), e);
         }
         wrappedConnection.getConnectionLogger().exiting(toString(), "unwrap", t);
         return t;

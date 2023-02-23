@@ -1775,7 +1775,7 @@ abstract class SQLServerSpatialDatatype {
      * Populates the various data structures contained within the Geometry/Geography instance.
      */
     void populateStructures() {
-        if (pointList.size() > 0) {
+        if (!pointList.isEmpty()) {
             xValues = new double[pointList.size()];
             yValues = new double[pointList.size()];
 
@@ -1808,7 +1808,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (figureList.size() > 0) {
+        if (!figureList.isEmpty()) {
             figures = new Figure[figureList.size()];
 
             for (int i = 0; i < figureList.size(); i++) {
@@ -1821,11 +1821,11 @@ abstract class SQLServerSpatialDatatype {
         // know until
         // We've parsed through the entire WKT and confirmed that there are 0 points.
         // Therefore, if so, we make the figure offset of the first shape to be -1.
-        if (pointList.size() == 0 && shapeList.size() > 0 && shapeList.get(0).getOpenGISType() == 7) {
+        if (pointList.isEmpty() && !shapeList.isEmpty() && shapeList.get(0).getOpenGISType() == 7) {
             shapeList.get(0).setFigureOffset(-1);
         }
 
-        if (shapeList.size() > 0) {
+        if (!shapeList.isEmpty()) {
             shapes = new Shape[shapeList.size()];
 
             for (int i = 0; i < shapeList.size(); i++) {
@@ -1833,7 +1833,7 @@ abstract class SQLServerSpatialDatatype {
             }
         }
 
-        if (segmentList.size() > 0) {
+        if (!segmentList.isEmpty()) {
             segments = new Segment[segmentList.size()];
 
             for (int i = 0; i < segmentList.size(); i++) {
@@ -2600,7 +2600,6 @@ abstract class SQLServerSpatialDatatype {
             if (wkt.charAt(currentWktPos) == ',') {
                 currentWktPos++;
                 skipWhiteSpaces();
-                numOfCoordinates++;
                 break;
             }
             skipWhiteSpaces();

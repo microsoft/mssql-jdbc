@@ -61,7 +61,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** batch statement delimiter */
-    final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
+    static final int NBATCH_STATEMENT_DELIMITER = BATCH_STATEMENT_DELIMITER_TDS_72;
 
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
@@ -2087,7 +2087,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
-                        if (null != columnList && columnList.size() > 0) {
+                        if (null != columnList && !columnList.isEmpty()) {
                             if (columnList.size() != valueList.size()) {
 
                                 MessageFormat form = new MessageFormat(
@@ -2251,7 +2251,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
-                        if (null != columnList && columnList.size() > 0) {
+                        if (null != columnList && !columnList.isEmpty()) {
                             if (columnList.size() != valueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
@@ -2899,7 +2899,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
-                        tdsWriter.writeByte((byte) nBatchStatementDelimiter);
+                        tdsWriter.writeByte((byte) NBATCH_STATEMENT_DELIMITER);
                     } else {
                         resetForReexecute();
                         tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);

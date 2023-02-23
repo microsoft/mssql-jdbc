@@ -472,8 +472,8 @@ final class Parameter {
                 case DECIMAL:
                 case NUMERIC:
                     // First, bound the scale by the maximum allowed by SQL Server
-                    if (scale > SQLServerConnection.maxDecimalPrecision)
-                        scale = SQLServerConnection.maxDecimalPrecision;
+                    if (scale > SQLServerConnection.MAX_DECIMAL_PRECISION)
+                        scale = SQLServerConnection.MAX_DECIMAL_PRECISION;
 
                     // Next, prepare with the largest of:
                     // - the value's scale (initial value, as limited above)
@@ -503,26 +503,27 @@ final class Parameter {
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         } else {
-                            if (SQLServerConnection.defaultDecimalPrecision >= valueLength) {
+                            if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION >= valueLength) {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
 
-                                if (SQLServerConnection.defaultDecimalPrecision < (valueLength + scale)) {
+                                if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION < (valueLength + scale)) {
                                     param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                            + (SQLServerConnection.defaultDecimalPrecision + scale) + "," + scale + ")";
+                                            + (SQLServerConnection.DEFAULT_DECIMAL_PRECISION + scale) + "," + scale
+                                            + ")";
                                 }
                             } else {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         }
 
                         if (isOutput()) {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                    + SQLServerConnection.maxDecimalPrecision + ", " + scale + ")";
+                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
@@ -544,7 +545,7 @@ final class Parameter {
 
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                    + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                         }
                     }
 

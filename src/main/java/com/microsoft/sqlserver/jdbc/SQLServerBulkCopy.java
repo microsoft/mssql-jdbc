@@ -170,7 +170,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Statement level encryption setting needed for querying against encrypted columns.
      */
-    private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.UseConnectionSetting;
+    private SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting = SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING;
 
     /**
      * Destination table metadata

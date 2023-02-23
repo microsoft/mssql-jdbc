@@ -381,7 +381,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     }
 
-    private XAReturnValue DTC_XA_Interface(int nType, Xid xid, int xaFlags) throws XAException {
+    private XAReturnValue dtc_XA_interface(int nType, Xid xid, int xaFlags) throws XAException {
 
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer(toString() + " Calling XA function for type:" + typeDisplay(nType) + " flags:"
@@ -668,8 +668,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 // will throw exception
                 // "The function RECOVER: failed. The status is: -3"
                 recoveryAttempt++;
-                DTC_XA_Interface(XA_START, xid, TMNOFLAGS);
-                return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
+                dtc_XA_interface(XA_START, xid, TMNOFLAGS);
+                return dtc_XA_interface(XA_RECOVER, xid, xaFlags);
             }
             // prepare and end can return XA_RDONLY
             // Think should we just check for nStatus to be greater than or equal to zero instead of this check
@@ -685,7 +685,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     try {
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
-                        con.JTAUnenlistConnection();
+                        con.jtaUnenlistConnection();
                         enlistedTransactionCount--;
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
@@ -712,7 +712,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 xaLogger.finer(
                                         toString() + " Begin enlisting, cookie:" + cookieDisplay(transactionCookie)
                                                 + " enlisted count:" + enlistedTransactionCount);
-                            con.JTAEnlistConnection(transactionCookie);
+                            con.jtaEnlistConnection(transactionCookie);
                             enlistedTransactionCount++;
                             if (xaLogger.isLoggable(Level.FINER))
                                 xaLogger.finer(toString() + " End enlisting, cookie:" + cookieDisplay(transactionCookie)
@@ -728,7 +728,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     try {
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
-                        con.JTAUnenlistConnection();
+                        con.jtaUnenlistConnection();
                         enlistedTransactionCount--;
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
@@ -788,7 +788,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         // of those will be prefixed by the transaction manager with a call to start with TMNOFLAGS
 
         tightlyCoupled = flags & SSTRANSTIGHTLYCPLD;
-        DTC_XA_Interface(XA_START, xid, flags);
+        dtc_XA_interface(XA_START, xid, flags);
     }
 
     @Override
@@ -803,7 +803,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
          * work has failed. The resource manager may mark the transaction as rollback-only. If TMSUCCESS is specified,
          * the portion of work has completed successfully.
          */
-        DTC_XA_Interface(XA_END, xid, flags | tightlyCoupled);
+        dtc_XA_interface(XA_END, xid, flags | tightlyCoupled);
     }
 
     @Override
@@ -814,31 +814,28 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
          * of the transaction. The possible values are: XA_RDONLY or XA_OK. If the resource manager wants to roll back
          * the transaction, it should do so by raising an appropriate XAException in the prepare method.
          */
-        int nStatus = XA_OK;
-        XAReturnValue r = DTC_XA_Interface(XA_PREPARE, xid, tightlyCoupled);
-        nStatus = r.nStatus;
-
-        return nStatus;
+        XAReturnValue r = dtc_XA_interface(XA_PREPARE, xid, tightlyCoupled);
+        return r.nStatus;
     }
 
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        DTC_XA_Interface(XA_COMMIT, xid, ((onePhase) ? TMONEPHASE : TMNOFLAGS) | tightlyCoupled);
+        dtc_XA_interface(XA_COMMIT, xid, ((onePhase) ? TMONEPHASE : TMNOFLAGS) | tightlyCoupled);
     }
 
     @Override
     public void rollback(Xid xid) throws XAException {
-        DTC_XA_Interface(XA_ROLLBACK, xid, tightlyCoupled);
+        dtc_XA_interface(XA_ROLLBACK, xid, tightlyCoupled);
     }
 
     @Override
     public void forget(Xid xid) throws XAException {
-        DTC_XA_Interface(XA_FORGET, xid, tightlyCoupled);
+        dtc_XA_interface(XA_FORGET, xid, tightlyCoupled);
     }
 
     @Override
     public Xid[] recover(int flags) throws XAException {
-        XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
+        XAReturnValue r = dtc_XA_interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
         ArrayList<XidImpl> al = new ArrayList<>();
 

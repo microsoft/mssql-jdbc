@@ -105,7 +105,7 @@ class SQLServerFMTQuery {
                 lexer.removeErrorListeners();
                 lexer.addErrorListener(new SQLServerErrorListener());
                 this.tokenList = (ArrayList<? extends Token>) lexer.getAllTokens();
-                if (tokenList.size() <= 0) {
+                if (tokenList.isEmpty()) {
                     SQLServerException.makeFromDriverError(null, this,
                             SQLServerResource.getResource("R_noTokensFoundInUserQuery"), null, false);
                 }

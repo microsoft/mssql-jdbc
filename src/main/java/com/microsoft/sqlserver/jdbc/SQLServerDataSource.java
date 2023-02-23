@@ -1165,9 +1165,9 @@ public class SQLServerDataSource
      */
     @Override
     @Deprecated(since = "9.4.1", forRemoval = true)
-    public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
+    public void setAADSecurePrincipalId(String aadSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
-                AADSecurePrincipalId);
+                aadSecurePrincipalId);
     }
 
     /**

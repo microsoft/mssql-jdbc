@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+
 /**
  * 
  * Cache for the Symmetric keys
@@ -28,7 +29,7 @@ final class SQLServerSymmetricKeyCache {
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSymmetricKeyCache");
 
     private SQLServerSymmetricKeyCache() {
-        cache = new SimpleTtlCache<String, SQLServerSymmetricKey>();
+        cache = new SimpleTtlCache<>();
     }
 
     static SQLServerSymmetricKeyCache getInstance() {
@@ -73,7 +74,7 @@ final class SQLServerSymmetricKeyCache {
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                     hasEntry);
             if (hasEntry[0]) {
-                if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
+                if ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty())
                         || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
                     Object[] msgArgs = {keyInfo.keyPath, serverName};
@@ -86,19 +87,21 @@ final class SQLServerSymmetricKeyCache {
             }
 
             if (!cache.contains(keyLookupValue)) {
- 
+
                 // search system/global key store providers
-                SQLServerColumnEncryptionKeyStoreProvider provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
+                SQLServerColumnEncryptionKeyStoreProvider provider = connection
+                        .getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyInfo.keyStoreName);
                 assert null != provider : "Provider should not be null.";
 
                 byte[] plaintextKey;
-                
-                /* 
+
+                /*
                  * When provider decrypt Column Encryption Key, it can cache the decrypted key if cacheTTL > 0.
                  * To prevent conflicts between CEK caches, system providers and global providers should not use their own CEK caches.
                  */
                 provider.setColumnEncryptionCacheTtl(Duration.ZERO);
-                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName, keyInfo.encryptedKey);
+                plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName,
+                        keyInfo.encryptedKey);
 
                 encryptionKey = new SQLServerSymmetricKey(plaintextKey);
 

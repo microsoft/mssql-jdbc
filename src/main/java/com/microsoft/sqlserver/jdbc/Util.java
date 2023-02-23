@@ -801,14 +801,14 @@ final class Util {
             SQLServerConnection connection) {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
-            case Disabled:
+            case DISABLED:
                 return false;
-            case Enabled:
-            case ResultSetOnly:
+            case ENABLED:
+            case RESULTSET_ONLY:
                 return true;
             default:
                 // Check connection level setting!
-                assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
+                assert SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING == stmtColumnEncryptionSetting : "Unexpected value for command level override";
                 return (connection != null && connection.isColumnEncryptionSettingEnabled());
         }
     }
@@ -823,14 +823,14 @@ final class Util {
             SQLServerConnection connection) {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
-            case Disabled:
-            case ResultSetOnly:
+            case DISABLED:
+            case RESULTSET_ONLY:
                 return false;
-            case Enabled:
+            case ENABLED:
                 return true;
             default:
                 // Check connection level setting!
-                assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
+                assert SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING == stmtColumnEncryptionSetting : "Unexpected value for command level override";
                 return (connection != null && connection.isColumnEncryptionSettingEnabled());
         }
     }
@@ -985,7 +985,7 @@ final class Util {
 
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
-            Object[] msgArgs) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+            Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
         Class<?> clazz = Class.forName(className);
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));

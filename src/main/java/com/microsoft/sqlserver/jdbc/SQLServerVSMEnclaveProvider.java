@@ -203,7 +203,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
 class VSMAttestationParameters extends BaseAttestationRequest {
     // Type 3 is VSM, sent as Little Endian 0x30000000
-    private static final byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
+    private static final byte[] ENCLAVE_TYPE = new byte[] {0x3, 0x0, 0x0, 0x0};
 
     VSMAttestationParameters() throws SQLServerException {
         enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};

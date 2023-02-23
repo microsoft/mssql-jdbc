@@ -4756,7 +4756,7 @@ final class TDSWriter {
     void writeRPCBigDecimal(String sName, BigDecimal bdValue, int nScale, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.DECIMALN);
         writeByte((byte) 0x11); // maximum length
-        writeByte((byte) SQLServerConnection.maxDecimalPrecision); // precision
+        writeByte((byte) SQLServerConnection.MAX_DECIMAL_PRECISION); // precision
 
         byte[] val = DDC.convertBigDecimalToBytes(bdValue, nScale);
         writeBytes(val, 0, val.length);
@@ -6423,7 +6423,7 @@ final class TDSWriter {
                 long maxStreamLength = 65535L * con.getTDSPacketSize();
 
                 try {
-                    byte buff[] = new byte[8000];
+                    byte[] buff = new byte[8000];
                     int bytesRead;
 
                     while (streamLength < maxStreamLength && -1 != (bytesRead = stream.read(buff, 0, buff.length))) {

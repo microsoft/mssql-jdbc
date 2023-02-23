@@ -5503,7 +5503,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         final void ensureStartMark() {
             if (null == startMark && !isForwardOnly()) {
                 if (logger.isLoggable(java.util.logging.Level.FINEST))
-                    logger.finest(toString() + " Setting fetch buffer start mark");
+                    logger.finest(super.toString() + " Setting fetch buffer start mark");
 
                 startMark = tdsReader.mark();
             }
