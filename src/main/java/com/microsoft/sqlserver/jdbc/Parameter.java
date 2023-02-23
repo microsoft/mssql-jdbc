@@ -472,8 +472,9 @@ final class Parameter {
                 case DECIMAL:
                 case NUMERIC:
                     // First, bound the scale by the maximum allowed by SQL Server
-                    if (scale > SQLServerConnection.MAX_DECIMAL_PRECISION)
+                    if (scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
                         scale = SQLServerConnection.MAX_DECIMAL_PRECISION;
+                    }
 
                     // Next, prepare with the largest of:
                     // - the value's scale (initial value, as limited above)

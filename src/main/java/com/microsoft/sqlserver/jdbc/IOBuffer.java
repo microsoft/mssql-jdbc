@@ -6265,7 +6265,7 @@ final class TDSWriter {
                 int month = cal.get(Calendar.MONTH);
                 int date = cal.get(Calendar.DATE);
 
-                // Set the scaledNanosToEncodedBytes as early as possible (pure Gregorian behavior)
+                // Set the cutover as early as possible (pure Gregorian behavior)
                 cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
 
                 // Initialize the date field by field (preserving the "wall calendar" value)

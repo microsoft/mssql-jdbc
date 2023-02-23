@@ -1370,8 +1370,9 @@ final class DDC {
             return false;
 
         // Maximum scale allowed is same as maximum precision allowed.
-        if (bigDecimalValue.scale() > SQLServerConnection.MAX_DECIMAL_PRECISION)
+        if (bigDecimalValue.scale() > SQLServerConnection.MAX_DECIMAL_PRECISION) {
             return true;
+        }
 
         // Convert to unscaled integer value, then compare with maxRPCDecimalValue.
         // NOTE: Handle negative scale as a special case for JDK 1.5 and later VMs.
