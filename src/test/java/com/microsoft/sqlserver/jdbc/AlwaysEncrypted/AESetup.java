@@ -196,7 +196,7 @@ public class AESetup extends AbstractTest {
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
 
-        stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.Enabled;
+        stmtColEncSetting = SQLServerStatementColumnEncryptionSetting.ENABLED;
 
         AEInfo = new Properties();
         AEInfo.setProperty("ColumnEncryptionSetting", Constants.ENABLED);
