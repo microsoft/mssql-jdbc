@@ -5,9 +5,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.concurrent.*;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 class SharedTimerTest {
 
     @Test
