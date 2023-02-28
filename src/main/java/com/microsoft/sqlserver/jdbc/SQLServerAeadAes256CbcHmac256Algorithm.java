@@ -33,7 +33,9 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     static final private java.util.logging.Logger aeLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerAeadAes256CbcHmac256Algorithm");
 
-    final static String algorithmName = "AEAD_AES_256_CBC_HMAC_SHA256";
+    final static String AEAD_AES_256_CBC_HMAC_SHA256 = "AEAD_AES_256_CBC_HMAC_SHA256";
+    private static final String HMAC_SHA_256 = "HmacSHA256";
+
     // Stores column encryption key which includes root key and derived keys
     private SQLServerAeadAes256CbcHmac256EncryptionKey columnEncryptionkey;
     private byte algorithmVersion;
@@ -42,7 +44,6 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
     private boolean isDeterministic = false;
     // Each block in the AES is 128 bits
     private int blockSizeInBytes = 16;
-    private int keySizeInBytes = SQLServerAeadAes256CbcHmac256EncryptionKey.keySize / 8;
     private byte[] version = new byte[] {0x01};
     // Added so that java hashing algorithm is similar to c#
     private byte[] versionSize = new byte[] {1};
@@ -58,7 +59,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
      * 1 block of cipher Text)
      */
     private int minimumCipherTextLengthInBytesWithAuthenticationTag = minimumCipherTextLengthInBytesNoAuthenticationTag
-            + keySizeInBytes;
+            + SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_IN_BYTES;
 
     /**
      * Initializes a new instance of SQLServerAeadAes256CbcHmac256Algorithm with a given key, encryption type and
@@ -75,7 +76,7 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             SQLServerEncryptionType encryptionType, byte algorithmVersion) {
         this.columnEncryptionkey = columnEncryptionkey;
 
-        if (encryptionType == SQLServerEncryptionType.Deterministic) {
+        if (encryptionType == SQLServerEncryptionType.DETERMINISTIC) {
             this.isDeterministic = true;
         }
         this.algorithmVersion = algorithmVersion;
@@ -125,7 +126,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         int numBlocks = plainText.length / blockSizeInBytes + 1;
 
         int hmacStartIndex = 1;
-        int authenticationTagLen = hasAuthenticationTag ? keySizeInBytes : 0;
+        int authenticationTagLen = hasAuthenticationTag ? SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_IN_BYTES
+                                                        : 0;
         int ivStartIndex = hmacStartIndex + authenticationTagLen;
         int cipherStartIndex = ivStartIndex + blockSizeInBytes;
 
@@ -160,8 +162,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
 
             if (hasAuthenticationTag) {
 
-                Mac hmac = Mac.getInstance("HmacSHA256");
-                SecretKeySpec initkey = new SecretKeySpec(columnEncryptionkey.getMacKey(), "HmacSHA256");
+                Mac hmac = Mac.getInstance(HMAC_SHA_256);
+                SecretKeySpec initkey = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);
                 hmac.init(initkey);
                 hmac.update(version, 0, version.length);
                 hmac.update(iv, 0, iv.length);
@@ -234,8 +236,8 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
         // Read authentication tag
         if (hasAuthenticationTag) {
             authenticationTagOffset = startIndex;
-            // authentication tag size is keySizeInBytes
-            startIndex += keySizeInBytes;
+            // authentication tag size is SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_IN_BYTES
+            startIndex += SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_IN_BYTES;
         }
 
         // Read IV from cipher text
@@ -328,10 +330,10 @@ class SQLServerAeadAes256CbcHmac256Algorithm extends SQLServerEncryptionAlgorith
             int length) throws NoSuchAlgorithmException, InvalidKeyException {
         assert (cipherText != null);
         byte[] computedHash;
-        byte[] authenticationTag = new byte[keySizeInBytes];
+        byte[] authenticationTag = new byte[SQLServerAeadAes256CbcHmac256EncryptionKey.KEYSIZE_IN_BYTES];
 
-        Mac hmac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), "HmacSHA256");
+        Mac hmac = Mac.getInstance(HMAC_SHA_256);
+        SecretKeySpec key = new SecretKeySpec(columnEncryptionkey.getMacKey(), HMAC_SHA_256);
         hmac.init(key);
         hmac.update(version, 0, version.length);
         hmac.update(iv, 0, iv.length);

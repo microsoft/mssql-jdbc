@@ -30,8 +30,8 @@ import javax.transaction.xa.Xid;
  */
 final class XidImpl implements Xid {
     private final int formatId;
-    private final byte gtrid[];
-    private final byte bqual[];
+    private final byte[] gtrid;
+    private final byte[] bqual;
     private final String traceID;
 
     /*
@@ -52,7 +52,7 @@ final class XidImpl implements Xid {
      * @param bqual
      *        branch id
      */
-    public XidImpl(int formatId, byte gtrid[], byte bqual[]) {
+    public XidImpl(int formatId, byte[] gtrid, byte[] bqual) {
         this.formatId = formatId;
         this.gtrid = gtrid;
         this.bqual = bqual;
@@ -99,7 +99,7 @@ final class XidImpl implements Xid {
 
 final class XAReturnValue {
     int nStatus;
-    byte bData[];
+    byte[] bData;
 }
 
 
@@ -219,46 +219,46 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             if (null != xaStatements[number])
                 return xaStatements[number];
 
-            CallableStatement CS = null;
+            CallableStatement cs = null;
 
             switch (number) {
                 case SQLServerXAResource.XA_START:
-                    CS = controlConnection.prepareCall(
+                    cs = controlConnection.prepareCall(
                             "{call master..xp_sqljdbc_xa_start(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_END:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_end(?, ?, ?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_end(?, ?, ?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_PREPARE:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare(?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare(?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_COMMIT:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_commit(?, ?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_commit(?, ?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_ROLLBACK:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback(?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback(?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_FORGET:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget(?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget(?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_RECOVER:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_recover(?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_recover(?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_PREPARE_EX:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare_ex(?, ?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_prepare_ex(?, ?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_ROLLBACK_EX:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback_ex(?, ?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_rollback_ex(?, ?, ?, ?, ?, ?)}");
                     break;
                 case SQLServerXAResource.XA_FORGET_EX:
-                    CS = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget_ex(?, ?, ?, ?, ?, ?)}");
+                    cs = controlConnection.prepareCall("{call master..xp_sqljdbc_xa_forget_ex(?, ?, ?, ?, ?, ?)}");
                     break;
                 default:
                     assert false : "Bad handle request:" + number;
                     break;
             }
 
-            xaStatements[number] = (SQLServerCallableStatement) CS;
+            xaStatements[number] = (SQLServerCallableStatement) cs;
             return xaStatements[number];
         } finally {
             lock.unlock();
@@ -381,15 +381,15 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
     }
 
-    private XAReturnValue DTC_XA_Interface(int nType, Xid xid, int xaFlags) throws XAException {
+    private XAReturnValue dtc_XA_interface(int nType, Xid xid, int xaFlags) throws XAException {
 
         if (xaLogger.isLoggable(Level.FINER))
             xaLogger.finer(toString() + " Calling XA function for type:" + typeDisplay(nType) + " flags:"
                     + flagsDisplay(xaFlags) + " xid:" + XidImpl.xidDisplay(xid));
 
         int formatId = 0;
-        byte gid[] = null;
-        byte bid[] = null;
+        byte[] gid = null;
+        byte[] bid = null;
         if (xid != null) {
             formatId = xid.getFormatId();
             gid = xid.getGlobalTransactionId();
@@ -506,7 +506,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                              */
                             String buildInfo = rs.getString(4);
                             // SQL Server Linux is x64-compatible only.
-                            if (null != buildInfo && (buildInfo.contains("Linux") || buildInfo.contains("Microsoft SQL Azure"))) {
+                            if (null != buildInfo
+                                    && (buildInfo.contains("Linux") || buildInfo.contains("Microsoft SQL Azure"))) {
                                 architectureOS = 64;
                             } else if (null != buildInfo) {
                                 architectureOS = Integer.parseInt(buildInfo.substring(buildInfo.lastIndexOf('<') + 2,
@@ -667,8 +668,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 // will throw exception
                 // "The function RECOVER: failed. The status is: -3"
                 recoveryAttempt++;
-                DTC_XA_Interface(XA_START, xid, TMNOFLAGS);
-                return DTC_XA_Interface(XA_RECOVER, xid, xaFlags);
+                dtc_XA_interface(XA_START, xid, TMNOFLAGS);
+                return dtc_XA_interface(XA_RECOVER, xid, xaFlags);
             }
             // prepare and end can return XA_RDONLY
             // Think should we just check for nStatus to be greater than or equal to zero instead of this check
@@ -684,7 +685,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     try {
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
-                        con.JTAUnenlistConnection();
+                        con.jtaUnenlistConnection();
                         enlistedTransactionCount--;
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
@@ -698,7 +699,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             } else {
                 if (nType == XA_START) {
                     // A physical connection may not have been enlisted yet so always enlist.
-                    byte transactionCookie[] = cs.getBytes(6);
+                    byte[] transactionCookie = cs.getBytes(6);
                     if (transactionCookie == null) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_noTransactionCookie"));
@@ -711,7 +712,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                                 xaLogger.finer(
                                         toString() + " Begin enlisting, cookie:" + cookieDisplay(transactionCookie)
                                                 + " enlisted count:" + enlistedTransactionCount);
-                            con.JTAEnlistConnection(transactionCookie);
+                            con.jtaEnlistConnection(transactionCookie);
                             enlistedTransactionCount++;
                             if (xaLogger.isLoggable(Level.FINER))
                                 xaLogger.finer(toString() + " End enlisting, cookie:" + cookieDisplay(transactionCookie)
@@ -727,7 +728,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     try {
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " Begin un-enlist, enlisted count:" + enlistedTransactionCount);
-                        con.JTAUnenlistConnection();
+                        con.jtaUnenlistConnection();
                         enlistedTransactionCount--;
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " End un-enlist, enlisted count:" + enlistedTransactionCount);
@@ -787,7 +788,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         // of those will be prefixed by the transaction manager with a call to start with TMNOFLAGS
 
         tightlyCoupled = flags & SSTRANSTIGHTLYCPLD;
-        DTC_XA_Interface(XA_START, xid, flags);
+        dtc_XA_interface(XA_START, xid, flags);
     }
 
     @Override
@@ -802,7 +803,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
          * work has failed. The resource manager may mark the transaction as rollback-only. If TMSUCCESS is specified,
          * the portion of work has completed successfully.
          */
-        DTC_XA_Interface(XA_END, xid, flags | tightlyCoupled);
+        dtc_XA_interface(XA_END, xid, flags | tightlyCoupled);
     }
 
     @Override
@@ -813,31 +814,28 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
          * of the transaction. The possible values are: XA_RDONLY or XA_OK. If the resource manager wants to roll back
          * the transaction, it should do so by raising an appropriate XAException in the prepare method.
          */
-        int nStatus = XA_OK;
-        XAReturnValue r = DTC_XA_Interface(XA_PREPARE, xid, tightlyCoupled);
-        nStatus = r.nStatus;
-
-        return nStatus;
+        XAReturnValue r = dtc_XA_interface(XA_PREPARE, xid, tightlyCoupled);
+        return r.nStatus;
     }
 
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        DTC_XA_Interface(XA_COMMIT, xid, ((onePhase) ? TMONEPHASE : TMNOFLAGS) | tightlyCoupled);
+        dtc_XA_interface(XA_COMMIT, xid, ((onePhase) ? TMONEPHASE : TMNOFLAGS) | tightlyCoupled);
     }
 
     @Override
     public void rollback(Xid xid) throws XAException {
-        DTC_XA_Interface(XA_ROLLBACK, xid, tightlyCoupled);
+        dtc_XA_interface(XA_ROLLBACK, xid, tightlyCoupled);
     }
 
     @Override
     public void forget(Xid xid) throws XAException {
-        DTC_XA_Interface(XA_FORGET, xid, tightlyCoupled);
+        dtc_XA_interface(XA_FORGET, xid, tightlyCoupled);
     }
 
     @Override
     public Xid[] recover(int flags) throws XAException {
-        XAReturnValue r = DTC_XA_Interface(XA_RECOVER, null, flags | tightlyCoupled);
+        XAReturnValue r = dtc_XA_interface(XA_RECOVER, null, flags | tightlyCoupled);
         int offset = 0;
         ArrayList<XidImpl> al = new ArrayList<>();
 
@@ -865,14 +863,14 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
 
             try {
                 offset += 4;
-                int gid_len = (r.bData[offset++] & 0x00FF);
-                int bid_len = (r.bData[offset++] & 0x00FF);
-                byte gid[] = new byte[gid_len];
-                byte bid[] = new byte[bid_len];
-                System.arraycopy(r.bData, offset, gid, 0, gid_len);
-                offset += gid_len;
-                System.arraycopy(r.bData, offset, bid, 0, bid_len);
-                offset += bid_len;
+                int gidLen = (r.bData[offset++] & 0x00FF);
+                int bidLen = (r.bData[offset++] & 0x00FF);
+                byte[] gid = new byte[gidLen];
+                byte[] bid = new byte[bidLen];
+                System.arraycopy(r.bData, offset, gid, 0, gidLen);
+                offset += gidLen;
+                System.arraycopy(r.bData, offset, bid, 0, bidLen);
+                offset += bidLen;
                 XidImpl xid = new XidImpl(formatId, gid, bid);
                 al.add(xid);
             } catch (ArrayIndexOutOfBoundsException e) {
@@ -886,7 +884,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             }
         }
 
-        XidImpl xids[] = new XidImpl[al.size()];
+        XidImpl[] xids = new XidImpl[al.size()];
         for (int i = 0; i < al.size(); i++) {
             xids[i] = al.get(i);
             if (xaLogger.isLoggable(Level.FINER))

@@ -9,22 +9,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 import javax.sql.PooledConnection;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -45,15 +50,35 @@ public class BasicConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.fedAuth)
-    public void testBasicConnectionAAD() throws SQLException {
-        String azureServer = getConfiguredProperty("azureServer");
-        String azureDatabase = getConfiguredProperty("azureDatabase");
-        String azureUserName = getConfiguredProperty("azureUserName");
-        String azurePassword = getConfiguredProperty("azurePassword");
-        org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
+    public void testBasicConnectionAAD() throws Exception {
+        // retry since this could fail due to server throttling
+        int retry = 1;
+        while (retry <= THROTTLE_RETRY_COUNT) {
+            try {
+                String azureServer = getConfiguredProperty("azureServer");
+                String azureDatabase = getConfiguredProperty("azureDatabase");
+                String azureUserName = getConfiguredProperty("azureUserName");
+                String azurePassword = getConfiguredProperty("azurePassword");
+                org.junit.Assume.assumeTrue(azureServer != null && !azureServer.isEmpty());
 
-        basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user=" + azureUserName
-                + ";password=" + azurePassword + ";loginTimeout=30;Authentication=ActiveDirectoryPassword");
+                basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
+                        + azureUserName + ";password=" + azurePassword
+                        + ";loginTimeout=90;Authentication=ActiveDirectoryPassword");
+		retry = THROTTLE_RETRY_COUNT + 1;
+            } catch (Exception e) {
+                if (e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientAllRecoveryAttemptsFailed"))) {
+                    System.out.println(e.getMessage() + ". Recovery failed, retry #" + retry + " in "
+                            + THROTTLE_RETRY_INTERVAL + " ms");
+
+                    Thread.sleep(THROTTLE_RETRY_INTERVAL);
+                    retry++;
+                } else {
+                    e.printStackTrace();
+
+                    fail(e.getMessage());
+                }
+            }
+        }
     }
 
     @Test
@@ -264,6 +289,106 @@ public class BasicConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             e.printStackTrace();
             fail(e.toString());
+        }
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testDSPooledConnectionAccessTokenCallbackIdleConnectionResiliency() throws Exception {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+
+        // User/password is not required for access token callback
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
+        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
+        AbstractTest.updateDataSource(cs, ds);
+        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
+
+        // change token expiry
+        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
+        physicalConnectionField.setAccessible(true);
+        Object c = physicalConnectionField.get(pc);
+        String accessToken = ds.getAccessToken();
+        TestUtils.setAccessTokenExpiry(c, accessToken);
+
+        // Idle Connection Resiliency should reconnect after connection kill, second query should run successfully
+        TestUtils.expireTokenToggle = false;
+        pc = (SQLServerPooledConnection) ds.getPooledConnection();
+
+        try (Connection conn = pc.getConnection(); Statement s = conn.createStatement()) {
+            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
+            s.executeQuery("SELECT 1");
+            ResiliencyUtils.killConnection(conn, connectionString, 3);
+            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
+            s.executeQuery("SELECT 1");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementCacheShouldBeCleared() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int cacheSize = 2;
+            String query = String.format("/*testPreparedStatementCacheShouldBeCleared_%s*/SELECT 1; -- ",
+                    UUID.randomUUID().toString());
+            int discardedStatementCount = 1;
+
+            // enable caching
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(discardedStatementCount);
+
+            // add new statements to fill cache
+            for (int i = 0; i < cacheSize; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
+                    pstmt.execute();
+                    pstmt.execute();
+                }
+            }
+
+            // nothing should be discarded yet
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // add 1 more - if cache was not cleared this would cause it to be discarded
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
+                pstmt.execute();
+                pstmt.execute();
+            }
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
+        }
+    }
+
+    @Test
+    public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int queriesToSend = 5;
+            String query = String.format(
+                    "/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
+                    UUID.randomUUID());
+
+            for (int i = 0; i < queriesToSend; ++i) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
+                    pstmt.executeQuery();
+                    pstmt.executeQuery();
+                }
+            }
+
+            // Kill the connection. If the unprocessedResponseCount is negative, test will fail.
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // Should successfully recover.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query)) {
+                pstmt.executeQuery();
+                pstmt.executeQuery();
+            }
         }
     }
 

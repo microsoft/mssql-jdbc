@@ -13,6 +13,11 @@ import java.util.logging.Logger;
  * The top level TDS parser class.
  */
 final class TDSParser {
+
+    private TDSParser() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     /** TDS protocol diagnostics logger */
     private static Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.TOKEN");
 
@@ -64,7 +69,6 @@ final class TDSParser {
                         + ((-1 == tdsTokenType) ? "EOF" : TDS.getTokenName(tdsTokenType)));
             }
             if (readOnlyWarningsFlag && TDS.TDS_MSG != tdsTokenType) {
-                parsing = false;
                 return;
             }
             switch (tdsTokenType) {

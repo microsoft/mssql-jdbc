@@ -47,7 +47,9 @@ public final class SQLServerXADataSource extends SQLServerConnectionPoolDataSour
     /**
      * default constructor
      */
-    public SQLServerXADataSource() {}
+    public SQLServerXADataSource() {
+        // default constructor
+    }
 
     /**
      * Returns a physical database connection to particate in an XA transaction with the specified user and password.

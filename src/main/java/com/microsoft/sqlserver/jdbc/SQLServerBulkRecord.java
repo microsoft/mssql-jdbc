@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+
 /**
  * Abstract class that implements ISQLServerBulkRecord
  *
@@ -51,17 +52,17 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
      * Metadata to represent the columns in the batch/file. Each column should be mapped to its corresponding position
      * within the parameter (from position 1 and onwards)
      */
-    protected Map<Integer, ColumnMetadata> columnMetadata;
+    protected transient Map<Integer, ColumnMetadata> columnMetadata;
 
     /**
      * Contains the format that java.sql.Types.TIMESTAMP_WITH_TIMEZONE data should be read in as.
      */
-    protected DateTimeFormatter dateTimeFormatter = null;
+    protected transient DateTimeFormatter dateTimeFormatter = null;
 
     /**
      * Contains the format that java.sql.Types.TIME_WITH_TIMEZONE data should be read in as.
      */
-    protected DateTimeFormatter timeFormatter = null;
+    protected transient DateTimeFormatter timeFormatter = null;
 
     /*
      * Logger
@@ -151,11 +152,9 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
             for (Entry<Integer, ColumnMetadata> entry : columnMetadata.entrySet()) {
                 // duplicate check is not performed in case of same
                 // positionInTable value
-                if (null != entry && entry.getKey() != positionInTable) {
-                    if (null != entry.getValue() && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"),
-                                null);
-                    }
+                if (null != entry && entry.getKey() != positionInTable && null != entry.getValue()
+                        && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"), null);
                 }
             }
         }

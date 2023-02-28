@@ -30,16 +30,16 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
      * transactional processing to the application. That app server is the one who should restrict commit/rollback on
      * the connections it issues to applications, not the driver. These instances can and must commit/rollback
      */
-    private volatile SQLServerXAResource XAResource;
+    private volatile transient SQLServerXAResource xaResource;
 
     /** physical connection */
     private SQLServerConnection physicalControlConnection;
 
     /** logger */
-    private Logger xaLogger;
+    private transient Logger xaLogger;
 
     /** reentrant lock */
-    private final Lock lock = new ReentrantLock();
+    private final transient Lock lock = new ReentrantLock();
 
     SQLServerXAConnection(SQLServerDataSource ds, String user, String pwd) throws java.sql.SQLException {
         super(ds, user, pwd);
@@ -57,7 +57,7 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
         // Add password property for NTLM as physical connection had previously removed. This will be removed again
         String auth = controlConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString());
-        if (null != auth && AuthenticationScheme.ntlm == AuthenticationScheme.valueOfString(auth)) {
+        if (null != auth && AuthenticationScheme.NTLM == AuthenticationScheme.valueOfString(auth)) {
             controlConnectionProperties.setProperty(SQLServerDriverStringProperty.PASSWORD.toString(), pwd);
         }
 
@@ -108,13 +108,13 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     public XAResource getXAResource() throws java.sql.SQLException {
         // All connections handed out from this physical connection have a common XAResource
         // for transaction control. IE the XAResource is one to one with the physical connection.
-        SQLServerXAResource result = XAResource;
+        SQLServerXAResource result = xaResource;
         if (result == null) {
             lock.lock();
             try {
-                result = XAResource;
+                result = xaResource;
                 if (result == null) {
-                    XAResource = result = new SQLServerXAResource(getPhysicalConnection(), physicalControlConnection,
+                    xaResource = result = new SQLServerXAResource(getPhysicalConnection(), physicalControlConnection,
                             toString());
                 }
             } finally {
@@ -131,9 +131,9 @@ public final class SQLServerXAConnection extends SQLServerPooledConnection imple
     public void close() throws SQLException {
         lock.lock();
         try {
-            if (XAResource != null) {
-                XAResource.close();
-                XAResource = null;
+            if (xaResource != null) {
+                xaResource.close();
+                xaResource = null;
             }
             if (null != physicalControlConnection) {
                 physicalControlConnection.close();

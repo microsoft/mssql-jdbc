@@ -17,6 +17,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+
 /**
  * The HTTP pipeline builder which includes all the necessary HTTP pipeline policies that will be applied for
  * sending and receiving HTTP requests to the Key Vault service.
@@ -41,20 +42,21 @@ final class KeyVaultHttpPipelineBuilder {
      * Builds the HTTP pipeline with all the necessary HTTP policies included in the pipeline.
      *
      * @return A fully built HTTP pipeline including the default HTTP client.
-     * @throws SQLServerException If the {@link KeyVaultCustomCredentialPolicy} policy cannot be added to the pipeline.
+     * @throws SQLServerException
+     *         If the {@link KeyVaultCustomCredentialPolicy} policy cannot be added to the pipeline.
      */
     HttpPipeline buildPipeline() throws SQLServerException {
         // Closest to API goes first, closest to wire goes last.
-        final List<HttpPipelinePolicy> policies = new ArrayList<>();
+        final List<HttpPipelinePolicy> pol = new ArrayList<>();
 
-        HttpPolicyProviders.addBeforeRetryPolicies(policies);
-        policies.add(retryPolicy);
-        policies.add(new KeyVaultCustomCredentialPolicy(credential));
-        policies.addAll(this.policies);
-        HttpPolicyProviders.addAfterRetryPolicies(policies);
-        policies.add(new HttpLoggingPolicy(httpLogOptions));
+        HttpPolicyProviders.addBeforeRetryPolicies(pol);
+        pol.add(retryPolicy);
+        pol.add(new KeyVaultCustomCredentialPolicy(credential));
+        pol.addAll(this.policies);
+        HttpPolicyProviders.addAfterRetryPolicies(pol);
+        pol.add(new HttpLoggingPolicy(httpLogOptions));
 
-        return new HttpPipelineBuilder().policies(policies.toArray(new HttpPipelinePolicy[0])).build();
+        return new HttpPipelineBuilder().policies(pol.toArray(new HttpPipelinePolicy[0])).build();
     }
 
     /**

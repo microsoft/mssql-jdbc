@@ -146,7 +146,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         typeInfo = null;
     }
 
-    SQLServerSQLXML(InputStream stream, InputStreamGetterArgs getterArgs, TypeInfo typeInfo) throws SQLServerException {
+    SQLServerSQLXML(InputStream stream, InputStreamGetterArgs getterArgs, TypeInfo typeInfo) {
         traceID = " SQLServerSQLXML:" + nextInstanceID();
         contents = (PLPXMLInputStream) stream;
         this.con = null;
@@ -265,8 +265,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
-        Reader rd = (Reader) DDC.convertStreamToObject(contents, typeInfo, type.getJDBCType(), newArgs);
-        return rd;
+        return (Reader) DDC.convertStreamToObject(contents, typeInfo, type.getJDBCType(), newArgs);
     }
 
     @Override
@@ -283,7 +282,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
         }
 
-        byte byteContents[] = contents.getBytes();
+        byte[] byteContents = contents.getBytes();
         return new String(byteContents, 0, byteContents.length, Encoding.UNICODE.charset());
     }
 
@@ -388,9 +387,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
                 Object[] msgArgs = {e.toString()};
                 SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
             }
-            DOMSource inputSource = new DOMSource(document);
-            return inputSource;
-
+            return new DOMSource(document);
         } catch (ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
@@ -409,9 +406,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             SAXParserFactory factory = SAXParserFactory.newInstance();
             SAXParser parser = factory.newSAXParser();
             XMLReader reader = parser.getXMLReader();
-            SAXSource saxSource = new SAXSource(reader, src);
-            return saxSource;
-
+            return new SAXSource(reader, src);
         } catch (SAXException | ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToParseXML"));
             Object[] msgArgs = {e.toString()};
@@ -424,9 +419,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         XMLInputFactory factory = XMLInputFactory.newInstance();
         try {
             XMLStreamReader r = factory.createXMLStreamReader(contents);
-            StAXSource result = new StAXSource(r);
-            return result;
-
+            return new StAXSource(r);
         } catch (XMLStreamException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
@@ -440,9 +433,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         outputStreamValue = new ByteArrayOutputStreamToInputStream();
         try {
             XMLStreamWriter r = factory.createXMLStreamWriter(outputStreamValue);
-            StAXResult result = new StAXResult(r);
-            return result;
-
+            return new StAXResult(r);
         } catch (XMLStreamException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
@@ -457,11 +448,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             SAXTransformerFactory stf = (SAXTransformerFactory) TransformerFactory.newInstance();
             stf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             handler = stf.newTransformerHandler();
-        } catch (TransformerConfigurationException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
-            Object[] msgArgs = {e.toString()};
-            SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
-        } catch (ClassCastException e) {
+        } catch (TransformerConfigurationException | ClassCastException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
             SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
@@ -475,8 +462,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
 
         outputStreamValue = new ByteArrayOutputStreamToInputStream();
         handler.setResult(new StreamResult(outputStreamValue));
-        SAXResult result = new SAXResult(handler);
-        return result;
+        return new SAXResult(handler);
     }
 
     private DOMResult getDOMResult() throws SQLException {
@@ -486,9 +472,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         try {
             builder = factory.newDocumentBuilder();
             docValue = builder.newDocument();
-            DOMResult result = new DOMResult(docValue);
-            return result;
-
+            return new DOMResult(docValue);
         } catch (ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
             Object[] msgArgs = {e.toString()};
@@ -496,7 +480,6 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         }
         return null;
     }
-
 }
 
 
@@ -504,9 +487,8 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
  * Converts the byte information in the string to an inputstream which is used when sending to the info to the server.
  */
 final class ByteArrayOutputStreamToInputStream extends ByteArrayOutputStream {
-    ByteArrayInputStream getInputStream() throws SQLServerException {
-        ByteArrayInputStream is = new ByteArrayInputStream(buf, 0, count);
-        return is;
+    ByteArrayInputStream getInputStream() {
+        return new ByteArrayInputStream(buf, 0, count);
     }
 }
 

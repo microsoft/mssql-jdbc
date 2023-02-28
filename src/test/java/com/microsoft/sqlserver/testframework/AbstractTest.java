@@ -32,6 +32,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -101,6 +102,8 @@ public abstract class AbstractTest {
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
 
+    protected static PublicClientApplication fedauthPcaApp = null;
+
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
     private static boolean isSqlAzure = false;
@@ -115,6 +118,12 @@ public abstract class AbstractTest {
     private static Properties configProperties = null;
 
     protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    /**
+     * Retries due to server throttling
+     */
+    protected static final int THROTTLE_RETRY_COUNT = 3; // max number of throttling retries
+    protected static final int THROTTLE_RETRY_INTERVAL = 60000; // default throttling retry interval in ms
 
     public static Properties properties = null;
 

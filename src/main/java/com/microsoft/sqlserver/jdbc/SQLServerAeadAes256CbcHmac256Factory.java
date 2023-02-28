@@ -25,11 +25,11 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
             SQLServerEncryptionType encryptionType, String encryptionAlgorithm) throws SQLServerException {
 
         assert (columnEncryptionKey != null);
-        if (encryptionType != SQLServerEncryptionType.Deterministic
-                && encryptionType != SQLServerEncryptionType.Randomized) {
+        if (encryptionType != SQLServerEncryptionType.DETERMINISTIC
+                && encryptionType != SQLServerEncryptionType.RANDOMIZED) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidEncryptionType"));
             Object[] msgArgs = {encryptionType, encryptionAlgorithm,
-                    "'" + SQLServerEncryptionType.Deterministic + "," + SQLServerEncryptionType.Randomized + "'"};
+                    "'" + SQLServerEncryptionType.DETERMINISTIC + "," + SQLServerEncryptionType.RANDOMIZED + "'"};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
@@ -49,7 +49,8 @@ class SQLServerAeadAes256CbcHmac256Factory extends SQLServerEncryptionAlgorithmF
 
         if (!encryptionAlgorithms.containsKey(factoryKey)) {
             SQLServerAeadAes256CbcHmac256EncryptionKey encryptedKey = new SQLServerAeadAes256CbcHmac256EncryptionKey(
-                    columnEncryptionKey.getRootKey(), SQLServerAeadAes256CbcHmac256Algorithm.algorithmName);
+                    columnEncryptionKey.getRootKey(),
+                    SQLServerAeadAes256CbcHmac256Algorithm.AEAD_AES_256_CBC_HMAC_SHA256);
             aesAlgorithm = new SQLServerAeadAes256CbcHmac256Algorithm(encryptedKey, encryptionType, algorithmVersion);
             encryptionAlgorithms.putIfAbsent(factoryKey, aesAlgorithm);
         }

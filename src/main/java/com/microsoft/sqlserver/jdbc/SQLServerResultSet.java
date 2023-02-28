@@ -55,8 +55,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      */
     private static final long serialVersionUID = -1624082547992040463L;
 
+    /**
+     * SQL State Invalid descriptor index
+     */
+    private static final String SQLSTATE_INVALID_DESCRIPTOR_INDEX = "07009";
+
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastResultSetID = new AtomicInteger(0);
+
+    private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** trace ID */
     private final String traceID;
@@ -205,7 +212,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private int rowCount;
 
     /** The current row's column values */
-    private final Column[] columns;
+    private final transient Column[] columns;
 
     /** The CekTable retrieved from the COLMETADATA token for this resultset */
     private CekTable cekTable = null;
@@ -243,7 +250,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /** fetch buffer */
-    private final FetchBuffer fetchBuffer;
+    private final transient FetchBuffer fetchBuffer;
 
     @Override
     public SensitivityClassification getSensitivityClassification() {
@@ -282,18 +289,21 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 super(name);
             }
 
+            @Override
             boolean onColInfo(TDSReader tdsReader) throws SQLServerException {
                 colInfo = new StreamColInfo();
                 colInfo.setFromTDS(tdsReader);
                 return true;
             }
 
+            @Override
             boolean onTabName(TDSReader tdsReader) throws SQLServerException {
                 tabName = new StreamTabName();
                 tabName.setFromTDS(tdsReader);
                 return true;
             }
 
+            @Override
             boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
                 columnMetaData = new StreamColumns(
                         Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection));
@@ -323,6 +333,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 this.stmt = stmt;
             }
 
+            @Override
             boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
                 // With server-cursored result sets, the column metadata is
                 // followed by a return status and cursor-related OUT parameters
@@ -333,6 +344,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return true;
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // The first OUT parameter after the sp_cursor[prep]exec OUT parameters
                 // is the start of the application OUT parameters. Leave parsing
@@ -358,16 +370,19 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 super("ClientCursorInitializer");
             }
 
+            @Override
             boolean onRow(TDSReader tdsReader) throws SQLServerException {
                 // A ROW token indicates the start of the fetch buffer
                 return false;
             }
 
+            @Override
             boolean onNBCRow(TDSReader tdsReader) throws SQLServerException {
                 // A NBCROW token indicates the start of the fetch buffer
                 return false;
             }
 
+            @Override
             boolean onError(TDSReader tdsReader) throws SQLServerException {
                 // An ERROR token indicates a row error in lieu of a row.
                 // In this case, the row error is in lieu of the first row.
@@ -376,20 +391,33 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return false;
             }
 
+            @Override
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 // When initializing client-cursored ResultSets, a DONE token
                 // following the column metadata indicates an empty result set.
                 rowCount = 0;
 
+                // decrementUnprocessedResponseCount() outside the "if" is not necessary here. It will over decrement if added.
+
                 short status = tdsReader.peekStatusFlag();
                 if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
+                    StreamDone doneToken = new StreamDone();
+                    doneToken.setFromTDS(tdsReader);
+                    if (doneToken.isFinal()) {
+                        stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                    }
                     SQLServerError databaseError = this.getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
-                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
-                }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                    if (null != databaseError) {
+                        SQLServerException.makeFromDatabaseError(stmt.connection, null, form.format(msgArgs),
+                                databaseError, false);
+                    } else {
+                        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null,
+                                false);
+                    }
+                }
 
                 return false;
             }
@@ -594,7 +622,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (index < 1 || index > nCols) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
             Object[] msgArgs = {index};
-            SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
+            SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs),
+                    SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
         }
     }
 
@@ -650,7 +679,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void close() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "close");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         closeInternal();
         loggerExternal.exiting(getClassNameLogging(), "close");
@@ -716,7 +745,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         }
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumnName"));
         Object[] msgArgs = {userProvidedColumnName};
-        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), "07009", false);
+        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs),
+                SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
 
         return 0;
     }
@@ -807,7 +837,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     /* ----------------- JDBC API methods ------------------ */
 
-    private void moverInit() throws SQLServerException {
+    private void moverInit() {
         fillLOBs();
         cancelInsert();
         cancelUpdates();
@@ -1004,7 +1034,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public boolean next() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "next");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1330,7 +1360,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void beforeFirst() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "beforeFirst");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + logCursorState());
@@ -1361,7 +1391,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void afterLast() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "afterLast");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -1585,7 +1615,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public boolean absolute(int row) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "absolute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         if (logger.isLoggable(java.util.logging.Level.FINER))
             logger.finer(toString() + " row:" + row + logCursorState());
@@ -2132,7 +2162,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2145,7 +2178,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(String columnName, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2779,16 +2815,22 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
-    @Deprecated
     public java.io.InputStream getUnicodeStream(int columnIndex) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnIndex);
         SQLServerException.throwNotSupportedException(stmt.connection, stmt);
         return null;
     }
 
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
-    @Deprecated
     public java.io.InputStream getUnicodeStream(String columnName) throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "getUnicodeStream", columnName);
         SQLServerException.throwNotSupportedException(stmt.connection, stmt);
@@ -3102,7 +3144,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         // Verify that the column is updatable (i.e. that it is not a computed column).
         if (!columns[index - 1].isUpdatable()) {
             SQLServerException.makeFromDriverError(stmt.connection, stmt,
-                    SQLServerException.getErrString("R_cantUpdateColumn"), "07009", false);
+                    SQLServerException.getErrString("R_cantUpdateColumn"), SQLSTATE_INVALID_DESCRIPTOR_INDEX, false);
         }
 
         // Column values on the insert row are always updatable,
@@ -3505,7 +3547,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(int index, byte x[]) throws SQLException {
+    public void updateBytes(int index, byte[] x) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x});
 
@@ -3516,7 +3558,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(int index, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public void updateBytes(int index, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {index, x, forceEncrypt});
 
@@ -4336,7 +4378,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(String columnName, byte x[]) throws SQLServerException {
+    public void updateBytes(String columnName, byte[] x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x});
 
@@ -4347,7 +4389,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public void updateBytes(String columnName, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public void updateBytes(String columnName, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "updateBytes", new Object[] {columnName, x, forceEncrypt});
 
@@ -4680,7 +4722,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void insertRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "insertRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         final class InsertRowRPC extends TDSCommand {
@@ -4788,7 +4830,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void updateRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "updateRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         final class UpdateRowRPC extends TDSCommand {
             /**
@@ -4874,7 +4916,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void deleteRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "deleteRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         final class DeleteRowRPC extends TDSCommand {
             /**
@@ -4939,7 +4981,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     public void refreshRow() throws SQLException {
         loggerExternal.entering(getClassNameLogging(), "refreshRow");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         if (logger.isLoggable(java.util.logging.Level.FINER))
@@ -5344,12 +5386,14 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             // Even though the cursor fetch RPC call specified the "no metadata" option,
             // the server still returns a COLMETADATA_TOKEN containing the magic NoMetaData
             // value that we need to read through.
+            @Override
             boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
                 (new StreamColumns(Util.shouldHonorAEForRead(stmt.stmtColumnEncriptionSetting, stmt.connection)))
                         .setFromTDS(tdsReader);
                 return true;
             }
 
+            @Override
             boolean onRow(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
@@ -5361,6 +5405,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return false;
             }
 
+            @Override
             boolean onNBCRow(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
@@ -5373,20 +5418,31 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return false;
             }
 
+            @Override
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 ensureStartMark();
 
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
+
+                if (doneToken.isFinal()) {
+                    stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
+
                 if (doneToken.isFinal() && doneToken.isError()) {
                     short status = tdsReader.peekStatusFlag();
                     SQLServerError databaseError = getDatabaseError();
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverError"));
                     Object[] msgArgs = {status, (databaseError != null) ? databaseError.getErrorMessage() : ""};
-                    SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
-                }
 
-                stmt.connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                    if (null != databaseError) {
+                        SQLServerException.makeFromDatabaseError(stmt.connection, null, form.format(msgArgs),
+                                databaseError, false);
+                    } else {
+                        SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null,
+                                false);
+                    }
+                }
 
                 // Done with all the rows in this fetch buffer and done with parsing
                 // unless it's a server cursor, in which case there is a RETSTAT and
@@ -5395,6 +5451,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return 0 != serverCursorId;
             }
 
+            @Override
             boolean onRetStatus(TDSReader tdsReader) throws SQLServerException {
                 // Check the return status for the bit indicating that
                 // "counter-intuitive" cursor behavior has happened and
@@ -5405,11 +5462,13 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return true;
             }
 
+            @Override
             void onEOF(TDSReader tdsReader) throws SQLServerException {
                 super.onEOF(tdsReader);
                 done = true;
             }
 
+            @Override
             boolean onDataClassification(TDSReader tdsReader) throws SQLServerException {
                 if (tdsReader.getServerSupportsDataClassification()) {
                     tdsReader.trySetSensitivityClassification(new StreamColumns(
@@ -5444,7 +5503,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         final void ensureStartMark() {
             if (null == startMark && !isForwardOnly()) {
                 if (logger.isLoggable(java.util.logging.Level.FINEST))
-                    logger.finest(toString() + " Setting fetch buffer start mark");
+                    logger.finest(super.toString() + " Setting fetch buffer start mark");
 
                 startMark = tdsReader.mark();
             }
@@ -5538,6 +5597,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             return false;
         }
 
+        @Override
         final void processResponse(TDSReader responseTDSReader) throws SQLServerException {
             tdsReader = responseTDSReader;
             discardFetchBuffer();

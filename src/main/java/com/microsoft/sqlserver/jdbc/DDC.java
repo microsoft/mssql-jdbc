@@ -36,6 +36,10 @@ import java.util.TimeZone;
 
 final class DDC {
 
+    private DDC() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     /**
      * Convert an Integer object to desired target user type.
      * 
@@ -201,7 +205,7 @@ final class DDC {
      * @return the byte array containing the big-endian encoded value.
      */
     static final byte[] convertIntToBytes(int intValue, int valueLength) {
-        byte bytes[] = new byte[valueLength];
+        byte[] bytes = new byte[valueLength];
         for (int i = valueLength; i-- > 0;) {
             bytes[i] = (byte) (intValue & 0xFF);
             intValue >>= 8;
@@ -258,7 +262,7 @@ final class DDC {
      * @return the byte array containing the big-endian encoded value.
      */
     static final byte[] convertLongToBytes(long longValue) {
-        byte bytes[] = new byte[8];
+        byte[] bytes = new byte[8];
         for (int i = 8; i-- > 0;) {
             bytes[i] = (byte) (longValue & 0xFF);
             longValue >>= 8;
@@ -531,7 +535,7 @@ final class DDC {
      * @return the required object.
      */
     static final Object convertStringToObject(String stringVal, Charset charset, JDBCType jdbcType,
-            StreamType streamType) throws UnsupportedEncodingException, IllegalArgumentException {
+            StreamType streamType) throws UnsupportedEncodingException {
         switch (jdbcType) {
             // Convert String to Numeric types.
             case DECIMAL:
@@ -564,7 +568,7 @@ final class DDC {
                 return parseStringIntoLDT(stringVal.trim());
             case DATE:
                 return java.sql.Date.valueOf(getDatePart(stringVal.trim()));
-            case TIME: {
+            case TIME:
                 // Accepted character formats for conversion to java.sql.Time are:
                 // hh:mm:ss[.nnnnnnnnn]
                 // YYYY-MM-DD hh:mm:ss[.nnnnnnnnn]
@@ -582,7 +586,6 @@ final class DDC {
                     cal.add(Calendar.MILLISECOND, 1);
                 cal.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
                 return new java.sql.Time(cal.getTimeInMillis());
-            }
 
             case BINARY:
                 return stringVal.getBytes(charset);
@@ -622,7 +625,7 @@ final class DDC {
         int hour;
         int minute;
         int second;
-        int a_nanos = 0;
+        int nanos = 0;
         int firstDash;
         int secondDash;
         int dividingSpace;
@@ -652,18 +655,18 @@ final class DDC {
 
         // Convert the date
         boolean parsedDate = false;
-        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1) {
-            if (firstDash == YEAR_LENGTH && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
-                    && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
-                year = Integer.parseInt(s.substring(0, firstDash));
-                month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
-                day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
+        if (firstDash > 0 && secondDash > 0 && secondDash < dividingSpace - 1 && firstDash == YEAR_LENGTH
+                && (secondDash - firstDash > 1 && secondDash - firstDash <= MONTH_LENGTH + 1)
+                && (dividingSpace - secondDash > 1 && dividingSpace - secondDash <= DAY_LENGTH + 1)) {
+            year = Integer.parseInt(s.substring(0, firstDash));
+            month = Integer.parseInt(s.substring(firstDash + 1, secondDash));
+            day = Integer.parseInt(s.substring(secondDash + 1, dividingSpace));
 
-                if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
-                    parsedDate = true;
-                }
+            if ((month >= 1 && month <= MAX_MONTH) && (day >= 1 && day <= MAX_DAY)) {
+                parsedDate = true;
             }
         }
+
         if (!parsedDate) {
             throw new java.lang.IllegalArgumentException(formatError);
         }
@@ -685,7 +688,7 @@ final class DDC {
                     tmpNanos *= 10;
                     nanoPrecision++;
                 }
-                a_nanos = tmpNanos;
+                nanos = tmpNanos;
             } else if (period > 0) {
                 throw new java.lang.IllegalArgumentException(formatError);
             } else {
@@ -694,7 +697,7 @@ final class DDC {
         } else {
             throw new java.lang.IllegalArgumentException(formatError);
         }
-        return LocalDateTime.of(year, month, day, hour, minute, second, a_nanos);
+        return LocalDateTime.of(year, month, day, hour, minute, second, nanos);
     }
 
     static final Object convertStreamToObject(BaseInputStream stream, TypeInfo typeInfo, JDBCType jdbcType,
@@ -779,7 +782,7 @@ final class DDC {
 
                         // Slightly less fast path for MBCS data that converts directly/easily to ASCII
                         if (getterArgs.isAdaptive) {
-                            return AsciiFilteredUnicodeInputStream.MakeAsciiFilteredUnicodeInputStream(stream,
+                            return AsciiFilteredUnicodeInputStream.makeAsciiFilteredUnicodeInputStream(stream,
                                     new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset())));
                         } else {
                             return new ByteArrayInputStream(
@@ -808,10 +811,7 @@ final class DDC {
         //
         // Catch them and translate them to a SQLException so that we don't propagate an unexpected exception
         // type all the way up to the app, which may not catch it either...
-        catch (IllegalArgumentException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-            throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
-        } catch (UnsupportedEncodingException e) {
+        catch (IllegalArgumentException | UnsupportedEncodingException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
             throw new SQLServerException(form.format(new Object[] {typeInfo.getSSType(), jdbcType}), null, 0, e);
         }
@@ -891,7 +891,7 @@ final class DDC {
      * @return a Java object of the desired type.
      */
     static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
-            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) {
+            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
         // use the path below instead to optimize performance.
@@ -927,7 +927,7 @@ final class DDC {
         // Set the calendar value according to the specified local time zone and constituent
         // date (days since base date) and time (ticks since midnight) parts.
         switch (ssType) {
-            case TIME: {
+            case TIME:
                 // Set the calendar to the specified value. Lenient calendar behavior will update
                 // individual fields according to standard Gregorian leap year rules, which are sufficient
                 // for all TIME values.
@@ -943,11 +943,10 @@ final class DDC {
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
-            }
 
             case DATE:
             case DATETIME2:
-            case DATETIMEOFFSET: {
+            case DATETIMEOFFSET:
                 // For dates after the standard Julian-Gregorian calendar change date,
                 // the calendar value can be accurately set using a straightforward
                 // (and measurably better performing) assignment.
@@ -1015,10 +1014,8 @@ final class DDC {
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
-            }
 
             case DATETIME: // and SMALLDATETIME
-            {
                 // For Yukon (and earlier) data types DATETIME and SMALLDATETIME, there is no need to
                 // change the Gregorian cutover because the earliest representable value (1/1/1753)
                 // is after the historically standard cutover date (10/15/1582).
@@ -1033,10 +1030,11 @@ final class DDC {
 
                 subSecondNanos = (int) ((ticksSinceMidnight * Nanos.PER_MILLISECOND) % Nanos.PER_SECOND);
                 break;
-            }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         int localMillisOffset = timeZoneCalendar.get(Calendar.ZONE_OFFSET);
@@ -1044,9 +1042,9 @@ final class DDC {
         // Convert the calendar value (in local time) to the desired Java object type.
         switch (jdbcType.category) {
             case BINARY:
-            case SQL_VARIANT: {
+            case SQL_VARIANT:
                 switch (ssType) {
-                    case DATE: {
+                    case DATE:
                         // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
                         // in the specified local time zone.
                         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -1054,16 +1052,14 @@ final class DDC {
                         cal.set(Calendar.SECOND, 0);
                         cal.set(Calendar.MILLISECOND, 0);
                         return new java.sql.Date(cal.getTimeInMillis());
-                    }
 
                     case DATETIME:
-                    case DATETIME2: {
+                    case DATETIME2:
                         java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                         ts.setNanos(subSecondNanos);
                         return ts;
-                    }
 
-                    case DATETIMEOFFSET: {
+                    case DATETIMEOFFSET:
                         // Per driver spec, conversion to DateTimeOffset is only supported from
                         // DATETIMEOFFSET SQL Server values.
                         assert SSType.DATETIMEOFFSET == ssType;
@@ -1075,12 +1071,11 @@ final class DDC {
                         // milliseconds precision results in no loss of precision.
                         assert 0 == localMillisOffset % (60 * 1000);
 
-                        java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
-                        ts.setNanos(subSecondNanos);
-                        return microsoft.sql.DateTimeOffset.valueOf(ts, localMillisOffset / (60 * 1000));
-                    }
+                        java.sql.Timestamp ts1 = new java.sql.Timestamp(cal.getTimeInMillis());
+                        ts1.setNanos(subSecondNanos);
+                        return microsoft.sql.DateTimeOffset.valueOf(ts1, localMillisOffset / (60 * 1000));
 
-                    case TIME: {
+                    case TIME:
                         // Per driver spec, values of sql server data types types (including TIME) which have greater
                         // than millisecond precision are rounded, not truncated, to the nearest millisecond when
                         // converting to java.sql.Time. Since the milliseconds value in the calendar is truncated,
@@ -1095,14 +1090,15 @@ final class DDC {
                         cal.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
 
                         return new java.sql.Time(cal.getTimeInMillis());
-                    }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
-            }
 
-            case DATE: {
+            case DATE:
                 // Per JDBC spec, the time part of java.sql.Date values is initialized to midnight
                 // in the specified local time zone.
                 cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -1110,9 +1106,8 @@ final class DDC {
                 cal.set(Calendar.SECOND, 0);
                 cal.set(Calendar.MILLISECOND, 0);
                 return new java.sql.Date(cal.getTimeInMillis());
-            }
 
-            case TIME: {
+            case TIME:
                 // Per driver spec, values of sql server data types types (including TIME) which have greater
                 // than millisecond precision are rounded, not truncated, to the nearest millisecond when
                 // converting to java.sql.Time. Since the milliseconds value in the calendar is truncated,
@@ -1127,18 +1122,16 @@ final class DDC {
                 cal.set(TDS.BASE_YEAR_1970, Calendar.JANUARY, 1);
 
                 return new java.sql.Time(cal.getTimeInMillis());
-            }
 
-            case TIMESTAMP: {
-                java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
-                ts.setNanos(subSecondNanos);
+            case TIMESTAMP:
+                java.sql.Timestamp ts2 = new java.sql.Timestamp(cal.getTimeInMillis());
+                ts2.setNanos(subSecondNanos);
                 if (jdbcType == JDBCType.LOCALDATETIME) {
-                    return ts.toLocalDateTime();
+                    return ts2.toLocalDateTime();
                 }
-                return ts;
-            }
+                return ts2;
 
-            case DATETIMEOFFSET: {
+            case DATETIMEOFFSET:
                 // Per driver spec, conversion to DateTimeOffset is only supported from
                 // DATETIMEOFFSET SQL Server values.
                 assert SSType.DATETIMEOFFSET == ssType;
@@ -1153,26 +1146,22 @@ final class DDC {
                 java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                 ts.setNanos(subSecondNanos);
                 return microsoft.sql.DateTimeOffset.valueOf(ts, localMillisOffset / (60 * 1000));
-            }
 
-            case CHARACTER: {
+            case CHARACTER:
                 switch (ssType) {
-                    case DATE: {
+                    case DATE:
                         return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
                                 cal);
-                    }
 
-                    case TIME: {
+                    case TIME:
                         return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
                                 cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
-                    }
 
-                    case DATETIME2: {
+                    case DATETIME2:
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
                                 cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
-                    }
 
-                    case DATETIMEOFFSET: {
+                    case DATETIMEOFFSET:
                         // The offset part of a DATETIMEOFFSET value is precise only to the minute,
                         // but TimeZone returns the raw offset as precise to the millisecond.
                         assert 0 == localMillisOffset % (60 * 1000);
@@ -1184,25 +1173,26 @@ final class DDC {
                                 cal, fractionalSecondsString(subSecondNanos, fractionalSecondsScale),
                                 (localMillisOffset >= 0) ? '+' : '-', unsignedMinutesOffset / 60,
                                 unsignedMinutesOffset % 60);
-                    }
 
                     case DATETIME: // and SMALLDATETIME
-                    {
                         return (new java.sql.Timestamp(cal.getTimeInMillis())).toString();
-                    }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
-            }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
     private static Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, int daysSinceBaseDate,
-            long ticksSinceMidnight, int fractionalSecondsScale) {
+            long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
         int subSecondNanos;
 
         // In cases where Timezone values don't need to be considered, use LocalDateTime go avoid
@@ -1212,94 +1202,89 @@ final class DDC {
         LocalDateTime ldt;
 
         switch (ssType) {
-            case TIME: {
+            case TIME:
                 ldt = LocalDateTime.of(TDS.BASE_LOCAL_DATE_1900, LocalTime.ofNanoOfDay(ticksSinceMidnight));
 
                 subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 break;
-            }
 
             case DATE:
             case DATETIME2:
-            case DATETIMEOFFSET: {
-                LocalDate ld = TDS.BASE_LOCAL_DATE.plusDays(daysSinceBaseDate);
+            case DATETIMEOFFSET:
+                LocalDate ld1 = TDS.BASE_LOCAL_DATE.plusDays(daysSinceBaseDate);
                 // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
                 if (ticksSinceMidnight == 0) {
-                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    ldt = LocalDateTime.of(ld1, LocalTime.MIN);
                     subSecondNanos = 0;
                 } else {
-                    ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(ticksSinceMidnight));
+                    ldt = LocalDateTime.of(ld1, LocalTime.ofNanoOfDay(ticksSinceMidnight));
                     subSecondNanos = (int) (ticksSinceMidnight % Nanos.PER_SECOND);
                 }
                 break;
-            }
 
             case DATETIME: // and SMALLDATETIME
-            {
-                LocalDate ld = TDS.BASE_LOCAL_DATE_1900.plusDays(daysSinceBaseDate);
+                LocalDate ld2 = TDS.BASE_LOCAL_DATE_1900.plusDays(daysSinceBaseDate);
                 // If the target is java.sql.Date or a datetime column is used to hold a timeless date, don't add the time component.
                 if (ticksSinceMidnight == 0) {
-                    ldt = LocalDateTime.of(ld, LocalTime.MIN);
+                    ldt = LocalDateTime.of(ld2, LocalTime.MIN);
                     subSecondNanos = 0;
                 } else {
                     long nanoOfDay = ticksSinceMidnight * Nanos.PER_MILLISECOND;
                     if (nanoOfDay > LocalTime.MAX.toNanoOfDay()) {
-                        ldt = LocalDateTime.of(ld, LocalTime.MIN).plusNanos(nanoOfDay);
+                        ldt = LocalDateTime.of(ld2, LocalTime.MIN).plusNanos(nanoOfDay);
                     } else {
-                        ldt = LocalDateTime.of(ld, LocalTime.ofNanoOfDay(nanoOfDay));
+                        ldt = LocalDateTime.of(ld2, LocalTime.ofNanoOfDay(nanoOfDay));
                     }
                     subSecondNanos = (int) (nanoOfDay % Nanos.PER_SECOND);
                 }
                 break;
-            }
 
             default:
-                throw new AssertionError("Unexpected SSType: " + ssType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
 
         switch (jdbcType.category) {
             case BINARY:
-            case SQL_VARIANT: {
+            case SQL_VARIANT:
                 switch (ssType) {
-                    case DATE: {
+                    case DATE:
                         return java.sql.Date.valueOf(ldt.toLocalDate());
-                    }
 
                     case DATETIME:
-                    case DATETIME2: {
+                    case DATETIME2:
                         java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
                         ts.setNanos(subSecondNanos);
                         return ts;
-                    }
 
-                    case TIME: {
+                    case TIME:
                         if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                             ldt = ldt.plusNanos(1000000);
                         }
                         java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
                         t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
                         return t;
-                    }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
-            }
 
-            case DATE: {
+            case DATE:
                 return java.sql.Date.valueOf(ldt.toLocalDate());
-            }
 
-            case TIME: {
+            case TIME:
                 if (subSecondNanos % Nanos.PER_MILLISECOND >= Nanos.PER_MILLISECOND / 2) {
                     ldt = ldt.plusNanos(1000000);
                 }
                 java.sql.Time t = java.sql.Time.valueOf(ldt.toLocalTime());
                 t.setTime(t.getTime() + (ldt.getNano() / Nanos.PER_MILLISECOND));
                 return t;
-            }
 
-            case TIMESTAMP: {
+            case TIMESTAMP:
                 if (jdbcType == JDBCType.LOCALDATETIME) {
                     return ldt;
                 }
@@ -1307,38 +1292,36 @@ final class DDC {
                 java.sql.Timestamp ts = java.sql.Timestamp.valueOf(ldt);
                 ts.setNanos(subSecondNanos);
                 return ts;
-            }
 
-            case CHARACTER: {
+            case CHARACTER:
                 switch (ssType) {
-                    case DATE: {
+                    case DATE:
                         return String.format(Locale.US, "%1$tF", // yyyy-mm-dd
                                 java.sql.Timestamp.valueOf(ldt));
-                    }
 
-                    case TIME: {
+                    case TIME:
                         return String.format(Locale.US, "%1$tT%2$s", // hh:mm:ss[.nnnnnnn]
                                 ldt, fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
-                    }
 
-                    case DATETIME2: {
+                    case DATETIME2:
                         return String.format(Locale.US, "%1$tF %1$tT%2$s", // yyyy-mm-dd hh:mm:ss[.nnnnnnn]
                                 java.sql.Timestamp.valueOf(ldt),
                                 fractionalSecondsString(subSecondNanos, fractionalSecondsScale));
-                    }
 
                     case DATETIME: // and SMALLDATETIME
-                    {
                         return (java.sql.Timestamp.valueOf(ldt)).toString();
-                    }
 
                     default:
-                        throw new AssertionError("Unexpected SSType: " + ssType);
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                        throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0,
+                                null);
                 }
-            }
 
             default:
-                throw new AssertionError("Unexpected JDBCType: " + jdbcType);
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedConversionFromTo"));
+                throw new SQLServerException(form.format(new Object[] {ssType.name(), jdbcType}), null, 0, null);
         }
     }
 
@@ -1387,8 +1370,9 @@ final class DDC {
             return false;
 
         // Maximum scale allowed is same as maximum precision allowed.
-        if (bigDecimalValue.scale() > SQLServerConnection.maxDecimalPrecision)
+        if (bigDecimalValue.scale() > SQLServerConnection.MAX_DECIMAL_PRECISION) {
             return true;
+        }
 
         // Convert to unscaled integer value, then compare with maxRPCDecimalValue.
         // NOTE: Handle negative scale as a special case for JDK 1.5 and later VMs.
@@ -1419,7 +1403,7 @@ final class DDC {
             // Set up the buffer into which blocks of characters are read from the Reader. This buffer
             // should be no larger than the Reader value's size (if known). For known very large values,
             // limit the buffer's size to reduce this function's memory requirements.
-            char charArray[] = new char[(DataTypes.UNKNOWN_STREAM_LENGTH != readerLength
+            char[] charArray = new char[(DataTypes.UNKNOWN_STREAM_LENGTH != readerLength
                     && readerLength < 4000) ? readerLength : 4000];
 
             // Loop and read characters, chunk into StringBuilder until EOS.
@@ -1471,24 +1455,28 @@ final class AsciiFilteredInputStream extends InputStream {
             ASCII_FILTER[i] = (byte) '?';
     }
 
-    AsciiFilteredInputStream(BaseInputStream containedStream) throws SQLServerException {
+    AsciiFilteredInputStream(BaseInputStream containedStream) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
         this.containedStream = containedStream;
     }
 
+    @Override
     public void close() throws IOException {
         containedStream.close();
     }
 
+    @Override
     public long skip(long n) throws IOException {
         return containedStream.skip(n);
     }
 
+    @Override
     public int available() throws IOException {
         return containedStream.available();
     }
 
+    @Override
     public int read() throws IOException {
         int value = containedStream.read();
         if (value >= 0 && value <= 255)
@@ -1496,34 +1484,47 @@ final class AsciiFilteredInputStream extends InputStream {
         return value;
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         int bytesRead = containedStream.read(b);
         if (bytesRead > 0) {
-            assert bytesRead <= b.length;
+            if (bytesRead > b.length) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
+                throw new IOException(form.format(new Object[] {b.length, bytesRead}));
+            }
+
             for (int i = 0; i < bytesRead; i++)
                 b[i] = ASCII_FILTER[b[i] & 0xFF];
         }
         return bytesRead;
     }
 
-    public int read(byte b[], int offset, int maxBytes) throws IOException {
+    @Override
+    public int read(byte[] b, int offset, int maxBytes) throws IOException {
         int bytesRead = containedStream.read(b, offset, maxBytes);
         if (bytesRead > 0) {
-            assert offset + bytesRead <= b.length;
+            if (offset + bytesRead > b.length) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
+                throw new IOException(form.format(new Object[] {b.length, bytesRead}));
+            }
+
             for (int i = 0; i < bytesRead; i++)
                 b[offset + i] = ASCII_FILTER[b[offset + i] & 0xFF];
         }
         return bytesRead;
     }
 
+    @Override
     public boolean markSupported() {
         return containedStream.markSupported();
     }
 
+    @Override
     public void mark(int readLimit) {
         containedStream.mark(readLimit);
     }
 
+    @Override
     public void reset() throws IOException {
         containedStream.reset();
     }
@@ -1540,27 +1541,29 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     private final Reader containedReader;
     private final Charset asciiCharSet;
 
-    static AsciiFilteredUnicodeInputStream MakeAsciiFilteredUnicodeInputStream(BaseInputStream strm,
-            Reader rd) throws SQLServerException {
+    static AsciiFilteredUnicodeInputStream makeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
         if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
     }
 
     // Note the Reader provided should support mark, reset
-    private AsciiFilteredUnicodeInputStream(Reader rd) throws SQLServerException {
+    private AsciiFilteredUnicodeInputStream(Reader rd) {
         containedReader = rd;
         asciiCharSet = US_ASCII;
     }
 
+    @Override
     public void close() throws IOException {
         containedReader.close();
     }
 
+    @Override
     public long skip(long n) throws IOException {
         return containedReader.skip(n);
     }
 
+    @Override
     public int available() throws IOException {
         // from the JDBC spec
         // Note: A stream may return 0 when the method InputStream.available is called whether there is data available
@@ -1571,17 +1574,20 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     private final byte[] bSingleByte = new byte[1];
 
+    @Override
     public int read() throws IOException {
         int bytesRead = read(bSingleByte);
         return (-1 == bytesRead) ? -1 : (bSingleByte[0] & 0xFF);
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
-    public int read(byte b[], int offset, int maxBytes) throws IOException {
-        char tempBufferToHoldCharDataForConversion[] = new char[maxBytes];
+    @Override
+    public int read(byte[] b, int offset, int maxBytes) throws IOException {
+        char[] tempBufferToHoldCharDataForConversion = new char[maxBytes];
         int charsRead = containedReader.read(tempBufferToHoldCharDataForConversion);
 
         if (charsRead > 0) {
@@ -1593,10 +1599,12 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         return charsRead;
     }
 
+    @Override
     public boolean markSupported() {
         return containedReader.markSupported();
     }
 
+    @Override
     public void mark(int readLimit) {
         try {
             containedReader.mark(readLimit);
@@ -1607,6 +1615,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         }
     }
 
+    @Override
     public void reset() throws IOException {
         containedReader.reset();
     }

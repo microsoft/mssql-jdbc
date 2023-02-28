@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.dfa.DFA;
 class SQLServerLexer extends Lexer {
     static {
         RuntimeMetaData.checkVersion("4.9.3", RuntimeMetaData.VERSION);
+
     }
 
     protected static final DFA[] _decisionToDFA;

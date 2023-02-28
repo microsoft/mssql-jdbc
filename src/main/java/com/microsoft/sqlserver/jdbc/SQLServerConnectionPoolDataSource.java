@@ -24,7 +24,9 @@ public class SQLServerConnectionPoolDataSource extends SQLServerDataSource imple
     /**
      * default constructor
      */
-    public SQLServerConnectionPoolDataSource() {}
+    public SQLServerConnectionPoolDataSource() {
+        // default constructor
+    }
 
     // Get a new physical connection that the pool manager will issue logical connections from
     @Override

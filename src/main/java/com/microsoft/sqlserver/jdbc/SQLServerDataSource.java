@@ -33,6 +33,8 @@ public class SQLServerDataSource
     static final private java.util.logging.Logger parentLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc");
 
+    static final String TRUSTSTORE_PASSWORD_STRIPPED = "trustStorePasswordStripped";
+
     /** logging class name */
     final private String loggingClassName;
 
@@ -310,8 +312,11 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(), encryptOption);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
+    @Deprecated(since = "10.1.0", forRemoval = true)
     public void setEncrypt(boolean encryptOption) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ENCRYPT.toString(),
                 Boolean.toString(encryptOption));
@@ -521,6 +526,18 @@ public class SQLServerDataSource
     public boolean getSendTimeAsDatetime() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                 SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue());
+    }
+
+    @Override
+    public void setDatetimeParameterType(String datetimeParameterType) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                datetimeParameterType);
+    }
+
+    @Override
+    public String getDatetimeParameterType() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue());
     }
 
     @Override
@@ -981,15 +998,21 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     public void setJASSConfigurationName(String configurationName) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 configurationName);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     public String getJASSConfigurationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
@@ -1008,14 +1031,14 @@ public class SQLServerDataSource
     }
 
     /**
-     * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
+     * @deprecated This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
      *
-     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
+     *             Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      *
      * @param managedIdentityClientId
      *        Client ID of the user-assigned Managed Identity.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public void setMSIClientId(String managedIdentityClientId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1023,13 +1046,13 @@ public class SQLServerDataSource
     }
 
     /**
-     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
+     * @deprecated This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
      *
-     * Returns the value for the connection property 'msiClientId'.
+     *             Returns the value for the connection property 'msiClientId'.
      *
      * @return msiClientId property value
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1127,25 +1150,34 @@ public class SQLServerDataSource
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(), password);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
+    @Deprecated(since = "9.4.1", forRemoval = true)
     public String getAADSecurePrincipalId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                 SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue());
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
-    public void setAADSecurePrincipalId(String AADSecurePrincipalId) {
+    @Deprecated(since = "9.4.1", forRemoval = true)
+    public void setAADSecurePrincipalId(String aadSecurePrincipalId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
-                AADSecurePrincipalId);
+                aadSecurePrincipalId);
     }
 
+    /**
+     * @deprecated
+     */
     @Override
-    @Deprecated
-    public void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret) {
+    @Deprecated(since = "9.4.1", forRemoval = true)
+    public void setAADSecurePrincipalSecret(String aadSecurePrincipalSecret) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString(),
-                AADSecurePrincipalSecret);
+                aadSecurePrincipalSecret);
     }
 
     @Override
@@ -1207,18 +1239,18 @@ public class SQLServerDataSource
     }
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method will always return 0 and is for backwards compatibility only.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public void setMsiTokenCacheTtl(int timeToLive) {}
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method is a no-op for backwards compatibility only.
      */
-    @Deprecated
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public int getMsiTokenCacheTtl() {
         return 0;
@@ -1246,6 +1278,29 @@ public class SQLServerDataSource
         return (SQLServerAccessTokenCallback) getObjectProperty(connectionProps,
                 SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
                 SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue());
+    }
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    @Override
+    public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                accessTokenCallbackClass);
+    }
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    @Override
+    public String getAccessTokenCallbackClass() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                null);
     }
 
     /**
@@ -1300,7 +1355,7 @@ public class SQLServerDataSource
     private void setIntProperty(Properties props, String propKey, int propValue) {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        props.setProperty(propKey, Integer.valueOf(propValue).toString());
+        props.setProperty(propKey, Integer.toString(propValue));
         loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
     }
 
@@ -1457,7 +1512,7 @@ public class SQLServerDataSource
             ref.add(new StringRefAddr("class", dataSourceClassString));
 
         if (trustStorePasswordStripped)
-            ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+            ref.add(new StringRefAddr(TRUSTSTORE_PASSWORD_STRIPPED, "true"));
 
         // Add each property name+value pair found in connectionProps.
         Enumeration<?> e = connectionProps.keys();
@@ -1469,7 +1524,7 @@ public class SQLServerDataSource
                 // The property set and the variable set at the same time is not
                 // possible
                 assert !trustStorePasswordStripped;
-                ref.add(new StringRefAddr("trustStorePasswordStripped", "true"));
+                ref.add(new StringRefAddr(TRUSTSTORE_PASSWORD_STRIPPED, "true"));
             } else {
                 // do not add passwords to the collection. we have normal
                 // password
@@ -1509,7 +1564,7 @@ public class SQLServerDataSource
                 dataSourceURL = propertyValue;
             } else if ("dataSourceDescription".equals(propertyName)) {
                 dataSourceDescription = propertyValue;
-            } else if ("trustStorePasswordStripped".equals(propertyName)) {
+            } else if (TRUSTSTORE_PASSWORD_STRIPPED.equals(propertyName)) {
                 trustStorePasswordStripped = true;
             }
             // Just skip "class" StringRefAddr, it does not go into

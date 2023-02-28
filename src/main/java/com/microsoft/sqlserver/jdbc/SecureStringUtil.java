@@ -43,9 +43,11 @@ final class SecureStringUtil {
     private Cipher decryptCipher;
 
     /* singleton instance */
-    private static SecureStringUtil instance;
+    private static volatile SecureStringUtil instance;
 
-    private static final Lock LOCK = new ReentrantLock();
+    private static final Lock INSTANCE_LOCK = new ReentrantLock();
+    private static final Lock ENCRYPT_LOCK = new ReentrantLock();
+    private static final Lock DECRYPT_LOCK = new ReentrantLock();
 
     /**
      * Get reference to SecureStringUtil instance
@@ -57,13 +59,13 @@ final class SecureStringUtil {
      */
     static SecureStringUtil getInstance() throws SQLServerException {
         if (instance == null) {
-            LOCK.lock();
+            INSTANCE_LOCK.lock();
             try {
                 if (instance == null) {
                     instance = new SecureStringUtil();
                 }
             } finally {
-                LOCK.unlock();
+                INSTANCE_LOCK.unlock();
             }
         }
         return instance;
@@ -101,18 +103,19 @@ final class SecureStringUtil {
      * @return encrypted string
      * 
      * @throws SQLServerException
-     *         if error
+     *         Throws an exception if the method fails to encrypt the character array
      */
     byte[] getEncryptedBytes(char[] chars) throws SQLServerException {
-        if (chars == null)
-            return null;
-
-        byte[] iv = new byte[IV_LENGTH];
-        SecureRandom random = new SecureRandom();
-        random.nextBytes(iv);
-        GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
-
+        ENCRYPT_LOCK.lock();
         try {
+            if (chars == null) {
+                return null;
+            }
+
+            byte[] iv = new byte[IV_LENGTH];
+            SecureRandom random = new SecureRandom();
+            random.nextBytes(iv);
+            GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
 
             byte[] cipherText = encryptCipher.doFinal(Util.charsToBytes(chars));
@@ -124,6 +127,8 @@ final class SecureStringUtil {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_EncryptionFailed"));
             Object[] msgArgs = {e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        } finally {
+            ENCRYPT_LOCK.unlock();
         }
     }
 
@@ -131,22 +136,25 @@ final class SecureStringUtil {
      * Get decrypted value of an encrypted string
      * 
      * @param bytes
+     *        The byte array to decrypt into a character array
      * 
      * @return decrypted string
      * 
      * @throws SQLServerException
+     *         Throws an exception if the method fails to decrypt the byte array
      */
     char[] getDecryptedChars(byte[] bytes) throws SQLServerException {
-        if (bytes == null)
-            return null;
-
-        byte[] iv = new byte[IV_LENGTH];
-        System.arraycopy(bytes, 0, iv, 0, IV_LENGTH);
-
-        GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
-
+        DECRYPT_LOCK.lock();
         byte[] plainText = null;
         try {
+            if (bytes == null) {
+                return null;
+            }
+
+            byte[] iv = new byte[IV_LENGTH];
+            System.arraycopy(bytes, 0, iv, 0, IV_LENGTH);
+
+            GCMParameterSpec ivParamSpec = new GCMParameterSpec(TAG_LENGTH * 8, iv);
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
 
             plainText = decryptCipher.doFinal(bytes, IV_LENGTH, bytes.length - IV_LENGTH);
@@ -159,6 +167,7 @@ final class SecureStringUtil {
             if (plainText != null) {
                 Arrays.fill(plainText, (byte) 0);
             }
+            DECRYPT_LOCK.unlock();
         }
     }
 }

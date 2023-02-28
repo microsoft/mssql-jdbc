@@ -26,7 +26,7 @@ import org.ietf.jgss.Oid;
 
 
 /**
- * KerbAuthentication for int auth.
+ * KerbAuthentication for integrated authentication.
  */
 final class KerbAuthentication extends SSPIAuthentication {
     private static final java.util.logging.Logger authLogger = java.util.logging.Logger
@@ -47,7 +47,13 @@ final class KerbAuthentication extends SSPIAuthentication {
         Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
     }
 
-    private void intAuthInit() throws SQLServerException {
+    /**
+     * Initializes the Kerberos client security context
+     * 
+     * @throws SQLServerException
+     */
+    @SuppressWarnings("deprecation")
+    private void initAuthInit() throws SQLServerException {
         try {
             // If we need to support NTLM as well, we can use null
             // Kerberos OID
@@ -107,12 +113,13 @@ final class KerbAuthentication extends SSPIAuthentication {
                     authLogger.finer(toString() + " Getting client credentials");
                 }
                 peerCredentials = getClientCredential(currentSubject, manager, kerberos);
+
                 if (authLogger.isLoggable(Level.FINER)) {
                     authLogger.finer(toString() + " creating security context");
                 }
-
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
                 peerContext.requestMutualAuth(true);
@@ -131,7 +138,6 @@ final class KerbAuthentication extends SSPIAuthentication {
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
         }
-
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
@@ -150,7 +156,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         return (GSSCredential) credential;
     }
 
-    private byte[] intAuthHandShake(byte[] pin, boolean[] done) throws SQLServerException {
+    private byte[] initAuthHandShake(byte[] pin, boolean[] done) throws SQLServerException {
         try {
             if (authLogger.isLoggable(Level.FINER)) {
                 authLogger.finer(toString() + " Sending token to server over secure context");
@@ -204,9 +210,9 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
         if (null == peerContext) {
-            intAuthInit();
+            initAuthInit();
         }
-        return intAuthHandShake(pin, done);
+        return initAuthHandShake(pin, done);
     }
 
     void releaseClientContext() {

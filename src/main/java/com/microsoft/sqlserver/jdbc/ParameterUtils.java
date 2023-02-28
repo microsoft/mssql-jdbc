@@ -10,15 +10,19 @@ package com.microsoft.sqlserver.jdbc;
  */
 
 final class ParameterUtils {
-    static byte[] HexToBin(String hexV) throws SQLServerException {
+    private ParameterUtils() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
+    static byte[] hexToBin(String hexV) throws SQLServerException {
         int len = hexV.length();
-        char orig[] = hexV.toCharArray();
+        char[] orig = hexV.toCharArray();
         if ((len % 2) != 0)
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_stringNotInHex"),
                     null, false);
         byte[] bin = new byte[len / 2];
         for (int i = 0; i < len / 2; i++) {
-            bin[i] = (byte) ((CharToHex(orig[2 * i]) << 4) + (CharToHex(orig[2 * i + 1]) & 0xff));
+            bin[i] = (byte) ((charToHex(orig[2 * i]) << 4) + (charToHex(orig[2 * i + 1]) & 0xff));
         }
         return bin;
     }
@@ -26,14 +30,14 @@ final class ParameterUtils {
     // conversion routine valid values 0-9 a-f A-F
     // throws exception when failed to convert
     //
-    static byte CharToHex(char CTX) throws SQLServerException {
+    static byte charToHex(char ctx) throws SQLServerException {
         byte ret = 0;
-        if (CTX >= 'A' && CTX <= 'F') {
-            ret = (byte) (CTX - 'A' + 10);
-        } else if (CTX >= 'a' && CTX <= 'f') {
-            ret = (byte) (CTX - 'a' + 10);
-        } else if (CTX >= '0' && CTX <= '9') {
-            ret = (byte) (CTX - '0');
+        if (ctx >= 'A' && ctx <= 'F') {
+            ret = (byte) (ctx - 'A' + 10);
+        } else if (ctx >= 'a' && ctx <= 'f') {
+            ret = (byte) (ctx - 'a' + 10);
+        } else if (ctx >= '0' && ctx <= '9') {
+            ret = (byte) (ctx - '0');
         } else {
             SQLServerException.makeFromDriverError(null, null, SQLServerException.getErrString("R_stringNotInHex"),
                     null, false);

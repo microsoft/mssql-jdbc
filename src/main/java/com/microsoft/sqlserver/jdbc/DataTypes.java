@@ -73,7 +73,7 @@ enum TDSType {
 
     private static final int MAXELEMENTS = 256;
     private static final TDSType[] VALUES = values();
-    private static final TDSType valuesTypes[] = new TDSType[MAXELEMENTS];
+    private static final TDSType[] valuesTypes = new TDSType[MAXELEMENTS];
 
     byte byteValue() {
         return (byte) intValue;
@@ -166,6 +166,7 @@ enum SSType {
         this.jdbcType = jdbcType;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -321,6 +322,7 @@ enum StreamType {
         this.name = name;
     }
 
+    @Override
     public String toString() {
         return name;
     }
@@ -425,6 +427,7 @@ enum JavaType {
 
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
+        @Override
         JDBCType getJDBCType(SSType ssType, JDBCType jdbcTypeFromApp) {
             JDBCType jdbcType;
 
@@ -530,9 +533,8 @@ enum JavaType {
             for (JavaType javaType : VALUES)
                 // if JVM version is prior to Java 8, the javaClass variable can be
                 // null if the java type is introduced in Java 8
-                if (null != javaType.javaClass) {
-                    if (javaType.javaClass.isInstance(obj))
-                        return javaType;
+                if (null != javaType.javaClass && javaType.javaClass.isInstance(obj)) {
+                    return javaType;
                 }
         }
 
@@ -1105,6 +1107,10 @@ enum JDBCType {
 
 
 final class DataTypes {
+    private DataTypes() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     // ResultSet & CallableStatement getXXX conversions (SSType --> JDBCType)
     static final void throwConversionError(String fromType, String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
@@ -1177,12 +1183,10 @@ final class DataTypes {
             case NVARCHAR:
             case LONGNVARCHAR:
             case NCLOB:
-                // assert MAX_VARTYPE_MAX_CHARS == NTEXT_MAX_CHARS;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_CHARS;
                 break;
 
             default:
-                // assert MAX_VARTYPE_MAX_BYTES == IMAGE_TEXT_MAX_BYTES;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_BYTES;
                 break;
         }

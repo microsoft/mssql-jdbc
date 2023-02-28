@@ -111,7 +111,7 @@ abstract class SSPIAuthentication {
             if (realmValidator.isRealmValid(realm)) {
                 return realm.toUpperCase();
             }
-            index = hostname.indexOf(".", index + 1);
+            index = hostname.indexOf('.', index + 1);
             if (-1 != index) {
                 index = index + 1;
             }
@@ -166,7 +166,8 @@ abstract class SSPIAuthentication {
             } else {
                 if (allowHostnameCanonicalization) {
                     if (logger.isLoggable(Level.FINER)) {
-                        logger.finer("Since realm is provided, try to resolve canonical host name to host name with InetAddress");
+                        logger.finer(
+                                "Since realm is provided, try to resolve canonical host name to host name with InetAddress");
                     }
                     // Realm was provided, try to resolve cname to hostname
                     dnsName = InetAddress.getByName(dnsName).getCanonicalHostName();
@@ -212,7 +213,7 @@ abstract class SSPIAuthentication {
         if (null != userSuppliedServerSpn) {
             // serverNameAsACE is true, translate the user supplied serverSPN to ASCII
             if (con.serverNameAsACE()) {
-                int slashPos = userSuppliedServerSpn.indexOf("/");
+                int slashPos = userSuppliedServerSpn.indexOf('/');
                 spn = userSuppliedServerSpn.substring(0, slashPos + 1)
                         + IDN.toASCII(userSuppliedServerSpn.substring(slashPos + 1));
             } else {

@@ -33,7 +33,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerNoneEnclaveProvider() {}
+    public SQLServerNoneEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
@@ -96,6 +98,13 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+
+        // sp_describe_parameter_encryption stored procedure with 2 params
+        final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+
+        // sp_describe_parameter_encryption stored procedure with 3 params
+        final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
+
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
@@ -125,10 +134,9 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                     }
                 }
             }
+        } catch (SQLServerException e) {
+            throw (SQLServerException) e;
         } catch (SQLException | IOException e) {
-            if (e instanceof SQLServerException) {
-                throw (SQLServerException) e;
-            }
             throw new SQLServerException(SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), null, 0,
                     e);
         }
@@ -145,7 +153,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
 class NoneAttestationParameters extends BaseAttestationRequest {
 
     // Type 2 is NONE, sent as Little Endian 0x20000000
-    private static byte ENCLAVE_TYPE[] = new byte[] {0x2, 0x0, 0x0, 0x0};
+    private static final byte[] ENCLAVE_TYPE = new byte[] {0x2, 0x0, 0x0, 0x0};
 
     NoneAttestationParameters() throws SQLServerException {
         enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};
@@ -183,22 +191,22 @@ class NoneAttestationResponse extends BaseAttestationResponse {
          * Session ID - 8B
          * DH Public Key Size - 4B
          * DH Public Key Signature Size - 4B
-         * DH Public Key - DHPKsize bytes
-         * DH Public Key Signature - DHPKSsize bytes
+         * DH Public Key - dhpkSize bytes
+         * DH Public Key Signature - dhpkSsize bytes
          */
         ByteBuffer response = (null != b) ? ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN) : null;
         if (null != response) {
             this.totalSize = response.getInt();
             this.sessionInfoSize = response.getInt();
             response.get(sessionID, 0, 8);
-            this.DHPKsize = response.getInt();
-            this.DHPKSsize = response.getInt();
+            this.dhpkSize = response.getInt();
+            this.dhpkSsize = response.getInt();
 
-            DHpublicKey = new byte[DHPKsize];
-            publicKeySig = new byte[DHPKSsize];
+            dhPublicKey = new byte[dhpkSize];
+            publicKeySig = new byte[dhpkSsize];
 
-            response.get(DHpublicKey, 0, DHPKsize);
-            response.get(publicKeySig, 0, DHPKSsize);
+            response.get(dhPublicKey, 0, dhpkSize);
+            response.get(publicKeySig, 0, dhpkSsize);
         }
 
         if (null == response || 0 != response.remaining()) {

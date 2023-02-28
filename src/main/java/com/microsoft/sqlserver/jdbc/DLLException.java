@@ -44,31 +44,31 @@ class DLLException extends Exception {
         this.param3 = param3;
     }
 
-    int GetCategory() {
+    int getCategory() {
         return this.category;
     }
 
-    int GetStatus() {
+    int getStatus() {
         return this.status;
     }
 
-    int GetState() {
+    int getState() {
         return this.state;
     }
 
-    int GetErrCode() {
+    int getErrCode() {
         return this.errCode;
     }
 
-    String GetParam1() {
+    String getParam1() {
         return this.param1;
     }
 
-    String GetParam2() {
+    String getParam2() {
         return this.param2;
     }
 
-    String GetParam3() {
+    String getParam3() {
         return this.param3;
     }
 

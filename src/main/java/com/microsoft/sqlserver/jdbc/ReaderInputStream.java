@@ -72,6 +72,7 @@ class ReaderInputStream extends InputStream {
      * @throws IOException
      *         - if an I/O error occurs
      */
+    @Override
     public int available() throws IOException {
         assert null != reader;
         assert null != encodedChars;
@@ -97,14 +98,17 @@ class ReaderInputStream extends InputStream {
 
     private final byte[] oneByte = new byte[1];
 
+    @Override
     public int read() throws IOException {
         return (-1 == readInternal(oneByte, 0, oneByte.length)) ? -1 : oneByte[0];
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         return readInternal(b, 0, b.length);
     }
 
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         return readInternal(b, off, len);
     }

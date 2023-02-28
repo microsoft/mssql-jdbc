@@ -31,7 +31,7 @@ final class FailoverInfo {
         return useFailoverPartner;
     }
 
-    FailoverInfo(String failover, SQLServerConnection con, boolean actualFailoverPartner) {
+    FailoverInfo(String failover, boolean actualFailoverPartner) {
         failoverPartner = failover;
         useFailoverPartner = actualFailoverPartner;
         portNumber = -1; // init to -1 to make sure that the user of this class calls the failover check before getting
