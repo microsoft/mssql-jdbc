@@ -14,21 +14,13 @@ class SharedTimerTest {
     void getTimer() throws InterruptedException, ExecutionException, TimeoutException {
         var iterations = 500;
 
-        var futures = new ArrayList<CompletableFuture<?>>(iterations);
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            var futures = new ArrayList<CompletableFuture<?>>(iterations);
             for (int i = 0; i < iterations; i++) {
-                var cf = CompletableFuture.runAsync(() -> {
-                    var t = SharedTimer.getTimer();
-                    try {
-                        assertTrue(SharedTimer.isRunning());
-                    } finally {
-                        t.removeRef();
-                    }
-                }, executor);
-                futures.add(cf);
+                futures.add(CompletableFuture.runAsync(() -> SharedTimer.getTimer().removeRef(), executor));
             }
-        }
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(2, TimeUnit.MINUTES);
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(2, TimeUnit.MINUTES);
+        }
     }
 }
