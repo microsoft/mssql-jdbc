@@ -9,15 +9,18 @@ class SharedTimerTest {
 
     @Test
     void getTimer() throws InterruptedException, ExecutionException, TimeoutException {
-        var iterations = 500;
+        final int iterations = 500;
 
-        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
-            var futures = new ArrayList<CompletableFuture<?>>(iterations);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            ArrayList<CompletableFuture<?>> futures = new ArrayList<>(iterations);
             for (int i = 0; i < iterations; i++) {
                 futures.add(CompletableFuture.runAsync(() -> SharedTimer.getTimer().removeRef(), executor));
             }
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(2, TimeUnit.MINUTES);
+        } finally {
+            executor.shutdown();
         }
     }
 }
