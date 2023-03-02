@@ -4893,7 +4893,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         tdsWriter.writeRPCInt(null, serverCursorId, false);
         tdsWriter.writeRPCInt(null, TDS.SP_CURSOR_OP_UPDATE | TDS.SP_CURSOR_OP_SETPOSITION, false);
         tdsWriter.writeRPCInt(null, fetchBufferGetRow(), false);
-        tdsWriter.writeRPCStringUnicode("");
+        tdsWriter.writeRPCStringUnicode(getUpdatedColumnTableName());
 
         assert hasUpdatedColumns();
 
@@ -4910,6 +4910,23 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 return true;
 
         return false;
+    }
+
+    private String getUpdatedColumnTableName() throws SQLServerException {
+        String columnTableName = "";
+
+        for (Column column : columns) {
+            if (column.hasUpdates() && columnTableName.isEmpty()) {
+                columnTableName = column.getTableName().asEscapedString();
+            } else if (column.hasUpdates() && !columnTableName.isEmpty()
+                    && !columnTableName.equals(column.getTableName().asEscapedString())) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AmbiguousRowUpdate"));
+                Object[] msgArgs = {columnTableName, column.getTableName().asEscapedString()};
+                SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);
+            }
+        }
+
+        return columnTableName;
     }
 
     @Override

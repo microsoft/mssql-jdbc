@@ -532,6 +532,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
         {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
         {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."},
+        {"R_AmbiguousRowUpdate", "Failed to execute updateRow(). The update is attempting an ambiguous update on tables \"{0}\" and \"{1}\". Ensure all columns being updated belong to the same table."},
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"}
     };
 }
