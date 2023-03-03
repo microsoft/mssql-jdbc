@@ -32,7 +32,6 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SQLServerResource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -299,7 +298,7 @@ public class ResultSetTest extends AbstractTest {
         String query2 = "SELECT * FROM " + tableName2;
         String data = "NEW EDIT";
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
 
             ambiguousUpdateRowTestSetup(conn);
 
@@ -323,7 +322,7 @@ public class ResultSetTest extends AbstractTest {
         String query1 = "SELECT t.*, k.* FROM " + tableName1 + " k INNER JOIN " + tableName2 + " t ON  t.i = k.i";
         String data = "NEW EDIT";
 
-        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
 
             ambiguousUpdateRowTestSetup(conn);
 
@@ -691,7 +690,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     @Test
-    public void testResultSetClientCursorInitializerSqlErrorState() throws Exception {
+    public void testResultSetClientCursorInitializerSqlErrorState() {
         try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
             boolean hasResults = stmt
