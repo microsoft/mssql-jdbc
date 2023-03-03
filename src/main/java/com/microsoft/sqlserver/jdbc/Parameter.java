@@ -73,7 +73,7 @@ final class Parameter {
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
     // and getting its value from the server (OUT), we use the JDBC type of the IN parameter value if there
     // is one; otherwise we use the registered OUT param JDBC type.
-    JDBCType getJdbcType() throws SQLServerException {
+    JDBCType getJdbcType() {
         return (null != inputDTV) ? inputDTV.getJdbcType() : JDBCType.UNKNOWN;
     }
 
@@ -472,8 +472,9 @@ final class Parameter {
                 case DECIMAL:
                 case NUMERIC:
                     // First, bound the scale by the maximum allowed by SQL Server
-                    if (scale > SQLServerConnection.maxDecimalPrecision)
-                        scale = SQLServerConnection.maxDecimalPrecision;
+                    if (scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
+                        scale = SQLServerConnection.MAX_DECIMAL_PRECISION;
+                    }
 
                     // Next, prepare with the largest of:
                     // - the value's scale (initial value, as limited above)
@@ -503,34 +504,51 @@ final class Parameter {
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         } else {
-                            if (SQLServerConnection.defaultDecimalPrecision >= valueLength) {
+                            if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION >= valueLength) {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.defaultDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
 
-                                if (SQLServerConnection.defaultDecimalPrecision < (valueLength + scale)) {
+                                if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION < (valueLength + scale)) {
                                     param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                            + (SQLServerConnection.defaultDecimalPrecision + scale) + "," + scale + ")";
+                                            + (SQLServerConnection.DEFAULT_DECIMAL_PRECISION + scale) + "," + scale
+                                            + ")";
                                 }
                             } else {
                                 param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.maxDecimalPrecision + "," + scale + ")";
+                                        + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         }
 
                         if (isOutput()) {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                    + SQLServerConnection.maxDecimalPrecision + ", " + scale + ")";
+                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
-                    } else
-                        param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.maxDecimalPrecision
-                                + "," + scale + ")";
+                    } else {
+                        BigDecimal bigDecimal = null;
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL
+                                && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
+
+                            String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" +
+                            // Precision
+                                    (plainValueArray.length == 2 ? plainValueArray[0].length()
+                                            + plainValueArray[1].length() : plainValueArray[0].length())
+                                    + "," +
+                                    // Scale
+                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
+
+                        } else {
+                            param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
+                        }
+                    }
 
                     break;
 
@@ -623,24 +641,18 @@ final class Parameter {
                          * generic type info can be used as before.
                          */
                         if (userProvidesScale) {
-                            param.typeDefinition = con
-                                    .isKatmaiOrLater() ? (SSType.DATETIME2.toString() + "(" + outScale + ")")
-                                                       : (SSType.DATETIME.toString());
+                            param.typeDefinition = getDatetimeDataType(con, outScale);
                         } else {
-                            param.typeDefinition = con.isKatmaiOrLater()
-                                                                         ? (SSType.DATETIME2.toString() + "("
-                                                                                 + valueLength + ")")
-                                                                         : SSType.DATETIME.toString();
+                            param.typeDefinition = getDatetimeDataType(con, valueLength);
                         }
                     } else {
-                        param.typeDefinition = con.isKatmaiOrLater() ? SSType.DATETIME2.toString()
-                                                                     : SSType.DATETIME.toString();
+                        param.typeDefinition = getDatetimeDataType(con, null);
                     }
                     break;
 
                 case DATETIME:
                     // send as Datetime by default
-                    param.typeDefinition = SSType.DATETIME2.toString();
+                    param.typeDefinition = getDatetimeDataType(con, null);
 
                     if (param.shouldHonorAEForParameter
                             && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
@@ -651,7 +663,7 @@ final class Parameter {
                         // if AE is off and it is output parameter of stored procedure, sent it as datetime2(3)
                         // otherwise it returns incorrect milliseconds.
                         if (param.isOutput()) {
-                            param.typeDefinition = SSType.DATETIME2.toString() + "(" + outScale + ")";
+                            param.typeDefinition = getDatetimeDataType(con, outScale);
                         }
                     } else {
                         // when AE is on, set it to Datetime by default,
@@ -659,7 +671,7 @@ final class Parameter {
                         // renew it to datetime2(3)
                         if (null == param.getCryptoMetadata() && param.renewDefinition) {
                             if (param.isOutput()) {
-                                param.typeDefinition = SSType.DATETIME2.toString() + "(" + outScale + ")";
+                                param.typeDefinition = getDatetimeDataType(con, outScale);
                             }
                             break;
                         }
@@ -667,7 +679,7 @@ final class Parameter {
                     break;
 
                 case SMALLDATETIME:
-                    param.typeDefinition = SSType.DATETIME2.toString();
+                    param.typeDefinition = getDatetimeDataType(con, null);
 
                     if (param.shouldHonorAEForParameter
                             && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
@@ -900,6 +912,42 @@ final class Parameter {
             }
         }
 
+        /**
+         * Generates the SQL datatype to use for Java date-based values. This
+         * setting can be controlled by setting the "datetimeParameterType" connection
+         * string. It defaults to "datetime2" for SQL Server 2008+ and always
+         * uses "datetime" for older SQL Server installations.
+         */
+        String getDatetimeDataType(SQLServerConnection con, Integer scale) {
+            String datatype;
+
+            if (con.isKatmaiOrLater()) {
+                String paramType = con.getDatetimeParameterType();
+                if (paramType.equalsIgnoreCase(DatetimeType.DATETIME2.toString())) {
+                    datatype = SSType.DATETIME2.toString();
+                    if (scale != null) {
+                        datatype += "(" + scale + ")";
+                    }
+                    return datatype;
+                } else if (paramType.equalsIgnoreCase(DatetimeType.DATETIMEOFFSET.toString())) {
+                    datatype = SSType.DATETIMEOFFSET.toString();
+                    if (scale != null) {
+                        datatype += "(" + scale + ")";
+                    }
+                    return datatype;
+                } else {
+                    return SSType.DATETIME.toString();
+                }
+            }
+
+            /*
+             * For older versions of SQL server and if for some reason the datetimeParameterType
+             * connection property cannot be determined, we fall back to the "datetime"
+             * format.
+             */
+            return SSType.DATETIME.toString();
+        }
+
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (null != strValue && strValue.length() > DataTypes.SHORT_VARTYPE_MAX_CHARS)
                 dtv.setJdbcType(JDBCType.LONGNVARCHAR);
@@ -955,7 +1003,7 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
-        void execute(DTV dtv, OffsetDateTime OffsetDateTimeValue) throws SQLServerException {
+        void execute(DTV dtv, OffsetDateTime offsetDateTimeValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 
@@ -1129,7 +1177,7 @@ final class Parameter {
          * microsoft.sql.SqlVariant)
          */
         @Override
-        void execute(DTV dtv, SqlVariant SqlVariantValue) throws SQLServerException {
+        void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 

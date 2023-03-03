@@ -60,7 +60,8 @@ public class DataClassificationTest extends AbstractTest {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     public void testInformationTypeSensitivityLabelIndexMax() throws Exception {
-        String createTable = "create table " + tableName2 + " (col1 varchar(200), col2 varchar(200), col3 varchar(200))";
+        String createTable = "create table " + tableName2
+                + " (col1 varchar(200), col2 varchar(200), col3 varchar(200))";
         String sensitivityClassification = "ADD SENSITIVITY CLASSIFICATION TO %s.%s WITH (LABEL='PII')";
         String query = "select * from " + tableName2;
 
@@ -114,7 +115,7 @@ public class DataClassificationTest extends AbstractTest {
             try (PreparedStatement pstmt = conn.prepareStatement(query)) {
                 pstmt.setString(1, "1231231230000");
                 ResultSet rs = pstmt.executeQuery();
-                if(rs.next()){
+                if (rs.next()) {
                     rs.getInt("summation");
                 } else {
                     fail("Expected to have a row returned from table " + tableName1);
@@ -286,6 +287,8 @@ public class DataClassificationTest extends AbstractTest {
     public static void dropTable() throws Exception {
         try (Statement stmt = connection.createStatement();) {
             TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(tableName1, stmt);
+            TestUtils.dropTableIfExists(tableName2, stmt);
         }
     }
 }

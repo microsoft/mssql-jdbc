@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -88,17 +89,25 @@ public class ParameterMetaDataCacheTest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.reqExternalSetup)
     public void testParameterMetaDataCacheTrim() throws Exception {
-        Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
-                .getDeclaredField("CACHE_SIZE");
-        Field maximumWeightedCapacity = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
-                .getDeclaredField("MAX_WEIGHTED_CAPACITY");
+        // changing static final values does not work after java 17
+        try {
+            Field modifiers = Field.class.getDeclaredField("modifiers");
+            modifiers.setAccessible(true);
 
-        cacheSize.setAccessible(true);
-        maximumWeightedCapacity.setAccessible(true);
+            Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
+                    .getDeclaredField("CACHE_SIZE");
+            modifiers.setInt(cacheSize, cacheSize.getModifiers() & ~Modifier.FINAL);
+            cacheSize.setAccessible(true);
+            cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
 
-        cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
-        maximumWeightedCapacity.set(
-                maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
+            Field maximumWeightedCapacity = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")
+                    .getDeclaredField("MAX_WEIGHTED_CAPACITY");
+            modifiers.setInt(maximumWeightedCapacity, maximumWeightedCapacity.getModifiers() & ~Modifier.FINAL);
+            maximumWeightedCapacity.setAccessible(true);
+            maximumWeightedCapacity.set(
+                    maximumWeightedCapacity.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")),
+                    0);
+        } catch (Exception NoSuchFieldException) {}
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString);
                 Statement stmt = con.createStatement()) {

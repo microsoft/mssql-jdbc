@@ -344,6 +344,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getSendTimeAsDatetime();
 
     /**
+     * Sets the SQL server datatype to use for Java datetime and timestamp values.
+     * 
+     * @param datetimeParameterType
+     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are:
+     *        datetime, datetime2 or datetimeoffset.
+     */
+    void setDatetimeParameterType(String datetimeParameterType);
+
+    /**
+     * Returns the value of the datetimeParameterType connection property. This method was added in SQL Server JDBC Driver
+     * 12.2. Returns the setting of the datetimeParameterType connection property.
+     * 
+     * @return Returns the value of the datetimeParameterType property.
+     */
+    String getDatetimeParameterType();
+
+    /**
      * Sets a boolean value that indicates if sending string parameters to the server in UNICODE format is enabled.
      * 
      * @param sendStringParametersAsUnicode
@@ -1136,23 +1153,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
      * 
-     * @param AADSecurePrincipalId
+     * @param aadSecurePrincipalId
      *        Active Directory Service Principal Id.
      * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
-    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+    void setAADSecurePrincipalId(String aadSecurePrincipalId);
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
      * 
-     * @param AADSecurePrincipalSecret
+     * @param aadSecurePrincipalSecret
      *        Active Directory Service Principal secret.
      * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
-    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+    void setAADSecurePrincipalSecret(String aadSecurePrincipalSecret);
 
     /**
      * Returns value of 'maxResultBuffer' from Connection String.
@@ -1251,4 +1268,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return Access token callback delegate.
      */
     SQLServerAccessTokenCallback getAccessTokenCallback();
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

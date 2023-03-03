@@ -30,7 +30,7 @@ class CertificateDetails {
     X509Certificate certificate;
     Key privateKey;
 
-    CertificateDetails(X509Certificate certificate, Key privateKey) throws SQLServerException {
+    CertificateDetails(X509Certificate certificate, Key privateKey) {
         this.certificate = certificate;
         this.privateKey = privateKey;
     }
@@ -39,7 +39,11 @@ class CertificateDetails {
 
 class KeyStoreProviderCommon {
 
-    static final String rsaEncryptionAlgorithmWithOAEP = "RSA_OAEP";
+    private KeyStoreProviderCommon() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
+    static final String RSA_ENCRYPTION_ALGORITHM = "RSA_OAEP";
     static byte[] version = new byte[] {0x01};
 
     static void validateEncryptionAlgorithm(String encryptionAlgorithm, boolean isEncrypt) throws SQLServerException {
@@ -51,10 +55,10 @@ class KeyStoreProviderCommon {
         }
 
         errString = isEncrypt ? "R_InvalidKeyEncryptionAlgorithm" : "R_InvalidKeyEncryptionAlgorithmInternal";
-        if (!rsaEncryptionAlgorithmWithOAEP.equalsIgnoreCase(encryptionAlgorithm.trim())) {
+        if (!RSA_ENCRYPTION_ALGORITHM.equalsIgnoreCase(encryptionAlgorithm.trim())) {
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString(errString));
-            Object[] msgArgs = {encryptionAlgorithm, rsaEncryptionAlgorithmWithOAEP};
+            Object[] msgArgs = {encryptionAlgorithm, RSA_ENCRYPTION_ALGORITHM};
             throw new SQLServerException(form.format(msgArgs), null);
 
         }
@@ -115,9 +119,7 @@ class KeyStoreProviderCommon {
             throw new SQLServerException(form.format(msgArgs), null);
         }
 
-        byte[] plainCEK = decryptRSAOAEP(cipherText, certificateDetails);
-
-        return plainCEK;
+        return decryptRSAOAEP(cipherText, certificateDetails);
     }
 
     private static byte[] decryptRSAOAEP(byte[] cipherText,

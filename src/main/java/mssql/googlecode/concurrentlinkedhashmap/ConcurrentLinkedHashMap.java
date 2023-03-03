@@ -96,6 +96,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @see <a href="http://code.google.com/p/concurrentlinkedhashmap/">
  *      http://code.google.com/p/concurrentlinkedhashmap/</a>
  */
+@SuppressWarnings("deprecation")
 public final class ConcurrentLinkedHashMap<K, V> extends AbstractMap<K, V>
     implements ConcurrentMap<K, V>, Serializable {
 

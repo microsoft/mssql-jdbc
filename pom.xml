@@ -6,7 +6,7 @@
 
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0-SNAPSHOT</version>
+	<version>12.3.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Microsoft JDBC Driver for SQL Server</name>
@@ -63,10 +63,10 @@
 
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.5.2</azure-security-keyvault-keys.version>
+		<azure-security-keyvault-keys.version>4.5.3</azure-security-keyvault-keys.version>
 		<azure-identity.version>1.7.0</azure-identity.version>
 		<msal.version>1.13.3</msal.version>
-		<org.osgi.compendium.version>5.0.0</org.osgi.compendium.version>
+		<osgi.jdbc.version>1.1.0</osgi.jdbc.version>
 		<antlr-runtime.version>4.9.3</antlr-runtime.version>
 		<com.google.code.gson.version>2.9.0</com.google.code.gson.version>
 		<bcprov-jdk15on.version>1.70</bcprov-jdk15on.version>
@@ -150,8 +150,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
-			<artifactId>org.osgi.compendium</artifactId>
-			<version>${org.osgi.compendium.version}</version>
+			<artifactId>org.osgi.service.jdbc</artifactId>
+			<version>${osgi.jdbc.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -495,7 +495,7 @@
 							com.microsoft.sqlserver.jdbc.dataclassification,
 							microsoft.sql
 						</_exportcontents>
-						<Import-Package>!microsoft.sql,*</Import-Package>
+						<Import-Package>!microsoft.sql,jdk.net;resolution:=optional,*</Import-Package>
 						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
 					</instructions>
 				</configuration>

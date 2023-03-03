@@ -35,9 +35,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.crypto.KeyAgreement;
@@ -351,15 +351,15 @@ abstract class BaseAttestationRequest {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_MalformedECDHHeader"),
                     "0", false);
         }
-        byte[] x = new byte[BIG_INTEGER_SIZE];
-        byte[] y = new byte[BIG_INTEGER_SIZE];
-        sr.get(x);
-        sr.get(y);
+        byte[] xx = new byte[BIG_INTEGER_SIZE];
+        byte[] yy = new byte[BIG_INTEGER_SIZE];
+        sr.get(xx);
+        sr.get(yy);
         /*
          * Server returns X and Y coordinates, create a key using the point of the server and our key parameters.
          * Public/Private key parameters are the same.
          */
-        ECPublicKeySpec keySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(1, x), new BigInteger(1, y)),
+        ECPublicKeySpec keySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(1, xx), new BigInteger(1, yy)),
                 ((ECPrivateKey) privateKey).getParams());
         KeyAgreement ka = KeyAgreement.getInstance("ECDH");
         ka.init(privateKey);
@@ -417,9 +417,9 @@ abstract class BaseAttestationResponse {
     protected byte[] enclavePK;
     protected int sessionInfoSize;
     protected byte[] sessionID = new byte[8];
-    protected int DHPKsize;
-    protected int DHPKSsize;
-    protected byte[] DHpublicKey;
+    protected int dhpkSize;
+    protected int dhpkSsize;
+    protected byte[] dhPublicKey;
     protected byte[] publicKeySig;
 
     @SuppressWarnings("unused")
@@ -440,11 +440,11 @@ abstract class BaseAttestationResponse {
         ByteBuffer enclavePKBuffer = ByteBuffer.wrap(enclavePK).order(ByteOrder.LITTLE_ENDIAN);
         byte[] rsa1 = new byte[4];
         enclavePKBuffer.get(rsa1);
-        // bit count unused
+        enclavePKBuffer.getInt(); // bit count unused
         int publicExponentLength = enclavePKBuffer.getInt();
         int publicModulusLength = enclavePKBuffer.getInt();
-        // prime 1 unused
-        // prime 2 unused
+        enclavePKBuffer.getInt(); // prime 1 unused
+        enclavePKBuffer.getInt(); // prime 2 unused
         byte[] exponent = new byte[publicExponentLength];
         enclavePKBuffer.get(exponent);
         byte[] modulus = new byte[publicModulusLength];
@@ -458,7 +458,7 @@ abstract class BaseAttestationResponse {
         PublicKey pub = factory.generatePublic(spec);
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initVerify(pub);
-        sig.update(DHpublicKey);
+        sig.update(dhPublicKey);
         if (!sig.verify(publicKeySig)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidDHKeySignature"),
                     "0", false);
@@ -466,7 +466,7 @@ abstract class BaseAttestationResponse {
     }
 
     byte[] getDHpublicKey() {
-        return DHpublicKey;
+        return dhPublicKey;
     }
 
     byte[] getSessionID() {
@@ -501,10 +501,10 @@ class EnclaveSession {
 
 
 final class EnclaveSessionCache {
-    private Hashtable<String, EnclaveCacheEntry> sessionCache;
+    private ConcurrentHashMap<String, EnclaveCacheEntry> sessionCache;
 
     EnclaveSessionCache() {
-        sessionCache = new Hashtable<>(0);
+        sessionCache = new ConcurrentHashMap<>(0);
     }
 
     void addEntry(String servername, String catalog, String attestationUrl, BaseAttestationRequest b,

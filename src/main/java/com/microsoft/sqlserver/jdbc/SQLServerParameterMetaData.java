@@ -161,7 +161,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         } else if (SSType.IMAGE == ssType) {
                             qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE;
                         } else if (SSType.GUID == ssType) {
-                            qm.precision = SQLServerDatabaseMetaData.uniqueidentifierSize;
+                            qm.precision = SQLServerDatabaseMetaData.UNIQUEIDENTIFIER_SIZE;
                         } else if (SSType.TIMESTAMP == ssType) {
                             qm.precision = 8;
                         } else if (SSType.XML == ssType) {
@@ -209,12 +209,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                  */
                 if ("*".equals(columns.get(i))) {
                     for (int j = 0; j < params.get(valueListOffset).size(); j++) {
-                        if ("?".equals(params.get(valueListOffset).get(j))) {
-                            if (!md.isAutoIncrement(mdIndex + j)) {
-                                QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
-                                queryMetaMap.put(mapIndex++, qm);
-                                i++;
-                            }
+                        if ("?".equals(params.get(valueListOffset).get(j)) && (!md.isAutoIncrement(mdIndex + j))) {
+                            QueryMeta qm = getQueryMetaFromResultSetMetaData(md, mdIndex + j);
+                            queryMetaMap.put(mapIndex++, qm);
+                            i++;
                         }
                     }
                     mdIndex += params.get(valueListOffset).size();
@@ -367,17 +365,14 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         // Do not need to wrapper SQLServerException again
         catch (SQLServerException e) {
             throw e;
-        } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
-        } catch (StringIndexOutOfBoundsException e) {
+        } catch (SQLException | StringIndexOutOfBoundsException e) {
             SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
         }
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        boolean f = iface.isInstance(this);
-        return f;
+        return iface.isInstance(this);
     }
 
     @Override
@@ -454,7 +449,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             return queryMetaMap.size();
         } else {
             // Row 1 is Return Type metadata
-            return (procMetadata.size() == 0 ? 0 : procMetadata.size() - 1);
+            return (procMetadata.isEmpty() ? 0 : procMetadata.size() - 1);
         }
     }
 

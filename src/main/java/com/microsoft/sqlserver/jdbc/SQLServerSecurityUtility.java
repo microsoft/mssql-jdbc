@@ -46,6 +46,10 @@ class SQLServerSecurityUtility {
     // Environment variable for additionally allowed tenants. The tenantIds are comma delimited
     private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
 
+    private SQLServerSecurityUtility() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     /**
      * Give the hash of given plain text
      * 
@@ -128,13 +132,11 @@ class SQLServerSecurityUtility {
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                 hasEntry);
-        if (hasEntry[0]) {
-            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size())
-                    || (!trustedKeyPaths.contains(keyInfo.keyPath))) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
-                Object[] msgArgs = {keyInfo.keyPath, serverName};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
-            }
+        if (hasEntry[0] && ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty())
+                || (!trustedKeyPaths.contains(keyInfo.keyPath)))) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+            Object[] msgArgs = {keyInfo.keyPath, serverName};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
         }
 
         SQLServerException lastException = null;
@@ -192,7 +194,7 @@ class SQLServerSecurityUtility {
      *        The cipher algorithm name
      * @return The cipher algorithm name
      */
-    private static String ValidateAndGetEncryptionAlgorithmName(byte cipherAlgorithmId,
+    private static String validateAndGetEncryptionAlgorithmName(byte cipherAlgorithmId,
             String cipherAlgorithmName) throws SQLServerException {
         // Custom cipher algorithm not supported for CTP.
         if (TDS.AEAD_AES_256_CBC_HMAC_SHA256 != cipherAlgorithmId) {
@@ -252,7 +254,7 @@ class SQLServerSecurityUtility {
         // Given the symmetric key instantiate a SqlClientEncryptionAlgorithm object and cache it in metadata.
         md.cipherAlgorithm = null;
         SQLServerEncryptionAlgorithm cipherAlgorithm = null;
-        String algorithmName = ValidateAndGetEncryptionAlgorithmName(md.cipherAlgorithmId, md.cipherAlgorithmName); // may
+        String algorithmName = validateAndGetEncryptionAlgorithmName(md.cipherAlgorithmId, md.cipherAlgorithmName); // may
                                                                                                                     // throw
         cipherAlgorithm = SQLServerEncryptionAlgorithmFactoryList.getInstance().getAlgorithm(symKey, md.encryptionType,
                 algorithmName); // will
@@ -292,18 +294,17 @@ class SQLServerSecurityUtility {
      */
     static void verifyColumnMasterKeyMetadata(SQLServerConnection connection, SQLServerStatement statement,
             String keyStoreName, String keyPath, String serverName, boolean isEnclaveEnabled,
-            byte[] CMKSignature) throws SQLServerException {
+            byte[] cmkSignature) throws SQLServerException {
 
         // check trusted key paths
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                 hasEntry);
-        if (hasEntry[0]) {
-            if ((null == trustedKeyPaths) || (0 == trustedKeyPaths.size()) || (!trustedKeyPaths.contains(keyPath))) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
-                Object[] msgArgs = {keyPath, serverName};
-                throw new SQLServerException(form.format(msgArgs), null);
-            }
+        if (hasEntry[0]
+                && ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty()) || (!trustedKeyPaths.contains(keyPath)))) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
+            Object[] msgArgs = {keyPath, serverName};
+            throw new SQLServerException(form.format(msgArgs), null);
         }
 
         SQLServerColumnEncryptionKeyStoreProvider provider = null;
@@ -313,7 +314,7 @@ class SQLServerSecurityUtility {
             provider = connection.getSystemOrGlobalColumnEncryptionKeyStoreProvider(keyStoreName);
         }
 
-        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, CMKSignature)) {
+        if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, cmkSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
         }
     }

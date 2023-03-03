@@ -43,7 +43,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     /** connection */
     private SQLServerConnection connection;
 
-    static final String urlprefix = "jdbc:sqlserver://";
+    static final String URL_PREFIX = "jdbc:sqlserver://";
 
     static final private java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDatabaseMetaData");
@@ -62,7 +62,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     // varbinary(max) https://msdn.microsoft.com/en-us/library/ms143432.aspx
     static final int MAXLOBSIZE = 2147483647;
     // uniqueidentifier https://msdn.microsoft.com/en-us/library/ms187942.aspx
-    static final int uniqueidentifierSize = 36;
+    static final int UNIQUEIDENTIFIER_SIZE = 36;
 
     enum CallableHandles {
         SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_100(?, ?, ?, ?, ?, ?) }"),
@@ -157,8 +157,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        boolean f = iface.isInstance(this);
-        return f;
+        return iface.isInstance(this);
     }
 
     @Override
@@ -180,15 +179,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private static final String ASC_OR_DESC = "ASC_OR_DESC";
-    private static final String ATTR_NAME = "ATTR_NAME";
-    private static final String ATTR_TYPE_NAME = "ATTR_TYPE_NAME";
-    private static final String ATTR_SIZE = "ATTR_SIZE";
-    private static final String ATTR_DEF = "ATTR_DEF";
-    private static final String BASE_TYPE = "BASE_TYPE";
     private static final String BUFFER_LENGTH = "BUFFER_LENGTH";
     private static final String CARDINALITY = "CARDINALITY";
     private static final String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
-    private static final String CLASS_NAME = "CLASS_NAME";
     private static final String COLUMN_DEF = "COLUMN_DEF";
     private static final String COLUMN_NAME = "COLUMN_NAME";
     private static final String COLUMN_SIZE = "COLUMN_SIZE";
@@ -241,19 +234,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SOURCE_DATA_TYPE = "SOURCE_DATA_TYPE";
     private static final String SQL_DATA_TYPE = "SQL_DATA_TYPE";
     private static final String SQL_DATETIME_SUB = "SQL_DATETIME_SUB";
-    private static final String SS_DATA_TYPE = "SS_DATA_TYPE";
-    private static final String SUPERTABLE_NAME = "SUPERTABLE_NAME";
-    private static final String SUPERTYPE_CAT = "SUPERTYPE_CAT";
-    private static final String SUPERTYPE_NAME = "SUPERTYPE_NAME";
-    private static final String SUPERTYPE_SCHEM = "SUPERTYPE_SCHEM";
     private static final String TABLE_CAT = "TABLE_CAT";
     private static final String TABLE_NAME = "TABLE_NAME";
     private static final String TABLE_SCHEM = "TABLE_SCHEM";
     private static final String TABLE_TYPE = "TABLE_TYPE";
     private static final String TYPE = "TYPE";
-    private static final String TYPE_CAT = "TYPE_CAT";
     private static final String TYPE_NAME = "TYPE_NAME";
-    private static final String TYPE_SCHEM = "TYPE_SCHEM";
     private static final String UPDATE_RULE = "UPDATE_RULE";
     private static final String FUNCTION_CAT = "FUNCTION_CAT";
     private static final String FUNCTION_NAME = "FUNCTION_NAME";
@@ -275,7 +261,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
+    /** getColumns columns */
     private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+    /** getImportedKeys columns */
     private volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
     private static final Lock LOCK = new ReentrantLock();
 
@@ -289,8 +277,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @return Resultset from the execution
      * @throws SQLTimeoutException
      */
-    private SQLServerResultSet getResultSetFromInternalQueries(String catalog,
-            String query) throws SQLException, SQLTimeoutException {
+    private SQLServerResultSet getResultSetFromInternalQueries(String catalog, String query) throws SQLException {
         checkClosed();
         String orgCat = null;
         orgCat = switchCatalogs(catalog);
@@ -312,26 +299,26 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      */
     private CallableStatement getCallableStatementHandle(CallableHandles request,
             String catalog) throws SQLServerException {
-        CallableStatement CS = null;
+        CallableStatement cs = null;
         HandleAssociation hassoc = handleMap.get(request);
         try {
             if (null == hassoc) {
-                CS = request.prepare(connection);
+                cs = request.prepare(connection);
                 hassoc = new HandleAssociation();
-                hassoc.addToMap(catalog, CS);
+                hassoc.addToMap(catalog, cs);
             } else { // hassoc != null
-                CS = hassoc.getMappedStatement(catalog);
+                cs = hassoc.getMappedStatement(catalog);
                 // No Cached Statement yet
-                if (null == CS || CS.isClosed()) {
-                    CS = request.prepare(connection);
-                    hassoc.addToMap(catalog, CS);
+                if (null == cs || cs.isClosed()) {
+                    cs = request.prepare(connection);
+                    hassoc.addToMap(catalog, cs);
                 }
             }
             handleMap.put(request, hassoc);
         } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(connection, CS, e.toString(), null, false);
+            SQLServerException.makeFromDriverError(connection, cs, e.toString(), null, false);
         }
-        return CS;
+        return cs;
     }
 
     /**
@@ -475,7 +462,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getCatalogs() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getCatalogs() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -510,7 +497,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
         // column_privileges supports columns being escaped.
-        col = EscapeIDName(col);
+        col = escapeIDName(col);
         /*
          * sp_column_privileges [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'table_owner' ] [ ,
          * [ @table_qualifier = ] 'table_qualifier' ] [ , [ @column_name = ] 'column' ]
@@ -530,15 +517,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getTables(String catalog, String schema, String table,
-            String types[]) throws SQLServerException, SQLTimeoutException {
+            String[] types) throws SQLServerException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
 
         // sp_tables supports table name and owner ie schema escaped.
-        table = EscapeIDName(table);
-        schema = EscapeIDName(schema);
+        table = escapeIDName(table);
+        schema = escapeIDName(schema);
         /*
          * sp_tables [ [ @table_name = ] 'name' ] [ , [ @table_owner = ] 'owner' ] [ , [ @table_qualifier = ]
          * 'qualifier' ] [ , [ @table_type = ] "type" ]
@@ -567,7 +554,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final char ESCAPE = '\\';
     static final char PERCENT = '%';
     static final char UNDERSCORE = '_';
-    static final char DOUBLE_RIGHT_BRACKET[] = {']', ']'};
+    static final char[] DOUBLE_RIGHT_BRACKET = {']', ']'};
 
     /**
      * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier so sql 92 wild card
@@ -577,7 +564,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @inID input identifier to escape.
      * @return the escaped value.
      */
-    private static String EscapeIDName(String inID) throws SQLServerException {
+    private static String escapeIDName(String inID) {
         if (null == inID)
             return inID;
         // SQL bracket escaping rules.
@@ -656,10 +643,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
             try {
-                pstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
-                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? EscapeIDName(schema) : "%");
+                pstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
+                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
                 pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                pstmt.setString(4, (null != col && !col.isEmpty()) ? EscapeIDName(col) : "%");
+                pstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
                 pstmt.setInt(5, 2);// show sparse columns
                 pstmt.setInt(6, 3);// odbc version
 
@@ -740,11 +727,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
             try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
-                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? EscapeIDName(table) : "%");
-                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? EscapeIDName(schema) : "%");
+                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
+                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
                 storedProcPstmt.setString(3,
                         (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? EscapeIDName(col) : "%");
+                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
                 storedProcPstmt.setInt(5, 2);// show sparse columns
                 storedProcPstmt.setInt(6, 3);// odbc version
 
@@ -820,7 +807,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return sb.toString();
     }
 
-    private String generateAzureDWEmptyRS(Map<Integer, String> columns) throws SQLException {
+    private String generateAzureDWEmptyRS(Map<Integer, String> columns) {
         StringBuilder sb = new StringBuilder("SELECT TOP 0 ");
         for (Entry<Integer, String> p : columns.entrySet()) {
             sb.append("NULL AS ").append(p.getValue()).append(",");
@@ -850,8 +837,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
 
         String[] arguments = new String[3];
-        arguments[0] = EscapeIDName(functionNamePattern);
-        arguments[1] = EscapeIDName(schemaPattern);
+        arguments[0] = escapeIDName(functionNamePattern);
+        arguments[1] = escapeIDName(schemaPattern);
         arguments[2] = catalog;
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
                 getFunctionsColumnNames);
@@ -882,12 +869,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String[] arguments = new String[5];
 
         // proc name supports escaping
-        arguments[0] = EscapeIDName(functionNamePattern);
+        arguments[0] = escapeIDName(functionNamePattern);
         // schema name supports escaping.
-        arguments[1] = EscapeIDName(schemaPattern);
+        arguments[1] = escapeIDName(schemaPattern);
         arguments[2] = catalog;
         // col name supports escaping
-        arguments[3] = EscapeIDName(columnNamePattern);
+        arguments[3] = escapeIDName(columnNamePattern);
         arguments[4] = "3";
         SQLServerResultSet rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_SPROC_COLUMNS,
                 arguments, getFunctionsColumnsColumnNames);
@@ -961,7 +948,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getCrossReference(String cat1, String schem1, String tab1, String cat2, String schem2,
-            String tab2) throws SQLException, SQLTimeoutException {
+            String tab2) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -996,12 +983,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public int getDriverMajorVersion() {
-        return SQLJdbcVersion.major;
+        return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return SQLJdbcVersion.minor;
+        return SQLJdbcVersion.MINOR;
     }
 
     @Override
@@ -1018,15 +1005,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String s = getDriverMajorVersion() + ".";
         s += "" + n;
         s = s + ".";
-        s = s + SQLJdbcVersion.patch;
+        s = s + SQLJdbcVersion.PATCH;
         s = s + ".";
-        s = s + SQLJdbcVersion.build;
+        s = s + SQLJdbcVersion.BUILD;
         return s;
     }
 
     @Override
-    public java.sql.ResultSet getExportedKeys(String cat, String schema,
-            String table) throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getExportedKeys(String cat, String schema, String table) throws SQLException {
         return getCrossReference(cat, schema, table, null, null, null);
     }
 
@@ -1043,12 +1029,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getImportedKeys(String cat, String schema,
-            String table) throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getImportedKeys(String cat, String schema, String table) throws SQLException {
         return getCrossReference(null, null, null, cat, schema, table);
     }
 
-    private ResultSet executeSPFkeys(String[] procParams) throws SQLException, SQLTimeoutException {
+    private ResultSet executeSPFkeys(String[] procParams) throws SQLException {
         if (!this.connection.isAzureDW()) {
             String tempTableName = "@jdbc_temp_fkeys_result";
             String sql = "DECLARE " + tempTableName + " table (PKTABLE_QUALIFIER sysname, " + "PKTABLE_OWNER sysname, "
@@ -1230,7 +1215,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public int getMaxConnections() throws SQLException, SQLTimeoutException {
+    public int getMaxConnections() throws SQLException {
         checkClosed();
         try (SQLServerResultSet rs = getResultSetFromInternalQueries(null,
                 "select maximum from sys.configurations where name = 'user connections'")) {
@@ -1366,12 +1351,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         String[] arguments = new String[5];
 
         // proc name supports escaping
-        proc = EscapeIDName(proc);
+        proc = escapeIDName(proc);
         arguments[0] = proc;
         arguments[1] = schema;
         arguments[2] = catalog;
         // col name supports escaping
-        col = EscapeIDName(col);
+        col = escapeIDName(col);
         arguments[3] = col;
         arguments[4] = "3";
         SQLServerResultSet rs = getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_SPROC_COLUMNS,
@@ -1408,7 +1393,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * 'qualifier' ] [ , [@fUsePattern = ] 'fUsePattern' ]
          */
         String[] arguments = new String[3];
-        arguments[0] = EscapeIDName(proc);
+        arguments[0] = escapeIDName(proc);
         arguments[1] = schema;
         arguments[2] = catalog;
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
@@ -1450,7 +1435,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getSchemas() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getSchemas() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -1459,8 +1444,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     }
 
-    private java.sql.ResultSet getSchemasInternal(String catalog,
-            String schemaPattern) throws SQLException, SQLTimeoutException {
+    private java.sql.ResultSet getSchemasInternal(String catalog, String schemaPattern) throws SQLException {
 
         String s;
         // The schemas that return null for catalog name, these are prebuilt
@@ -1601,8 +1585,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
-        table = EscapeIDName(table);
-        schema = EscapeIDName(schema);
+        table = escapeIDName(table);
+        schema = escapeIDName(schema);
         /*
          * sp_table_privileges [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'table_owner' ] [ ,
          * [ @table_qualifier = ] 'table_qualifier' ] [ , [@fUsePattern =] 'fUsePattern']
@@ -1617,14 +1601,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getTableTypes() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getTableTypes() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         String s = "SELECT 'VIEW' 'TABLE_TYPE' UNION SELECT 'TABLE' UNION SELECT 'SYSTEM TABLE'";
-        SQLServerResultSet rs = getResultSetFromInternalQueries(null, s);
-        return rs;
+        return getResultSetFromInternalQueries(null, s);
     }
 
     @Override
@@ -1634,7 +1617,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getTypeInfo() throws SQLException, SQLTimeoutException {
+    public java.sql.ResultSet getTypeInfo() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -1682,7 +1665,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     && !name.equals(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString())) {
                 String val = info[index].value;
                 // skip empty strings
-                if (0 != val.length()) {
+                if (null != val && 0 != val.length()) {
                     // special case these server name, instance name and port
                     // number as these go in the front
                     if (name.equals(SQLServerDriverStringProperty.SERVER_NAME.toString())) {
@@ -1715,7 +1698,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         url.insert(0, serverName);
 
-        url.insert(0, urlprefix); // insert the prefix at the front.
+        url.insert(0, URL_PREFIX); // insert the prefix at the front.
         return (url.toString());
     }
 
@@ -2186,7 +2169,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public boolean supportsTransactions() throws SQLServerException {
         checkClosed();
-        return true;
+        return connection.supportsTransactions();
     }
 
     @Override
@@ -2381,7 +2364,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
-            int[] types) throws SQLException, SQLTimeoutException {
+            int[] types) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -2445,13 +2428,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public int getJDBCMajorVersion() throws SQLServerException {
         checkClosed();
-        return DriverJDBCVersion.major;
+        return DriverJDBCVersion.MAJOR;
     }
 
     @Override
     public int getJDBCMinorVersion() throws SQLServerException {
         checkClosed();
-        return DriverJDBCVersion.minor;
+        return DriverJDBCVersion.MINOR;
     }
 
     @Override
@@ -2483,7 +2466,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
-            String attributeNamePattern) throws SQLException, SQLTimeoutException {
+            String attributeNamePattern) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -2513,8 +2496,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public ResultSet getSuperTables(String catalog, String schemaPattern,
-            String tableNamePattern) throws SQLException, SQLTimeoutException {
+    public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
@@ -2527,8 +2509,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public ResultSet getSuperTypes(String catalog, String schemaPattern,
-            String typeNamePattern) throws SQLException, SQLTimeoutException {
+    public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }

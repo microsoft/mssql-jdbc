@@ -10,8 +10,11 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
@@ -19,7 +22,6 @@ import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.eclipse.gemini.blueprint.mock.MockBundleContext;
 import org.eclipse.gemini.blueprint.mock.MockServiceRegistration;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,6 +89,12 @@ public class DataFactoryTest extends AbstractTest {
         boolean correctClass = false;
         boolean correctName = false;
         boolean correctVersion = false;
+        String[] required_capabilities=new String[] {
+                DataSourceFactory.OSGI_JDBC_CAPABILITY_DRIVER,
+                DataSourceFactory.OSGI_JDBC_CAPABILITY_DATASOURCE,
+                DataSourceFactory.OSGI_JDBC_CAPABILITY_CONNECTIONPOOLDATASOURCE,
+                DataSourceFactory.OSGI_JDBC_CAPABILITY_XADATASOURCE};
+        boolean driverCap = false;
         SQLServerDriver driver = new SQLServerDriver();
 
         for (String key : propertyKeys) {
@@ -110,9 +118,18 @@ public class DataFactoryTest extends AbstractTest {
                         "Driver version mismatch. Expected: " + bundleDriverVer + ", Actual: " + actualDriverVer + ".",
                         bundleDriverVer.equals(actualDriverVer));
                 correctVersion = true;
+            }else if (key.equals(DataSourceFactory.OSGI_JDBC_CAPABILITY)) {
+                Object property = sr.getProperty(key);
+                if (property instanceof String[]) {
+                    Set<String> set = new HashSet<>(Arrays.asList( (String[]) property));
+                    for (String cap : required_capabilities) {
+                        assertTrue("Capability "+cap+" is missing!", set.contains(cap));
+                    }
+                }
+                driverCap=true;
             }
         }
-        assertTrue("Not all properties were checked.", correctClass && correctName && correctVersion);
+        assertTrue("Not all properties were checked.", correctClass && correctName && correctVersion && driverCap);
         DataSourceFactory dsf = bc.getService(sr);
         verifyFactoryNormalConnection(dsf);
         verifyFactoryPooledConnection(dsf);

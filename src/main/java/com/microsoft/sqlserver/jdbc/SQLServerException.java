@@ -66,7 +66,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
     static final int USER_ACCOUNT_LOCKED = 18486;
-    static java.util.logging.Logger exLogger = java.util.logging.Logger
+    static final java.util.logging.Logger exLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     // Facility for driver-specific error codes
@@ -115,22 +115,21 @@ public final class SQLServerException extends java.sql.SQLException {
 
         if (exLogger.isLoggable(Level.FINE))
             exLogger.fine("*** SQLException:" + id + " " + this.toString() + " " + errText);
-        if (bStack) {
-            if (exLogger.isLoggable(Level.FINE)) {
-                StringBuilder sb = new StringBuilder(100);
-                StackTraceElement st[] = this.getStackTrace();
-                for (StackTraceElement aSt : st)
-                    sb.append(aSt.toString());
-                Throwable t = this.getCause();
-                if (t != null) {
-                    sb.append("\n caused by ").append(t).append("\n");
-                    StackTraceElement tst[] = t.getStackTrace();
-                    for (StackTraceElement aTst : tst)
-                        sb.append(aTst.toString());
-                }
-                exLogger.fine(sb.toString());
+        if (bStack && exLogger.isLoggable(Level.FINE)) {
+            StringBuilder sb = new StringBuilder(100);
+            StackTraceElement[] st = this.getStackTrace();
+            for (StackTraceElement aSt : st)
+                sb.append(aSt.toString());
+            Throwable t = this.getCause();
+            if (t != null) {
+                sb.append("\n caused by ").append(t).append("\n");
+                StackTraceElement[] tst = t.getStackTrace();
+                for (StackTraceElement aTst : tst)
+                    sb.append(aTst.toString());
             }
+            exLogger.fine(sb.toString());
         }
+
         if (SQLServerException.getErrString("R_queryTimedOut").equals(errText)) {
             this.setDriverErrorCode(SQLServerException.ERROR_QUERY_TIMEOUT);
         }
@@ -276,7 +275,7 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     // This code is same as the conversion logic that previously existed in connecthelper.
-    static void ConvertConnectExceptionToSQLServerException(String hostName, int portNumber, SQLServerConnection conn,
+    static void convertConnectExceptionToSQLServerException(String hostName, int portNumber, SQLServerConnection conn,
             Exception ex) throws SQLServerException {
         Exception connectException = ex;
         // Throw the exception if exception was caught by code above (stored in connectException).
@@ -395,7 +394,7 @@ public final class SQLServerException extends java.sql.SQLException {
      * @return error string concatenated by ClientConnectionId(in string format) if applicable, otherwise, return
      *         original error string.
      */
-    static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) throws SQLServerException {
+    static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) {
         if (null != conn && conn.attachConnId()) {
             UUID clientConnId = conn.getClientConIdInternal();
             assert null != clientConnId;

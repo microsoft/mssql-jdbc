@@ -69,8 +69,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        boolean f = iface.isInstance(this);
-        return f;
+        return iface.isInstance(this);
     }
 
     @Override

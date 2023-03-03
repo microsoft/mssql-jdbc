@@ -235,6 +235,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
+     * Sets the value of the datetimeParameterType connection property, which controls how date and time parameters are sent to the server against SQL Server 2008+.
+     * This setting can affect server-side date conversions and comparisons during statement execution, particularly against SQL Server 2016+. By default, the value is set to "datetime2".
+     * Valid values are: datetime, datetime2 or datetimeoffset.
+     * 
+     * @param datetimeParameterTypeValue
+     *        The datatype to use when encoding Java dates into SQL Server. Valid values are:
+     *        datetime, datetime2 or datetimeoffset.
+     * 
+     * @throws SQLServerException
+     *         if a database access error occurs
+     */
+    void setDatetimeParameterType(String datetimeParameterTypeValue) throws SQLServerException;
+
+    /**
      * Returns the value of the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
@@ -243,6 +257,16 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs
      */
     boolean getSendTimeAsDatetime() throws SQLServerException;
+
+    /**
+     * Returns the value of the datetimeParameterType property.
+     * 
+     * @return The string value of the datetimeParameterType property.
+     * 
+     * @throws SQLServerException
+     *         if a database access error occurs
+     */
+    String getDatetimeParameterType() throws SQLServerException;
 
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
@@ -427,4 +451,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      */
     @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

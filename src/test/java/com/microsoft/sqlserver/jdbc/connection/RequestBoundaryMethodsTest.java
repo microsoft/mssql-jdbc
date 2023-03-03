@@ -463,6 +463,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setEnablePrepareOnFirstPreparedStatementCall");
         verifiedMethodNames.add("isClosed");
         verifiedMethodNames.add("setSendTimeAsDatetime");
+        verifiedMethodNames.add("setDatetimeParameterType");
         verifiedMethodNames.add("setStatementPoolingCacheSize");
         verifiedMethodNames.add("setDisableStatementPooling");
         verifiedMethodNames.add("setTransactionIsolation");
@@ -501,6 +502,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setIPAddressPreference");
         verifiedMethodNames.add("getMsiTokenCacheTtl");
         verifiedMethodNames.add("setMsiTokenCacheTtl");
+        verifiedMethodNames.add("getAccessTokenCallbackClass");
+        verifiedMethodNames.add("setAccessTokenCallbackClass");
         return verifiedMethodNames;
     }
 }

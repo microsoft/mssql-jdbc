@@ -242,7 +242,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setBytes(int parameterIndex, byte x[], boolean forceEncrypt) throws SQLServerException;
+    void setBytes(int parameterIndex, byte[] x, boolean forceEncrypt) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given String. The driver converts this to an SQL <code>GUID</code>

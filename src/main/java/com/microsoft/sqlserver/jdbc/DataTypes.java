@@ -1107,6 +1107,10 @@ enum JDBCType {
 
 
 final class DataTypes {
+    private DataTypes() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
+
     // ResultSet & CallableStatement getXXX conversions (SSType --> JDBCType)
     static final void throwConversionError(String fromType, String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
@@ -1179,12 +1183,10 @@ final class DataTypes {
             case NVARCHAR:
             case LONGNVARCHAR:
             case NCLOB:
-                // assert MAX_VARTYPE_MAX_CHARS == NTEXT_MAX_CHARS;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_CHARS;
                 break;
 
             default:
-                // assert MAX_VARTYPE_MAX_BYTES == IMAGE_TEXT_MAX_BYTES;
                 maxLength = DataTypes.MAX_VARTYPE_MAX_BYTES;
                 break;
         }

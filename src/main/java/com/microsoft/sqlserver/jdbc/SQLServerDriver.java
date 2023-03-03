@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.reflect.Method;
+import java.net.Socket;
+import java.net.SocketOption;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
@@ -68,7 +71,7 @@ enum SqlAuthentication {
     ACTIVE_DIRECTORY_MANAGED_IDENTITY("ActiveDirectoryManagedIdentity"),
     ACTIVE_DIRECTORY_SERVICE_PRINCIPAL("ActiveDirectoryServicePrincipal"),
     ACTIVE_DIRECTORY_INTERACTIVE("ActiveDirectoryInteractive"),
-    DEFAULT_AZURE_CREDENTIAL("DefaultAzureCredential");
+    ACTIVE_DIRECTORY_DEFAULT("ActiveDirectoryDefault");
 
     private final String name;
 
@@ -106,8 +109,8 @@ enum SqlAuthentication {
                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
             method = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.DEFAULT_AZURE_CREDENTIAL.toString())) {
-            method = SqlAuthentication.DEFAULT_AZURE_CREDENTIAL;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -430,7 +433,7 @@ enum ApplicationIntent {
     }
 
     static ApplicationIntent valueOfString(String value) throws SQLServerException {
-        ApplicationIntent applicationIntent = ApplicationIntent.READ_WRITE;
+        ApplicationIntent applicationIntent;
         assert value != null;
         // handling turkish i issues
         value = value.toUpperCase(Locale.US).toLowerCase(Locale.US);
@@ -445,6 +448,52 @@ enum ApplicationIntent {
         }
 
         return applicationIntent;
+    }
+}
+
+
+enum DatetimeType {
+    DATETIME("datetime"),
+    DATETIME2("datetime2"),
+    DATETIMEOFFSET("datetimeoffset");
+
+    // the value of the enum
+    private final String value;
+
+    /**
+     * Constructs a DatetimeType that sets the string value of the enum.
+     */
+    private DatetimeType(String value) {
+        this.value = value;
+    }
+
+    /**
+     * Returns the string value of enum.
+     */
+    @Override
+    public String toString() {
+        return value;
+    }
+
+    static DatetimeType valueOfString(String value) throws SQLServerException {
+        DatetimeType datetimeType;
+
+        assert value != null;
+
+        value = value.toLowerCase(Locale.US);
+        if (value.equalsIgnoreCase(DatetimeType.DATETIME.toString())) {
+            datetimeType = DatetimeType.DATETIME;
+        } else if (value.equalsIgnoreCase(DatetimeType.DATETIME2.toString())) {
+            datetimeType = DatetimeType.DATETIME2;
+        } else if (value.equalsIgnoreCase(DatetimeType.DATETIMEOFFSET.toString())) {
+            datetimeType = DatetimeType.DATETIMEOFFSET;
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDatetimeType"));
+            Object[] msgArgs = {value};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+
+        return datetimeType;
     }
 }
 
@@ -533,7 +582,7 @@ enum SQLServerDriverStringProperty {
     TRUST_MANAGER_CLASS("trustManagerClass", ""),
     TRUST_MANAGER_CONSTRUCTOR_ARG("trustManagerConstructorArg", ""),
     USER("user", ""),
-    WORKSTATION_ID("workstationID", Util.WSIDNotAvailable),
+    WORKSTATION_ID("workstationID", Util.WSID_NOT_AVAILABLE),
     AUTHENTICATION_SCHEME("authenticationScheme", AuthenticationScheme.NATIVE_AUTHENTICATION.toString()),
     AUTHENTICATION("authentication", SqlAuthentication.NOT_SPECIFIED.toString()),
     ACCESS_TOKEN("accessToken", ""),
@@ -555,7 +604,9 @@ enum SQLServerDriverStringProperty {
     AAD_SECURE_PRINCIPAL_SECRET("AADSecurePrincipalSecret", ""),
     MAX_RESULT_BUFFER("maxResultBuffer", "-1"),
     ENCRYPT("encrypt", EncryptOption.TRUE.toString()),
-    SERVER_CERTIFICATE("serverCertificate", "");
+    SERVER_CERTIFICATE("serverCertificate", ""),
+    DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
+    ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", "");
 
     private final String name;
     private final String defaultValue;
@@ -662,11 +713,12 @@ enum SQLServerDriverBooleanProperty {
 /**
  * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
  */
+@SuppressWarnings("unchecked")
 public final class SQLServerDriver implements java.sql.Driver {
-    static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
+    static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR
             + " for SQL Server";
-    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
-            + SQLJdbcVersion.patch + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.releaseExt;
+    static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
+            + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
 
     private static final String[] TRUE_FALSE = {"true", "false"};
@@ -782,11 +834,21 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.TRUST_MANAGER_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.toString(),
                     SQLServerDriverStringProperty.TRUST_MANAGER_CONSTRUCTOR_ARG.getDefaultValue(), false, null),
+            // Callback needs to be in list despite not being settable within connection string.
+            // The reason for this is for calls to mergeURLAndSuppliedProperties to work when setting the callback.
+            new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                    SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                    SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.getDefaultValue()), false,
                     TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DATETIME_DATATYPE.toString(),
+                    SQLServerDriverStringProperty.DATETIME_DATATYPE.getDefaultValue(), false,
+                    new String[] {DatetimeType.DATETIME.toString(), DatetimeType.DATETIME2.toString(),
+                            DatetimeType.DATETIMEOFFSET.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.USER.toString(),
                     SQLServerDriverStringProperty.USER.getDefaultValue(), true, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.WORKSTATION_ID.toString(),
@@ -876,19 +938,21 @@ public final class SQLServerDriver implements java.sql.Driver {
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES_PROPERTY_ONLY = {
             // default required available choices
             // property name value property (if appropriate)
+            new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.toString(),
+                    SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(),
                     SQLServerDriverStringProperty.ACCESS_TOKEN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverObjectProperty.GSS_CREDENTIAL.toString(),
                     SQLServerDriverObjectProperty.GSS_CREDENTIAL.getDefaultValue(), false, null),};
 
-    private static final String driverPropertiesSynonyms[][] = {
+    private static final String[][] driverPropertiesSynonyms = {
             {"database", SQLServerDriverStringProperty.DATABASE_NAME.toString()},
             {"userName", SQLServerDriverStringProperty.USER.toString()},
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
 
-    private static final String driverPropertyValuesSynonyms[][] = {
+    private static final String[][] driverPropertyValuesSynonyms = {
             {"ActiveDirectoryMSI", SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString()}};
 
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
@@ -896,6 +960,13 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     final private int instanceID; // Unique id for this instance.
     final private String traceID;
+
+    /**
+     * From jdk.net.ExtendedSocketOption for setting TCP keep-alive options
+     */
+    static Method socketSetOptionMethod = null;
+    static SocketOption<Integer> socketKeepIdleOption = null;
+    static SocketOption<Integer> socketKeepIntervalOption = null;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -927,6 +998,20 @@ public final class SQLServerDriver implements java.sql.Driver {
         } catch (SQLException e) {
             if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
+            }
+        }
+    }
+
+    // Check for jdk.net.ExtendedSocketOptions to set TCP keep-alive options for idle connection resiliency
+    static {
+        try {
+            socketSetOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+            socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+            socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
+            if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                drLogger.finer("KeepAlive extended socket options not supported on this platform.");
             }
         }
     }
@@ -997,6 +1082,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     // replace with the driver approved name
                     fixedup.setProperty(newname, val);
                 } else if ("gsscredential".equalsIgnoreCase(newname) && (props.get(name) instanceof GSSCredential)) {
+                    fixedup.put(newname, props.get(name));
+                } else if ("accessTokenCallback".equalsIgnoreCase(newname)
+                        && (props.get(name) instanceof SQLServerAccessTokenCallback)) {
                     fixedup.put(newname, props.get(name));
                 } else {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidpropertyValue"));
@@ -1126,14 +1214,14 @@ public final class SQLServerDriver implements java.sql.Driver {
             "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
 
     @Override
-    public java.sql.Connection connect(String Url, Properties suppliedProperties) throws SQLServerException {
+    public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
         SQLServerConnection result = null;
 
         if (loggerExternal.isLoggable(Level.FINE)) {
             loggerExternal.log(Level.FINE,
-                    "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor + "."
-                            + SQLJdbcVersion.patch + "." + SQLJdbcVersion.build + SQLJdbcVersion.releaseExt
+                    "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
+                            + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
@@ -1147,7 +1235,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         }
 
         // Merge connectProperties (from URL) and supplied properties from user.
-        Properties connectProperties = parseAndMergeProperties(Url, suppliedProperties);
+        Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
             result.connect(connectProperties, null);
@@ -1156,13 +1244,13 @@ public final class SQLServerDriver implements java.sql.Driver {
         return result;
     }
 
-    private Properties parseAndMergeProperties(String Url, Properties suppliedProperties) throws SQLServerException {
-        if (Url == null) {
+    private Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
+        if (url == null) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
 
         // Pull the URL properties into the connection properties
-        Properties connectProperties = Util.parseUrl(Url, drLogger);
+        Properties connectProperties = Util.parseUrl(url, drLogger);
         if (null == connectProperties)
             return null; // If we are the wrong driver dont throw an exception
 
@@ -1201,10 +1289,10 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     @Override
-    public DriverPropertyInfo[] getPropertyInfo(String Url, Properties Info) throws SQLServerException {
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
 
-        Properties connProperties = parseAndMergeProperties(Url, Info);
+        Properties connProperties = parseAndMergeProperties(url, info);
         // This means we are not the right driver throw an exception.
         if (null == connProperties)
             throw new SQLServerException(null, SQLServerException.getErrString("R_invalidConnection"), null, 0, false);
@@ -1225,15 +1313,15 @@ public final class SQLServerDriver implements java.sql.Driver {
     @Override
     public int getMajorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.major);
-        return SQLJdbcVersion.major;
+        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getMinorVersion() {
         loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.minor);
-        return SQLJdbcVersion.minor;
+        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        return SQLJdbcVersion.MINOR;
     }
 
     @Override

@@ -73,11 +73,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /** Currently active Stream Note only one stream can be active at a time */
     private transient Closeable activeStream;
 
-    // Internal function used in tracing
-    String getClassNameInternal() {
-        return "SQLServerCallableStatement";
-    }
-
     /** map */
     private Map<String, Integer> map = new ConcurrentHashMap<>();
 
@@ -184,6 +179,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return inOutParam[i - 1];
     }
 
+    @Override
     void startResults() {
         super.startResults();
         outParamIndex = -1;
@@ -192,6 +188,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         assert null == activeStream;
     }
 
+    @Override
     void processBatch() throws SQLServerException {
         processResults();
 
@@ -254,11 +251,15 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 super("ExecDoneHandler");
             }
 
+            @Override
             boolean onDone(TDSReader tdsReader) throws SQLServerException {
                 // Consume the done token and decide what to do with it...
                 StreamDone doneToken = new StreamDone();
                 doneToken.setFromTDS(tdsReader);
-                connection.getSessionRecovery().decrementUnprocessedResponseCount();
+
+                if (doneToken.isFinal()) {
+                    connection.getSessionRecovery().decrementUnprocessedResponseCount();
+                }
 
                 // If this is a non-final batch-terminating DONE token,
                 // then stop parsing the response now and set up for
@@ -297,6 +298,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 foundParam = false;
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 srv.setFromTDS(tdsReader);
                 foundParam = true;
@@ -352,8 +354,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // of sp_[cursor][prep]exec params.
             outParamIndex -= outParamIndexAdjustment;
             if ((outParamIndex < 0 || outParamIndex >= inOutParam.length) || (!inOutParam[outParamIndex].isOutput())) {
-                getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex + "; adjustment: "
-                        + outParamIndexAdjustment);
+                if (getStatementLogger().isLoggable(java.util.logging.Level.INFO)) {
+                    getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex
+                            + "; adjustment: " + outParamIndexAdjustment);
+                }
                 connection.throwInvalidTDS();
             }
 
@@ -532,7 +536,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -545,7 +552,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
-    @Deprecated
+    /**
+     * @deprecated
+     */
+    @Deprecated(since = "6.5.4")
     @Override
     public BigDecimal getBigDecimal(String parameterName, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1352,10 +1362,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         }
 
-        // @RETURN_VALUE will always be in the parameterNames map, so parameterNamesSize will always be at least of size 1.
-        // If the server didn't return anything (eg. the param names for the sproc), user might not have access.
-        // So, parameterNamesSize must be of size 1.
-        if (null != parameterNames && parameterNames.size() == 1) {
+        // If the server didn't return anything (eg. the param names for the sp_sproc_columns), user might not
+        // have required permissions to view all the parameterNames. And, there's also the case depending on the permissions,
+        // @RETURN_VALUE may or may not be present. So, the parameterNames list might have an additional +1 parameter.
+        if (null != parameterNames && parameterNames.size() <= 1) {
             return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
         }
 
