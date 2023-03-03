@@ -728,7 +728,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+                Statement stmt = connection.createStatement()) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
