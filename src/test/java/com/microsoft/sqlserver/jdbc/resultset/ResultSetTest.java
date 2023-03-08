@@ -293,6 +293,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testUpdateOnColumnForAssociatedTable() throws SQLException {
         String query1 = "SELECT t.* FROM " + tableName1 + " k INNER JOIN " + tableName2 + " t ON  t.i = k.i";
         String query2 = "SELECT * FROM " + tableName2;
@@ -318,6 +319,7 @@ public class ResultSetTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testErrorOnAmbiguousUpdate() throws SQLException {
         String query1 = "SELECT t.*, k.* FROM " + tableName1 + " k INNER JOIN " + tableName2 + " t ON  t.i = k.i";
         String data = "NEW EDIT";
