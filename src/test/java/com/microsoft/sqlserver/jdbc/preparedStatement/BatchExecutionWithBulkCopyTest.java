@@ -721,6 +721,45 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testReverseColumnOrder() throws Exception {
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c2, c1) values "
+                + "(" + "?, " + "? " + ")";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = connection.createStatement()) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1 varchar(1), c2 varchar(3))";
+            stmt.execute(createTable);
+
+            pstmt.setString(1, "One");
+            pstmt.setString(2, "1");
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            try (ResultSet rs = stmt
+                    .executeQuery("select c1, c2 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+
+                Object[] expected = new Object[2];
+
+                expected[0] = "1";
+                expected[1] = "One";
+                rs.next();
+
+                for (int i = 0; i < expected.length; i++) {
+                    assertEquals(expected[i], rs.getObject(i + 1));
+                }
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();

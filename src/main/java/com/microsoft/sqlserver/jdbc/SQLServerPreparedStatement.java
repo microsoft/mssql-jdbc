@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -2087,6 +2088,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
+                        Map<Integer, Integer> columnMappings = null;
                         if (null != columnList && !columnList.isEmpty()) {
                             if (columnList.size() != valueList.size()) {
 
@@ -2095,6 +2097,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 Object[] msgArgs = {columnList.size(), valueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
+                            columnMappings = new HashMap<>(columnList.size());
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
                                 MessageFormat form = new MessageFormat(
@@ -2118,8 +2121,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
-                                    ti.getScale());
+                            if (null != columnList && columnList.size() > 0) {
+                                int columnIndex = columnList.indexOf(c.getColumnName());
+                                if (columnIndex > -1) {
+                                    columnMappings.put(columnIndex + 1, i);
+                                    batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
+                                            ti.getPrecision(), ti.getScale());
+                                }
+                            } else {
+                                batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                        ti.getScale());
+                            }
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2127,6 +2139,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         option.setBulkCopyTimeout(queryTimeout);
                         bcOperation.setBulkCopyOptions(option);
                         bcOperation.setDestinationTableName(tableName);
+                        if (columnMappings != null) {
+                            for (Entry<Integer, Integer> pair : columnMappings.entrySet()) {
+                                bcOperation.addColumnMapping(pair.getKey(), pair.getValue());
+                            }
+                        }
                         bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                         bcOperation.setDestinationTableMetadata(rs);
                         bcOperation.writeToServer(batchRecord);
