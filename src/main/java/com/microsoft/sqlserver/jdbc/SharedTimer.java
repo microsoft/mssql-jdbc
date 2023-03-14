@@ -111,20 +111,16 @@ class SharedTimer implements Serializable {
      * When the caller is finished with the SharedTimer it must be released via {@link#removeRef}
      */
     public static SharedTimer getTimer() {
-        SharedTimer result = instance;
-        if (result == null) {
-            LOCK.lock();
-            try {
-                result = instance;
-                if (result == null) {
-                    instance = result = new SharedTimer();
-                }
-            } finally {
-                LOCK.unlock();
+        LOCK.lock();
+        try {
+            if (instance == null) {
+                instance = new SharedTimer();
             }
+            instance.refCount.getAndIncrement();
+        } finally {
+            LOCK.unlock();
         }
-        result.refCount.getAndIncrement();
-        return result;
+        return instance;
     }
 
     /**
