@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.2.0] Stable Release
 ### Added
-- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters  [1590](https://github.com/microsoft/mssql-jdbc/pull/1590)
+- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters  [1687](https://github.com/microsoft/mssql-jdbc/pull/1687)
 
 ### Changed
 - Renamed driver DefaultAzureCredential authentication to ActiveDirectoryDefault [2055](https://github.com/microsoft/mssql-jdbc/pull/2055)
