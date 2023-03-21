@@ -23,6 +23,7 @@ public final class Constants {
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
+     * xUnix - - - - - - - For tests not compatible with Unix platforms
      * NTLM  - - - - - - - For NTLM tests
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
@@ -38,6 +39,7 @@ public final class Constants {
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
+    public static final String xUnix = "xUnix";
     public static final String NTLM = "NTLM";
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";

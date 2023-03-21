@@ -5,7 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
+import java.util.Date;
+import java.util.UUID;
 import java.util.logging.Level;
 
 
@@ -58,15 +65,57 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 throw new UnsatisfiedLinkError();
             }
             enabled = true;
-        } catch (UnsatisfiedLinkError e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadAuthDll"));
-            temp = new UnsatisfiedLinkError(form.format(new Object[] {SQLServerDriver.AUTH_DLL_NAME}));
-            // This is not re-thrown on purpose - the constructor will terminate the properly with the appropriate error
-            // string
+        } catch (UnsatisfiedLinkError ue) {
+            // If os is windows, attempt to extract and load the DLL packaged with the driver
+            if (SQLServerConnection.isWindows) {
+
+                String tempDirectory = System.getProperty("java.io.tmpdir") + "mssql-jdbc-auth\\";
+                File outputDLL = new File(tempDirectory + UUID.randomUUID() + "-" + new Date().getTime() + ".dll");
+
+                try {
+                    Files.createDirectories(Paths.get(tempDirectory));
+
+                    byte[] buffer = new byte[1024];
+                    try (InputStream is = AuthenticationJNI.class.getResourceAsStream("/mssql-jdbc_auth.dll")) {
+                        try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
+                            int read = -1;
+                            while ((read = is.read(buffer)) != -1) {
+                                fos.write(buffer, 0, read);
+                            }
+                        }
+                    }
+
+                    System.load(outputDLL.getAbsolutePath());
+
+                    int[] pkg = new int[1];
+                    pkg[0] = 0;
+                    if (0 == SNISecInitPackage(pkg, authLogger)) {
+                        sspiBlobMaxlen = pkg[0];
+                    } else {
+                        throw new UnsatisfiedLinkError();
+                    }
+
+                    enabled = true;
+
+                } catch (Exception e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadAuthDll"));
+                    temp = new UnsatisfiedLinkError(form.format(new Object[] {outputDLL.getName()}));
+                } finally {
+                    Runtime.getRuntime().addShutdownHook(cleanup(tempDirectory));
+                }
+            }
+
+            // If temp is still null and DLL is still not enabled, we attempted to load the DLL manually and failed
+            if (null == temp && !enabled) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableLoadAuthDll"));
+                temp = new UnsatisfiedLinkError(form.format(new Object[] {SQLServerDriver.AUTH_DLL_NAME}));
+            }
+
+            // The errors above are not re-thrown on purpose - the constructor will terminate properly with the appropriate error string
+
         } finally {
             linkError = temp;
         }
-
     }
 
     AuthenticationJNI(SQLServerConnection con, String address, int serverport) throws SQLServerException {
@@ -133,6 +182,18 @@ final class AuthenticationJNI extends SSPIAuthentication {
             dns[0] = address;
         }
         return dns[0];
+    }
+
+    private static Thread cleanup(String dllDirectory) {
+        return new Thread(() -> {
+            File[] files = new File(dllDirectory).listFiles();
+
+            if (null != files) {
+                for (File dll : files) {
+                    dll.delete();
+                }
+            }
+        });
     }
 
     // we use arrays of size one in many places to retrieve output values

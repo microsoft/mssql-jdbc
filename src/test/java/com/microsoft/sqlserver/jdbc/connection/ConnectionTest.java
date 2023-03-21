@@ -8,7 +8,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.Constants;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -67,6 +69,22 @@ public class ConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidIPAddressPreference")));
         }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    @Tag(Constants.xUnix)
+    public void testConnectionWithIntegratedSecurityWhenAuthDLLIsNotProvided() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setUser("");
+        ds.setPassword("");
+        ds.setIntegratedSecurity(true);
+
+        // Driver should use packaged auth DLL
+        try (Connection con = ds.getConnection()) {}
     }
 
 }

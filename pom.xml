@@ -294,6 +294,11 @@
 						</configuration>
 					</plugin>
 				</plugins>
+				<resources>
+					<resource>
+						<directory>src/main/resources</directory>
+					</resource>
+				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -327,6 +332,11 @@
 						</configuration>
 					</plugin>
 				</plugins>
+				<resources>
+					<resource>
+						<directory>src/main/resources</directory>
+					</resource>
+				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -360,6 +370,11 @@
 						</configuration>
 					</plugin>
 				</plugins>
+				<resources>
+					<resource>
+						<directory>src/main/resources</directory>
+					</resource>
+				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -396,6 +411,11 @@
 						</configuration>
 					</plugin>
 				</plugins>
+				<resources>
+					<resource>
+						<directory>src/main/resources</directory>
+					</resource>
+				</resources>
 			</build>
 		</profile>
 	</profiles>
