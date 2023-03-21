@@ -78,7 +78,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     byte[] buffer = new byte[1024];
                     try (InputStream is = AuthenticationJNI.class.getResourceAsStream("/mssql-jdbc_auth.dll")) {
                         try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
-                            int read = -1;
+                            int read;
                             while ((read = is.read(buffer)) != -1) {
                                 fos.write(buffer, 0, read);
                             }
@@ -190,6 +190,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
             if (null != files) {
                 for (File dll : files) {
+                    // If DLL is still loaded and in use, deletion will fail. So, it is safe
+                    // to iterate and delete all files.
                     dll.delete();
                 }
             }
