@@ -58,7 +58,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
         try {
             System.loadLibrary(SQLServerDriver.AUTH_DLL_NAME);
             int[] pkg = new int[1];
-            pkg[0] = 0;
+
             if (0 == SNISecInitPackage(pkg, authLogger)) {
                 sspiBlobMaxlen = pkg[0];
             } else {
@@ -69,18 +69,21 @@ final class AuthenticationJNI extends SSPIAuthentication {
             // If os is windows, attempt to extract and load the DLL packaged with the driver
             if (SQLServerConnection.isWindows) {
 
-                String tempDirectory = System.getProperty("java.io.tmpdir") + "mssql-jdbc-auth\\";
+                String tempDirectory = System.getProperty("java.io.tmpdir") + SQLServerDriver.DLL_NAME + "\\";
                 File outputDLL = new File(tempDirectory + UUID.randomUUID() + "-" + new Date().getTime() + ".dll");
 
                 try {
                     Files.createDirectories(Paths.get(tempDirectory));
 
                     byte[] buffer = new byte[1024];
-                    try (InputStream is = AuthenticationJNI.class.getResourceAsStream("/mssql-jdbc_auth." + Util.getJVMArchOnWindows() + ".dll")) {
+                    try (InputStream is = AuthenticationJNI.class.getResourceAsStream(
+                            "/" + SQLServerDriver.DLL_NAME + "." + Util.getJVMArchOnWindows() + ".dll")) {
                         try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
                             int read;
-                            while ((read = is.read(buffer)) != -1) {
-                                fos.write(buffer, 0, read);
+                            if (is != null) {
+                                while ((read = is.read(buffer)) != -1) {
+                                    fos.write(buffer, 0, read);
+                                }
                             }
                         }
                     }
@@ -88,7 +91,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     System.load(outputDLL.getAbsolutePath());
 
                     int[] pkg = new int[1];
-                    pkg[0] = 0;
+
                     if (0 == SNISecInitPackage(pkg, authLogger)) {
                         sspiBlobMaxlen = pkg[0];
                     } else {
@@ -111,7 +114,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
                 temp = new UnsatisfiedLinkError(form.format(new Object[] {SQLServerDriver.AUTH_DLL_NAME}));
             }
 
-            // The errors above are not re-thrown on purpose - the constructor will terminate properly with the appropriate error string
+            // The errors above are not re-thrown on purpose - the constructor will terminate properly
+            // with the appropriate error string
 
         } finally {
             linkError = temp;
