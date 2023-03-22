@@ -76,7 +76,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     Files.createDirectories(Paths.get(tempDirectory));
 
                     byte[] buffer = new byte[1024];
-                    try (InputStream is = AuthenticationJNI.class.getResourceAsStream("/mssql-jdbc_auth.dll")) {
+                    try (InputStream is = AuthenticationJNI.class.getResourceAsStream("/mssql-jdbc_auth." + Util.getJVMArchOnWindows() + ".dll")) {
                         try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
                             int read;
                             while ((read = is.read(buffer)) != -1) {
