@@ -128,6 +128,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean useBulkCopyForBatchInsert;
 
+    /** Returns the prepared statement SQL */
+    @Override
+    public String toString() {
+        return "sp_executesql SQL: " + preparedSQL;
+    }
+
     /**
      * Returns the prepared statement's useBulkCopyForBatchInsert value.
      * 
