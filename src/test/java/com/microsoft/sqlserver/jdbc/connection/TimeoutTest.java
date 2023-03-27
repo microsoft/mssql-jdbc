@@ -442,6 +442,25 @@ public class TimeoutTest extends AbstractTest {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
     }
+    
+    /**
+     * Tests failover on socketTimeout. Because FailOverPartner is defined we expect connection to retry, fail on 
+     * partner connect, and retry again leading to 'read timed out'
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testSocketTimeoutWithFailover() throws Exception {
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
+                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
+         } catch (Exception e) {
+            if (!(e instanceof SQLException)) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            }
+            assertTrue((e.getMessage().contains(TestResource.getResource("R_readTimedOut"))));
+        }
+    }
 
     private static void dropWaitForDelayProcedure(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
