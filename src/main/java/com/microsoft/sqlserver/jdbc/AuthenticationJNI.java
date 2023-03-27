@@ -86,7 +86,7 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
                     int[] pkg = new int[1];
 
-                    if (1 == SNISecInitPackage(pkg, authLogger)) {
+                    if (0 == SNISecInitPackage(pkg, authLogger)) {
                         sspiBlobMaxlen = pkg[0];
                     } else {
                         throw new UnsatisfiedLinkError(SQLServerException.getErrString("R_UnableToLoadPackagedAuthDll"));

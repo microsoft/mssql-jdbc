@@ -61,9 +61,6 @@
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 
-		<!-- Resources directory -->
-		<resources.directory>src/main/resources</resources.directory>
-
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
 		<azure-security-keyvault-keys.version>4.5.3</azure-security-keyvault-keys.version>
@@ -297,11 +294,6 @@
 						</configuration>
 					</plugin>
 				</plugins>
-				<resources>
-					<resource>
-						<directory>${resources.directory}</directory>
-					</resource>
-				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -335,11 +327,6 @@
 						</configuration>
 					</plugin>
 				</plugins>
-				<resources>
-					<resource>
-						<directory>${resources.directory}</directory>
-					</resource>
-				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -373,11 +360,6 @@
 						</configuration>
 					</plugin>
 				</plugins>
-				<resources>
-					<resource>
-						<directory>${resources.directory}</directory>
-					</resource>
-				</resources>
 			</build>
 		</profile>
 		<profile>
@@ -414,11 +396,7 @@
 						</configuration>
 					</plugin>
 				</plugins>
-				<resources>
-					<resource>
-						<directory>${resources.directory}</directory>
-					</resource>
-				</resources>
+
 			</build>
 		</profile>
 	</profiles>
@@ -429,6 +407,9 @@
 				<includes>
 					<include>META-INF/services/java.sql.Driver</include>
 				</includes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
 			</resource>
 		</resources>
 		<testResources>
