@@ -510,6 +510,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
+        {"R_UnableToLoadPackagedAuthDll", "Unable to load authentication DLL packaged with driver."},
+        {"R_UnableToLoadAuthDllManually", "Unable to load authentication DLL specified by VM argument java.library.path. Failed to load auth DLL with name {0}."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},

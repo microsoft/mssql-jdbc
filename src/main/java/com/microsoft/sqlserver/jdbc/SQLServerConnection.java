@@ -5720,8 +5720,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
                 // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
-                        && AuthenticationJNI.isDllLoaded()) {
+                if (isWindows && AuthenticationJNI.isDllLoaded) {
                     try {
                         FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
                                 fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),

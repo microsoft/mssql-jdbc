@@ -61,6 +61,9 @@
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 
+		<!-- Resources directory -->
+		<resources.directory>src/main/resources</resources.directory>
+
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
 		<azure-security-keyvault-keys.version>4.5.3</azure-security-keyvault-keys.version>
@@ -296,7 +299,7 @@
 				</plugins>
 				<resources>
 					<resource>
-						<directory>src/main/resources</directory>
+						<directory>${resources.directory}</directory>
 					</resource>
 				</resources>
 			</build>
@@ -334,7 +337,7 @@
 				</plugins>
 				<resources>
 					<resource>
-						<directory>src/main/resources</directory>
+						<directory>${resources.directory}</directory>
 					</resource>
 				</resources>
 			</build>
@@ -372,7 +375,7 @@
 				</plugins>
 				<resources>
 					<resource>
-						<directory>src/main/resources</directory>
+						<directory>${resources.directory}</directory>
 					</resource>
 				</resources>
 			</build>
@@ -413,7 +416,7 @@
 				</plugins>
 				<resources>
 					<resource>
-						<directory>src/main/resources</directory>
+						<directory>${resources.directory}</directory>
 					</resource>
 				</resources>
 			</build>

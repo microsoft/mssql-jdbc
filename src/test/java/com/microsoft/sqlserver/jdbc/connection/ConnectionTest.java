@@ -75,8 +75,8 @@ public class ConnectionTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLMI)
-    @Tag(Constants.xUnix)
     public void testConnectionWithIntegratedSecurityWhenAuthDLLIsNotProvided() throws SQLException {
+        org.junit.Assume.assumeTrue(isWindows);
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setUser("");
