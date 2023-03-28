@@ -286,6 +286,31 @@ public class TimeoutTest extends AbstractTest {
 
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
+    
+    /**
+     * Tests failover on socketTimeout. Because FailOverPartner is defined we expect connection to retry, fail on 
+     * partner connect, and retry again leading to 'read timed out'
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testFailoverInstanceResolutionWithSocketTimeout() throws Exception {
+        long timerEnd = 0;
+        long timerStart = System.currentTimeMillis();
+        
+        try (Connection conn = PrepUtil.getConnection(connectionString
+                 + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
+                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+            if (!(e instanceof SQLException)) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            }
+
+            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds * 2);
+        }
+    }
 
     private void verifyTimeout(long timeDiff, int timeout) {
         // Verify that login timeout does not take longer than <timeout * 2> seconds.
@@ -440,26 +465,6 @@ public class TimeoutTest extends AbstractTest {
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-        }
-    }
-    
-    /**
-     * Tests failover on socketTimeout. Because FailOverPartner is defined we expect connection to retry, fail on 
-     * partner connect, and retry again leading to 'read timed out'
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void testSocketTimeoutWithFailover() throws Exception {
-        try (Connection conn = PrepUtil.getConnection(
-                connectionString + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
-         } catch (Exception e) {
-            if (!(e instanceof SQLException)) {
-                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-            }
-            System.out.println(e.getMessage());
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_readTimedOut"))));
         }
     }
 
