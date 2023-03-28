@@ -967,8 +967,9 @@ public final class SQLServerDriver implements java.sql.Driver {
     static Method socketSetOptionMethod = null;
     static SocketOption<Integer> socketKeepIdleOption = null;
     static SocketOption<Integer> socketKeepIntervalOption = null;
+    static SocketOption<Boolean> socketTcpQuickAck = null;
 
-    // Returns unique id for each instance.
+            // Returns unique id for each instance.
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
@@ -1009,6 +1010,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
             socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
             socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+            socketTcpQuickAck = (SocketOption<Boolean>) clazz.getDeclaredField("TCP_QUICKACK").get(null);
+
         } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
             if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 drLogger.finer("KeepAlive extended socket options not supported on this platform.");

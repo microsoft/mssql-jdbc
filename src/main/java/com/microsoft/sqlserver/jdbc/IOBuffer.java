@@ -745,6 +745,7 @@ final class TDSChannel implements Serializable {
 
                 SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIdleOption, 30); // 30 seconds
                 SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIntervalOption, 1); // 1 second
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketTcpQuickAck, true); // disable delayed ack
             }
         } catch (IllegalAccessException | InvocationTargetException e) {
             if (logger.isLoggable(Level.FINER)) {
