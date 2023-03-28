@@ -2918,7 +2918,7 @@ final class SocketFinder {
                 SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
                         this);
                 socketConnectors.add(socketConnector);
-                s.close();
+                //s.close();
             }
 
             // acquire parent lock and spawn all threads
