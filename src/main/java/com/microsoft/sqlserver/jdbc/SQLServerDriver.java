@@ -969,7 +969,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     static SocketOption<Integer> socketKeepIntervalOption = null;
     static SocketOption<Boolean> socketTcpQuickAck = null;
 
-            // Returns unique id for each instance.
+    // Returns unique id for each instance.
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
     }
