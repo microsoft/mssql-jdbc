@@ -75,9 +75,12 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     try (InputStream is = AuthenticationJNI.class.getResourceAsStream(
                             "/" + SQLServerDriver.DLL_NAME + "." + Util.getJVMArchOnWindows() + ".dll")) {
                         try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
-                            if (null != is) {
-                                byte[] bytes = is.readAllBytes();
-                                fos.write(bytes, 0, bytes.length);
+                            if (is != null) {
+                                int length = is.available();
+                                byte[] buffer = new byte[length];
+                                if ((length = is.read(buffer)) != -1) {
+                                    fos.write(buffer, 0, length);
+                                }
                             }
                         }
                     }
