@@ -288,8 +288,7 @@ public class TimeoutTest extends AbstractTest {
     }
     
     /**
-     * Tests failover on socketTimeout. Because FailOverPartner is defined we expect connection to retry, fail on 
-     * partner connect, and retry again leading to 'read timed out'
+     * Tests that failover is still used with socket timeout by measuring timing during a socket timeout.
      * 
      * @throws Exception
      */
