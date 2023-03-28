@@ -458,6 +458,7 @@ public class TimeoutTest extends AbstractTest {
             if (!(e instanceof SQLException)) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             }
+            System.out.println(e.getMessage());
             assertTrue((e.getMessage().contains(TestResource.getResource("R_readTimedOut"))));
         }
     }
