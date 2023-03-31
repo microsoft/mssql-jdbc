@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.lang.management.ManagementFactory;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -933,7 +934,54 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
-
+    
+    /**
+     * Test thread count when finding socket using threading.
+     *
+     * @throws InterruptedException
+     *         If any thread has interrupted the current thread..
+     */
+    @Test
+    @Tag("slow")
+    public void testThreadCountWhenFindingSocket() throws InterruptedException {
+        ExecutorService executor = null;
+        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
+        
+        try {
+            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
+            executor.submit(() -> {
+                try {
+                    SQLServerDataSource ds = new SQLServerDataSource();
+                    ds.setServerName("localhost");
+                    Thread.sleep(5000);
+                    Connection conn2 = ds.getConnection();
+                } catch (Exception e) {
+                    if (!(e instanceof SQLServerException)) {
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                    }
+                }
+            });
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName("localhost");
+            Connection conn = ds.getConnection();
+            Thread.sleep(5000);
+        } catch (Exception e) {
+            if (!(e instanceof SQLServerException)) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        } finally {
+            executor.shutdownNow();
+            Thread.sleep(20000);
+        }
+        
+        // At this point, thread count has returned to normal. If the peak was more
+        // than 3 times the current, this is an issue and the test should fail.
+        int acceptableMax = 3 * ManagementFactory.getThreadMXBean().getThreadCount();
+        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
+            fail(TestResource.getResource("R_unexpectedThreadCount"));
+        }
+    }
+    
     /**
      * Test calling method to get redirected server string.
      */

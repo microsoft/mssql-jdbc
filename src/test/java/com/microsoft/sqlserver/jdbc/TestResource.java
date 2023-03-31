@@ -202,5 +202,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
             {"R_connectTimedOut", "connect timed out"},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
-            {"R_failedFedauth", "Failed to acquire fedauth token: "}};
+            {"R_failedFedauth", "Failed to acquire fedauth token: "},
+            {"R_unexpectedThreadCount", "Thread count is higher than expected."}};
 }
