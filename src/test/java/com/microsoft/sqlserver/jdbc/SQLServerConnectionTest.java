@@ -942,7 +942,6 @@ public class SQLServerConnectionTest extends AbstractTest {
      *         If any thread has interrupted the current thread..
      */
     @Test
-    @Tag("slow")
     public void testThreadCountWhenFindingSocket() throws InterruptedException {
         ExecutorService executor = null;
         ManagementFactory.getThreadMXBean().resetPeakThreadCount();
@@ -952,9 +951,9 @@ public class SQLServerConnectionTest extends AbstractTest {
             executor.submit(() -> {
                 try {
                     SQLServerDataSource ds = new SQLServerDataSource();
-                    ds.setServerName("localhost");
+                    ds.setServerName(RandomUtil.getIdentifier("Server"));
                     Thread.sleep(5000);
-                    Connection conn2 = ds.getConnection();
+                    try (Connection conn2 = ds.getConnection()){}
                 } catch (Exception e) {
                     if (!(e instanceof SQLServerException)) {
                         fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
@@ -962,8 +961,8 @@ public class SQLServerConnectionTest extends AbstractTest {
                 }
             });
             SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setServerName("localhost");
-            Connection conn = ds.getConnection();
+            ds.setServerName(RandomUtil.getIdentifier("Server"));
+            try (Connection conn = ds.getConnection()){}
             Thread.sleep(5000);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
