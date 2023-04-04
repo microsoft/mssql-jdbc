@@ -2910,15 +2910,15 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                Socket s = getSocketFactory().createSocket();
-                sockets.add(s);
+                try (Socket s = getSocketFactory().createSocket()) {
+                    sockets.add(s);
 
-                InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
+                    InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
 
-                SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
-                        this);
-                socketConnectors.add(socketConnector);
-                s.close();
+                    SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
+                            this);
+                    socketConnectors.add(socketConnector);
+                }
             }
 
             // acquire parent lock and spawn all threads
