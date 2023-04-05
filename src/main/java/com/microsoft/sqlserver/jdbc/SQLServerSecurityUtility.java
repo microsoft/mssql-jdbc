@@ -407,17 +407,29 @@ class SQLServerSecurityUtility {
                     Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
 
                     int startIndex_ATX;
+                    long accessTokenExpiry;
+                    Date expiryDate;
 
-                    // Fetch expires_in (this is in seconds)
-                    startIndex_ATX = result
-                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                    int expiryInIndex = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER);
 
-                    String accessTokenExpiry = result.substring(startIndex_ATX,
-                            result.indexOf("\"", startIndex_ATX + 1));
-                    cal.add(Calendar.SECOND, Integer.parseInt(accessTokenExpiry));
+                    if (expiryInIndex == -1) {
+                        startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+                        expiryDate = new Date(accessTokenExpiry * 1000);
+                    } else {
+                        startIndex_ATX = expiryInIndex
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
 
-                    return new SqlFedAuthToken(accessToken, cal.getTime());
+                        expiryDate = new Date(System.currentTimeMillis() + (accessTokenExpiry * 1000));
+                    }
+
+                    return new SqlFedAuthToken(accessToken, expiryDate);
                 }
             } catch (Exception e) {
                 retry++;
