@@ -404,8 +404,6 @@ class SQLServerSecurityUtility {
 
                     String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
 
-                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
-
                     int startIndex_ATX;
                     long accessTokenExpiry;
                     Date expiryDate;
