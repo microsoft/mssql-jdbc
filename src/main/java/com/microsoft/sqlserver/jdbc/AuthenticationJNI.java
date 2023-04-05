@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -51,7 +50,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     static {
         UnsatisfiedLinkError temp = null;
-        // Load the DLL
+
+        // Load the DLL in java.library.path
         try {
             System.loadLibrary(SQLServerDriver.AUTH_DLL_NAME);
             int[] pkg = new int[1];
@@ -59,7 +59,8 @@ final class AuthenticationJNI extends SSPIAuthentication {
             if (0 == SNISecInitPackage(pkg, authLogger)) {
                 sspiBlobMaxlen = pkg[0];
             } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToLoadAuthDllManually"));
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_UnableToLoadAuthDllManually"));
                 throw new UnsatisfiedLinkError(form.format(new Object[] {SQLServerDriver.AUTH_DLL_NAME}));
             }
             isDllLoaded = true;
@@ -71,16 +72,32 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
                 try {
                     Files.createDirectories(Paths.get(tempDirectory));
+                    if (authLogger.isLoggable(Level.FINEST)) {
+                        authLogger.finest("DLL extracted to: " + outputDLL.getAbsolutePath());
+                    }
 
                     try (InputStream is = AuthenticationJNI.class.getResourceAsStream(
                             "/" + SQLServerDriver.DLL_NAME + "." + Util.getJVMArchOnWindows() + ".dll")) {
+
                         try (FileOutputStream fos = new FileOutputStream(outputDLL)) {
                             if (is != null) {
                                 int length = is.available();
                                 byte[] buffer = new byte[length];
-                                if ((length = is.read(buffer)) != -1) {
-                                    fos.write(buffer, 0, length);
-                                }
+
+                                // length may not be returned all at once so a loop is required
+                                int pos = 0;
+                                do {
+                                    int b = is.read(buffer, pos, length - pos);
+                                    if (b == -1) {
+                                        break;
+                                    } else {
+                                        fos.write(buffer, pos, b);
+                                        pos += b;
+                                    }
+                                } while (pos < length);
+                            } else {
+                                throw new UnsatisfiedLinkError(
+                                        SQLServerException.getErrString("R_UnableToLoadPackagedAuthDll"));
                             }
                         }
                     }
@@ -88,19 +105,18 @@ final class AuthenticationJNI extends SSPIAuthentication {
                     System.load(outputDLL.getAbsolutePath());
 
                     int[] pkg = new int[1];
-
                     if (0 == SNISecInitPackage(pkg, authLogger)) {
                         sspiBlobMaxlen = pkg[0];
                     } else {
-                        throw new UnsatisfiedLinkError(SQLServerException.getErrString("R_UnableToLoadPackagedAuthDll"));
+                        throw new UnsatisfiedLinkError(
+                                SQLServerException.getErrString("R_UnableToLoadPackagedAuthDll"));
                     }
 
                     isDllLoaded = true;
-
-                } catch (UnsatisfiedLinkError e) {
-                    temp = e; // R_UnableToLoadPackagedAuthDll
-                } catch (IOException ioe) {
-                    temp = new UnsatisfiedLinkError(ioe.getMessage());
+                } catch (UnsatisfiedLinkError ule) {
+                    temp = ule; // R_UnableToLoadPackagedAuthDll
+                } catch (Exception e) {
+                    temp = new UnsatisfiedLinkError(e.getMessage());
                 } finally {
                     Runtime.getRuntime().addShutdownHook(cleanup(tempDirectory));
                 }
