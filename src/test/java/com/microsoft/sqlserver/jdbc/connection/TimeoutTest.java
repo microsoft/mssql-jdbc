@@ -307,7 +307,7 @@ public class TimeoutTest extends AbstractTest {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             }
 
-            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds * 2);
+            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds);
         }
     }
 
