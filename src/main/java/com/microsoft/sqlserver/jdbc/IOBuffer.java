@@ -2383,7 +2383,7 @@ final class SocketFinder {
 
     // Thread pool - the values in the constructor are chosen based on the
     // explanation given in design_connection_director_multisubnet.doc
-    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 5,
+    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, 20, 5,
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
@@ -2910,15 +2910,14 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                try (Socket s = getSocketFactory().createSocket()) {
-                    sockets.add(s);
+                Socket s = getSocketFactory().createSocket();
+                sockets.add(s);
 
-                    InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
+                InetSocketAddress inetSocketAddress = new InetSocketAddress(inetAddress, portNumber);
 
-                    SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
-                            this);
-                    socketConnectors.add(socketConnector);
-                }
+                SocketConnector socketConnector = new SocketConnector(s, inetSocketAddress, timeoutInMilliSeconds,
+                        this);
+                socketConnectors.add(socketConnector);
             }
 
             // acquire parent lock and spawn all threads
