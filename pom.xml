@@ -377,7 +377,6 @@
 						</configuration>
 					</plugin>
 				</plugins>
-
 			</build>
 		</profile>
 	</profiles>
@@ -388,9 +387,6 @@
 				<includes>
 					<include>META-INF/services/java.sql.Driver</include>
 				</includes>
-			</resource>
-			<resource>
-				<directory>src/main/resources</directory>
 			</resource>
 		</resources>
 		<testResources>
