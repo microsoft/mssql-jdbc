@@ -2383,7 +2383,7 @@ final class SocketFinder {
 
     // Thread pool - the values in the constructor are chosen based on the
     // explanation given in design_connection_director_multisubnet.doc
-    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, 20, 5,
+    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 5,
             TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
 
     // When parallel connections are to be used, use minimum timeout slice of 1500 milliseconds.
@@ -2954,7 +2954,11 @@ final class SocketFinder {
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
 
-                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+                    try { 
+                        parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS); 
+                    } catch (InterruptedException ie) { 
+                        // TODO: Manage
+                    }
 
                     if (logger.isLoggable(Level.FINER)) {
                         logger.finer(this.toString() + " The parent thread wokeup.");
