@@ -419,19 +419,31 @@ class SQLServerSecurityUtility {
 
                     String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
 
-                    Calendar cal = new Calendar.Builder().setInstant(new Date()).build();
-
                     int startIndex_ATX;
+                    long accessTokenExpiry;
+                    Date expiryDate;
 
-                    // Fetch expires_in (this is in seconds)
-                    startIndex_ATX = result
-                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER)
-                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                    int expiryInIndex = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER);
 
-                    int accessTokenExpiry = Integer
-                            .parseInt(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
-                    cal.add(Calendar.SECOND, accessTokenExpiry);
-                    token = new SqlFedAuthToken(accessToken, cal.getTime());
+                    if (expiryInIndex == -1) {
+                        startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+                        expiryDate = new Date(accessTokenExpiry * 1000);
+
+                    } else {
+                        startIndex_ATX = expiryInIndex
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+
+                        expiryDate = new Date(System.currentTimeMillis() + (accessTokenExpiry * 1000));
+                    }
+
+                    token = new SqlFedAuthToken(accessToken, expiryDate);
 
                     if (connectionlogger.isLoggable(Level.FINER)) {
                         connectionlogger.finer("Obtained new Managed Identity auth token: " + token.toString());
