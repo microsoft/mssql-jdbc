@@ -536,11 +536,16 @@ final class Parameter {
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
                             String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" +
                             // Precision
-                                    (plainValueArray.length == 2 ? plainValueArray[0].length()
-                                            + plainValueArray[1].length() : plainValueArray[0].length())
-                                    + "," +
+                            int calculatedPrecision;
+                            if (plainValueArray.length == 1) {
+                                calculatedPrecision = plainValueArray[0].length();
+                            } else if (Integer.parseInt(plainValueArray[0]) != 0) {
+                                calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
+                            } else {
+                                calculatedPrecision = plainValueArray[1].length();
+                            }
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + calculatedPrecision + "," +
                                     // Scale
                                     (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
 
