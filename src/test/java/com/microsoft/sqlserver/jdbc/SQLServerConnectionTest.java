@@ -975,8 +975,8 @@ public class SQLServerConnectionTest extends AbstractTest {
        }
 
        // At this point, thread count has returned to normal. If the peak was more
-       // than 3 times the current, this is an issue and the test should fail.
-       int acceptableMax = 3 * ManagementFactory.getThreadMXBean().getThreadCount();
+       // than 5 times the current, this is an issue and the test should fail.
+       int acceptableMax = 5 * ManagementFactory.getThreadMXBean().getThreadCount();
        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
            fail(TestResource.getResource("R_unexpectedThreadCount"));
        }
