@@ -536,11 +536,9 @@ final class Parameter {
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
                             String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
+                            
                             // Precision
                             int calculatedPrecision;
-//                                = (plainValueArray.length == 2 ? plainValueArray[0].length()
-//                                                  + plainValueArray[1].length() : plainValueArray[0].length());
-                            
                             if (plainValueArray.length == 2) {
                                 if (Integer.parseInt(plainValueArray[0]) == 0) {
                                     calculatedPrecision = plainValueArray[1].length();
