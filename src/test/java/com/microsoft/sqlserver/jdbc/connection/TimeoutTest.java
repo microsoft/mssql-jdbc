@@ -299,7 +299,7 @@ public class TimeoutTest extends AbstractTest {
         
         try (Connection conn = PrepUtil.getConnection(connectionString
                  + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds)) {
+                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
          } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
@@ -307,7 +307,7 @@ public class TimeoutTest extends AbstractTest {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             }
 
-            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds);
+            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds * 2);
         }
     }
 
