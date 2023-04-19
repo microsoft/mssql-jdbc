@@ -299,7 +299,7 @@ public class TimeoutTest extends AbstractTest {
         
         try (Connection conn = PrepUtil.getConnection(connectionString
                  + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
+                    + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
          } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
