@@ -289,17 +289,16 @@ public class TimeoutTest extends AbstractTest {
     
     /**
      * Tests that failover is still used with socket timeout by measuring timing during a socket timeout.
-     * 
-     * @throws Exception
+     *  
      */
     @Test
-    public void testFailoverInstanceResolutionWithSocketTimeout() throws Exception {
-        long timerEnd = 0;
+    public void testFailoverInstanceResolutionWithSocketTimeout() {
+        long timerEnd;
         long timerStart = System.currentTimeMillis();
         
         try (Connection conn = PrepUtil.getConnection(connectionString
                  + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds)) {
+                    + ";socketTimeout=" + waitForDelaySeconds + Constants.SEMI_COLON)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
          } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
