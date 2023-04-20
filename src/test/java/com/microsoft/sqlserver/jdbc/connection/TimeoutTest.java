@@ -292,8 +292,8 @@ public class TimeoutTest extends AbstractTest {
      *  
      */
     @Test
-    public void testFailoverInstanceResolutionWithSocketTimeout() {
-        long timerEnd;
+    public void testFailoverInstanceResolutionWithSocketTimeout() throws Exception {
+        long timerEnd = 0;
         long timerStart = System.currentTimeMillis();
         
         try (Connection conn = PrepUtil.getConnection(connectionString
