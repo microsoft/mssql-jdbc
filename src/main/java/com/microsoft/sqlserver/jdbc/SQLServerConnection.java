@@ -3174,7 +3174,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
                                                                                                  // (eg Sphinx, invalid
                                                                                                  // packetsize, etc)
-                        || SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
+                        || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
+                                && (!isDBMirroring || attemptNumber > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
                         || timerHasExpired(timerExpire)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
