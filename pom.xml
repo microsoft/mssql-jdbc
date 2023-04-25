@@ -344,12 +344,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre19</id>
+			<id>jre20</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre19${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre20${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -359,8 +359,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>19</source>
-							<target>19</target>
+							<source>20</source>
+							<target>20</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -520,7 +520,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.8</version>
+				<version>0.8.9</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

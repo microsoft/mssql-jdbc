@@ -47,7 +47,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre19`. This creates JRE 19 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 19).
+        * Run `mvn install -Pjre20`. This creates JRE 20 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 20).
         * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
@@ -55,7 +55,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre19`. This creates JRE 19 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 19).
+        * Run `gradle build -PbuildProfile=jre20`. This creates JRE 20 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 20).
         * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
