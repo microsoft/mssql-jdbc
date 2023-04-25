@@ -944,10 +944,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
 
-    static boolean isWindows = System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows");
-
     static {
-        if (isWindows) {
+        if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
             SQLServerColumnEncryptionCertificateStoreProvider provider = new SQLServerColumnEncryptionCertificateStoreProvider();
             globalSystemColumnEncryptionKeyStoreProviders.put(provider.getName(), provider);
         }
@@ -5720,7 +5718,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
                 // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (isWindows && AuthenticationJNI.isDllLoaded) {
+                if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
+                        && AuthenticationJNI.isDllLoaded()) {
                     try {
                         FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
                                 fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
