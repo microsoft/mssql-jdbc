@@ -169,10 +169,10 @@ final class Parameter {
 
     /**
      * Clones this Parameter object for use in a batch.
-     *
+     * <p>
      * The clone method creates a shallow clone of the Parameter object. That is, the cloned instance references all of
      * the same internal objects and state as the original.
-     *
+     * <p>
      * Note: this method is purposely NOT the Object.clone() method, as that method has specific requirements and
      * semantics that we don't need here.
      */
@@ -251,9 +251,9 @@ final class Parameter {
     }
 
     void setValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
-            Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
-            SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
-            String tvpName) throws SQLServerException {
+                  Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
+                  SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
+                  String tvpName) throws SQLServerException {
 
         if (shouldHonorAEForParameter) {
             userProvidesPrecision = false;
@@ -386,7 +386,7 @@ final class Parameter {
     }
 
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal, TDSReader tdsReader,
-            SQLServerStatement statement) throws SQLServerException {
+                    SQLServerStatement statement) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
 
@@ -535,23 +535,8 @@ final class Parameter {
                         if (dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
-                            String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
-                            
-                            // Precision
-                            int calculatedPrecision;
-                            if (plainValueArray.length == 2) {
-                                if (Integer.parseInt(plainValueArray[0]) == 0) {
-                                    calculatedPrecision = plainValueArray[1].length();
-                                } else  {
-                                    calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
-                                }
-                            } else  {
-                                calculatedPrecision = plainValueArray[0].length();
-                            }
-                            
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + calculatedPrecision + "," +
-                                    // Scale
-                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" +
+                                    bigDecimal.precision() + "," + bigDecimal.scale() + ")";
 
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
@@ -634,7 +619,7 @@ final class Parameter {
                         }
                     } else {
                         param.typeDefinition = con.getSendTimeAsDatetime() ? SSType.DATETIME.toString()
-                                                                           : SSType.TIME.toString();
+                                : SSType.TIME.toString();
                     }
                     break;
 
@@ -764,7 +749,7 @@ final class Parameter {
                          */
                         if ((null != jdbcTypeSetByUser)
                                 && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
-                                        || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
+                                || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
@@ -833,7 +818,7 @@ final class Parameter {
                          */
                         if ((null != jdbcTypeSetByUser)
                                 && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
-                                        || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
+                                || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
@@ -851,7 +836,7 @@ final class Parameter {
                             }
                         } else if ((null != jdbcTypeSetByUser)
                                 && ((jdbcTypeSetByUser == JDBCType.NVARCHAR) || (jdbcTypeSetByUser == JDBCType.NCHAR)
-                                        || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
+                                || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
@@ -1087,8 +1072,8 @@ final class Parameter {
                 if (streamSetterArgs.getLength() > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     dtv.setJdbcType(jdbcType.isBinary() ? JDBCType.LONGVARBINARY : JDBCType.LONGVARCHAR);
 
-                // If the length of the value is unknown, then figure out whether it is at least longer
-                // than what will fit into a "short" type.
+                    // If the length of the value is unknown, then figure out whether it is at least longer
+                    // than what will fit into a "short" type.
                 else if (DataTypes.UNKNOWN_STREAM_LENGTH == streamSetterArgs.getLength()) {
                     byte[] vartypeBytes = new byte[1 + DataTypes.SHORT_VARTYPE_MAX_BYTES];
                     BufferedInputStream bufferedStream = new BufferedInputStream(inputStreamValue, vartypeBytes.length);
@@ -1137,8 +1122,8 @@ final class Parameter {
                 if (streamSetterArgs.getLength() > DataTypes.SHORT_VARTYPE_MAX_CHARS)
                     dtv.setJdbcType(JDBCType.LONGNVARCHAR);
 
-                // If the length of the value is unknown, then figure out whether it is at least longer
-                // than what will fit into a "short" type.
+                    // If the length of the value is unknown, then figure out whether it is at least longer
+                    // than what will fit into a "short" type.
                 else if (DataTypes.UNKNOWN_STREAM_LENGTH == streamSetterArgs.getLength()) {
                     char[] vartypeChars = new char[1 + DataTypes.SHORT_VARTYPE_MAX_CHARS];
                     BufferedReader bufferedReader = new BufferedReader(readerValue, vartypeChars.length);
