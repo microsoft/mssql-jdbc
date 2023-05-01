@@ -763,7 +763,7 @@ final class Parameter {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         } else if ((null != jdbcTypeSetByUser) && (jdbcTypeSetByUser == JDBCType.NVARCHAR
-                                               || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
+                                || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
@@ -835,7 +835,7 @@ final class Parameter {
                             }
                         } else if ((null != jdbcTypeSetByUser)
                                 && ((jdbcTypeSetByUser == JDBCType.NVARCHAR) || (jdbcTypeSetByUser == JDBCType.NCHAR)
-                                || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
+                                        || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
