@@ -168,13 +168,10 @@ final class Parameter {
     private DTV inputDTV = null;
 
     /**
-     * Clones this Parameter object for use in a batch.
-     * <p>
-     * The clone method creates a shallow clone of the Parameter object. That is, the cloned instance references all of
-     * the same internal objects and state as the original.
-     * <p>
-     * Note: this method is purposely NOT the Object.clone() method, as that method has specific requirements and
-     * semantics that we don't need here.
+     * Clones this Parameter object for use in a batch. The clone method creates a shallow clone of the Parameter
+     * object. That is, the cloned instance references all of the same internal objects and state as the original. Note:
+     * this method is purposely NOT the Object.clone() method, as that method has specific requirements and semantics
+     * that we don't need here.
      */
     final Parameter cloneForBatch() {
         Parameter clonedParam = new Parameter(shouldHonorAEForParameter);
@@ -251,9 +248,9 @@ final class Parameter {
     }
 
     void setValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
-                  Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
-                  SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
-                  String tvpName) throws SQLServerException {
+            Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
+            SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
+            String tvpName) throws SQLServerException {
 
         if (shouldHonorAEForParameter) {
             userProvidesPrecision = false;
@@ -271,8 +268,7 @@ final class Parameter {
             // otherwise it would be sent as smallint
             // Also, for setters, we are able to send tinyint to smallint
             // However, for output parameter, it might cause error.
-            if (!isOutput() && ((JavaType.SHORT == javaType)
-                    && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType)))) {
+            if (!isOutput() && ((JavaType.SHORT == javaType) && ((JDBCType.TINYINT == jdbcType) || (JDBCType.SMALLINT == jdbcType)))) {
                 // value falls in the TINYINT range
                 if (((Short) value) >= 0 && ((Short) value) <= 255) {
                     value = ((Short) value).byteValue();
@@ -357,8 +353,7 @@ final class Parameter {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
-        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType
-                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
@@ -386,7 +381,7 @@ final class Parameter {
     }
 
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal, TDSReader tdsReader,
-                    SQLServerStatement statement) throws SQLServerException {
+            SQLServerStatement statement) throws SQLServerException {
         if (null == getterDTV)
             getterDTV = new DTV();
 
@@ -449,8 +444,7 @@ final class Parameter {
 
                 case REAL:
                     // sp_describe_parameter_encryption must be queried as real for AE
-                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser) && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -487,8 +481,7 @@ final class Parameter {
                     if (param.isOutput() && scale < param.getOutScale())
                         scale = param.getOutScale();
 
-                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser) && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -503,28 +496,22 @@ final class Parameter {
                             // so, here, if the decimal parameter is encrypted and it is null and it is not outparameter
                             // then we set precision as the default precision instead of max precision
                             if (!isOutput()) {
-                                param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         } else {
                             if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION >= valueLength) {
-                                param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.DEFAULT_DECIMAL_PRECISION + "," + scale + ")";
 
                                 if (SQLServerConnection.DEFAULT_DECIMAL_PRECISION < (valueLength + scale)) {
-                                    param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                            + (SQLServerConnection.DEFAULT_DECIMAL_PRECISION + scale) + "," + scale
-                                            + ")";
+                                    param.typeDefinition = SSType.DECIMAL.toString() + "(" + (SQLServerConnection.DEFAULT_DECIMAL_PRECISION + scale) + "," + scale + ")";
                                 }
                             } else {
-                                param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                        + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
+                                param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                             }
                         }
 
                         if (isOutput()) {
-                            param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + ", " + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.MAX_DECIMAL_PRECISION + ", " + scale + ")";
                         }
 
                         if (userProvidesPrecision) {
@@ -532,16 +519,12 @@ final class Parameter {
                         }
                     } else {
                         BigDecimal bigDecimal = null;
-                        if (dtv.getJavaType() == JavaType.BIGDECIMAL
-                                && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
-
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" +
-                                    bigDecimal.precision() + "," + bigDecimal.scale() + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + bigDecimal.precision() + "," + bigDecimal.scale() + ")";
 
                         } else {
-                            param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                         }
                     }
 
@@ -553,8 +536,7 @@ final class Parameter {
                 case SMALLMONEY:
                     param.typeDefinition = SSType.MONEY.toString();
 
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         param.typeDefinition = SSType.SMALLMONEY.toString();
                     }
 
@@ -574,8 +556,7 @@ final class Parameter {
                     // To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
                     if (VARBINARY_MAX.equals(param.typeDefinition) || IMAGE.equals(param.typeDefinition))
                         break;
-                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser) && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -603,8 +584,7 @@ final class Parameter {
                     break;
 
                 case TIME:
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
 
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
@@ -619,16 +599,15 @@ final class Parameter {
                             param.typeDefinition = SSType.TIME.toString() + "(" + valueLength + ")";
                         }
                     } else {
-                        param.typeDefinition = con.getSendTimeAsDatetime() ? SSType.DATETIME.toString()
-                                : SSType.TIME.toString();
+                        param.typeDefinition =
+                                con.getSendTimeAsDatetime() ? SSType.DATETIME.toString() : SSType.TIME.toString();
                     }
                     break;
 
                 case TIMESTAMP:
                     // Bind TIMESTAMP values to pre-Katmai servers as DATETIME. Bind TIMESTAMP values to
                     // Katmai and later servers as DATETIME2 to take advantage of increased precision.
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -649,8 +628,7 @@ final class Parameter {
                     // send as Datetime by default
                     param.typeDefinition = getDatetimeDataType(con, null);
 
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         param.typeDefinition = SSType.DATETIME.toString();
                     }
 
@@ -676,8 +654,7 @@ final class Parameter {
                 case SMALLDATETIME:
                     param.typeDefinition = getDatetimeDataType(con, null);
 
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         param.typeDefinition = SSType.SMALLDATETIME.toString();
                     }
 
@@ -686,8 +663,7 @@ final class Parameter {
                 case TIME_WITH_TIMEZONE:
                 case TIMESTAMP_WITH_TIMEZONE:
                 case DATETIMEOFFSET:
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -716,8 +692,7 @@ final class Parameter {
                         break;
 
                     // Adding for case useColumnEncryption=true & sendStringParametersAsUnicode=false
-                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser) && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
@@ -740,17 +715,14 @@ final class Parameter {
                     break;
 
                 case LONGNVARCHAR:
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
                          * parameter is encrypted In both of these cases we need to send specific type info, otherwise
                          * generic type info can be used as before.
                          */
-                        if ((null != jdbcTypeSetByUser)
-                                && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
-                                || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
+                        if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR) || (jdbcTypeSetByUser == JDBCType.LONGVARCHAR))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
@@ -764,8 +736,7 @@ final class Parameter {
                             if (jdbcTypeSetByUser == JDBCType.LONGVARCHAR) {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
-                        } else if ((null != jdbcTypeSetByUser) && (jdbcTypeSetByUser == JDBCType.NVARCHAR
-                                || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
+                        } else if ((null != jdbcTypeSetByUser) && (jdbcTypeSetByUser == JDBCType.NVARCHAR || jdbcTypeSetByUser == JDBCType.LONGNVARCHAR)) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
@@ -809,17 +780,14 @@ final class Parameter {
                     if (NVARCHAR_MAX.equals(param.typeDefinition) || NTEXT.equals(param.typeDefinition))
                         break;
 
-                    if (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
+                    if (param.shouldHonorAEForParameter && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
                         /*
                          * This means AE is ON in the connection, and (1) this is either the first round to SQL Server
                          * to get encryption meta data, or (2) this is the second round of renewing meta data and
                          * parameter is encrypted In both of these cases we need to send specific type info, otherwise
                          * generic type info can be used as before.
                          */
-                        if ((null != jdbcTypeSetByUser)
-                                && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR)
-                                || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
+                        if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.VARCHAR) || (jdbcTypeSetByUser == JDBCType.CHAR) || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
@@ -835,9 +803,7 @@ final class Parameter {
                             if (JDBCType.LONGVARCHAR == jdbcTypeSetByUser) {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
-                        } else if ((null != jdbcTypeSetByUser)
-                                && ((jdbcTypeSetByUser == JDBCType.NVARCHAR) || (jdbcTypeSetByUser == JDBCType.NCHAR)
-                                || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
+                        } else if ((null != jdbcTypeSetByUser) && ((jdbcTypeSetByUser == JDBCType.NVARCHAR) || (jdbcTypeSetByUser == JDBCType.NCHAR) || (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser))) {
                             if (0 == valueLength) {
                                 // Workaround for the issue when inserting empty string and null into encrypted columns
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
@@ -908,10 +874,9 @@ final class Parameter {
         }
 
         /**
-         * Generates the SQL datatype to use for Java date-based values. This
-         * setting can be controlled by setting the "datetimeParameterType" connection
-         * string. It defaults to "datetime2" for SQL Server 2008+ and always
-         * uses "datetime" for older SQL Server installations.
+         * Generates the SQL datatype to use for Java date-based values. This setting can be controlled by setting the
+         * "datetimeParameterType" connection string. It defaults to "datetime2" for SQL Server 2008+ and always uses
+         * "datetime" for older SQL Server installations.
          */
         String getDatetimeDataType(SQLServerConnection con, Integer scale) {
             String datatype;
@@ -1050,8 +1015,7 @@ final class Parameter {
 
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
             // exclude JDBC typecasting for Geometry/Geography as these datatypes don't have a size limit.
-            if (null != byteArrayValue && byteArrayValue.length > DataTypes.SHORT_VARTYPE_MAX_BYTES
-                    && (dtv.getJdbcType() != JDBCType.GEOMETRY && dtv.getJdbcType() != JDBCType.GEOGRAPHY))
+            if (null != byteArrayValue && byteArrayValue.length > DataTypes.SHORT_VARTYPE_MAX_BYTES && (dtv.getJdbcType() != JDBCType.GEOMETRY && dtv.getJdbcType() != JDBCType.GEOGRAPHY))
                 dtv.setJdbcType(dtv.getJdbcType().isBinary() ? JDBCType.LONGVARBINARY : JDBCType.LONGVARCHAR);
 
             setTypeDefinition(dtv);
@@ -1067,8 +1031,7 @@ final class Parameter {
             JDBCType jdbcType = dtv.getJdbcType();
 
             // If the JDBC type is currently a "short" type, then figure out if needs to be bumped up to a "long" type
-            if (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.BINARY == jdbcType
-                    || JDBCType.VARBINARY == jdbcType) {
+            if (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
                 // If we know the length is too long for a "short" type, then convert to a "long" type.
                 if (streamSetterArgs.getLength() > DataTypes.SHORT_VARTYPE_MAX_BYTES)
                     dtv.setJdbcType(jdbcType.isBinary() ? JDBCType.LONGVARBINARY : JDBCType.LONGVARCHAR);
