@@ -535,6 +535,7 @@ final class Parameter {
                         if (dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
+
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" +
                                     bigDecimal.precision() + "," + bigDecimal.scale() + ")";
 
