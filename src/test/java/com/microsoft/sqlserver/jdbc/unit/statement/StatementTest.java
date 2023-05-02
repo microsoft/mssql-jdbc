@@ -1438,7 +1438,7 @@ public class StatementTest extends AbstractTest {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(38,38))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column - ?) FROM " + tableName)) {
-                    BigDecimal value = new BigDecimal("0.5");
+                    BigDecimal value = new BigDecimal("0.55");
                     pstmt.setObject(1, value);
 
                     BigDecimal base = new BigDecimal("0.98432319763138435186412316842316874322");

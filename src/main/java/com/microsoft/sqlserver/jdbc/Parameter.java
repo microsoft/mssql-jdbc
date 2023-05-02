@@ -535,8 +535,10 @@ final class Parameter {
                         if (dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + bigDecimal.precision() + ","
-                                    + scale + ")";
+                            String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + bigDecimal.precision() + "," +
+                                    // Scale
+                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
                                     + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
