@@ -531,12 +531,12 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        BigDecimal bigDecimal = null;
+                        BigDecimal bigDecimal;
                         if (dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
 
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + bigDecimal.precision() + ","
-                                    + bigDecimal.scale() + ")";
+                                    + scale + ")";
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
                                     + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
