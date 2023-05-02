@@ -1461,24 +1461,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * connection is released to the pool for reuse.
      */
     final void initResettableValues() {
+        setLockTimeout();
         rolledBackTransaction = false;
         transactionIsolationLevel = Connection.TRANSACTION_READ_COMMITTED;// default isolation level
         maxFieldSize = 0; // default: 0 --> no limit
         maxRows = 0; // default: 0 --> no limit
-
-        nLockTimeout = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
-        String lockTimeoutKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
-
-        if (null != activeConnectionProperties && null != activeConnectionProperties.getProperty(lockTimeoutKey)
-                && activeConnectionProperties.getProperty(lockTimeoutKey).length() > 0) {
-
-            int newLockTimeout = Integer.parseInt(activeConnectionProperties.getProperty(lockTimeoutKey));
-
-            if (newLockTimeout >= nLockTimeout) {
-                nLockTimeout = newLockTimeout;
-            }
-        }
-
         databaseAutoCommitMode = true;// auto commit mode
         holdability = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         sqlWarnings = null;
@@ -2691,26 +2678,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                                   .getProperty(sPropKey)
                                                                                           : null;
 
-                sPropKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
-                int defaultLockTimeOut = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
-                nLockTimeout = defaultLockTimeOut; // Wait forever
-                if (activeConnectionProperties.getProperty(sPropKey) != null
-                        && activeConnectionProperties.getProperty(sPropKey).length() > 0) {
-                    try {
-                        int n = Integer.parseInt(activeConnectionProperties.getProperty(sPropKey));
-                        if (n >= defaultLockTimeOut)
-                            nLockTimeout = n;
-                        else {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_invalidLockTimeOut"));
-                            Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
-                            SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                        }
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLockTimeOut"));
-                        Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
+                String lockTimeoutKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
+
+                try {
+                    if (!setLockTimeout()) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_invalidLockTimeOut"));
+                        Object[] msgArgs = {activeConnectionProperties.getProperty(lockTimeoutKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLockTimeOut"));
+                    Object[] msgArgs = {activeConnectionProperties.getProperty(lockTimeoutKey)};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
 
                 sPropKey = SQLServerDriverIntProperty.QUERY_TIMEOUT.toString();
@@ -8022,6 +8002,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean doesServerSupportEnclaveRetry() {
         return serverSupportsEnclaveRetry;
+    }
+
+    boolean setLockTimeout () {
+        nLockTimeout = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
+        String lockTimeoutKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
+
+        if (null != activeConnectionProperties && null != activeConnectionProperties.getProperty(lockTimeoutKey)
+                && activeConnectionProperties.getProperty(lockTimeoutKey).length() > 0) {
+
+            int newLockTimeout = Integer.parseInt(activeConnectionProperties.getProperty(lockTimeoutKey));
+
+            if (newLockTimeout >= nLockTimeout) {
+                nLockTimeout = newLockTimeout;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        return nLockTimeout == SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
     }
 
     /** Enclave provider */
