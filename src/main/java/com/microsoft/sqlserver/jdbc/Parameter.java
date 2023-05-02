@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
@@ -540,7 +541,7 @@ final class Parameter {
                             int calculatedPrecision;
 
                             if (plainValueArray.length == 2) {
-                                if (Integer.parseInt(plainValueArray[0]) == 0) {
+                                if (new BigInteger(plainValueArray[0]).equals(0)) {
                                     calculatedPrecision = plainValueArray[1].length();
                                 } else  {
                                     calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
