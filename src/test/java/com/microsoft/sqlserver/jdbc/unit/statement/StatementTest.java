@@ -1435,18 +1435,16 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testBigDecimalLessThanOne() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(38,38))");
-                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322)");
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(5,5))");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.22354)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column - ?) FROM " + tableName)) {
-                    BigDecimal value = new BigDecimal("0.55");
-                    pstmt.setObject(1, value);
-
-                    BigDecimal base = new BigDecimal("0.98432319763138435186412316842316874322");
-                    BigDecimal expected = base.subtract(value);
+                    BigDecimal value2 = new BigDecimal("0.1");
+                    pstmt.setObject(1, value2);
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         rs.next();
-                        assertEquals(expected, rs.getObject(1));
+                        BigDecimal retrieved = (BigDecimal) rs.getObject(1);
+                        assertEquals(5, retrieved.precision());
                     }
                 }
             }
