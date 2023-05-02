@@ -1465,7 +1465,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         transactionIsolationLevel = Connection.TRANSACTION_READ_COMMITTED;// default isolation level
         maxFieldSize = 0; // default: 0 --> no limit
         maxRows = 0; // default: 0 --> no limit
-        nLockTimeout = -1;
+
+        nLockTimeout = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
+        String lockTimeoutKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
+
+        if (null != activeConnectionProperties && null != activeConnectionProperties.getProperty(lockTimeoutKey)
+                && activeConnectionProperties.getProperty(lockTimeoutKey).length() > 0) {
+
+            int newLockTimeout = Integer.parseInt(activeConnectionProperties.getProperty(lockTimeoutKey));
+
+            if (newLockTimeout >= nLockTimeout) {
+                nLockTimeout = newLockTimeout;
+            }
+        }
+
         databaseAutoCommitMode = true;// auto commit mode
         holdability = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         sqlWarnings = null;
