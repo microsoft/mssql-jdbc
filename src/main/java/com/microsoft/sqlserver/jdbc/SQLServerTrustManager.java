@@ -1,6 +1,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.Locale;
@@ -137,10 +139,13 @@ final class ServerCertificateX509TrustManager implements X509TrustManager {
         if (null == chain || 0 == chain.length || null == authType || authType.isEmpty()) {
             throw new IllegalArgumentException(SQLServerException.getErrString("R_illegalArgumentTrustManager"));
         }
+        X509Certificate cert = null;
 
         try {
+
             // validate expiry dates
             for (X509Certificate c : chain) {
+                cert = c;
                 c.checkValidity();
             }
 
@@ -151,9 +156,18 @@ final class ServerCertificateX509TrustManager implements X509TrustManager {
             } else {
                 SQLServerCertificateUtils.validateServerCerticate(chain[0], serverCert);
             }
+        } catch (CertificateNotYetValidException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertNotYetValid"));
+            Object[] msgArgs = {serverCert != null ? serverCert : hostName, e.getMessage()};
+            throw new CertificateException(form.format(msgArgs));
+        } catch (CertificateExpiredException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertExpired"));
+            Object[] msgArgs = {serverCert != null ? serverCert : hostName, e.getMessage()};
+            throw new CertificateException(form.format(msgArgs));
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
-            Object[] msgArgs = {serverCert != null ? serverCert : hostName, e.getMessage()};
+            Object[] msgArgs = {e.getMessage(), serverCert != null ? serverCert : hostName,
+                    cert != null ? cert.toString() : ""};
             throw new CertificateException(form.format(msgArgs));
         }
     }

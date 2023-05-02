@@ -204,7 +204,6 @@ final class SQLServerCertificateUtils {
             if (sanCollection != null) {
                 // find a subjectAlternateName entry corresponding to DNS Name
                 for (List<?> sanEntry : sanCollection) {
-
                     if (sanEntry != null && sanEntry.size() >= 2) {
                         Object key = sanEntry.get(0);
                         Object value = sanEntry.get(1);
@@ -251,12 +250,13 @@ final class SQLServerCertificateUtils {
                             if (logger.isLoggable(Level.FINER)) {
                                 logger.finer(logContext
                                         + " the following name in certificate does not match the serverName: " + value);
+                                logger.finer(logContext + " certificate:\n" + cert.toString());
                             }
                         }
-
                     } else {
                         if (logger.isLoggable(Level.FINER)) {
                             logger.finer(logContext + " found an invalid san entry: " + sanEntry);
+                            logger.finer(logContext + " certificate:\n" + cert.toString());
                         }
                     }
                 }
@@ -283,13 +283,13 @@ final class SQLServerCertificateUtils {
         try (InputStream is = fileToStream(certFile)) {
             if (!CertificateFactory.getInstance("X509").generateCertificate(is).getPublicKey()
                     .equals(cert.getPublicKey())) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
-                Object[] msgArgs = {certFile};
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_publicKeyMismatch"));
+                Object[] msgArgs = {certFile.toString()};
                 throw new CertificateException(form.format(msgArgs));
             }
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
-            Object[] msgArgs = {certFile, e.getMessage()};
+            Object[] msgArgs = {e.getMessage(), certFile, cert.toString()};
             throw new CertificateException(form.format(msgArgs));
         }
     }
@@ -372,8 +372,7 @@ final class SQLServerCertificateUtils {
         }
     }
 
-    private static PrivateKey loadPrivateKeyFromPKCS1(String key,
-            String keyPass) throws IOException {
+    private static PrivateKey loadPrivateKeyFromPKCS1(String key, String keyPass) throws IOException {
         SQLServerBouncyCastleLoader.loadBouncyCastle();
         try (PEMParser pemParser = new PEMParser(new StringReader(key))) {
             Object object = pemParser.readObject();
