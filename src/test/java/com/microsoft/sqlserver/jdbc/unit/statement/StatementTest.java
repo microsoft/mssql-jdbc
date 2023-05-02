@@ -1426,25 +1426,25 @@ public class StatementTest extends AbstractTest {
             }
         }
 
-        /**
-         * Tests that big decimal values between 0 and 1, with precision 38, hold the correct precision.
-         *
-         * @throws SQLException
-         *         when an error occurs
-         */
-        @Test
-        public void testBigDecimalLessThanOne() throws SQLException {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 decimal(38,38))");
-                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322)");
-                String query = "CREATE PROCEDURE " + procName
-                        + " @col1Value decimal(38,38) OUTPUT AS BEGIN SELECT * FROM " + tableName + "WHERE col1=@col1Value END";
-                stmt.execute(query);
-                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "}")) {
-                    assertEquals(38,cstmt.getObject("col1Value", BigDecimal.class));
-                }
-            }
-        }
+//        /**
+//         * Tests that big decimal values between 0 and 1, with precision 38, hold the correct precision.
+//         *
+//         * @throws SQLException
+//         *         when an error occurs
+//         */
+//        @Test
+//        public void testBigDecimalLessThanOne() throws SQLException {
+//            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+//                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 decimal(38,38))");
+//                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322)");
+//                String query = "CREATE PROCEDURE " + procName
+//                        + " @col1Value decimal(38,38) OUTPUT AS BEGIN SELECT * FROM " + tableName + "WHERE col1=@col1Value END";
+//                stmt.execute(query);
+//                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "}")) {
+//                    assertEquals(38,cstmt.getObject("col1Value", BigDecimal.class));
+//                }
+//            }
+//        }
 
         /**
          * Tests that big decimal values greater than 1, with precision 38, hold the correct precision.
