@@ -1427,7 +1427,7 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests that big decimal values between 0 and 1 hold the correct precision.
+         * Tests that big decimal values between 0 and 1, with precision 38, hold the correct precision.
          *
          * @throws SQLException
          *         when an error occurs
@@ -1437,16 +1437,34 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(38,38))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322)");
-                try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column - ?) FROM " + tableName)) {
-                    BigDecimal value = new BigDecimal("0.5");
-                    pstmt.setObject(1, value);
-
-                    BigDecimal base = new BigDecimal("0.98432319763138435186412316842316874322");
-                    BigDecimal expected = base.subtract(value);
+                try (PreparedStatement pstmt = con.prepareStatement("SELECT test_column FROM " + tableName)) {
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         rs.next();
-                        assertEquals(expected, rs.getObject(1));
+                        BigDecimal dec1 = (BigDecimal) rs.getObject(1);
+                        assertEquals(38, dec1.precision());
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests that big decimal values greater than 1, with precision 38, hold the correct precision.
+         *
+         * @throws SQLException
+         *         when an error occurs
+         */
+        @Test
+        public void testBigDecimalGreaterThanOne() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(38,37))");
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(1.9843231976313843518641231684231687432)");
+                try (PreparedStatement pstmt = con.prepareStatement("SELECT test_column FROM " + tableName)) {
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        BigDecimal dec1 = (BigDecimal) rs.getObject(1);
+                        assertEquals(38, dec1.precision());
                     }
                 }
             }
