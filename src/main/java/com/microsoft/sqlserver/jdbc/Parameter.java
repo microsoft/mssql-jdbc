@@ -541,7 +541,7 @@ final class Parameter {
                             int calculatedPrecision;
 
                             if (plainValueArray.length == 2) {
-                                if (new BigInteger(plainValueArray[0]).equals(0)) {
+                                if (new BigInteger(plainValueArray[0]).compareTo(BigInteger.valueOf(0)) == 0) {
                                     calculatedPrecision = plainValueArray[1].length();
                                 } else  {
                                     calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
