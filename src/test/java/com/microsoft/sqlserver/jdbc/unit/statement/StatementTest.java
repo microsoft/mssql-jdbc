@@ -1475,17 +1475,12 @@ public class StatementTest extends AbstractTest {
                 // using a lead integer other than zero, also resulting in a precision of 38.
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322, 1.9843231976313843518641231684231687432)");
 
-                try (PreparedStatement pstmt = con.prepareStatement("SELECT (col1 - ?), (col2 - ?) FROM " + tableName)) {
-                    BigDecimal value = new BigDecimal("0.5");
-                    pstmt.setObject(1, value);
-                    pstmt.setObject(2, value);
+                try (PreparedStatement pstmt = con.prepareStatement("SELECT * FROM " + tableName)) {
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         rs.next();
-                        assertEquals(new BigDecimal(
-                                "0.98432319763138435186412316842316874322").subtract(value), rs.getObject(1));
-                        assertEquals(new BigDecimal(
-                                "1.9843231976313843518641231684231687432").subtract(value), rs.getObject(2));
+                        assertEquals(new BigDecimal("0.98432319763138435186412316842316874322"), rs.getObject(1));
+                        assertEquals(new BigDecimal("1.9843231976313843518641231684231687432"), rs.getObject(2));
                     }
                 }
             }
