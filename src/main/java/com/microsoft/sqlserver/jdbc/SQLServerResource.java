@@ -356,7 +356,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ManagedIdentityAuthenticationWithPassword", "Cannot use \"Authentication={0}\" with \"Password\" connection string keyword."},
         {"R_AccessTokenWithUserPassword", "Cannot set the AccessToken property if \"User\", \"UserName\" or \"Password\" has been specified in the connection string."},
         {"R_AccessTokenCallbackWithUserPassword", "Cannot set the access token callback if \"User\", \"UserName\" or \"Password\" has been set."},
-        {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
+        {"R_AccessTokenCannotBeEmpty", "AccessToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
         {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
