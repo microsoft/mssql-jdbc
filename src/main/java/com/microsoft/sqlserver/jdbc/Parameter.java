@@ -532,9 +532,8 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        BigDecimal bigDecimal;
-                        if (dtv.getJavaType() == JavaType.BIGDECIMAL
-                                && null != (bigDecimal = (BigDecimal) dtv.getSetterValue())) {
+                        BigDecimal bigDecimal = (BigDecimal) dtv.getSetterValue();
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != bigDecimal) {
 
                             String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
 
