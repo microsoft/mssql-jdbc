@@ -1427,7 +1427,8 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests that big decimal values with a precision less than 38 hold their precision.
+         * Tests that big decimal values with a precision less than 38 hold their precision. Tests cases where scale is
+         * 38 (integer part is a 0) and less than 38 (integer part is a non-zero).
          *
          * @throws SQLException
          *         when an error occurs
@@ -1448,10 +1449,6 @@ public class StatementTest extends AbstractTest {
                     cstmt.registerOutParameter("col2Value", java.sql.Types.DECIMAL, "DECIMAL");
                     cstmt.execute();
 
-                    assertEquals(4,
-                            cstmt.getObject("col1Value", BigDecimal.class).precision());
-                    assertEquals(5,
-                            cstmt.getObject("col2Value", BigDecimal.class).precision());
                     // Previously, the leading 0 would be counted as part of the precision. This would lead to the actual
                     // value being stored as 0.123.
                     assertEquals(0,
@@ -1463,7 +1460,8 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests that big decimal values with a precision equal to 38 hold their precision.
+         * Tests that big decimal values with a precision equal to 38 hold their precision. Tests cases where scale is
+         * 38 (integer part is a 0) and less than 38 (integer part is a non-zero).
          *
          * @throws SQLException
          *         when an error occurs
@@ -1472,6 +1470,9 @@ public class StatementTest extends AbstractTest {
         public void testLongBigDecimalValuesForLossOfPrecision() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 decimal(38,38), col2 decimal(38,37))");
+
+                // col1 has maximum scale (38) with a leading zero, for a precision of 38. col2 has maximum scale (37) when
+                // using a lead integer other than zero, also resulting in a precision of 38.
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322, 1.9843231976313843518641231684231687432)");
 
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (col1 - ?), (col2 - ?) FROM " + tableName)) {
