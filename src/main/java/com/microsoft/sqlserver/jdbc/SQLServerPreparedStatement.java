@@ -2127,7 +2127,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            if (null != columnList && columnList.size() > 0) {
+                            if (null != columnList && !columnList.isEmpty()) {
                                 int columnIndex = columnList.indexOf(c.getColumnName());
                                 if (columnIndex > -1) {
                                     columnMappings.put(columnIndex + 1, i);

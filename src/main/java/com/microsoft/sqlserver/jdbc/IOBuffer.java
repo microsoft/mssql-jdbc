@@ -1673,7 +1673,7 @@ final class TDSChannel implements Serializable {
             // then we'll "validate" the server certificate using a naive TrustManager that trusts
             // everything it sees.
             TrustManager[] tm = null;
-            if (TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || con.trustServerCertificate()) {
+            if (TDS.ENCRYPT_OFF == con.getNegotiatedEncryptionLevel() || con.getTrustServerCertificate()) {
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " SSL handshake will trust any certificate");
 
@@ -1926,7 +1926,7 @@ final class TDSChannel implements Serializable {
             }
 
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sslFailed"));
-            Object[] msgArgs = {errMsg};
+            Object[] msgArgs = {con.getEncrypt().toLowerCase(), con.getTrustServerCertificate(), errMsg};
 
             /*
              * The error message may have a connection id appended to it. Extract the message only for comparison. This
@@ -1978,7 +1978,7 @@ final class TDSChannel implements Serializable {
 
         isValidTrustStoreType = !StringUtils.isEmpty(trustStoreType);
         isValidTrustStore = !StringUtils.isEmpty(trustStoreFileName);
-        isTrustServerCertificate = con.trustServerCertificate();
+        isTrustServerCertificate = con.getTrustServerCertificate();
 
         if (isEncryptOn && !isTrustServerCertificate) {
             isValid = true;

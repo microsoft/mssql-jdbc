@@ -41,18 +41,22 @@ class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
     static final String SLASH_DEFAULT = "/.default";
-    static final String ACCESS_TOKEN_EXPIRE = " Access token expires on the following date: ";
+    static final String ACCESS_TOKEN_EXPIRE = " access token expires on the following date: ";
+
+    private static final java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
     private SQLServerMSAL4JUtils() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
-
     static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(logger.toString() + authenticationString + ": get FedAuth token for user: " + user);
+        }
 
         try {
             final PublicClientApplication pca = PublicClientApplication
@@ -67,7 +71,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -86,6 +91,12 @@ class SQLServerMSAL4JUtils {
     static SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
             String aadPrincipalSecret, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(
+                    logger.toString() + authenticationString + ": get FedAuth token for principal: " + aadPrincipalID);
+        }
+
         try {
             String defaultScopeSuffix = SLASH_DEFAULT;
             String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
@@ -103,7 +114,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -131,8 +143,9 @@ class SQLServerMSAL4JUtils {
             KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
             String user = kerberosPrincipal.getName();
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine(logger.toString() + " realm name is:" + kerberosPrincipal.getRealm());
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString() + authenticationString + ": get FedAuth token integrated, realm name:"
+                        + kerberosPrincipal.getRealm());
             }
 
             final PublicClientApplication pca = PublicClientApplication
@@ -147,7 +160,8 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -167,6 +181,11 @@ class SQLServerMSAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(
+                    logger.toString() + authenticationString + ": get FedAuth token interactive for user: " + user);
+        }
+
         try {
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -179,7 +198,7 @@ class SQLServerMSAL4JUtils {
             // try to acquire token silently if user account found in cache
             try {
                 Set<IAccount> accountsInCache = pca.getAccounts().join();
-                if (logger.isLoggable(Level.FINE)) {
+                if (logger.isLoggable(Level.FINEST)) {
                     StringBuilder acc = new StringBuilder();
                     if (accountsInCache != null) {
                         for (IAccount account : accountsInCache) {
@@ -189,14 +208,14 @@ class SQLServerMSAL4JUtils {
                             acc.append(account.username());
                         }
                     }
-                    logger.fine(logger.toString() + "Accounts in cache = " + acc + ", size = "
+                    logger.finest(logger.toString() + "Accounts in cache = " + acc + ", size = "
                             + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
                 }
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
                     if (null != account) {
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine(logger.toString() + "Silent authentication for user:" + user);
+                        if (logger.isLoggable(Level.FINEST)) {
+                            logger.finest(logger.toString() + "Silent authentication for user:" + user);
                         }
                         SilentParameters silentParameters = SilentParameters
                                 .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), account).build();
@@ -206,8 +225,9 @@ class SQLServerMSAL4JUtils {
                 }
             } catch (MsalInteractionRequiredException e) {
                 // not an error, need to get token interactively
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, e, () -> logger.toString() + "Need to get token interactively");
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.log(Level.FINEST, e,
+                            () -> logger.toString() + "Need to get token interactively: " + e.reason().toString());
                 }
             }
 
@@ -215,8 +235,8 @@ class SQLServerMSAL4JUtils {
                 authenticationResult = future.get();
             } else {
                 // acquire token interactively with system browser
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine(logger.toString() + "Interactive authentication");
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(logger.toString() + "Interactive authentication");
                 }
                 InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
@@ -228,7 +248,8 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
+                        + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());

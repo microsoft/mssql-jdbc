@@ -800,8 +800,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean trustServerCertificate;
 
     /** return whether to trust server certificate */
-    final boolean trustServerCertificate() {
+    final boolean getTrustServerCertificate() {
         return trustServerCertificate;
+    }
+
+    final String getEncrypt() {
+        return encryptOption;
     }
 
     /** server certificate for encrypt=strict */

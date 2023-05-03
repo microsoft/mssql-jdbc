@@ -1035,8 +1035,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
-                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+            String errMsg = e.getMessage().replaceAll("\\r", "").replaceAll("\\n", "");
+            assertTrue(errMsg.matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || errMsg.matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
         }
 
         // test connection string
@@ -1046,8 +1047,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             // TODO: servers which do not support TDS 8 will return SSL failed error, test should be updated once server
             // available
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_serverCertError"))
-                    || e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
+            String errMsg = e.getMessage().replaceAll("\\r", "").replaceAll("\\n", "");
+            assertTrue(errMsg.matches(TestUtils.formatErrorMsg("R_serverCertError"))
+                    || errMsg.matches(TestUtils.formatErrorMsg("R_sslFailed")), e.getMessage());
         }
     }
 
