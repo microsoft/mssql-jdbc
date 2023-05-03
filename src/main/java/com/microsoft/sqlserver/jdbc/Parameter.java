@@ -532,10 +532,9 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        BigDecimal bigDecimal = (BigDecimal) dtv.getSetterValue();
-                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != bigDecimal) {
-
-                            String[] plainValueArray = bigDecimal.abs().toPlainString().split("\\.");
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != dtv.getSetterValue()) {
+                            String[] plainValueArray
+                                    = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString().split("\\.");
 
                             // Precision is computed as opposed to using BigDecimal.precision(). This is because the
                             // BigDecimal method can lead to inaccurate results.
