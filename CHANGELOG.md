@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.3.0] Preview Release
+### Added
+- Added support for Java 20 [2120](https://github.com/microsoft/mssql-jdbc/pull/2120)
+- Added new access token callback class connection string property [2073](https://github.com/microsoft/mssql-jdbc/pull/2073)
+
+### Changed
+- Updated MSAL4J and Azure Identity versions [2114](https://github.com/microsoft/mssql-jdbc/pull/2114)
+- Added SQL query to toString() in SQLServerPreparedStatement to support JPA logging [2099](https://github.com/microsoft/mssql-jdbc/pull/2099)
+- Change supportsLikeEscapeClause to check for AzureDW [2092](https://github.com/microsoft/mssql-jdbc/pull/2092)
+- Update fedAuth to use persistent token cache and remove logging personally identifiable information [2079](https://github.com/microsoft/mssql-jdbc/pull/2079)
+- Made jdk.net optional osgi import [2069](https://github.com/microsoft/mssql-jdbc/pull/2069)
+
+### Fixed issues
+- Fixed inconsistent updates of ResultSet rows when updating one-to-many tables [2087](https://github.com/microsoft/mssql-jdbc/pull/2087)
+- Fixed a race condition in SharedTimer [2085](https://github.com/microsoft/mssql-jdbc/pull/2085)
+- Fixed XAException being returned with error code XAER_RMERR in case of fail-over [2078](https://github.com/microsoft/mssql-jdbc/pull/2078)
+- Fixed connection.rollback method not working for the Azure Synapse database [2075](https://github.com/microsoft/mssql-jdbc/pull/2075)
+- Fixed stored procedure can't be executed [2074](https://github.com/microsoft/mssql-jdbc/pull/2074)
+- Fixed bulk copy for batch insert to address invalid batch inserts [1992](https://github.com/microsoft/mssql-jdbc/pull/1992)
+- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
+
 ## [12.2.0] Stable Release
 ### Added
 - Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters  [1590](https://github.com/microsoft/mssql-jdbc/pull/1590)
