@@ -3,9 +3,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.3.0] Preview Release
+### Added
+- Added additional logging info to help debug [2118](https://github.com/microsoft/mssql-jdbc/pull/2118)
+- Added SQL query to toString() in SQLServerPreparedStatement [2099](https://github.com/microsoft/mssql-jdbc/pull/2099)
+- Added Java 20 support [2097](https://github.com/microsoft/mssql-jdbc/pull/2097)
+- Added access token callback class connection string property [2073](https://github.com/microsoft/mssql-jdbc/pull/2073)
+### Changed
+- Updated azure-identity version [2114](https://github.com/microsoft/mssql-jdbc/pull/2114)
+- Updated msal4j version [2102](https://github.com/microsoft/mssql-jdbc/pull/2102)
+- Allow failover partner to be tried in case of socket timeout [2100](https://github.com/microsoft/mssql-jdbc/pull/2100)
+- Updated supportsLikeEscapeClause() to check for Azure data warehouse [2092](https://github.com/microsoft/mssql-jdbc/pull/2092)
+- sp_cursor calls now have table names passed in instead of an empty string [2087](https://github.com/microsoft/mssql-jdbc/pull/2087)
+- Updated federated authentication logic to use persistence token cache when fetching token [2079](https://github.com/microsoft/mssql-jdbc/pull/2079)
+- Updated supportTransaction method to reflect whether server supports transactions [2075](https://github.com/microsoft/mssql-jdbc/pull/2075)
+- Made jdk.net optional OSGi import [2069](https://github.com/microsoft/mssql-jdbc/pull/2069)
+- Upgraded to latest OSGi JDBC specification [2017](https://github.com/microsoft/mssql-jdbc/pull/2017)
+### Fixed issues
+- Fixed missing property value for disableStatmentPooling meta info query [2120](https://github.com/microsoft/mssql-jdbc/pull/2120)
+- Fixed typo in access token error message [2119](https://github.com/microsoft/mssql-jdbc/pull/2119)
+- Fixed BigDecimal error when values between 0 and 1 are specified [2116](https://github.com/microsoft/mssql-jdbc/pull/2116)
+- Fixed lockTimeout not taking effect when redirect mode is set in Azure DB [2110](https://github.com/microsoft/mssql-jdbc/pull/2110)
+- Fixed shared timer race condition [2085](https://github.com/microsoft/mssql-jdbc/pull/2085)
+- Fixed XA error handling to rethrow XAER_RMFAIL instead of XAER_RMERR [2078](https://github.com/microsoft/mssql-jdbc/pull/2078)
+- Fixed issue by accounting for zero meta query results [2074](https://github.com/microsoft/mssql-jdbc/pull/2074)
+- Fixed invalid batch inserts when columns provided in insert differs in order from table schema [1992](https://github.com/microsoft/mssql-jdbc/pull/1992)
+
 ## [12.2.0] Stable Release
 ### Added
-- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters  [1590](https://github.com/microsoft/mssql-jdbc/pull/1590)
+- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters [1687](https://github.com/microsoft/mssql-jdbc/pull/1687)
 
 ### Changed
 - Renamed driver DefaultAzureCredential authentication to ActiveDirectoryDefault [2055](https://github.com/microsoft/mssql-jdbc/pull/2055)
@@ -114,7 +140,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Canonical host name resolution when realm is provided in connection string [1730](https://github.com/microsoft/mssql-jdbc/pull/1730)
 ### Changed
 - Changed certificate validation behavior to validate when encryption is negotiated from either the client or the server side, not just the client side [1731](https://github.com/microsoft/mssql-jdbc/pull/1731)
-- Enclave Provider to use non blocking /dev/urandom [1734](https://github.com/microsoft/mssql-jdbc/pull/1734)
+- Enclave Prvider to use non blocking /dev/urandom [1734](https://github.com/microsoft/mssql-jdbc/pull/1734)
 - Updated azure dependancy versions to address vulnerability issues[1733](https://github.com/microsoft/mssql-jdbc/pull/1733)
 - Updated Bouncy Castle version [1735](https://github.com/microsoft/mssql-jdbc/pull/1735)
 ### Fixed
