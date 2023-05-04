@@ -1427,6 +1427,66 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Tests that big decimal values with a precision less than 38 hold their precision. Tests cases where scale is
+         * 38 (integer part is a 0) and less than 38 (integer part is a non-zero).
+         *
+         * @throws SQLException
+         *         when an error occurs
+         */
+        @Test
+        public void testSmallBigDecimalValuesForLossOfPrecision() throws SQLException {
+            try (Connection con = getConnection();
+                 Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+                double bigDecimalLessThanOne = 0.1235;
+                double bigDecimalGreaterThanOne = 1.1235;
+                String query = "CREATE PROCEDURE " + procName
+                        + " @col1Value decimal(4,4) OUTPUT, @col2Value decimal(5,4) OUTPUT AS BEGIN SET @col1Value = "
+                        + bigDecimalLessThanOne + " SET @col2Value = " + bigDecimalGreaterThanOne + " END";
+                stmt.execute(query);
+
+                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?, ?)}")) {
+                    cstmt.registerOutParameter("col1Value", java.sql.Types.DECIMAL, "DECIMAL");
+                    cstmt.registerOutParameter("col2Value", java.sql.Types.DECIMAL, "DECIMAL");
+                    cstmt.execute();
+
+                    // Previously, the leading 0 would be counted as part of the precision. This would lead to the actual
+                    // value being stored as 0.123.
+                    assertEquals(0,
+                            cstmt.getObject("col1Value", BigDecimal.class).compareTo(BigDecimal.valueOf(bigDecimalLessThanOne)));
+                    assertEquals(0,
+                            cstmt.getObject("col2Value", BigDecimal.class).compareTo(BigDecimal.valueOf(bigDecimalGreaterThanOne)));
+                }
+            }
+        }
+
+        /**
+         * Tests that big decimal values with a precision equal to 38 hold their precision. Tests cases where scale is
+         * 38 (integer part is a 0) and less than 38 (integer part is a non-zero).
+         *
+         * @throws SQLException
+         *         when an error occurs
+         */
+        @Test
+        public void testLongBigDecimalValuesForLossOfPrecision() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 decimal(38,38), col2 decimal(38,37))");
+
+                // col1 has maximum scale (38) with a leading zero, for a precision of 38. col2 has maximum scale (37) when
+                // using a lead integer other than zero, also resulting in a precision of 38.
+                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322, 1.9843231976313843518641231684231687432)");
+
+                try (PreparedStatement pstmt = con.prepareStatement("SELECT * FROM " + tableName)) {
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        rs.next();
+                        assertEquals(new BigDecimal("0.98432319763138435186412316842316874322"), rs.getObject(1));
+                        assertEquals(new BigDecimal("1.9843231976313843518641231684231687432"), rs.getObject(2));
+                    }
+                }
+            }
+        }
+
+        /**
          * Tests result of math operation in prepared statement using subtraction
          * 
          * @throws SQLException
