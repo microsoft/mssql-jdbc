@@ -743,7 +743,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.DATABASE_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.DISABLE_STATEMENT_POOLING.getDefaultValue()), false,
-                    new String[] {"true"}),
+                    new String[] {"true", "false"}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ENCRYPT.toString(),
                     SQLServerDriverStringProperty.ENCRYPT.getDefaultValue(), false,
                     new String[] {EncryptOption.FALSE.toString(), EncryptOption.NO.toString(),
