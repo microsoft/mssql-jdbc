@@ -970,12 +970,13 @@ public class SQLServerConnectionTest extends AbstractTest {
            });
            SQLServerDataSource ds = new SQLServerDataSource();
            ds.setServerName("localhost");
-           Connection conn = ds.getConnection();
            System.out.println("Thread count 4: " + ManagementFactory.getThreadMXBean().getThreadCount());
            System.out.println("Peak thread count 4: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
+           Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
            if (!(e instanceof SQLServerException)) {
+               System.out.println("Peak thread count 4.5: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
            }
        } finally {
@@ -983,6 +984,7 @@ public class SQLServerConnectionTest extends AbstractTest {
            System.out.println("Peak thread count 5: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
            executor.shutdownNow();
            Thread.sleep(20000);
+           System.out.println("Peak thread count 6: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
        }
 
        // At this point, thread count has returned to normal. If the peak was more
