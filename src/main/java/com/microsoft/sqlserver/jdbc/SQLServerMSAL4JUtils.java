@@ -5,10 +5,18 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,6 +26,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
+
+import javax.net.ssl.KeyManager;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
@@ -71,8 +81,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
-                        + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString()
+                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
+                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -114,8 +125,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
-                        + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString()
+                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
+                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -125,6 +137,62 @@ class SQLServerMSAL4JUtils {
 
             throw new SQLServerException(e.getMessage(), e);
         } catch (MsalThrottlingException | ExecutionException e) {
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    static SqlAuthenticationToken getSqlFedAuthTokenPrincipalCertificate(SqlFedAuthInfo fedAuthInfo,
+            String aadPrincipalID, String certFile, String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(logger.toString() + authenticationString + ": get FedAuth token for principal certificate: "
+                    + aadPrincipalID);
+        }
+
+        try {
+            String defaultScopeSuffix = SLASH_DEFAULT;
+            String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
+                                                                        : fedAuthInfo.spn + defaultScopeSuffix;
+            Set<String> scopes = new HashSet<>();
+            scopes.add(scope);
+
+            String certPass = "Moonshine4me";
+
+            // pkcs12 certificate stream
+            InputStream certStream = new FileInputStream(certFile);
+
+            IClientCredential credential = ClientCredentialFactory.createFromCertificate(certStream, certPass);
+            ConfidentialClientApplication clientApplication = ConfidentialClientApplication
+                    .builder(aadPrincipalID, credential).executorService(executorService)
+                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                    .authority(fedAuthInfo.stsurl).build();
+
+            final CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(ClientCredentialParameters.builder(scopes).build());
+            final IAuthenticationResult authenticationResult = future.get();
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(logger.toString()
+                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
+                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+            }
+
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+        } catch (MalformedURLException | InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (FileNotFoundException | SecurityException e) {
+            // certificate error
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (MsalThrottlingException | ExecutionException e) {
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
+        } catch (UnrecoverableKeyException | CertificateException | NoSuchAlgorithmException | KeyStoreException
+                | NoSuchProviderException | IOException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
@@ -160,8 +228,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
-                        + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString()
+                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
+                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -248,8 +317,9 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account().username() + ACCESS_TOKEN_EXPIRE
-                        + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString()
+                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
+                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());

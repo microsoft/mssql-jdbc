@@ -284,7 +284,7 @@ final class SQLServerCertificateUtils {
             if (!CertificateFactory.getInstance("X509").generateCertificate(is).getPublicKey()
                     .equals(cert.getPublicKey())) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_publicKeyMismatch"));
-                Object[] msgArgs = {certFile.toString()};
+                Object[] msgArgs = {certFile};
                 throw new CertificateException(form.format(msgArgs));
             }
         } catch (Exception e) {

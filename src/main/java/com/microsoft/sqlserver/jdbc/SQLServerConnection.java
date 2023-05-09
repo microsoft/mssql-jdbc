@@ -542,6 +542,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 case "ACTIVEDIRECTORYSERVICEPRINCIPAL":
                     this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL;
                     break;
+                case "ACTIVEDIRECTORYSERVICEPRINCIPALCERTIFICATE":
+                    this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE;
+                    break;
                 case "ACTIVEDIRECTORYINTERACTIVE":
                     this.authentication = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
                     break;
@@ -2536,7 +2539,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (authenticationString
-                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())
+                        || authenticationString.equalsIgnoreCase(
+                                SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
                     if ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
                             || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                     .isEmpty())
@@ -2686,8 +2691,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 try {
                     if (!setLockTimeout()) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidLockTimeOut"));
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLockTimeOut"));
                         Object[] msgArgs = {activeConnectionProperties.getProperty(lockTimeoutKey)};
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                     }
@@ -4828,27 +4832,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     byte workflow = 0x00;
                     switch (fedAuthFeatureExtensionData.authentication) {
                         case ACTIVE_DIRECTORY_PASSWORD:
+                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL:
+                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE:
+                        case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
+                        case ACTIVE_DIRECTORY_DEFAULT:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD;
                             break;
                         case ACTIVE_DIRECTORY_INTEGRATED:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
-                        case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
-                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY;
-                            break;
-                        case ACTIVE_DIRECTORY_DEFAULT:
-                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT;
-                            break;
-                        case ACTIVE_DIRECTORY_INTERACTIVE:
-                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
-                            break;
-                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL:
-                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;
-                            break;
                         default:
                             // If not specified, check if access token callback was set. If it is set, break.
                             if (null != accessTokenCallback || hasAccessTokenCallbackClass) {
-                                workflow = TDS.ADALWORKFLOW_ACCESSTOKENCALLBACK;
+                                workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD;
                                 break;
                             }
                             assert (false); // Unrecognized Authentication type for fedauth ADAL request
@@ -5064,6 +5060,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())
+                        || authenticationString.equalsIgnoreCase(
+                                SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())
                         || authenticationString
                                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString()))
                         && fedAuthRequiredPreLoginResponse)
@@ -5710,6 +5708,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                             authenticationString);
                 }
+
+                // Break out of the retry loop in successful case.
+                break;
+            } else if (authenticationString
+                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+
+                // password is path to service principal certificate
+                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
+                        authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -8008,7 +8017,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsEnclaveRetry;
     }
 
-    boolean setLockTimeout () {
+    boolean setLockTimeout() {
         nLockTimeout = SQLServerDriverIntProperty.LOCK_TIMEOUT.getDefaultValue();
         String lockTimeoutKey = SQLServerDriverIntProperty.LOCK_TIMEOUT.toString();
 
