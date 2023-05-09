@@ -946,6 +946,7 @@ public class SQLServerConnectionTest extends AbstractTest {
    public void testThreadCountWhenFindingSocket() throws InterruptedException {
        ExecutorService executor = null;
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
+       System.out.println("Thread count 1: " + ManagementFactory.getThreadMXBean().getThreadCount());
 
        try {
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
@@ -964,19 +965,24 @@ public class SQLServerConnectionTest extends AbstractTest {
            SQLServerDataSource ds = new SQLServerDataSource();
            ds.setServerName("localhost");
            Connection conn = ds.getConnection();
+           System.out.println("Thread count 2: " + ManagementFactory.getThreadMXBean().getThreadCount());
            Thread.sleep(5000);
        } catch (Exception e) {
            if (!(e instanceof SQLServerException)) {
                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
            }
        } finally {
+           System.out.println("Thread count 3: " + ManagementFactory.getThreadMXBean().getThreadCount());
            executor.shutdownNow();
            Thread.sleep(20000);
        }
 
        // At this point, thread count has returned to normal. If the peak was more
        // than 5 times the current, this is an issue and the test should fail.
+       System.out.println("Thread count 4: " + ManagementFactory.getThreadMXBean().getThreadCount());
        int acceptableMax = 5 * ManagementFactory.getThreadMXBean().getThreadCount();
+       System.out.println("Peak thread count: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
+       System.out.println("Acceptible max: " + acceptableMax);
        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
            fail(TestResource.getResource("R_unexpectedThreadCount"));
        }
