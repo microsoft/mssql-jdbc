@@ -2960,7 +2960,7 @@ final class SocketFinder {
                         // Catch the interruption and don't re-interupt the current thread. This would interrupt the
                         // following sleep calls and cause the many retries ('infinite loops') we saw previously.
 
-                        break;
+                        continue;
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
