@@ -183,6 +183,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** client key password */
     private String clientKeyPassword = "";
 
+    /** service prinicipal certificate used for ActiveDirectoryServicePrincipalCertificate authentication */
+    private String servicePrincipalCertificate = null;
+
+    /** service prinicipal certificate key used for ActiveDirectoryServicePrincipalCertificate authentication */
+    private String servicePrincipalCertificateKey = null;
+
+    /** service prinicipal certificate password used for ActiveDirectoryServicePrincipalCertificate authentication */
+    private String servicePrincipalCertificatePassword = "";
+
     /** AAD principal id */
     private String aadPrincipalID = "";
 
@@ -2539,9 +2548,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (authenticationString
-                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())
-                        || authenticationString.equalsIgnoreCase(
-                                SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
                     if ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
                             || activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
                                     .isEmpty())
@@ -2554,20 +2561,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         throw new SQLServerException(
                                 SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
                     }
+                }
 
-                    if ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                            .isEmpty()
-                            || !activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())
-                            && (!activeConnectionProperties
-                                    .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString())
-                                    .isEmpty()
-                                    || !activeConnectionProperties.getProperty(
-                                            SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
-                                            .isEmpty())) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_BothUserPasswordandDeprecated"),
-                                null);
-                    }
+                if ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
+                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
+                                .isEmpty())
+                        && (!activeConnectionProperties
+                                .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString()).isEmpty()
+                                || !activeConnectionProperties
+                                        .getProperty(
+                                                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
+                                        .isEmpty())) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_BothUserPasswordandDeprecated"),
+                            null);
                 }
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())
@@ -2814,25 +2820,66 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                    clientCertificate = sPropValue;
-                }
+                // clientCertificate clientKey, clientKeyPassword have diff meaning for ActiveDirectoryPrincipalCertificate
+                if (authenticationString.equalsIgnoreCase(
+                        SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        servicePrincipalCertificate = sPropValue;
+                    }
 
-                sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                    clientKey = sPropValue;
-                }
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        servicePrincipalCertificateKey = sPropValue;
+                    }
 
-                sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                    clientKeyPassword = sPropValue;
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        servicePrincipalCertificatePassword = sPropValue;
+                    }
+
+                    if (authenticationString.equalsIgnoreCase(
+                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())
+                            && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                                    .isEmpty()
+                                    && activeConnectionProperties
+                                            .getProperty(
+                                                    SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString())
+                                            .isEmpty())
+                                    || (null == servicePrincipalCertificate
+                                            || servicePrincipalCertificate.isEmpty()))) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_NoUserorCertForActiveServicePrincipalCertificate"),
+                                null);
+                    }
+
+                } else {
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_CERTIFICATE.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        clientCertificate = sPropValue;
+                    }
+
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_KEY.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        clientKey = sPropValue;
+                    }
+
+                    sPropKey = SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                        clientKeyPassword = sPropValue;
+                    }
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString();
@@ -2974,7 +3021,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
-        } finally {
+        } finally
+
+        {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
             if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
@@ -4832,19 +4881,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     byte workflow = 0x00;
                     switch (fedAuthFeatureExtensionData.authentication) {
                         case ACTIVE_DIRECTORY_PASSWORD:
-                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL:
-                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE:
-                        case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
-                        case ACTIVE_DIRECTORY_DEFAULT:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD;
                             break;
                         case ACTIVE_DIRECTORY_INTEGRATED:
                             workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED;
                             break;
+                        case ACTIVE_DIRECTORY_MANAGED_IDENTITY:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY;
+                            break;
+                        case ACTIVE_DIRECTORY_DEFAULT:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT;
+                            break;
+                        case ACTIVE_DIRECTORY_INTERACTIVE:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE;
+                            break;
+                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL;
+                            break;
+                        case ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE:
+                            workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPALCERTIFICATE;
+                            break;
                         default:
                             // If not specified, check if access token callback was set. If it is set, break.
                             if (null != accessTokenCallback || hasAccessTokenCallbackClass) {
-                                workflow = TDS.ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD;
+                                workflow = TDS.ADALWORKFLOW_ACCESSTOKENCALLBACK;
                                 break;
                             }
                             assert (false); // Unrecognized Authentication type for fedauth ADAL request
@@ -5714,11 +5774,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
 
-                // password is path to service principal certificate
+                // clientCertificate property is used to specify path to certificate file
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                        servicePrincipalCertificate,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        authenticationString);
+                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString);
 
                 // Break out of the retry loop in successful case.
                 break;

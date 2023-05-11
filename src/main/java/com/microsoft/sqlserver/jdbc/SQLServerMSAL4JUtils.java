@@ -9,16 +9,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+
 import java.text.MessageFormat;
+
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -27,8 +26,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
-import javax.net.ssl.KeyManager;
 import javax.security.auth.kerberos.KerberosPrincipal;
+
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
@@ -43,6 +49,7 @@ import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
+
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
@@ -51,7 +58,7 @@ class SQLServerMSAL4JUtils {
 
     static final String REDIRECTURI = "http://localhost";
     static final String SLASH_DEFAULT = "/.default";
-    static final String ACCESS_TOKEN_EXPIRE = " access token expires on the following date: ";
+    static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
@@ -81,18 +88,17 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString()
-                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
-                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
+                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (MalformedURLException | InterruptedException e) {
+        } catch (InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -108,12 +114,13 @@ class SQLServerMSAL4JUtils {
                     logger.toString() + authenticationString + ": get FedAuth token for principal: " + aadPrincipalID);
         }
 
+        String defaultScopeSuffix = SLASH_DEFAULT;
+        String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
+                                                                    : fedAuthInfo.spn + defaultScopeSuffix;
+        Set<String> scopes = new HashSet<>();
+        scopes.add(scope);
+
         try {
-            String defaultScopeSuffix = SLASH_DEFAULT;
-            String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
-                                                                        : fedAuthInfo.spn + defaultScopeSuffix;
-            Set<String> scopes = new HashSet<>();
-            scopes.add(scope);
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                     .builder(aadPrincipalID, credential).executorService(executorService)
@@ -125,18 +132,17 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString()
-                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
-                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
+                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (MalformedURLException | InterruptedException e) {
+        } catch (InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
@@ -144,7 +150,8 @@ class SQLServerMSAL4JUtils {
     }
 
     static SqlAuthenticationToken getSqlFedAuthTokenPrincipalCertificate(SqlFedAuthInfo fedAuthInfo,
-            String aadPrincipalID, String certFile, String authenticationString) throws SQLServerException {
+            String aadPrincipalID, String certFile, String certPassword, String certKey, String certKeyPassword,
+            String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -152,47 +159,82 @@ class SQLServerMSAL4JUtils {
                     + aadPrincipalID);
         }
 
+        String defaultScopeSuffix = SLASH_DEFAULT;
+        String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
+                                                                    : fedAuthInfo.spn + defaultScopeSuffix;
+        Set<String> scopes = new HashSet<>();
+        scopes.add(scope);
+
         try {
-            String defaultScopeSuffix = SLASH_DEFAULT;
-            String scope = fedAuthInfo.spn.endsWith(defaultScopeSuffix) ? fedAuthInfo.spn
-                                                                        : fedAuthInfo.spn + defaultScopeSuffix;
-            Set<String> scopes = new HashSet<>();
-            scopes.add(scope);
+            ConfidentialClientApplication clientApplication = null;
 
-            String certPass = "Moonshine4me";
+            // check if cert is PKCS12
+            try (InputStream is = new FileInputStream(certFile)) {
+                KeyStore keyStore = SQLServerCertificateUtils.loadPKCS12KeyStore(certFile, certPassword);
 
-            // pkcs12 certificate stream
-            InputStream certStream = new FileInputStream(certFile);
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(logger.toString() + "certificate type: " + keyStore.getType());
+                }
+                // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
+                Enumeration<String> enumeration = keyStore.aliases();
+                while (enumeration.hasMoreElements()) {
+                    String alias = (String) enumeration.nextElement();
+                    X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
+                    cert.checkValidity();
+                }
 
-            IClientCredential credential = ClientCredentialFactory.createFromCertificate(certStream, certPass);
-            ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                    .builder(aadPrincipalID, credential).executorService(executorService)
-                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
-                    .authority(fedAuthInfo.stsurl).build();
+                IClientCredential credential = ClientCredentialFactory.createFromCertificate(is, certPassword);
+                clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
+                        .executorService(executorService)
+                        .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                        .authority(fedAuthInfo.stsurl).build();
+            } catch (FileNotFoundException e) {
+                // re-throw this is a legit error no point to another format
+                throw e;
+            } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
+                // ignore not PKCS12 cert error, will try another format after this
+            }
+
+            if (clientApplication == null) {
+                // try loading X509 cert
+                X509Certificate cert = (X509Certificate) SQLServerCertificateUtils.loadCertificate(certFile);
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(logger.toString() + "certificate type: " + cert.getType());
+                }
+
+                // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
+                cert.checkValidity();
+
+                PrivateKey privateKey = SQLServerCertificateUtils.loadPrivateKey("c:\\Users\\It-admin\\private_key.pem",
+                        certKeyPassword);
+
+                IClientCredential credential = ClientCredentialFactory.createFromCertificate(privateKey, cert);
+                clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
+                        .executorService(executorService)
+                        .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                        .authority(fedAuthInfo.stsurl).build();
+            }
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString()
-                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
-                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
+                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (MalformedURLException | InterruptedException e) {
+        } catch (InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (FileNotFoundException | SecurityException e) {
-            // certificate error
-            throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException e) {
+        } catch (MsalThrottlingException | ExecutionException | IOException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
-        } catch (UnrecoverableKeyException | CertificateException | NoSuchAlgorithmException | KeyStoreException
-                | NoSuchProviderException | IOException e) {
+        } catch (GeneralSecurityException e) {
+            // this includes all certificate exceptions
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
@@ -203,19 +245,19 @@ class SQLServerMSAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+        /*
+         * principal name does not matter, what matters is the realm name it gets the username in
+         * principal_name@realm_name format
+         */
+        KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
+        String user = kerberosPrincipal.getName();
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest(logger.toString() + authenticationString + ": get FedAuth token integrated, user: " + user
+                    + "realm name:" + kerberosPrincipal.getRealm());
+        }
+
         try {
-            /*
-             * principal name does not matter, what matters is the realm name it gets the username in
-             * principal_name@realm_name format
-             */
-            KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
-            String user = kerberosPrincipal.getName();
-
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationString + ": get FedAuth token integrated, realm name:"
-                        + kerberosPrincipal.getRealm());
-            }
-
             final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
@@ -228,19 +270,18 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString()
-                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
-                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
+                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (InterruptedException | IOException e) {
+        } catch (InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException e) {
-            throw getCorrectedException(e, "", authenticationString);
+        } catch (IOException | MsalThrottlingException | ExecutionException e) {
+            throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
         }
@@ -317,18 +358,17 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString()
-                        + (authenticationResult.account() != null ? authenticationResult.account().username() : "")
-                        + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
+                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (MalformedURLException | InterruptedException | URISyntaxException e) {
+        } catch (InterruptedException e) {
             // re-interrupt thread
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | URISyntaxException | MsalThrottlingException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -351,7 +391,8 @@ class SQLServerMSAL4JUtils {
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_MSALExecution") + " " + e.getMessage());
 
             // The case when Future's outcome has no AuthenticationResult but Exception.
             return new SQLServerException(form.format(msgArgs), null);

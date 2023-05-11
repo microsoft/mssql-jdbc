@@ -365,6 +365,53 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
+    /**
+     * Test AAD Service Principal Certificate Authentication using username/password in connection string, data source and SSL
+     * encryption.
+     */
+    @Test
+    public void testAADServicePrincipalCertAuth() {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + azureAADPrincipalId
+                + ";Password=" + azureAADPrincipalCertificate;
+        String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(url, ds);
+        try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
+                Connection conn3 = DriverManager.getConnection(urlEncrypted)) {
+            assertNotNull(conn1);
+            assertNotNull(conn2);
+            assertNotNull(conn3);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test invalid connection property combinations when using AAD Service Principal Certificate Authentication.
+     */
+    @Test
+    public void testAADServicePrincipalCertAuthWrong() {
+        String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";";
+
+        // no certificate provided.
+        String url = baseUrl + "user=" + azureAADPrincipalId;
+        validateException(url, "R_NoUserorCertForActiveServicePrincipalCertificate");
+
+        // wrong principal id
+        url = baseUrl + "user=wrongId;clientCertificate=" + "cert";
+        validateException(url, "R_MSALExecution");
+
+        // wrong and certificate password
+        url = baseUrl + "user=" + azureAADPrincipalId + ";password=wrongPassword";
+        validateException(url, "R_readCertError");
+
+        // wrong and certificate key or password
+        url = baseUrl + "user=" + azureAADPrincipalId + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
+        validateException(url, "R_readCertError");
+    }
+
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
