@@ -980,7 +980,7 @@ public class SQLServerConnectionTest extends AbstractTest {
        } finally {
            executor.shutdownNow();
            System.out.println("Peak thread count before sleeping: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
-           Thread.sleep(5000);
+           Thread.sleep(20000);
            System.out.println("Peak thread count after sleeping: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
        }
 

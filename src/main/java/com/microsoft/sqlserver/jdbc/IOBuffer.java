@@ -2953,15 +2953,15 @@ final class SocketFinder {
                     // reverse order of locking in updateResult method.
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
-                    //parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
-                    try {
-                        parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException ie) {
-                        // Catch the interruption and don't re-interupt the current thread. This would interrupt the
-                        // following sleep calls and cause the many retries ('infinite loops') we saw previously.
-
-                        continue;
-                    }
+                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+//                    try {
+//                        parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+//                    } catch (InterruptedException ie) {
+//                        // Catch the interruption and don't re-interupt the current thread. This would interrupt the
+//                        // following sleep calls and cause the many retries ('infinite loops') we saw previously.
+//
+//                        continue;
+//                    }
 
                     if (logger.isLoggable(Level.FINER)) {
                         logger.finer(this.toString() + " The parent thread wokeup.");
