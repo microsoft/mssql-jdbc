@@ -980,14 +980,14 @@ public class SQLServerConnectionTest extends AbstractTest {
        } finally {
            executor.shutdownNow();
            System.out.println("Peak thread count before sleeping: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
-           Thread.sleep(20000);
+           Thread.sleep(10000);
            System.out.println("Peak thread count after sleeping: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
        }
 
        // At this point, thread count has returned to normal. If the peak was more
        // than 5 times the current, this is an issue and the test should fail.
        System.out.println("Thread count final: " + ManagementFactory.getThreadMXBean().getThreadCount());
-       int acceptableMax = 5 * ManagementFactory.getThreadMXBean().getThreadCount();
+       int acceptableMax = 2 * ManagementFactory.getThreadMXBean().getThreadCount();
        System.out.println("Peak thread count FINAL: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
        System.out.println("Acceptible max: " + acceptableMax);
        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
