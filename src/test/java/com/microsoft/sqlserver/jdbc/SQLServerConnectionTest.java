@@ -14,6 +14,7 @@ import java.io.Reader;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.InetAddress;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -951,16 +952,14 @@ public class SQLServerConnectionTest extends AbstractTest {
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
 
        try {
-           //Field cacheSize = Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache").getDeclaredField("CACHE_SIZE");
-           //modifiers.setInt(cacheSize, cacheSize.getModifiers() & ~Modifier.FINAL);
-           //cacheSize.setAccessible(true);
-           //cacheSize.set(cacheSize.get(Class.forName("com.microsoft.sqlserver.jdbc.ParameterMetaDataCache")), 0);
-
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
-                   ds.setServerName("localhost");
+                   //ds.setServerName("localhost");
+                   //Field connectionString = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest").getDeclaredField("connectionString");
+                   //connectionString.setAccessible(true);
+                   //connectionString.set(connectionString.get(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest")), "");
                    Thread.sleep(5000);
                    Connection conn2 = ds.getConnection();
                } catch (Exception e) {
@@ -970,7 +969,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("localhost");
+           //ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {

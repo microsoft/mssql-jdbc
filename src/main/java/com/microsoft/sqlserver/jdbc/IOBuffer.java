@@ -2959,7 +2959,7 @@ final class SocketFinder {
                     } catch (InterruptedException ie) {
                         // Catch the interruption and don't re-interupt the current thread. This would interrupt the
                         // following sleep calls and cause the many retries ('infinite loops') we saw previously.
-
+                        System.out.println("The previously uncaught interruption has now been caught.");
                         continue;
                     }
 
