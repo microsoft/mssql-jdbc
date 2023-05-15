@@ -1776,7 +1776,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        System.out.println("Entering connect()");
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         if (propsIn != null) {
             String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
@@ -1996,7 +1995,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     Connection connectInternal(Properties propsIn,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        System.out.println("Entering connectInternal()");
         try {
             if (propsIn != null) {
 
@@ -3050,7 +3048,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
-        System.out.println("Entered login()");
 
         final boolean isDBMirroring = null != mirror || null != foActual;
 
@@ -3485,7 +3482,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private InetSocketAddress connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis,
             int timeOutFullInSeconds, boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
             int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
-        System.out.println("Entered connectHelper()");
         // Make the initial tcp-ip connection.
         if (connectionlogger.isLoggable(Level.FINE)) {
             connectionlogger.fine(toString() + " Connecting with server: " + serverInfo.getServerName() + " port: "

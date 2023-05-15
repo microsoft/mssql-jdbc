@@ -96,6 +96,7 @@ public class SQLServerDataSource
     @Override
     public Connection getConnection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConnection");
+        System.out.println("We've entered getConnection()");
         Connection con = getConnectionInternal(null, null, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;
@@ -1485,7 +1486,6 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
-        System.out.println("Making a new connection in SQLServerDataSource");
         result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))

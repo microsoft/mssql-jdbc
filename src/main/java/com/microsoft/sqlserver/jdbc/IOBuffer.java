@@ -705,7 +705,6 @@ final class TDSChannel implements Serializable {
     final InetSocketAddress open(String host, int port, int timeoutMillis, boolean useParallel, boolean useTnir,
             boolean isTnirFirstAttempt, int timeoutMillisForFullTimeout,
             String iPAddressPreference) throws SQLServerException {
-        System.out.println("Entered open()");
         if (logger.isLoggable(Level.FINER))
             logger.finer(this.toString() + ": Opening TCP socket...");
 
@@ -2453,7 +2452,6 @@ final class SocketFinder {
         InetAddress[] debugAddrs = null;
         if (hostName.equals("localhost")) {
             try {
-                System.out.println("hostname = localhost");
                 debugAddrs = InetAddress.getAllByName("localhost");
             } catch (UnknownHostException e) {}
         }
