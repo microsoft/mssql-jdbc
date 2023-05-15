@@ -2506,8 +2506,9 @@ final class SocketFinder {
                 // as the config is unsupported.
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
+            InetAddress[] debugAddrs = InetAddress.getAllByName("localhost");
 
-            if (inetAddrs != null && inetAddrs.length == 1) {
+            if (inetAddrs != null && inetAddrs.length == 1 && debugAddrs != null) {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
