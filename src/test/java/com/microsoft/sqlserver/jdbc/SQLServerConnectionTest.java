@@ -956,10 +956,7 @@ public class SQLServerConnectionTest extends AbstractTest {
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
-                   //ds.setServerName("localhost");
-                   //Field connectionString = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest").getDeclaredField("connectionString");
-                   //connectionString.setAccessible(true);
-                   //connectionString.set(connectionString.get(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest")), "");
+
                    Thread.sleep(5000);
                    Connection conn2 = ds.getConnection();
                } catch (Exception e) {

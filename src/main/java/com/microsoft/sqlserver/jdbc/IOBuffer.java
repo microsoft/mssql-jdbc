@@ -2910,6 +2910,7 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
+                System.out.println(inetAddress);
                 Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
