@@ -969,7 +969,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
-           //ds.setServerName("localhost");
+           ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
