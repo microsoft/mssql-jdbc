@@ -1776,6 +1776,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
+        System.out.println("Entering connect()");
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         if (propsIn != null) {
             String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
@@ -1995,6 +1996,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     Connection connectInternal(Properties propsIn,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
+        System.out.println("Entering connectInternal()");
         try {
             if (propsIn != null) {
 

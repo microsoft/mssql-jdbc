@@ -1485,6 +1485,7 @@ public class SQLServerDataSource
         if (dsLogger.isLoggable(Level.FINER))
             dsLogger.finer(toString() + " Begin create new connection.");
         SQLServerConnection result = null;
+        System.out.println("Making a new connection in SQLServerDataSource");
         result = DriverJDBCVersion.getSQLServerConnection(toString());
         result.connect(mergedProps, pooledConnection);
         if (dsLogger.isLoggable(Level.FINER))
