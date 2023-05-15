@@ -19,14 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2455,6 +2448,14 @@ final class SocketFinder {
             boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
+        System.out.println(hostName);
+        InetAddress[] debugAddrs = null;
+        if (hostName.equals("localhost")) {
+            try {
+                System.out.println("hostname = localhost");
+                debugAddrs = InetAddress.getAllByName("localhost");
+            } catch (UnknownHostException e) {}
+        }
 
         try {
             InetAddress[] inetAddrs = null;
@@ -2506,9 +2507,13 @@ final class SocketFinder {
                 // as the config is unsupported.
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
-            InetAddress[] debugAddrs = InetAddress.getAllByName("localhost");
 
-            if (inetAddrs != null && inetAddrs.length == 1 && debugAddrs != null) {
+            if (debugAddrs != null) {
+                System.out.println("Using debugaddrs");
+                findSocketUsingThreading(debugAddrs, portNumber, timeoutInMilliSeconds);
+            }
+
+            if (inetAddrs != null && inetAddrs.length == 1) {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
