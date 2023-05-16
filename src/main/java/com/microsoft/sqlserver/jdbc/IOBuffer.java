@@ -2448,11 +2448,12 @@ final class SocketFinder {
             boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
-        InetAddress[] debugAddrs = null;
+        InetAddress[] debugAddrs = new InetAddress[2];
         if (hostName.equals("testServerName")) {
             try {
                 System.out.println("Set the debug address");
-                debugAddrs = InetAddress.getAllByName("localhost");
+                debugAddrs[0] = InetAddress.getLocalHost();
+                debugAddrs[1] = InetAddress.getByName("127.0.0.1");
                 isTnirFirstAttempt = false;
                 timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
                 findSocketUsingThreading(debugAddrs, portNumber, timeoutInMilliSeconds);
