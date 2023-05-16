@@ -168,7 +168,7 @@ class SQLServerMSAL4JUtils {
         try {
             ConfidentialClientApplication clientApplication = null;
 
-            // check if cert is PKCS12
+            // check if cert is PKCS12 first
             try (InputStream is = new FileInputStream(certFile)) {
                 KeyStore keyStore = SQLServerCertificateUtils.loadPKCS12KeyStore(certFile, certPassword);
 
@@ -189,10 +189,13 @@ class SQLServerMSAL4JUtils {
                         .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
                         .authority(fedAuthInfo.stsurl).build();
             } catch (FileNotFoundException e) {
-                // re-throw this is a legit error no point to another format
+                // re-throw if file not there no point to try another format
                 throw e;
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(logger.toString() + "Error loading PKCS12 certificate: " + e.getMessage());
+                }
             }
 
             if (clientApplication == null) {
@@ -202,12 +205,10 @@ class SQLServerMSAL4JUtils {
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.finest(logger.toString() + "certificate type: " + cert.getType());
                 }
-
                 // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
                 cert.checkValidity();
 
-                PrivateKey privateKey = SQLServerCertificateUtils.loadPrivateKey("c:\\Users\\It-admin\\private_key.pem",
-                        certKeyPassword);
+                PrivateKey privateKey = SQLServerCertificateUtils.loadPrivateKey(certKey, certKeyPassword);
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(privateKey, cert);
                 clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
@@ -236,6 +237,9 @@ class SQLServerMSAL4JUtils {
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
+        } catch (Exception e) {
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
+
         } finally {
             executorService.shutdown();
         }
