@@ -96,7 +96,6 @@ public class SQLServerDataSource
     @Override
     public Connection getConnection() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getConnection");
-        System.out.println("We've entered getConnection()");
         Connection con = getConnectionInternal(null, null, null);
         loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
         return con;

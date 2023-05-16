@@ -950,15 +950,13 @@ public class SQLServerConnectionTest extends AbstractTest {
    public void testThreadCountWhenFindingSocket() throws InterruptedException {
        ExecutorService executor = null;
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
-       System.out.println("ENTERTED THE TEST");
 
        try {
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
-                   ds.setServerName("asdfhsjdhfjks");
-                   System.out.println("Set server name to asdfhsjdhfjks");
+                   ds.setServerName("localhost");
                    //Field connectionString = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest").getDeclaredField("connectionString");
                    //connectionString.setAccessible(true);
                    //connectionString.set(connectionString.get(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest")), "");
@@ -971,8 +969,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("asdfhsjdhfjks");
-           System.out.println("Set server name to asdfhsjdhfjks");
+           ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
