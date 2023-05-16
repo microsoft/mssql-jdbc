@@ -2457,18 +2457,16 @@ final class SocketFinder {
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
-        if (hostName.equals("testServerName")) {
-            try {
+        try {
+            InetAddress[] inetAddrs = null;
+
+            // Used in testing to force multiple InetAddress and thus findSocketUsingThreading.
+            // Cleanest way to implement this is for this test condition to be the first one checked.
+            if (hostName.equals("testServerName")) {
                 InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
                 findSocketUsingThreading(debugAddrs, portNumber,
                         Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS));
-            } catch (IOException | InterruptedException e) {
-                System.out.println("OK");
             }
-        }
-
-        try {
-            InetAddress[] inetAddrs = null;
 
             if (!useParallel) {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
