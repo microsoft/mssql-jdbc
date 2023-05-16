@@ -19,7 +19,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.*;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2448,19 +2456,14 @@ final class SocketFinder {
             boolean isTnirFirstAttempt, int timeoutInMilliSecondsForFullTimeout,
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
-        InetAddress[] debugAddrs = new InetAddress[2];
+
         if (hostName.equals("testServerName")) {
             try {
-                System.out.println("Set the debug address");
-                debugAddrs[0] = InetAddress.getLocalHost();
-                debugAddrs[1] = InetAddress.getByName("127.0.0.1");
-                isTnirFirstAttempt = false;
-                timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
-                findSocketUsingThreading(debugAddrs, portNumber, timeoutInMilliSeconds);
-            } catch (UnknownHostException e) {} catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
+                findSocketUsingThreading(debugAddrs, portNumber,
+                        Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS));
+            } catch (IOException | InterruptedException e) {
+                System.out.println("OK");
             }
         }
 
@@ -2918,7 +2921,6 @@ final class SocketFinder {
             // create a socket, inetSocketAddress and a corresponding socketConnector per inetAddress
             noOfSpawnedThreads = inetAddrs.length;
             for (InetAddress inetAddress : inetAddrs) {
-                System.out.println(inetAddress);
                 Socket s = getSocketFactory().createSocket();
                 sockets.add(s);
 
@@ -2962,13 +2964,13 @@ final class SocketFinder {
                     // reverse order of locking in updateResult method.
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
-                   // parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+
                     try {
                         parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException ie) {
                         // Catch the interruption and don't re-interupt the current thread. This would interrupt the
                         // following sleep calls and cause the many retries ('infinite loops') we saw previously.
-                        System.out.println("The previously uncaught interruption has now been caught.");
+
                         continue;
                     }
 

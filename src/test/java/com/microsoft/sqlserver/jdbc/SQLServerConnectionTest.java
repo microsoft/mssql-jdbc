@@ -957,9 +957,6 @@ public class SQLServerConnectionTest extends AbstractTest {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
                    ds.setServerName("testServerName");
-                   //Field connectionString = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest").getDeclaredField("connectionString");
-                   //connectionString.setAccessible(true);
-                   //connectionString.set(connectionString.get(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest")), "");
                    Thread.sleep(5000);
                    Connection conn2 = ds.getConnection();
                } catch (Exception e) {
@@ -982,10 +979,8 @@ public class SQLServerConnectionTest extends AbstractTest {
        }
 
        // At this point, thread count has returned to normal. If the peak was more
-       // than 5 times the current, this is an issue and the test should fail.
+       // than 2 times the current, this is an issue and the test should fail.
        int acceptableMax = 2 * ManagementFactory.getThreadMXBean().getThreadCount();
-       System.out.println("Peak thread count FINAL: " + ManagementFactory.getThreadMXBean().getPeakThreadCount());
-       System.out.println("Acceptible max: " + acceptableMax);
        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
            fail(TestResource.getResource("R_unexpectedThreadCount"));
        }
