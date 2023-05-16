@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
  * @deprecated as of 8.1.0, because the interface contains methods which are not called as part of actual bulk copy
  *             process. Use {@link ISQLServerBulkData}} instead.
  */
-@Deprecated
+@Deprecated(since = "8.1.0")
 public interface ISQLServerBulkRecord extends ISQLServerBulkData {
     /**
      * Returns whether the column represents an identity column.

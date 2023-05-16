@@ -87,7 +87,7 @@ class IdleConnectionResiliency {
         this.unprocessedResponseCount.set(0);
     }
 
-    void parseInitialSessionStateData(byte[] data, byte[][] sessionStateInitial) throws SQLServerException {
+    void parseInitialSessionStateData(byte[] data, byte[][] sessionStateInitial) {
         int bytesRead = 0;
 
         // Contains StateId, StateLen, StateValue
@@ -110,34 +110,32 @@ class IdleConnectionResiliency {
     }
 
     void incrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
-            if (unprocessedResponseCount.incrementAndGet() < 0) {
-                /*
-                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
-                 * connection.
-                 */
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
-                }
-
-                setConnectionRecoveryPossible(false);
+        if ((connection.getRetryCount() > 0 && !isReconnectRunning())
+                && (unprocessedResponseCount.incrementAndGet() < 0)) {
+            /*
+             * When this number rolls over, connection recovery is disabled for the rest of the life of the
+             * connection.
+             */
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("unprocessedResponseCount < 0 on increment. Disabling connection resiliency.");
             }
+
+            setConnectionRecoveryPossible(false);
         }
     }
 
     void decrementUnprocessedResponseCount() {
-        if (connection.getRetryCount() > 0 && !isReconnectRunning()) {
-            if (unprocessedResponseCount.decrementAndGet() < 0) {
-                /*
-                 * When this number rolls over, connection recovery is disabled for the rest of the life of the
-                 * connection.
-                 */
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
-                }
-
-                setConnectionRecoveryPossible(false);
+        if ((connection.getRetryCount() > 0 && !isReconnectRunning())
+                && (unprocessedResponseCount.decrementAndGet() < 0)) {
+            /*
+             * When this number rolls over, connection recovery is disabled for the rest of the life of the
+             * connection.
+             */
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("unprocessedResponseCount < 0 on decrement. Disabling connection resiliency.");
             }
+
+            setConnectionRecoveryPossible(false);
         }
     }
 
@@ -255,7 +253,7 @@ class SessionStateTable {
     static final long MASTER_RECOVERY_DISABLE_SEQ_NUMBER = 0XFFFFFFFF;
     private boolean masterRecoveryDisabled;
     private byte[][] sessionStateInitial;
-    private SessionStateValue sessionStateDelta[];
+    private SessionStateValue[] sessionStateDelta;
     private AtomicInteger unRecoverableSessionStateCount = new AtomicInteger(0);
     private String originalCatalog;
     private String originalLanguage;
@@ -428,6 +426,7 @@ final class ReconnectThread extends Thread {
 
     }
 
+    @Override
     public void run() {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.finer("Starting ReconnectThread for command: " + command.toString());
@@ -469,7 +468,7 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                Thread.sleep(con.getRetryInterval() * 1000);
+                                Thread.sleep((long) (con.getRetryInterval()) * 1000);
                             }
                         } catch (InterruptedException ie) {
                             // re-interrupt thread

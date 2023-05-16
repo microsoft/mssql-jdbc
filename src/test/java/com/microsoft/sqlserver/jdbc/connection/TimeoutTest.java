@@ -286,6 +286,29 @@ public class TimeoutTest extends AbstractTest {
 
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
+    
+    /**
+     * Tests that failover is still used with socket timeout by measuring timing during a socket timeout.
+     *  
+     */
+    @Test
+    public void testFailoverInstanceResolutionWithSocketTimeout() {
+        long timerEnd;
+        long timerStart = System.currentTimeMillis();
+        
+        try (Connection conn = PrepUtil.getConnection(connectionString
+                 + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
+                    + ";socketTimeout=" + waitForDelaySeconds)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+            if (!(e instanceof SQLException)) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            }
+
+            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds);
+        }
+    }
 
     private void verifyTimeout(long timeDiff, int timeout) {
         // Verify that login timeout does not take longer than <timeout * 2> seconds.

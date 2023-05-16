@@ -6,12 +6,15 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.HashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 
 final class FailoverMapSingleton {
     private static int initialHashmapSize = 5;
     private static HashMap<String, FailoverInfo> failoverMap = new HashMap<>(initialHashmapSize);
+    private static final Lock LOCK = new ReentrantLock();
 
     private FailoverMapSingleton() {
         /* hide the constructor to stop the instantiation of this class. */}
@@ -30,7 +33,8 @@ final class FailoverMapSingleton {
 
     static FailoverInfo getFailoverInfo(SQLServerConnection connection, String primaryServer, String instance,
             String database) {
-        synchronized (FailoverMapSingleton.class) {
+        LOCK.lock();
+        try {
             if (failoverMap.isEmpty()) {
                 return null;
             } else {
@@ -43,6 +47,8 @@ final class FailoverMapSingleton {
                     fo.log(connection);
                 return fo;
             }
+        } finally {
+            LOCK.unlock();
         }
     }
 
@@ -50,11 +56,11 @@ final class FailoverMapSingleton {
     // failover server name provided
     // by the server. The map is only populated if the server sends failover info.
     static void putFailoverInfo(SQLServerConnection connection, String primaryServer, String instance, String database,
-            FailoverInfo actualFailoverInfo, boolean actualuseFailover,
-            String failoverPartner) throws SQLServerException {
+            FailoverInfo actualFailoverInfo, boolean actualuseFailover, String failoverPartner) {
         FailoverInfo fo;
 
-        synchronized (FailoverMapSingleton.class) {
+        LOCK.lock();
+        try {
             // one more check to make sure someone already did not do this
             if (null == (fo = getFailoverInfo(connection, primaryServer, instance, database))) {
                 if (connection.getConnectionLogger().isLoggable(Level.FINE))
@@ -64,6 +70,8 @@ final class FailoverMapSingleton {
             } else
                 // if the class exists make sure the latest info is updated
                 fo.failoverAdd(connection, actualuseFailover, failoverPartner);
+        } finally {
+            LOCK.unlock();
         }
     }
 }

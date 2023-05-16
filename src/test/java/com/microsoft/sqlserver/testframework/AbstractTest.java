@@ -32,6 +32,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -82,8 +83,13 @@ public abstract class AbstractTest {
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
-    // properties needed for MSI
-    protected static String msiClientId = null;
+    // properties needed for Managed Identity
+    protected static String managedIdentityClientId = null;
+
+    // properties for access token callback testing
+    protected static String accessTokenClientId = null;
+    protected static String accessTokenSecret = null;
+
     protected static String keyStorePrincipalId = null;
     protected static String keyStoreSecret = null;
 
@@ -95,6 +101,8 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
+
+    protected static PublicClientApplication fedauthPcaApp = null;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
@@ -110,6 +118,12 @@ public abstract class AbstractTest {
     private static Properties configProperties = null;
 
     protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    /**
+     * Retries due to server throttling
+     */
+    protected static final int THROTTLE_RETRY_COUNT = 3; // max number of throttling retries
+    protected static final int THROTTLE_RETRY_INTERVAL = 60000; // default throttling retry interval in ms
 
     public static Properties properties = null;
 
@@ -137,6 +151,9 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
+
+        accessTokenClientId = getConfiguredProperty("accessTokenClientId");
+        accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
@@ -217,7 +234,7 @@ public abstract class AbstractTest {
         }
 
         // MSI properties
-        msiClientId = getConfiguredProperty("msiClientId");
+        managedIdentityClientId = getConfiguredProperty("msiClientId");
         keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
         keyStoreSecret = getConfiguredProperty("keyStoreSecret");
     }
@@ -408,9 +425,6 @@ public abstract class AbstractTest {
                             break;
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
-                            break;
-                        case Constants.MSITOKENCACHETTL:
-                            ds.setMsiTokenCacheTtl(Integer.parseInt(value));
                             break;
                         default:
                             break;

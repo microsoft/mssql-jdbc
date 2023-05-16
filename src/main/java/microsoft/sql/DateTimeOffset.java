@@ -258,8 +258,9 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
 
         // The fact that nanos are non-negative guarantees the subtraction at the end
         // cannot produce a signed value outside the range representable in an int.
-        assert nanos >= 0;
-        assert other.nanos >= 0;
+        if (other.nanos < 0) {
+            throw new IllegalArgumentException();
+        }
 
         return (utcMillis > other.utcMillis) ? 1 : (utcMillis < other.utcMillis) ? -1 : nanos - other.nanos;
     }

@@ -26,7 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -52,7 +52,9 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerAASEnclaveProvider() {}
+    public SQLServerAASEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
@@ -124,6 +126,13 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+
+        // sp_describe_parameter_encryption stored procedure with 2 params
+        final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+
+        // sp_describe_parameter_encryption stored procedure with 3 params
+        final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
+
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
@@ -173,7 +182,7 @@ class AASAttestationParameters extends BaseAttestationRequest {
     // Type 1 is AAS, sent as Little Endian 0x10000000
     private static final byte[] ENCLAVE_TYPE = new byte[] {0x1, 0x0, 0x0, 0x0};
     // Nonce length is always 256
-    private static byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
+    private static final byte[] NONCE_LENGTH = new byte[] {0x0, 0x1, 0x0, 0x0};
     private byte[] nonce = new byte[256];
 
     AASAttestationParameters(String attestationUrl) throws SQLServerException, IOException {
@@ -234,7 +243,7 @@ class JWTCertificateEntry {
 class AASAttestationResponse extends BaseAttestationResponse {
 
     private byte[] attestationToken;
-    private static Hashtable<String, JWTCertificateEntry> certificateCache = new Hashtable<>();
+    private static ConcurrentHashMap<String, JWTCertificateEntry> certificateCache = new ConcurrentHashMap<>();
 
     AASAttestationResponse(byte[] b) throws SQLServerException {
         /*-
@@ -266,14 +275,14 @@ class AASAttestationResponse extends BaseAttestationResponse {
 
         this.sessionInfoSize = response.getInt();
         response.get(sessionID, 0, 8);
-        this.DHPKsize = response.getInt();
-        this.DHPKSsize = response.getInt();
+        this.dhpkSize = response.getInt();
+        this.dhpkSsize = response.getInt();
 
-        DHpublicKey = new byte[DHPKsize];
-        publicKeySig = new byte[DHPKSsize];
+        dhPublicKey = new byte[dhpkSize];
+        publicKeySig = new byte[dhpkSsize];
 
-        response.get(DHpublicKey, 0, DHPKsize);
-        response.get(publicKeySig, 0, DHPKSsize);
+        response.get(dhPublicKey, 0, dhpkSize);
+        response.get(publicKeySig, 0, dhpkSsize);
 
         if (0 != response.remaining()) {
             SQLServerException.makeFromDriverError(null, this,
@@ -309,12 +318,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                 String authorityUrl = new URL(attestationUrl).getAuthority();
                 URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
-                String wellKnownUrlJson = new String(Util.convertInputStreamToString(con.getInputStream()));
+                String wellKnownUrlJson = Util.convertInputStreamToString(con.getInputStream());
                 JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
                 URLConnection jwksCon = jwksUrl.openConnection();
-                String jwksUrlJson = new String(Util.convertInputStreamToString(jwksCon.getInputStream()));
+                String jwksUrlJson = Util.convertInputStreamToString(jwksCon.getInputStream());
                 JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
                 keys = jwksJson.get("keys").getAsJsonArray();
                 certificateCache.put(attestationUrl, new JWTCertificateEntry(keys));

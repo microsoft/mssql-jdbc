@@ -877,8 +877,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
         token.putShort((short) workstationLen);
         token.putShort((short) workstationLen);
         token.putInt(offset);
-        offset += workstationLen;
 
+        // offset workstationLen
         // version - not used, for debug only
 
         // payload

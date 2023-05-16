@@ -111,11 +111,11 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets the option whether TLS encryption is used.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
      * @param encryptOption
      *        TLS encrypt option. Default is true
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
      */
-    @Deprecated
+    @Deprecated(since = "10.1.0", forRemoval = true)
     void setEncrypt(boolean encryptOption);
 
     /**
@@ -342,6 +342,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *         java.sql.Time values will be sent to the server as a SQL Server time type.
      */
     boolean getSendTimeAsDatetime();
+
+    /**
+     * Sets the SQL server datatype to use for Java datetime and timestamp values.
+     * 
+     * @param datetimeParameterType
+     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are:
+     *        datetime, datetime2 or datetimeoffset.
+     */
+    void setDatetimeParameterType(String datetimeParameterType);
+
+    /**
+     * Returns the value of the datetimeParameterType connection property. This method was added in SQL Server JDBC Driver
+     * 12.2. Returns the setting of the datetimeParameterType connection property.
+     * 
+     * @return Returns the value of the datetimeParameterType property.
+     */
+    String getDatetimeParameterType();
 
     /**
      * Sets a boolean value that indicates if sending string parameters to the server in UNICODE format is enabled.
@@ -788,22 +805,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the login configuration file for Kerberos authentication. This overrides the default configuration <i>
      * SQLJDBCDriver </i>
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
-     * 
      * @param configurationName
      *        the configuration name
+     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
+     * 
      */
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     void setJASSConfigurationName(String configurationName);
 
     /**
      * Returns the login configuration file for Kerberos authentication.
-     * 
-     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     *
      * 
      * @return login configuration file name
+     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     * 
      */
-    @Deprecated
+    @Deprecated(since = "9.3.0", forRemoval = true)
     String getJASSConfigurationName();
 
     /**
@@ -932,18 +950,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * Sets the client id to be used to retrieve access token from MSI EndPoint.
+     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
-     * @param msiClientId
-     *        Client ID of User Assigned Managed Identity
+     * @param managedIdentityClientId
+     *        Client ID of the user-assigned Managed Identity.
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead.
      */
-    void setMSIClientId(String msiClientId);
+    @Deprecated(since = "12.1.0", forRemoval = true)
+    void setMSIClientId(String managedIdentityClientId);
 
     /**
      * Returns the value for the connection property 'msiClientId'.
      * 
      * @return msiClientId property value
+     * 
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead.
      */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     String getMSIClientId();
 
     /**
@@ -1117,35 +1140,36 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
     /**
+     * 
      * Returns the value for the connection property 'AADSecurePrincipalId'.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
-     *
      * @return 'AADSecurePrincipalId' property value.
+     * @deprecated Use {@link ISQLServerDataSource#getUser()} instead
      */
-    @Deprecated
+    @Deprecated(since = "9.4.1", forRemoval = true)
     String getAADSecurePrincipalId();
 
     /**
+     *
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
-     * @param AADSecurePrincipalId
+     * @param aadSecurePrincipalId
      *        Active Directory Service Principal Id.
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      */
-    @Deprecated
-    void setAADSecurePrincipalId(String AADSecurePrincipalId);
+    @Deprecated(since = "9.4.1", forRemoval = true)
+    void setAADSecurePrincipalId(String aadSecurePrincipalId);
 
     /**
      * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
      * authentication.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
-     * @param AADSecurePrincipalSecret
+     * @param aadSecurePrincipalSecret
      *        Active Directory Service Principal secret.
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
      */
-    @Deprecated
-    void setAADSecurePrincipalSecret(String AADSecurePrincipalSecret);
+    @Deprecated(since = "9.4.1", forRemoval = true)
+    void setAADSecurePrincipalSecret(String aadSecurePrincipalSecret);
 
     /**
      * Returns value of 'maxResultBuffer' from Connection String.
@@ -1208,17 +1232,55 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getPrepareMethod();
 
     /**
-     * Sets time-to-live for the the cached MSI token
+     * Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
      *
      * @param timeToLive
-     *        Changes the setting as per description
+     *        Time-to-live is no longer supported.
+     * 
+     * @deprecated
      */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
 
     /**
-     * Gets the time-to-live for the the cached MSI token
+     * Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
      *
-     * @return time-to-live for the cached MSI token
+     * @return Method will always return 0.
+     * 
+     * @deprecated
      */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     int getMsiTokenCacheTtl();
+
+    /**
+     * Sets the {@link SQLServerAccessTokenCallback} delegate.
+     *
+     * @param accessTokenCallback
+     *        Access token callback delegate.
+     */
+    void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback);
+
+    /**
+     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback delegate.
+     *
+     * @return Access token callback delegate.
+     */
+    SQLServerAccessTokenCallback getAccessTokenCallback();
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }

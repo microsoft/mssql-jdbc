@@ -20,7 +20,9 @@ class ScopeTokenCache {
 
     private final AtomicBoolean wip;
     private AccessToken cache;
+    @SuppressWarnings("deprecation")
     private final ReplayProcessor<AccessToken> emitterProcessor = ReplayProcessor.create(1);
+    @SuppressWarnings("deprecation")
     private final FluxSink<AccessToken> sink = emitterProcessor.sink(FluxSink.OverflowStrategy.BUFFER);
     private final Function<TokenRequestContext, Mono<AccessToken>> getNew;
     private TokenRequestContext request;

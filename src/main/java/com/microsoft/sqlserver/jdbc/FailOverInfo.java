@@ -6,6 +6,8 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.text.MessageFormat;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 
@@ -19,6 +21,7 @@ final class FailoverInfo {
     private int portNumber;
     private String failoverInstance;
     private boolean setUpInfocalled;
+    private final Lock lock = new ReentrantLock();
 
     // This member is exposed outside for reading, we need to know in advance if the
     // failover partner is the currently active server before making a DNS resolution and a connect attempt.
@@ -28,7 +31,7 @@ final class FailoverInfo {
         return useFailoverPartner;
     }
 
-    FailoverInfo(String failover, SQLServerConnection con, boolean actualFailoverPartner) {
+    FailoverInfo(String failover, boolean actualFailoverPartner) {
         failoverPartner = failover;
         useFailoverPartner = actualFailoverPartner;
         portNumber = -1; // init to -1 to make sure that the user of this class calls the failover check before getting
@@ -80,29 +83,37 @@ final class FailoverInfo {
         setUpInfocalled = true;
     }
 
-    synchronized ServerPortPlaceHolder failoverPermissionCheck(SQLServerConnection con,
-            boolean link) throws SQLServerException {
-        setupInfo(con);
-        return new ServerPortPlaceHolder(failoverPartner, portNumber, failoverInstance, link);
+    ServerPortPlaceHolder failoverPermissionCheck(SQLServerConnection con, boolean link) throws SQLServerException {
+        lock.lock();
+        try {
+            setupInfo(con);
+            return new ServerPortPlaceHolder(failoverPartner, portNumber, failoverInstance, link);
+        } finally {
+            lock.unlock();
+        }
     }
 
     // Add/replace the failover server,
-    synchronized void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner,
-            String actualFailoverPartner) throws SQLServerException {
-        if (useFailoverPartner != actualUseFailoverPartner) {
-            if (connection.getConnectionLogger().isLoggable(Level.FINE))
-                connection.getConnectionLogger()
-                        .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
-            useFailoverPartner = actualUseFailoverPartner;
-        }
-        // The checking for actualUseFailoverPartner may look weird but this is required
-        // We only change the failoverpartner info when we connect to the primary
-        // if we connect to the secondary and it sends a failover partner
-        // we wont store that information.
-        if (!actualUseFailoverPartner && !failoverPartner.equals(actualFailoverPartner)) {
-            failoverPartner = actualFailoverPartner;
-            // new FO partner need to setup again.
-            setUpInfocalled = false;
+    void failoverAdd(SQLServerConnection connection, boolean actualUseFailoverPartner, String actualFailoverPartner) {
+        lock.lock();
+        try {
+            if (useFailoverPartner != actualUseFailoverPartner) {
+                if (connection.getConnectionLogger().isLoggable(Level.FINE))
+                    connection.getConnectionLogger()
+                            .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
+                useFailoverPartner = actualUseFailoverPartner;
+            }
+            // The checking for actualUseFailoverPartner may look weird but this is required
+            // We only change the failoverpartner info when we connect to the primary
+            // if we connect to the secondary and it sends a failover partner
+            // we wont store that information.
+            if (!actualUseFailoverPartner && !failoverPartner.equals(actualFailoverPartner)) {
+                failoverPartner = actualFailoverPartner;
+                // new FO partner need to setup again.
+                setUpInfocalled = false;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }

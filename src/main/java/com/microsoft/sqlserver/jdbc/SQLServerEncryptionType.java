@@ -14,9 +14,9 @@ import java.text.MessageFormat;
  *
  */
 enum SQLServerEncryptionType {
-    Deterministic((byte) 1),
-    Randomized((byte) 2),
-    PlainText((byte) 0);
+    DETERMINISTIC((byte) 1),
+    RANDOMIZED((byte) 2),
+    PLAINTEXT((byte) 0);
 
     final byte value;
     private static final SQLServerEncryptionType[] VALUES = values();

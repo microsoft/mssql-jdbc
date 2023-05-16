@@ -21,7 +21,9 @@ import java.text.MessageFormat;
 class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
 
     // This is the key size in the bits, since we are using AES256, it will 256
-    static final int keySize = 256;
+    static final int KEYSIZE = 256;
+    static final int KEYSIZE_IN_BYTES = KEYSIZE / 8;
+
     // Name of algorithm associated with this key
     private final String algorithmName;
     // Salt used to derive encryption key
@@ -47,22 +49,21 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
         super(rootKey);
         this.algorithmName = algorithmName;
         encryptionKeySaltFormat = "Microsoft SQL Server cell encryption key with encryption algorithm:"
-                + this.algorithmName + " and key length:" + keySize;
+                + this.algorithmName + " and key length:" + KEYSIZE;
         macKeySaltFormat = "Microsoft SQL Server cell MAC key with encryption algorithm:" + this.algorithmName
-                + " and key length:" + keySize;
+                + " and key length:" + KEYSIZE;
         ivKeySaltFormat = "Microsoft SQL Server cell IV key with encryption algorithm:" + this.algorithmName
-                + " and key length:" + keySize;
-        int keySizeInBytes = (keySize / 8);
-        if (rootKey.length != keySizeInBytes) {
+                + " and key length:" + KEYSIZE;
+        if (rootKey.length != KEYSIZE_IN_BYTES) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidKeySize"));
-            Object[] msgArgs = {rootKey.length, keySizeInBytes, this.algorithmName};
+            Object[] msgArgs = {rootKey.length, KEYSIZE_IN_BYTES, this.algorithmName};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
         }
 
         // Derive encryption key
 
-        byte[] encKeyBuff = new byte[keySizeInBytes];
+        byte[] encKeyBuff = new byte[KEYSIZE_IN_BYTES];
         try {
             // By default Java is big endian, we are getting bytes in little endian(LE in UTF-16LE)
             // to make it compatible with C# driver which is little endian
@@ -72,14 +73,14 @@ class SQLServerAeadAes256CbcHmac256EncryptionKey extends SQLServerSymmetricKey {
             encryptionKey = new SQLServerSymmetricKey(encKeyBuff);
 
             // Derive mac key from root key
-            byte[] macKeyBuff = new byte[keySizeInBytes];
+            byte[] macKeyBuff = new byte[KEYSIZE_IN_BYTES];
             macKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(macKeySaltFormat.getBytes(UTF_16LE), rootKey,
                     macKeyBuff.length);
 
             macKey = new SQLServerSymmetricKey(macKeyBuff);
 
             // Derive the initialization vector from root key
-            byte[] ivKeyBuff = new byte[keySizeInBytes];
+            byte[] ivKeyBuff = new byte[KEYSIZE_IN_BYTES];
             ivKeyBuff = SQLServerSecurityUtility.getHMACWithSHA256(ivKeySaltFormat.getBytes(UTF_16LE), rootKey,
                     ivKeyBuff.length);
             ivKey = new SQLServerSymmetricKey(ivKeyBuff);

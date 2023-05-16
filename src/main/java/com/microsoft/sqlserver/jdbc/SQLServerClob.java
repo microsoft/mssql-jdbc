@@ -14,7 +14,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
@@ -60,7 +59,7 @@ public class SQLServerClob extends SQLServerClobBase implements Clob {
         super(connection, "", connection.getDatabaseCollation(), logger, null);
     }
 
-    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) throws SQLServerException, UnsupportedEncodingException {
+    SQLServerClob(BaseInputStream stream, TypeInfo typeInfo) {
         super(null, stream, typeInfo.getSQLCollation(), logger, typeInfo);
     }
 
@@ -100,7 +99,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
 
     transient SQLServerConnection con;
 
-    private final Logger logger;
+    private final transient Logger logger;
 
     final private String traceID = getClass().getName().substring(1 + getClass().getName().lastIndexOf('.')) + ":"
             + nextInstanceID();
@@ -112,7 +111,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
     // Unique id generator for each instance (used for logging).
     static private final AtomicInteger BASE_ID = new AtomicInteger(0);
 
-    private Charset defaultCharset = null;
+    private transient Charset defaultCharset = null;
 
     // Returns unique id for each instance.
     private static int nextInstanceID() {
@@ -595,7 +594,12 @@ abstract class SQLServerClobBase extends SQLServerLob {
             // Make sure the new value length wouldn't exceed the maximum
             // allowed
             DataTypes.getCheckedLength(con, getJdbcType(), pos + len, false);
-            assert pos + len <= Integer.MAX_VALUE;
+
+            if (pos + len > Integer.MAX_VALUE) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+                Object[] msgArgs = {pos};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
+            }
 
             // Start with the original value, up to the starting position
             StringBuilder sb = new StringBuilder((int) pos + len);
@@ -654,24 +658,28 @@ final class SQLServerClobWriter extends java.io.Writer {
         this.streamPos = streamPos;
     }
 
+    @Override
     public void write(char[] cbuf) throws IOException {
         if (null == cbuf)
             return;
         write(new String(cbuf));
     }
 
+    @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
         if (null == cbuf)
             return;
         write(new String(cbuf, off, len));
     }
 
+    @Override
     public void write(int b) throws java.io.IOException {
         char[] c = new char[1];
         c[0] = (char) b;
         write(new String(c));
     }
 
+    @Override
     public void write(String str, int off, int len) throws IOException {
         checkClosed();
         try {
@@ -685,6 +693,7 @@ final class SQLServerClobWriter extends java.io.Writer {
         }
     }
 
+    @Override
     public void write(String str) throws IOException {
         if (null == str)
             return;
@@ -721,12 +730,14 @@ final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
         this.streamPos = streamPos;
     }
 
+    @Override
     public void write(byte[] b) throws IOException {
         if (null == b)
             return;
         write(b, 0, b.length);
     }
 
+    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         if (null == b)
             return;

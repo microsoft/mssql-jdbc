@@ -41,7 +41,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     /**
      * Permission targets currently only callAbort is implemented
      */
-    private static final String callAbortPerm = "callAbort";
+    private static final String CALL_ABORT_PERM = "callAbort";
 
     /**
      * Generates the next unique connection id.
@@ -125,6 +125,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void abort(Executor executor) throws SQLException {
         if (!bIsOpen || (null == wrappedConnection))
             return;
@@ -139,11 +140,11 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         SecurityManager secMgr = System.getSecurityManager();
         if (secMgr != null) {
             try {
-                java.sql.SQLPermission perm = new java.sql.SQLPermission(callAbortPerm);
+                java.sql.SQLPermission perm = new java.sql.SQLPermission(CALL_ABORT_PERM);
                 secMgr.checkPermission(perm);
             } catch (SecurityException ex) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_permissionDenied"));
-                Object[] msgArgs = {callAbortPerm};
+                Object[] msgArgs = {CALL_ABORT_PERM};
                 throw new SQLServerException(form.format(msgArgs), null, 0, ex);
             }
         }
@@ -505,8 +506,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         try {
             t = iface.cast(this);
         } catch (ClassCastException e) {
-            SQLServerException newe = new SQLServerException(e.getMessage(), e);
-            throw newe;
+            throw new SQLServerException(e.getMessage(), e);
         }
         wrappedConnection.getConnectionLogger().exiting(toString(), "unwrap", t);
         return t;
@@ -528,6 +528,18 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public boolean getSendTimeAsDatetime() throws SQLServerException {
         checkClosed();
         return wrappedConnection.getSendTimeAsDatetime();
+    }
+
+    @Override
+    public void setDatetimeParameterType(String datetimeParameterTypeValue) throws SQLServerException {
+        checkClosed();
+        wrappedConnection.setDatetimeParameterType(datetimeParameterTypeValue);
+    }
+
+    @Override
+    public String getDatetimeParameterType() throws SQLServerException {
+        checkClosed();
+        return wrappedConnection.getDatetimeParameterType();
     }
 
     @Override
@@ -623,7 +635,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
-        
+
     }
 
     @Override
@@ -631,13 +643,42 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         return wrappedConnection.getIPAddressPreference();
     }
 
+    /**
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method will always return 0 and is for backwards compatibility only.
+     */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
     public int getMsiTokenCacheTtl() {
-        return wrappedConnection.getMsiTokenCacheTtl();
+        return 0;
     }
 
+    /**
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
+     *             This method is a no-op for backwards compatibility only.
+     */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {
-        wrappedConnection.setMsiTokenCacheTtl(timeToLive);
+    public void setMsiTokenCacheTtl(int timeToLive) {}
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    @Override
+    public String getAccessTokenCallbackClass() {
+        return wrappedConnection.getAccessTokenCallbackClass();
+    }
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    @Override
+    public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
+        wrappedConnection.setAccessTokenCallbackClass(accessTokenCallbackClass);
     }
 }

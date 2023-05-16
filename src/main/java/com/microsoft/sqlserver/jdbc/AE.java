@@ -126,7 +126,7 @@ class CekTable implements Serializable {
      */
     private static final long serialVersionUID = -4568542970907052239L;
 
-    CekTableEntry[] keyList;
+    private transient CekTableEntry[] keyList;
 
     CekTable(int tableSize) {
         keyList = new CekTableEntry[tableSize];

@@ -14,7 +14,7 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>11.2.0.jre18</version>
+			<version>12.2.0.jre11</version>
 		</dependency>
 	</dependencies>
 	<profiles>
@@ -29,6 +29,22 @@
 						<version>1.2.1</version>
 						<configuration>
 							<mainClass>azureactivedirectoryauthentication.src.main.java.AzureActiveDirectoryAuthentication</mainClass>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>AzureActiveDirectoryAccessTokenCallback</id>
+			<build>
+				<finalName>AzureActiveDirectoryAccessTokenCallback</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.2.1</version>
+						<configuration>
+							<mainClass>azureactivedirectoryauthentication.src.main.java.AzureActiveDirectoryAccessTokenCallback</mainClass>
 						</configuration>
 					</plugin>
 				</plugins>

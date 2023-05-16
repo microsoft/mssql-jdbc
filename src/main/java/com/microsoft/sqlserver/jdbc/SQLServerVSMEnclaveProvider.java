@@ -27,7 +27,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -48,7 +48,9 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     /**
      * default constructor
      */
-    public SQLServerVSMEnclaveProvider() {}
+    public SQLServerVSMEnclaveProvider() {
+        // default constructor
+    }
 
     @Override
     public void getAttestationParameters(String url) throws SQLServerException {
@@ -117,7 +119,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
         }
     }
 
-    private static Hashtable<String, X509CertificateEntry> certificateCache = new Hashtable<>();
+    private static ConcurrentHashMap<String, X509CertificateEntry> certificateCache = new ConcurrentHashMap<>();
 
     private byte[] getAttestationCertificates() throws IOException {
         byte[] certData = null;
@@ -148,6 +150,13 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
     private ArrayList<byte[]> describeParameterEncryption(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
+
+        // sp_describe_parameter_encryption stored procedure with 2 params
+        final String SDPE1 = "EXEC sp_describe_parameter_encryption ?,?";
+
+        // sp_describe_parameter_encryption stored procedure with 3 params
+        final String SDPE2 = "EXEC sp_describe_parameter_encryption ?,?,?";
+
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
             // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
@@ -194,7 +203,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
 
 class VSMAttestationParameters extends BaseAttestationRequest {
     // Type 3 is VSM, sent as Little Endian 0x30000000
-    private static byte ENCLAVE_TYPE[] = new byte[] {0x3, 0x0, 0x0, 0x0};
+    private static final byte[] ENCLAVE_TYPE = new byte[] {0x3, 0x0, 0x0, 0x0};
 
     VSMAttestationParameters() throws SQLServerException {
         enclaveChallenge = new byte[] {0x0, 0x0, 0x0, 0x0};
@@ -236,8 +245,8 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * Session ID - 8B
          * DH Public Key Size - 4B
          * DH Public Key Signature Size - 4B
-         * DH Public Key - DHPKsize bytes
-         * DH Public Key Signature - DHPKSsize bytes
+         * DH Public Key - dhpkSize bytes
+         * DH Public Key Signature - dhpkSsize bytes
          */
         ByteBuffer response = (null != b) ? ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN) : null;
         if (null != response) {
@@ -256,14 +265,14 @@ class VSMAttestationResponse extends BaseAttestationResponse {
 
             this.sessionInfoSize = response.getInt();
             response.get(sessionID, 0, 8);
-            this.DHPKsize = response.getInt();
-            this.DHPKSsize = response.getInt();
+            this.dhpkSize = response.getInt();
+            this.dhpkSsize = response.getInt();
 
-            DHpublicKey = new byte[DHPKsize];
-            publicKeySig = new byte[DHPKSsize];
+            dhPublicKey = new byte[dhpkSize];
+            publicKeySig = new byte[dhpkSsize];
 
-            response.get(DHpublicKey, 0, DHPKsize);
-            response.get(publicKeySig, 0, DHPKSsize);
+            response.get(dhPublicKey, 0, dhpkSize);
+            response.get(publicKeySig, 0, dhpkSsize);
         }
 
         if (null == response || 0 != response.remaining()) {
@@ -324,12 +333,12 @@ class VSMAttestationResponse extends BaseAttestationResponse {
          * Signature Blob - signatureSize bytes
          */
         ByteBuffer enclaveReportPackageBuffer = ByteBuffer.wrap(enclaveReportPackage).order(ByteOrder.LITTLE_ENDIAN);
-        int packageSize = enclaveReportPackageBuffer.getInt();
-        int version = enclaveReportPackageBuffer.getInt();
-        int signatureScheme = enclaveReportPackageBuffer.getInt();
+        enclaveReportPackageBuffer.getInt(); // packageSize
+        enclaveReportPackageBuffer.getInt(); // version
+        enclaveReportPackageBuffer.getInt(); // signatureScheme
         int signedStatementSize = enclaveReportPackageBuffer.getInt();
         int signatureSize = enclaveReportPackageBuffer.getInt();
-        int reserved = enclaveReportPackageBuffer.getInt();
+        enclaveReportPackageBuffer.getInt(); // reserved
 
         byte[] signedStatement = new byte[signedStatementSize];
         enclaveReportPackageBuffer.get(signedStatement, 0, signedStatementSize);

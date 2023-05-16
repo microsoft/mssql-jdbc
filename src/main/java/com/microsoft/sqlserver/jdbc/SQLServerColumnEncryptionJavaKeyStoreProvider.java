@@ -312,8 +312,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     private byte[] getLittleEndianBytesFromShort(short value) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(2);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        byte[] byteValue = byteBuffer.putShort(value).array();
-        return byteValue;
+        return byteBuffer.putShort(value).array();
     }
 
     /*

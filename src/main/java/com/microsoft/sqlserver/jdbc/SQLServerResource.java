@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.security.cert.CertificateNotYetValidException;
 import java.util.ListResourceBundle;
 
 
@@ -17,7 +18,9 @@ public final class SQLServerResource extends ListResourceBundle {
     /**
      * default constructor
      */
-    public SQLServerResource() {}
+    public SQLServerResource() {
+        // default constructor
+    }
 
     static String getResource(String key) {
         return SQLServerResource.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(key);
@@ -56,6 +59,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_queryTimedOut", "The query has timed out."},
         {"R_queryCanceled", "The query was canceled."},
         {"R_errorReadingStream", "An error occurred while reading the value from the stream object. Error: \"{0}\""},
+        {"R_read", "The stream read operation returned an invalid value for the amount of data read."},
+
         {"R_streamReadReturnedInvalidValue", "The stream read operation returned an invalid value for the amount of data read."},
         {"R_mismatchedStreamLength", "The stream value is not the specified length. The specified length was {0}, the actual length is {1}."},
         {"R_notSupported", "This operation is not supported."},
@@ -87,6 +92,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidParameterNumber", "The parameter number {0} is not valid."},
         {"R_noMetadata", "There is no metadata."},
         {"R_resultsetClosed", "The result set is closed."},
+        {"R_transactionsNotSupported", "'@@TRANCOUNT' is not supported."},
         {"R_invalidColumnName", "The column name {0} is not valid."},
         {"R_resultsetNotUpdatable", "The result set is not updatable."},
         {"R_indexOutOfRange", "The index {0} is out of range."},
@@ -155,11 +161,17 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_streamWasNotMarkedBefore", "The stream has not been marked."},
         {"R_invalidresponseBuffering", "The responseBuffering connection property {0} is not valid."},
         {"R_invalidapplicationIntent", "The applicationIntent connection property {0} is not valid."},
+        {"R_invalidDatetimeType", "The datetimeType connection property {0} is not valid."},
         {"R_dataAlreadyAccessed", "The data has been accessed and is not available for this column or parameter."},
         {"R_outParamsNotPermittedinBatch", "The OUT and INOUT parameters are not permitted in a batch."},
+        {"R_colNotMatchTable", "Number of provided columns {0} does not match the table definition {1}."},
+        {"R_invalidSQL", "Invalid SQL query {0}."},
+        {"R_multipleQueriesNotAllowed", "Multiple queries are not allowed."},
+        {"R_endOfQueryDetected", "End of query detected before VALUES have been found."},
+        {"R_onlyFullParamAllowed", "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment."},
         {"R_sslRequiredNoServerSupport", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. The application requested encryption but the server is not configured to support SSL."},
         {"R_sslRequiredByServer", "SQL Server login requires an encrypted connection that uses Secure Sockets Layer (SSL)."},
-        {"R_sslFailed", "The driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption. Error: \"{0}\"."},
+        {"R_sslFailed", "\"encrypt\" property is set to \"{0}\" and \"trustServerCertificate\" property is set to \"{1}\" but the driver could not establish a secure connection to SQL Server by using Secure Sockets Layer (SSL) encryption: Error: {2}."},
         {"R_certNameFailed", "Failed to validate the server name \"{0}\"in a certificate during Secure Sockets Layer (SSL) initialization. Name in certificate \"{1}\""},
         {"R_failedToInitializeXA", "Failed to initialize the stored procedure xp_sqljdbc_xa_init. The status is: {0}. Error: \"{1}\""},
         {"R_failedFunctionXA", "The function {0} failed. The status is: {1}. Error: \"{2}\""},
@@ -190,7 +202,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
         {"R_connectRetryCountPropertyDescription", "The number of reconnection attempts if there is a connection failure."},
         {"R_connectRetryIntervalPropertyDescription", "The number of seconds between each connection retry attempt."},
-        {"R_msiTokenCacheTtlPropertyDescription", "The number of seconds a Managed Identity (MSI) access token should be cached."},
         {"R_loginTimeoutPropertyDescription", "The number of seconds the driver should wait before timing out a failed connection."},
         {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},
         {"R_xopenStatesPropertyDescription", "Determines if the driver returns XOPEN-compliant SQL state codes in exceptions."},
@@ -214,6 +225,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_hostNameInCertificatePropertyDescription", "The host name to be used when validating the SQL Server Secure Sockets Layer (SSL) certificate."},
         {"R_replicationPropertyDescription", "This setting tells the server if the connection is used for replication."},
         {"R_sendTimeAsDatetimePropertyDescription", "Determines whether to use the SQL Server datetime data type to send java.sql.Time values to the database."},
+        {"R_datetimeParameterTypePropertyDescription", "Determines the datatype to use for datetime and timestamp values. Valid options are: datetime, datetime2 or datetimeoffset"},
         {"R_TransparentNetworkIPResolutionPropertyDescription", "Determines whether to use the Transparent Network IP Resolution feature."},
         {"R_queryTimeoutPropertyDescription", "The number of seconds to wait before the database reports a query time-out."},
         {"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
@@ -229,6 +241,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_delayLoadingLobsPropertyDescription", "Boolean flag which indicates whether the driver will load LOB datatypes into memory."},
         {"R_AADSecurePrincipalIdPropertyDescription", "The Application Id of a registered application which has been granted permission to the database connected."},
         {"R_AADSecurePrincipalSecretPropertyDescription", "A Secret defined for a registered application which has been granted permission to the database connected."},
+        {"R_accessTokenCallbackClassPropertyDescription", "The class to instantiate as the SQLServerAccessTokenCallback for acquiring tokens."},
+        {"R_accessTokenCallbackPropertyDescription", "A SQLServerAccessTokenCallback object which is used to call a callback method to return an access token."},
         {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
         {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
         {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
@@ -340,9 +354,10 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_NtlmNoUserPasswordDomain", "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},
         {"R_SetAccesstokenWhenIntegratedSecurityTrue", "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
         {"R_IntegratedAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-        {"R_MSIAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryMSI\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
+        {"R_ManagedIdentityAuthenticationWithPassword", "Cannot use \"Authentication={0}\" with \"Password\" connection string keyword."},
         {"R_AccessTokenWithUserPassword", "Cannot set the AccessToken property if \"User\", \"UserName\" or \"Password\" has been specified in the connection string."},
-        {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
+        {"R_AccessTokenCallbackWithUserPassword", "Cannot set the access token callback if \"User\", \"UserName\" or \"Password\" has been set."},
+        {"R_AccessTokenCannotBeEmpty", "AccessToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
         {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
@@ -402,6 +417,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AECertHashEmpty", "Internal error. Empty certificate thumbprint specified in certificate path {0}."},
         {"R_AECertNotFound", "Certificate with thumbprint {2} not found in certificate store {1} in certificate location {0}. Verify the certificate path in the column master key definition in the database is correct, and the certificate has been imported correctly into the certificate location/store."},
         {"R_AEMaloc", "Memory allocation failure."},
+        {"R_InvalidAccessTokenCallbackClass", "Invalid accessTokenCallbackClass: {0}"},
         {"R_AEKeypathLong", "Internal error. Specified certificate path has {0} bytes, which exceeds maximum length of {1} bytes."},
         {"R_AEECEKLenBad", "The specified encrypted column encryption key''s ciphertext length: {0} does not match the ciphertext length: {1} when using column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
         {"R_AEECEKSigLenBad", "The specified encrypted column encryption key''s signature length {0} does not match the length {1} when using the column master key (certificate) in \"{2}\". The encrypted column encryption key may be corrupt, or the specified certificate path may be incorrect."},
@@ -457,9 +473,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_keyStorePrincipalIdPropertyDescription", "Principal Id of Azure Active Directory."},
         {"R_MSALMissing", "Failed to load MSAL4J Java library for performing {0} authentication."},
         {"R_DLLandMSALMissing", "Failed to load both {0} and MSAL4J Java library for performing {1} authentication. Please install one of them to proceed."},
-        {"R_MSITokenFailureImds", "MSI Token failure: Failed to acquire access token from IMDS"},
-        {"R_MSITokenFailureImdsClientId", "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
-        {"R_MSITokenFailureUnexpected", "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
         {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
         {"R_propertyNotSupported", "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
         {"R_ntlmHmacMD5Error", "Unable to initialize NTLM authentication: HMAC-MD5 initialization error."},
@@ -502,7 +515,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
         {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
-        {"R_invalidMsiTokenCacheTtl", "msiTokenCacheTtl {0} is not valid."},
         {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
         {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
         {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
@@ -516,10 +528,16 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
         {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
-        {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
+        {"R_serverCertExpired", "Server Certificate has expired: {0}: {1}"},
+        {"R_serverCertNotYetValid", "Server Certificate is not yet valid: {0}: {1}"},
+        {"R_publicKeyMismatch", "Error validating Server Certificate: public key mismatch: {0}"},
+        {"R_serverCertError", "Error validating Server Certificate: {0}: \n{1}:\n{2}."},
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
         {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
-        {"R_serverError", "An error occurred during the current command (Done status {0})."},
+        {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
+        {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."},
+        {"R_AmbiguousRowUpdate", "Failed to execute updateRow(). The update is attempting an ambiguous update on tables \"{0}\" and \"{1}\". Ensure all columns being updated prior to the updateRow() call belong to the same table."},
+        {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"}
     };
 }
 // @formatter:on

@@ -3,6 +3,74 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.3.0] Preview Release
+### Added
+- Added additional logging info to help debug [2118](https://github.com/microsoft/mssql-jdbc/pull/2118)
+- Added SQL query to toString() in SQLServerPreparedStatement [2099](https://github.com/microsoft/mssql-jdbc/pull/2099)
+- Added Java 20 support [2097](https://github.com/microsoft/mssql-jdbc/pull/2097)
+- Added access token callback class connection string property [2073](https://github.com/microsoft/mssql-jdbc/pull/2073)
+### Changed
+- Updated azure-identity version [2114](https://github.com/microsoft/mssql-jdbc/pull/2114)
+- Updated msal4j version [2102](https://github.com/microsoft/mssql-jdbc/pull/2102)
+- Allow failover partner to be tried in case of socket timeout [2100](https://github.com/microsoft/mssql-jdbc/pull/2100)
+- Updated supportsLikeEscapeClause() to check for Azure data warehouse [2092](https://github.com/microsoft/mssql-jdbc/pull/2092)
+- sp_cursor calls now have table names passed in instead of an empty string [2087](https://github.com/microsoft/mssql-jdbc/pull/2087)
+- Updated federated authentication logic to use persistence token cache when fetching token [2079](https://github.com/microsoft/mssql-jdbc/pull/2079)
+- Updated supportTransaction method to reflect whether server supports transactions [2075](https://github.com/microsoft/mssql-jdbc/pull/2075)
+- Made jdk.net optional OSGi import [2069](https://github.com/microsoft/mssql-jdbc/pull/2069)
+- Upgraded to latest OSGi JDBC specification [2017](https://github.com/microsoft/mssql-jdbc/pull/2017)
+### Fixed issues
+- Fixed missing property value for disableStatmentPooling meta info query [2120](https://github.com/microsoft/mssql-jdbc/pull/2120)
+- Fixed typo in access token error message [2119](https://github.com/microsoft/mssql-jdbc/pull/2119)
+- Fixed BigDecimal error when values between 0 and 1 are specified [2116](https://github.com/microsoft/mssql-jdbc/pull/2116)
+- Fixed lockTimeout not taking effect when redirect mode is set in Azure DB [2110](https://github.com/microsoft/mssql-jdbc/pull/2110)
+- Fixed shared timer race condition [2085](https://github.com/microsoft/mssql-jdbc/pull/2085)
+- Fixed XA error handling to rethrow XAER_RMFAIL instead of XAER_RMERR [2078](https://github.com/microsoft/mssql-jdbc/pull/2078)
+- Fixed issue by accounting for zero meta query results [2074](https://github.com/microsoft/mssql-jdbc/pull/2074)
+- Fixed invalid batch inserts when columns provided in insert differs in order from table schema [1992](https://github.com/microsoft/mssql-jdbc/pull/1992)
+
+## [12.2.0] Stable Release
+### Added
+- Added new connection property datetimeParameterType to specify datatype to use for date/timestamp parameters [1687](https://github.com/microsoft/mssql-jdbc/pull/1687)
+
+### Changed
+- Renamed driver DefaultAzureCredential authentication to ActiveDirectoryDefault [2055](https://github.com/microsoft/mssql-jdbc/pull/2055)
+- Update to dynamically check for ExtendedSocketOption class [2043](https://github.com/microsoft/mssql-jdbc/pull/2043)
+- Upgraded dependency versions [2040](https://github.com/microsoft/mssql-jdbc/pull/2040) [1966](https://github.com/microsoft/mssql-jdbc/pull/1966)
+- Misc code cleanup and test fixes [2059](https://github.com/microsoft/mssql-jdbc/pull/2059) [2053](https://github.com/microsoft/mssql-jdbc/pull/2053) [2049](https://github.com/microsoft/mssql-jdbc/pull/2049) [2048](https://github.com/microsoft/mssql-jdbc/pull/2048) [2044](https://github.com/microsoft/mssql-jdbc/pull/2044) [2041](https://github.com/microsoft/mssql-jdbc/pull/2041) [2031](https://github.com/microsoft/mssql-jdbc/pull/2031) [2029](https://github.com/microsoft/mssql-jdbc/pull2029) [2016](https://github.com/microsoft/mssql-jdbc/pull/2016) [2014](https://github.com/microsoft/mssql-jdbc/pull/2014) [1991](https://github.com/microsoft/mssql-jdbc/pull/1991) [1977](https://github.com/microsoft/mssql-jdbc/pull/1977) [1974](https://github.com/microsoft/mssql-jdbc/pull/1974) [1970](https://github.com/microsoft/mssql-jdbc/pull/1970) [1969](https://github.com/microsoft/mssql-jdbc/pull/1969) [1962](https://github.com/microsoft/mssql-jdbc/pull/1962)
+
+### Fixed issues
+- Fixed BigDecimal Precision/Scale issue [2051](https://github.com/microsoft/mssql-jdbc/pull/2051)
+- Fixed NULL state and 0 error code for SQL exceptions [2018](https://github.com/microsoft/mssql-jdbc/pull/2018)
+- Fixed incorrect updateCount [2013](https://github.com/microsoft/mssql-jdbc/pull/2013)
+- Fixed Azure Active Directory user name cache matching to be case insensitive [1923](https://github.com/microsoft/mssql-jdbc/pull/1923)
+- Fixed concurrency issues in encrypt/decrypt obfuscation methods for truststore password [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
+- Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented [1989](https://github.com/microsoft/mssql-jdbc/pull/1989)
+- Fixed race condition connecting to the wrong SQLServer host in configurable IPv6 [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
+
+## [12.1.0] Preview Release
+### Added
+- Added support for access token callback [1940](https://github.com/microsoft/mssql-jdbc/pull/1940)
+- Added support for DefaultAzureCredential [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
+- Added support for Java 19 [1929](https://github.com/microsoft/mssql-jdbc/pull/1929)
+### Changed
+- Driver is Loom friendly [1931](https://github.com/microsoft/mssql-jdbc/pull/1931)
+- Managed Identity authentication is achieved with Azure Identity instead [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
+- Updated MSAL and jackson-databind versions [1947](https://github.com/microsoft/mssql-jdbc/pull/1947)
+- Updated Azure-Identity version [1941](https://github.com/microsoft/mssql-jdbc/pull/1941)
+- Made MSAL an optional dependency [1893](https://github.com/microsoft/mssql-jdbc/pull/1893)
+- Added FINE logging for token expiry [1875](https://github.com/microsoft/mssql-jdbc/pull/1875)
+- Upgraded junit jupiter [1895](https://github.com/microsoft/mssql-jdbc/pull/1895)
+### Fixed issues
+- Ensure that batchParamValues is cleared in all cases when executing a batch [1869](https://github.com/microsoft/mssql-jdbc/pull/1869)
+- Fixed query cancellation bug [1897](https://github.com/microsoft/mssql-jdbc/pull/1897)
+- Fixed callable statement index out of bounds error [1898](https://github.com/microsoft/mssql-jdbc/pull/1898)
+- Fixed sonartype warnings [1950](https://github.com/microsoft/mssql-jdbc/pull/1950)
+- Fixed check for DONE token when fetching result sets [1943](https://github.com/microsoft/mssql-jdbc/pull/1943)
+- Fixed race condition in secure string utility [1948](https://github.com/microsoft/mssql-jdbc/pull/1948)
+- Fixed attestation NONE protocol bug to work with all servers and enclave types [1942](https://github.com/microsoft/mssql-jdbc/pull/1942)
+- Fixed signed byte comparison [1920](https://github.com/microsoft/mssql-jdbc/pull/1920)
+
 ## [11.2.0] Stable Release
 ### Added
 - Added support for caching parameter metadata for Always Encrypted with secure enclaves [1866](https://github.com/microsoft/mssql-jdbc/pull/1866)

@@ -40,6 +40,9 @@ final class SQLCollation implements java.io.Serializable {
     private final Encoding encoding;
     private static final int UTF8_IN_TDSCOLLATION = 0x4000000;
 
+    // Length of collation in TDS (in bytes)
+    private static final int TDS_LENGTH = 5;
+
     // Utility methods for getting details of this collation's encoding
     final Charset getCharset() throws SQLServerException {
         return encoding.charset();
@@ -54,7 +57,7 @@ final class SQLCollation implements java.io.Serializable {
     }
 
     static final int tdsLength() {
-        return 5;
+        return TDS_LENGTH;
     } // Length of collation in TDS (in bytes)
 
     /**
@@ -76,7 +79,7 @@ final class SQLCollation implements java.io.Serializable {
     }
 
     boolean isEqual(SQLCollation col) {
-        return ((col != null && col.info == info && col.sortId == sortId) ? true : false);
+        return (col != null && col.info == info && col.sortId == sortId);
     }
 
     /**
@@ -511,6 +514,7 @@ final class SQLCollation implements java.io.Serializable {
             this.encoding = encoding;
         }
 
+        @Override
         public final String toString() {
             return name;
         }

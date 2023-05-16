@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -57,8 +58,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final int BATCH_STATEMENT_DELIMITER_TDS_71 = 0x80;
     private static final int BATCH_STATEMENT_DELIMITER_TDS_72 = 0xFF;
 
+    private static final String EXECUTE_BATCH_STRING = "executeBatch";
+    private static final String ACTIVITY_ID = " ActivityId: ";
+
     /** batch statement delimiter */
-    final int nBatchStatementDelimiter = BATCH_STATEMENT_DELIMITER_TDS_72;
+    static final int NBATCH_STATEMENT_DELIMITER = BATCH_STATEMENT_DELIMITER_TDS_72;
 
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
@@ -79,7 +83,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean isSpPrepareExecuted = false;
 
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
-    private PreparedStatementHandle cachedPreparedStatementHandle;
+    private transient PreparedStatementHandle cachedPreparedStatementHandle;
 
     /** Hash of user supplied SQL statement used for various cache lookups */
     private CityHash128Key sqlTextCacheKey;
@@ -123,6 +127,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * boolean value for deciding if the driver should use bulk copy API for batch inserts
      */
     private boolean useBulkCopyForBatchInsert;
+
+    /** Returns the prepared statement SQL */
+    @Override
+    public String toString() {
+        return "sp_executesql SQL: " + preparedSQL;
+    }
 
     /**
      * Returns the prepared statement's useBulkCopyForBatchInsert value.
@@ -172,10 +182,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean resetPrepStmtHandle(boolean discardCurrentCacheItem) {
         boolean statementPoolingUsed = null != cachedPreparedStatementHandle;
         // Return to pool and decrement reference count
-        if (statementPoolingUsed) {
-            // Make sure the cached handle does not get re-used more.
-            if (discardCurrentCacheItem)
-                cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
+        // Make sure the cached handle does not get re-used more.
+        if (statementPoolingUsed && discardCurrentCacheItem) {
+            cachedPreparedStatementHandle.setIsExplicitlyDiscarded();
         }
         prepStmtHandle = 0;
         return statementPoolingUsed;
@@ -198,11 +207,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * crypto meta batch
      */
     private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
-
-    // Internal function used in tracing
-    String getClassNameInternal() {
-        return "SQLServerPreparedStatement";
-    }
 
     /**
      * Constructs a SQLServerPreparedStatement.
@@ -336,6 +340,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * server-side state is cleaned up as best as possible, even under conditions which would normally result in
      * exceptions being thrown.
      */
+    @Override
     final void closeInternal() {
         super.closeInternal();
 
@@ -400,7 +405,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
         preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
-            preparedSQL = preparedSQL + identityQuery;
+            preparedSQL = preparedSQL + IDENTITY_QUERY;
 
         return true;
     }
@@ -475,7 +480,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY));
@@ -500,7 +505,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         checkClosed();
@@ -522,7 +527,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
@@ -534,7 +539,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
@@ -550,6 +555,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * Always update serialVersionUID when prompted.
          */
         private static final long serialVersionUID = 4098801171124750861L;
+
         private final SQLServerPreparedStatement stmt;
 
         PrepStmtExecCmd(SQLServerPreparedStatement stmt, int executeMethod) {
@@ -563,6 +569,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
+        @Override
         final void processResponse(TDSReader tdsReader) throws SQLServerException {
             ensureExecuteResultsReader(tdsReader);
             processExecuteResults();
@@ -585,7 +592,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
 
         boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
@@ -646,7 +653,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
                     // If we are AE_v3, remove the failed entry and try again.
-                    ParameterMetaDataCache.removeCacheEntry(this, connection, preparedSQL);
+                    ParameterMetaDataCache.removeCacheEntry(connection, preparedSQL);
                     inRetry = true;
                     doExecutePreparedStatement(command);
                 } else {
@@ -688,6 +695,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or
      * CallableStatement execution, then it gets consumed here.
      */
+    @Override
     boolean consumeExecOutParam(TDSReader tdsReader) throws SQLServerException {
         final class PrepStmtExecOutParamHandler extends StmtExecOutParamHandler {
 
@@ -695,6 +703,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 super(statement);
             }
 
+            @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
                 // If no prepared statement handle is expected at this time
                 // then don't consume this OUT parameter as it does not contain
@@ -738,7 +747,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
-        char cParamName[];
+        char[] cParamName;
         for (int index = 0; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
                 cParamName = new char[10];
@@ -1008,7 +1017,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                         SQLServerEncryptionType encType = SQLServerEncryptionType.of((byte) secondRs
                                 .getInt(DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONTYPE.value()));
-                        if (SQLServerEncryptionType.PlainText != encType) {
+                        if (SQLServerEncryptionType.PLAINTEXT != encType) {
                             params[paramIndex].cryptoMeta = new CryptoMetadata(cekEntry, (short) cekOrdinal,
                                     (byte) secondRs.getInt(
                                             DescribeParameterEncryptionResultSet2.COLUMNENCRYPTIONALGORITHM.value()),
@@ -1089,15 +1098,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // (We shouldn't reuse handle
             // if it is batch query and has new type definition, or if it is on, make sure encryptionMetadataIsRetrieved
             // is retrieved.
-            if (null != cachedHandle) {
-                if (!connection.isColumnEncryptionSettingEnabled()
-                        || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved)) {
-                    if (cachedHandle.tryAddReference()) {
-                        setPreparedStatementHandle(cachedHandle.getHandle());
-                        cachedPreparedStatementHandle = cachedHandle;
-                        return true;
-                    }
-                }
+            if ((null != cachedHandle)
+                    && (!connection.isColumnEncryptionSettingEnabled()
+                            || (connection.isColumnEncryptionSettingEnabled() && encryptionMetadataIsRetrieved))
+                    && cachedHandle.tryAddReference()) {
+                setPreparedStatementHandle(cachedHandle.getHandle());
+                cachedPreparedStatementHandle = cachedHandle;
+                return true;
             }
         }
         return false;
@@ -1184,7 +1191,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             SQLServerResultSet emptyResultSet = buildExecuteMetaData();
             if (null != emptyResultSet)
                 rsmd = emptyResultSet.getMetaData();
-        } else if (resultSet != null) {
+        } else {
             rsmd = resultSet.getMetaData();
         }
         loggerExternal.exiting(getClassNameLogging(), "getMetaData", rsmd);
@@ -1431,7 +1438,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n, byte x[]) throws SQLServerException {
+    public final void setBytes(int n, byte[] x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x});
         checkClosed();
@@ -1440,7 +1447,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setBytes(int n, byte x[], boolean forceEncrypt) throws SQLServerException {
+    public final void setBytes(int n, byte[] x, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1593,11 +1600,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             targetJDBCType = javaType.getJDBCType(SSType.UNKNOWN, targetJDBCType);
 
-            if (JDBCType.UNKNOWN == targetJDBCType) {
-                if (obj instanceof java.util.UUID) {
-                    javaType = JavaType.STRING;
-                    targetJDBCType = JDBCType.GUID;
-                }
+            if (JDBCType.UNKNOWN == targetJDBCType && obj instanceof java.util.UUID) {
+                javaType = JavaType.STRING;
+                targetJDBCType = JDBCType.GUID;
             }
 
             setObject(param, obj, javaType, targetJDBCType, null, null, forceEncrypt, index, tvpName);
@@ -1993,37 +1998,39 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     String getTVPNameIfNull(int n, String tvpName) throws SQLServerException {
-        if ((null == tvpName) || (0 == tvpName.length())) {
-            // Check if the CallableStatement/PreparedStatement is a stored procedure call
-            if (null != this.procedureName) {
-                SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
-                pmd.isTVP = true;
+        if (((null == tvpName) || (0 == tvpName.length())) &&
+        // Check if the CallableStatement/PreparedStatement is a stored procedure call
+                (null != this.procedureName)) {
+            SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
+            pmd.isTVP = true;
 
-                if (!pmd.procedureIsFound) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_StoredProcedureNotFound"));
-                    Object[] msgArgs = {this.procedureName};
-                    SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
+            if (!pmd.procedureIsFound) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_StoredProcedureNotFound"));
+                Object[] msgArgs = {this.procedureName};
+                SQLServerException.makeFromDriverError(connection, pmd, form.format(msgArgs), null, false);
+            }
+
+            try {
+                String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
+                String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
+
+                if (null != tvpSchema) {
+                    tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
+                } else {
+                    tvpName = tvpNameWithoutSchema;
                 }
-
-                try {
-                    String tvpNameWithoutSchema = pmd.getParameterTypeName(n);
-                    String tvpSchema = pmd.getTVPSchemaFromStoredProcedure(n);
-
-                    if (null != tvpSchema) {
-                        tvpName = "[" + tvpSchema + "].[" + tvpNameWithoutSchema + "]";
-                    } else {
-                        tvpName = tvpNameWithoutSchema;
-                    }
-                } catch (SQLException e) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null,
-                            0, e);
-                }
+            } catch (SQLException e) {
+                throw new SQLServerException(SQLServerException.getErrString("R_metaDataErrorForParameter"), null, 0,
+                        e);
             }
         }
+
         return tvpName;
     }
 
+    /**
+     * @deprecated
+     */
     @Deprecated
     @Override
     public final void setUnicodeStream(int n, java.io.InputStream x, int length) throws SQLException {
@@ -2040,7 +2047,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             batchParamValues = new ArrayList<>();
 
         final int numParams = inOutParam.length;
-        Parameter paramValues[] = new Parameter[numParams];
+        Parameter[] paramValues = new Parameter[numParams];
         for (int i = 0; i < numParams; i++)
             paramValues[i] = inOutParam[i].cloneForBatch();
         batchParamValues.add(paramValues);
@@ -2057,15 +2064,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
-        loggerExternal.entering(getClassNameLogging(), "executeBatch");
+        loggerExternal.entering(getClassNameLogging(), EXECUTE_BATCH_STRING);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
 
         try {
-            int updateCounts[];
+            int[] updateCounts;
 
             localUserSQL = userSQL;
 
@@ -2073,7 +2080,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
                         return updateCounts;
                     }
 
@@ -2091,7 +2098,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2108,20 +2116,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
-                        if (null != columnList && columnList.size() > 0) {
+                        Map<Integer, Integer> columnMappings = null;
+                        if (null != columnList && !columnList.isEmpty()) {
                             if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
+                            columnMappings = new HashMap<>(columnList.size());
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {rs.getColumnCount(), valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2134,7 +2149,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            if (null != columnList && !columnList.isEmpty()) {
+                                int columnIndex = columnList.indexOf(c.getColumnName());
+                                if (columnIndex > -1) {
+                                    columnMappings.put(columnIndex + 1, i);
+                                    batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
+                                            ti.getPrecision(), ti.getScale());
+                                }
+                            } else {
+                                batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                        ti.getScale());
+                            }
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2142,6 +2167,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         option.setBulkCopyTimeout(queryTimeout);
                         bcOperation.setBulkCopyOptions(option);
                         bcOperation.setDestinationTableName(tableName);
+                        if (columnMappings != null) {
+                            for (Entry<Integer, Integer> pair : columnMappings.entrySet()) {
+                                bcOperation.addColumnMapping(pair.getKey(), pair.getValue());
+                            }
+                        }
                         bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
                         bcOperation.setDestinationTableMetadata(rs);
                         bcOperation.writeToServer(batchRecord);
@@ -2151,7 +2181,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             updateCounts[i] = 1;
                         }
 
-                        loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
                         return updateCounts;
                     }
                 }
@@ -2205,7 +2235,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
 
-            loggerExternal.exiting(getClassNameLogging(), "executeBatch", updateCounts);
+            loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
             return updateCounts;
         } finally {
             batchParamValues = null;
@@ -2216,13 +2246,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         checkClosed();
         discardLastExecutionResults();
 
         try {
-            long updateCounts[];
+            long[] updateCounts;
 
             localUserSQL = userSQL;
 
@@ -2248,7 +2278,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         for (Parameter paramValue : paramValues) {
                             if (paramValue.isOutput()) {
                                 throw new BatchUpdateException(
-                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0, null);
+                                        SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
+                                        null);
                             }
                         }
                     }
@@ -2265,20 +2296,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
                                             + Util.escapeSingleQuotes(tableName) + " '")) {
-                        if (null != columnList && columnList.size() > 0) {
+                        if (null != columnList && !columnList.isEmpty()) {
                             if (columnList.size() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         } else {
                             if (rs.getColumnCount() != valueList.size()) {
-                                throw new IllegalArgumentException(
-                                        "Number of provided columns does not match the table definition.");
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_colNotMatchTable"));
+                                Object[] msgArgs = {columnList != null ? columnList.size() : 0, valueList.size()};
+                                throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
-                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(batchParamValues,
-                                columnList, valueList, null);
+                        SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
+                                batchParamValues, columnList, valueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2291,7 +2326,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(), ti.getScale());
+                            batchRecord.addColumnMetadata(i, c.getColumnName(), jdbctype, ti.getPrecision(),
+                                    ti.getScale());
                         }
 
                         SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
@@ -2426,12 +2462,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // have a
         // new query. reject this.
         if (localUserSQL.length() > 0) {
-            throw new IllegalArgumentException("Multiple queries are not allowed.");
+            throw new IllegalArgumentException(SQLServerException.getErrString("R_multipleQueriesNotAllowed"));
         }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
-            boolean hasTableBeenFound, boolean isExpectingTableName) {
+            boolean hasTableBeenFound, boolean isExpectingTableName) throws SQLServerException {
         // As far as finding the table name goes, There are two cases:
         // Insert into <tableName> and Insert <tableName>
         // And there could be in-line comments (with /* and */) in between.
@@ -2479,16 +2515,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // If it's encapsulated in [] or "", we need be more careful with parsing as anything could go into []/"".
         // For ] or ", they can be escaped by ]] or "", watch out for this too.
         if (checkSQLLength(1) && "[".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
-            int tempint = localUserSQL.indexOf("]", 1);
+            int tempint = localUserSQL.indexOf(']', 1);
 
             // ] has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                Object[] msgArgs = {localUserSQL};
+                throw new IllegalArgumentException(form.format(msgArgs));
             }
 
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
-                tempint = localUserSQL.indexOf("]", tempint + 2);
+                tempint = localUserSQL.indexOf(']', tempint + 2);
             }
 
             // we've found a ] that is actually trying to close the square bracket.
@@ -2500,16 +2538,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // do the same for ""
         if (checkSQLLength(1) && "\"".equalsIgnoreCase(localUserSQL.substring(0, 1))) {
-            int tempint = localUserSQL.indexOf("\"", 1);
+            int tempint = localUserSQL.indexOf('"', 1);
 
             // \" has not been found, this is wrong.
             if (tempint < 0) {
-                throw new IllegalArgumentException("Invalid SQL Query.");
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                Object[] msgArgs = {localUserSQL};
+                throw new IllegalArgumentException(form.format(msgArgs));
             }
 
             // keep checking if it's escaped
             while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
-                tempint = localUserSQL.indexOf("\"", tempint + 2);
+                tempint = localUserSQL.indexOf('"', tempint + 2);
             }
 
             // we've found a " that is actually trying to close the quote.
@@ -2527,7 +2567,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     || checkAndRemoveCommentsAndSpace(false)) {
                 return sb.toString() + parseUserSQLForTableNameDW(true, true, true, false);
             } else if (localUserSQL.charAt(0) == ';') {
-                throw new IllegalArgumentException("End of query detected before VALUES have been found.");
+                throw new IllegalArgumentException(SQLServerException.getErrString("R_endOfQueryDetected"));
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
@@ -2535,7 +2575,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private ArrayList<String> parseUserSQLForColumnListDW() {
@@ -2574,17 +2616,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // handle [] case
             if (localUserSQL.charAt(0) == '[') {
-                int tempint = localUserSQL.indexOf("]", 1);
+                int tempint = localUserSQL.indexOf(']', 1);
 
                 // ] has not been found, this is wrong.
                 if (tempint < 0) {
-                    throw new IllegalArgumentException("Invalid SQL Query.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                    Object[] msgArgs = {localUserSQL};
+                    throw new IllegalArgumentException(form.format(msgArgs));
                 }
 
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == ']') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                    tempint = localUserSQL.indexOf("]", tempint + 1);
+                    tempint = localUserSQL.indexOf(']', tempint + 1);
                 }
 
                 // we've found a ] that is actually trying to close the square bracket.
@@ -2596,17 +2640,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // handle "" case
             if (localUserSQL.charAt(0) == '\"') {
-                int tempint = localUserSQL.indexOf("\"", 1);
+                int tempint = localUserSQL.indexOf('"', 1);
 
                 // \" has not been found, this is wrong.
                 if (tempint < 0) {
-                    throw new IllegalArgumentException("Invalid SQL Query.");
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+                    Object[] msgArgs = {localUserSQL};
+                    throw new IllegalArgumentException(form.format(msgArgs));
                 }
 
                 // keep checking if it's escaped
                 while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\"') {
                     localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-                    tempint = localUserSQL.indexOf("\"", tempint + 1);
+                    tempint = localUserSQL.indexOf('"', tempint + 1);
                 }
 
                 // we've found a " that is actually trying to close the quote.
@@ -2640,7 +2686,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // It shouldn't come here. If we did, something is wrong.
         // most likely we couldn't hit the exit condition and just parsed until the end of the string.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private ArrayList<String> parseUserSQLForValueListDW(boolean hasValuesBeenFound) {
@@ -2671,7 +2719,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // shouldn't come here, as the list of values is mandatory.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private ArrayList<String> parseUserSQLForValueListDWHelper(ArrayList<String> listOfValues) {
@@ -2689,8 +2739,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     localUserSQL = localUserSQL.substring(1);
                     if (!"?".equals(sb.toString())) {
                         // throw IllegalArgumentException and fallback to original logic for batch insert
-                        throw new IllegalArgumentException(
-                                "Only fully parameterized queries are allowed for using Bulk Copy API for batch insert at the moment.");
+                        throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
                     }
                     listOfValues.add(sb.toString());
                     sb.setLength(0);
@@ -2706,31 +2755,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        // Don't need this anymore since we removed support for non-parameterized query.
-        // if (localUserSQL.charAt(0) == '\'') {
-        // int tempint = localUserSQL.indexOf("\'", 1);
-        //
-        // // \' has not been found, this is wrong.
-        // if (tempint < 0) {
-        // throw new IllegalArgumentException("Invalid SQL Query.");
-        // }
-        //
-        // // keep checking if it's escaped
-        // while (tempint >= 0 && checkSQLLength(tempint + 2) && localUserSQL.charAt(tempint + 1) == '\'') {
-        // localUserSQL = localUserSQL.substring(0, tempint) + localUserSQL.substring(tempint + 1);
-        // tempint = localUserSQL.indexOf("\'", tempint + 1);
-        // }
-        //
-        // // we've found a ' that is actually trying to close the quote.
-        // // Include 's around the string as well, so we can distinguish '?' and ? later on.
-        // String tempstr = localUserSQL.substring(0, tempint + 1);
-        // localUserSQL = localUserSQL.substring(tempint + 1);
-        // listOfValues.add(tempstr);
-        // return parseUserSQLForValueListDWHelper(listOfValues);
-        // }
-
         // It shouldn't come here. If we did, something is wrong.
-        throw new IllegalArgumentException("Invalid SQL Query.");
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+        Object[] msgArgs = {localUserSQL};
+        throw new IllegalArgumentException(form.format(msgArgs));
     }
 
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
@@ -2756,7 +2784,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if ("--".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
-            int temp = localUserSQL.indexOf("\n") + 1;
+            int temp = localUserSQL.indexOf('\n') + 1;
             if (temp <= 0) {
                 localUserSQL = "";
                 return false;
@@ -2770,7 +2798,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private boolean checkSQLLength(int length) {
         if (null == localUserSQL || localUserSQL.length() < length) {
-            throw new IllegalArgumentException("Invalid SQL Query.");
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+            Object[] msgArgs = {localUserSQL};
+            throw new IllegalArgumentException(form.format(msgArgs));
         }
         return true;
     }
@@ -2783,9 +2813,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
          * Always update serialVersionUID when prompted.
          */
         private static final long serialVersionUID = 5225705304799552318L;
+
         private final SQLServerPreparedStatement stmt;
         SQLServerException batchException;
-        long updateCounts[];
+        long[] updateCounts;
 
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
             super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
@@ -2797,6 +2828,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return true;
         }
 
+        @Override
         final void processResponse(TDSReader tdsReader) throws SQLServerException {
             ensureExecuteResultsReader(tdsReader);
             processExecuteResults();
@@ -2823,7 +2855,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.setMaxRows(0);
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + " ActivityId: " + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
         }
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
@@ -2831,7 +2863,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         TDSWriter tdsWriter = null;
         while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
-            Parameter paramValues[] = batchParamValues.get(numBatchesPrepared);
+            Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
             System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
 
@@ -2912,7 +2944,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
-                        tdsWriter.writeByte((byte) nBatchStatementDelimiter);
+                        tdsWriter.writeByte((byte) NBATCH_STATEMENT_DELIMITER);
                     } else {
                         resetForReexecute();
                         tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
@@ -2994,6 +3026,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 if (null == batchCommand.batchException)
                                     batchCommand.batchException = e;
 
+                                String sqlState = batchCommand.batchException.getSQLState();
+                                if (null != sqlState
+                                        && sqlState.equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                                    processBatch();
+                                    continue;
+                                }
                             }
 
                             // In batch execution, we have a special update count

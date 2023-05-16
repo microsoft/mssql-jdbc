@@ -30,7 +30,13 @@ import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.testframework.PrepUtil;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -47,12 +53,38 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("StatementParam");
+    private static final String tableName1 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("AmbiguousRs1"));
+    private static final String tableName2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("AmbiguousRs2"));
+
+    private static final String expectedSqlState = "S0001";
+
+    private static final int expectedErrorCode = 8134;
 
     static final String uuid = UUID.randomUUID().toString();
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    @BeforeEach
+    public void init() throws Exception {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(tableName1, stmt);
+            TestUtils.dropTableIfExists(tableName2, stmt);
+        }
+    }
+
+    @AfterEach
+    public void cleanUp() throws Exception {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(tableName1, stmt);
+            TestUtils.dropTableIfExists(tableName2, stmt);
+        }
     }
 
     /**
@@ -257,6 +289,55 @@ public class ResultSetTest extends AbstractTest {
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testUpdateOnColumnForAssociatedTable() throws SQLException {
+        String query1 = "SELECT t.* FROM " + tableName1 + " k INNER JOIN " + tableName2 + " t ON  t.i = k.i";
+        String query2 = "SELECT * FROM " + tableName2;
+        String data = "NEW EDIT";
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
+
+            ambiguousUpdateRowTestSetup(conn);
+
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                    ResultSet rs = stmt.executeQuery(query1);) {
+                rs.first();
+                rs.updateString(3, data);
+                rs.updateRow();
+            }
+
+            try (Statement createStatement = conn.createStatement();
+                    ResultSet rs = createStatement.executeQuery(query2);) {
+                rs.next();
+                assertEquals(data, rs.getString(3));
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testErrorOnAmbiguousUpdate() throws SQLException {
+        String query1 = "SELECT t.*, k.* FROM " + tableName1 + " k INNER JOIN " + tableName2 + " t ON  t.i = k.i";
+        String data = "NEW EDIT";
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
+
+            ambiguousUpdateRowTestSetup(conn);
+
+            try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                    ResultSet rs = stmt.executeQuery(query1);) {
+                rs.first();
+                rs.updateString(3, data);
+                rs.updateString(5, data);
+                rs.updateRow();
+            }
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException se) {
+            assertTrue(se.getMessage().matches(TestUtils.formatErrorMsg("R_AmbiguousRowUpdate")));
         }
     }
 
@@ -593,6 +674,47 @@ public class ResultSetTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
+        }
+    }
+
+    @Test
+    public void testResultSetFetchBufferSqlErrorState() throws Exception {
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            try (Statement stmt = connection.createStatement()) {
+                ResultSet rs = stmt.executeQuery("select 1/0");
+                rs.next();
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (SQLException e) {
+                assertEquals(expectedSqlState, e.getSQLState());
+                assertEquals(expectedErrorCode, e.getErrorCode());
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetClientCursorInitializerSqlErrorState() {
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1 int)");
+            boolean hasResults = stmt
+                    .execute("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "; select 1/0");
+            while (hasResults) {
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {}
+                hasResults = stmt.getMoreResults();
+            }
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (SQLException e) {
+            assertEquals(expectedSqlState, e.getSQLState());
+            assertEquals(expectedErrorCode, e.getErrorCode());
+        }
+    }
+
+    private void ambiguousUpdateRowTestSetup(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE " + tableName1 + " (i INT, data VARCHAR(30))");
+            stmt.execute("CREATE TABLE " + tableName2 + " (i INT, row INT, data VARCHAR(30))");
+            stmt.execute("INSERT INTO " + tableName1 + " SELECT 1, 'EDIT'");
+            stmt.execute("INSERT INTO " + tableName2 + " SELECT 1, 1, 'TEST1' UNION SELECT 1, 2, 'TEST2'");
         }
     }
 }

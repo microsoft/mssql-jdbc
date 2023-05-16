@@ -26,7 +26,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
      * @throws IllegalArgumentException
      *         if record is not correct and cannot be parsed
      */
-    public static DNSRecordSRV parseFromDNSRecord(String record) throws IllegalArgumentException {
+    public static DNSRecordSRV parseFromDNSRecord(String record) {
         Matcher m = PATTERN.matcher(record);
         if (!m.matches()) {
             throw new IllegalArgumentException("record '" + record + "' cannot be matched as a valid DNS SRV Record");
@@ -67,7 +67,7 @@ public class DNSRecordSRV implements Comparable<DNSRecordSRV> {
      * @throws IllegalArgumentException
      *         if priority {@literal <} 0 or weight {@literal <=} 1
      */
-    public DNSRecordSRV(int priority, int weight, int port, String serverName) throws IllegalArgumentException {
+    public DNSRecordSRV(int priority, int weight, int port, String serverName) {
         if (priority < 0) {
             throw new IllegalArgumentException("priority must be >= 0, but was: " + priority);
         }

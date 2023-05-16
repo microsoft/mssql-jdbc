@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -1227,7 +1228,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                 try {
                     Geometry.STGeomFromText(geoWKT, 0);
                 } catch (SQLServerException e) {
-                    assertEquals("Fullglobe is not supported for Geometry.", e.getMessage());
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_illegalTypeForGeometry")),
+                            e.getMessage());
                 }
 
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
@@ -2039,7 +2041,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     rs.getGeography(1); // should fail
                     fail();
                 } catch (SQLServerException e) {
-                    assertEquals("The conversion from GEOMETRY to GEOGRAPHY is unsupported.", e.getMessage());
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_unsupportedConversionFromTo")),
+                            e.getMessage());
                 }
             }
 
@@ -2055,7 +2058,8 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
                     rs.getGeometry(1); // should fail
                     fail();
                 } catch (SQLServerException e) {
-                    assertEquals("The conversion from GEOGRAPHY to GEOMETRY is unsupported.", e.getMessage());
+                    assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_unsupportedConversionFromTo")),
+                            e.getMessage());
                 }
             }
         }

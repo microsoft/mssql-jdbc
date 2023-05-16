@@ -18,6 +18,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -29,14 +31,19 @@ import java.util.logging.Logger;
  */
 final class Util {
     final static String SYSTEM_SPEC_VERSION = System.getProperty("java.specification.version");
-    final static char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    final static String WSIDNotAvailable = ""; // default string when WSID is not available
+    final static char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    final static String WSID_NOT_AVAILABLE = ""; // default string when WSID is not available
 
     final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
+
+    private Util() {
+        throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
+    }
 
     // The JRE is identified by the string below so that the driver can make
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
+    private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
         return SYSTEM_JRE.startsWith("IBM");
@@ -106,7 +113,7 @@ final class Util {
      *        offset to read from
      * @return the value
      */
-    /* L0 */ static short readShort(byte data[], int nOffset) {
+    static short readShort(byte[] data, int nOffset) {
         return (short) ((data[nOffset] & 0xff) | ((data[nOffset + 1] & 0xff) << 8));
     }
 
@@ -119,20 +126,20 @@ final class Util {
      *        offset to read from
      * @return the value
      */
-    /* L0 */ static int readUnsignedShort(byte data[], int nOffset) {
+    static int readUnsignedShort(byte[] data, int nOffset) {
         return ((data[nOffset] & 0xff) | ((data[nOffset + 1] & 0xff) << 8));
     }
 
-    static int readUnsignedShortBigEndian(byte data[], int nOffset) {
+    static int readUnsignedShortBigEndian(byte[] data, int nOffset) {
         return ((data[nOffset] & 0xFF) << 8) | (data[nOffset + 1] & 0xFF);
     }
 
-    static void writeShort(short value, byte valueBytes[], int offset) {
+    static void writeShort(short value, byte[] valueBytes, int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF);
     }
 
-    static void writeShortBigEndian(short value, byte valueBytes[], int offset) {
+    static void writeShortBigEndian(short value, byte[] valueBytes, int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 0) & 0xFF);
     }
@@ -146,7 +153,7 @@ final class Util {
      *        offset to read from
      * @return the value
      */
-    /* L0 */ static int readInt(byte data[], int nOffset) {
+    static int readInt(byte[] data, int nOffset) {
         int b1 = ((int) data[nOffset + 0] & 0xff);
         int b2 = ((int) data[nOffset + 1] & 0xff) << 8;
         int b3 = ((int) data[nOffset + 2] & 0xff) << 16;
@@ -154,26 +161,26 @@ final class Util {
         return b4 | b3 | b2 | b1;
     }
 
-    static int readIntBigEndian(byte data[], int nOffset) {
+    static int readIntBigEndian(byte[] data, int nOffset) {
         return ((data[nOffset + 3] & 0xFF) << 0) | ((data[nOffset + 2] & 0xFF) << 8)
                 | ((data[nOffset + 1] & 0xFF) << 16) | ((data[nOffset + 0] & 0xFF) << 24);
     }
 
-    static void writeInt(int value, byte valueBytes[], int offset) {
+    static void writeInt(int value, byte[] valueBytes, int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 0) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 16) & 0xFF);
         valueBytes[offset + 3] = (byte) ((value >> 24) & 0xFF);
     }
 
-    static void writeIntBigEndian(int value, byte valueBytes[], int offset) {
+    static void writeIntBigEndian(int value, byte[] valueBytes, int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 24) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 16) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset + 3] = (byte) ((value >> 0) & 0xFF);
     }
 
-    static void writeLongBigEndian(long value, byte valueBytes[], int offset) {
+    static void writeLongBigEndian(long value, byte[] valueBytes, int offset) {
         valueBytes[offset + 0] = (byte) ((value >> 56) & 0xFF);
         valueBytes[offset + 1] = (byte) ((value >> 48) & 0xFF);
         valueBytes[offset + 2] = (byte) ((value >> 40) & 0xFF);
@@ -184,7 +191,7 @@ final class Util {
         valueBytes[offset + 7] = (byte) ((value >> 0) & 0xFF);
     }
 
-    static BigDecimal readBigDecimal(byte valueBytes[], int valueLength, int scale) {
+    static BigDecimal readBigDecimal(byte[] valueBytes, int valueLength, int scale) {
         int sign = (0 == valueBytes[0]) ? -1 : 1;
         byte[] magnitude = new byte[valueLength - 1];
         for (int i = 1; i <= magnitude.length; i++)
@@ -201,7 +208,7 @@ final class Util {
      *        the offset into byte array to start reading.
      * @return long value as read from bytes.
      */
-    /* L0 */static long readLong(byte data[], int nOffset) {
+    static long readLong(byte[] data, int nOffset) {
         return ((long) (data[nOffset + 7] & 0xff) << 56) | ((long) (data[nOffset + 6] & 0xff) << 48)
                 | ((long) (data[nOffset + 5] & 0xff) << 40) | ((long) (data[nOffset + 4] & 0xff) << 32)
                 | ((long) (data[nOffset + 3] & 0xff) << 24) | ((long) (data[nOffset + 2] & 0xff) << 16)
@@ -218,7 +225,7 @@ final class Util {
      * @param offset
      *        the offset inside byte array.
      */
-    static void writeLong(long value, byte valueBytes[], int offset) {
+    static void writeLong(long value, byte[] valueBytes, int offset) {
         valueBytes[offset++] = (byte) ((value) & 0xFF);
         valueBytes[offset++] = (byte) ((value >> 8) & 0xFF);
         valueBytes[offset++] = (byte) ((value >> 16) & 0xFF);
@@ -238,7 +245,7 @@ final class Util {
      * @return the properties
      * @throws SQLServerException
      */
-    /* L0 */ static Properties parseUrl(String url, Logger logger) throws SQLServerException {
+    static Properties parseUrl(String url, Logger logger) throws SQLServerException {
         Properties p = new Properties();
         String tmpUrl = url;
         String sPrefix = "jdbc:sqlserver://";
@@ -269,7 +276,7 @@ final class Util {
         while (i < tmpUrl.length()) {
             ch = tmpUrl.charAt(i);
             switch (state) {
-                case inStart: {
+                case inStart:
                     if (ch == ';') {
                         // done immediately
                         state = inName;
@@ -278,18 +285,17 @@ final class Util {
                         state = inServerName;
                     }
                     break;
-                }
 
-                case inServerName: {
+                case inServerName:
                     if (ch == ';' || ch == ':' || ch == '\\') {
                         // non escaped trim the string
                         String property = result.toString().trim();
 
                         if (property.contains("=")) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorServerName"));
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_errorServerName"));
                             Object[] msgArgs = {property};
-                            SQLServerException.makeFromDriverError(null, null,
-                                    form.format(msgArgs), null, true);
+                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
                         }
 
                         if (property.length() > 0) {
@@ -311,9 +317,8 @@ final class Util {
                         // same state
                     }
                     break;
-                }
 
-                case inPort: {
+                case inPort:
                     if (ch == ';') {
                         String property = result.toString().trim();
                         if (logger.isLoggable(Level.FINE)) {
@@ -327,8 +332,8 @@ final class Util {
                         // same state
                     }
                     break;
-                }
-                case inInstanceName: {
+
+                case inInstanceName:
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
                         String property = result.toString().trim();
@@ -347,8 +352,8 @@ final class Util {
                         // same state
                     }
                     break;
-                }
-                case inName: {
+
+                case inName:
                     if (ch == '=') {
                         // name is never escaped!
                         name = name.trim();
@@ -372,8 +377,8 @@ final class Util {
                         // same state
                     }
                     break;
-                }
-                case inValue: {
+
+                case inValue:
                     if (ch == ';') {
                         // simple value trim
                         value = value.trim();
@@ -410,8 +415,8 @@ final class Util {
                         // same state
                     }
                     break;
-                }
-                case inEscapedValueStart: {
+
+                case inEscapedValueStart:
                     /*
                      * check for escaped }. when we see a }, first check to see if this is before the end of the string
                      * to avoid index out of range exception then check if the character immediately after is also a }.
@@ -451,8 +456,8 @@ final class Util {
                         }
                     }
                     break;
-                }
-                case inEscapedValueEnd: {
+
+                case inEscapedValueEnd:
                     if (ch == ';') // eat space chars till ; anything else is an error
                     {
                         state = inName;
@@ -462,7 +467,6 @@ final class Util {
                                 SQLServerException.getErrString("R_errorConnectionString"), null, true);
                     }
                     break;
-                }
 
                 default:
                     assert false : "parseURL: Invalid state " + state;
@@ -623,8 +627,8 @@ final class Util {
         sb.append("0x");
         for (byte aB : b) {
             hexVal = aB & 0xFF;
-            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
-            sb.append(hexChars[(hexVal & 0x0F)]);
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
         }
         return sb.toString();
     }
@@ -640,8 +644,8 @@ final class Util {
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             int hexVal = b[i] & 0xFF;
-            sb.append(hexChars[(hexVal & 0xF0) >> 4]);
-            sb.append(hexChars[(hexVal & 0x0F)]);
+            sb.append(HEXCHARS[(hexVal & 0xF0) >> 4]);
+            sb.append(HEXCHARS[(hexVal & 0x0F)]);
         }
         return sb.toString();
     }
@@ -668,10 +672,10 @@ final class Util {
                     return value;
             }
         } catch (UnknownHostException e) {
-            return WSIDNotAvailable;
+            return WSID_NOT_AVAILABLE;
         }
         // If hostname not found, return standard "" string.
-        return WSIDNotAvailable;
+        return WSID_NOT_AVAILABLE;
     }
 
     static final byte[] asGuidByteArray(UUID aId) {
@@ -748,34 +752,34 @@ final class Util {
         return new UUID(msb, lsb);
     }
 
-    static final String readGUID(byte[] inputGUID) throws SQLServerException {
+    static final String readGUID(byte[] inputGUID) {
         String guidTemplate = "NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN";
-        byte guid[] = inputGUID;
+        byte[] guid = inputGUID;
 
         StringBuilder sb = new StringBuilder(guidTemplate.length());
         for (int i = 0; i < 4; i++) {
-            sb.append(Util.hexChars[(guid[3 - i] & 0xF0) >> 4]);
-            sb.append(Util.hexChars[guid[3 - i] & 0x0F]);
+            sb.append(Util.HEXCHARS[(guid[3 - i] & 0xF0) >> 4]);
+            sb.append(Util.HEXCHARS[guid[3 - i] & 0x0F]);
         }
         sb.append('-');
         for (int i = 0; i < 2; i++) {
-            sb.append(Util.hexChars[(guid[5 - i] & 0xF0) >> 4]);
-            sb.append(Util.hexChars[guid[5 - i] & 0x0F]);
+            sb.append(Util.HEXCHARS[(guid[5 - i] & 0xF0) >> 4]);
+            sb.append(Util.HEXCHARS[guid[5 - i] & 0x0F]);
         }
         sb.append('-');
         for (int i = 0; i < 2; i++) {
-            sb.append(Util.hexChars[(guid[7 - i] & 0xF0) >> 4]);
-            sb.append(Util.hexChars[guid[7 - i] & 0x0F]);
+            sb.append(Util.HEXCHARS[(guid[7 - i] & 0xF0) >> 4]);
+            sb.append(Util.HEXCHARS[guid[7 - i] & 0x0F]);
         }
         sb.append('-');
         for (int i = 0; i < 2; i++) {
-            sb.append(Util.hexChars[(guid[8 + i] & 0xF0) >> 4]);
-            sb.append(Util.hexChars[guid[8 + i] & 0x0F]);
+            sb.append(Util.HEXCHARS[(guid[8 + i] & 0xF0) >> 4]);
+            sb.append(Util.HEXCHARS[guid[8 + i] & 0x0F]);
         }
         sb.append('-');
         for (int i = 0; i < 6; i++) {
-            sb.append(Util.hexChars[(guid[10 + i] & 0xF0) >> 4]);
-            sb.append(Util.hexChars[guid[10 + i] & 0x0F]);
+            sb.append(Util.HEXCHARS[(guid[10 + i] & 0xF0) >> 4]);
+            sb.append(Util.HEXCHARS[guid[10 + i] & 0x0F]);
         }
 
         return sb.toString();
@@ -797,14 +801,14 @@ final class Util {
             SQLServerConnection connection) {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
-            case Disabled:
+            case DISABLED:
                 return false;
-            case Enabled:
-            case ResultSetOnly:
+            case ENABLED:
+            case RESULTSET_ONLY:
                 return true;
             default:
                 // Check connection level setting!
-                assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
+                assert SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING == stmtColumnEncryptionSetting : "Unexpected value for command level override";
                 return (connection != null && connection.isColumnEncryptionSettingEnabled());
         }
     }
@@ -819,14 +823,14 @@ final class Util {
             SQLServerConnection connection) {
         // Command leve setting trumps all
         switch (stmtColumnEncryptionSetting) {
-            case Disabled:
-            case ResultSetOnly:
+            case DISABLED:
+            case RESULTSET_ONLY:
                 return false;
-            case Enabled:
+            case ENABLED:
                 return true;
             default:
                 // Check connection level setting!
-                assert SQLServerStatementColumnEncryptionSetting.UseConnectionSetting == stmtColumnEncryptionSetting : "Unexpected value for command level override";
+                assert SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING == stmtColumnEncryptionSetting : "Unexpected value for command level override";
                 return (connection != null && connection.isColumnEncryptionSettingEnabled());
         }
     }
@@ -837,13 +841,12 @@ final class Util {
 
         switch (jdbcType) {
             case MONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_MONEY)) && (-1 != bd.compareTo(SSType.MIN_VALUE_MONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_MONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_MONEY) < 0)) {
                     return;
                 }
                 break;
             case SMALLMONEY:
-                if ((1 != bd.compareTo(SSType.MAX_VALUE_SMALLMONEY))
-                        && (-1 != bd.compareTo(SSType.MIN_VALUE_SMALLMONEY))) {
+                if (!(bd.compareTo(SSType.MAX_VALUE_SMALLMONEY) > 0 || bd.compareTo(SSType.MIN_VALUE_SMALLMONEY) < 0)) {
                     return;
                 }
                 break;
@@ -892,7 +895,7 @@ final class Util {
                         || JDBCType.DATETIMEOFFSET == jdbcType) {
                     return ((null == scale) ? TDS.MAX_FRACTIONAL_SECONDS_SCALE : scale);
                 } else if (JDBCType.BINARY == jdbcType || JDBCType.VARBINARY == jdbcType) {
-                    return ((null == value) ? 0 : (ParameterUtils.HexToBin((String) value).length));
+                    return ((null == value) ? 0 : (ParameterUtils.hexToBin((String) value).length));
                 } else if (JDBCType.GEOMETRY == jdbcType) {
                     return ((null == value) ? 0 : ((Geometry) value).serialize().length);
                 } else if (JDBCType.GEOGRAPHY == jdbcType) {
@@ -952,32 +955,37 @@ final class Util {
     // If the token is expiring within the next 45 mins, try to fetch a new token if there is no thread already doing
     // it.
     // If a thread is already doing the refresh, just use the existing token and proceed.
-    static synchronized boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
-        Date now = new Date();
+    static boolean checkIfNeedNewAccessToken(SQLServerConnection connection, Date accessTokenExpireDate) {
+        LOCK.lock();
+        try {
+            Date now = new Date();
 
-        // if the token's expiration is within the next 45 mins
-        // 45 mins * 60 sec/min * 1000 millisec/sec
-        if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
+            // if the token's expiration is within the next 45 mins
+            // 45 mins * 60 sec/min * 1000 millisec/sec
+            if ((accessTokenExpireDate.getTime() - now.getTime()) < (45 * 60 * 1000)) {
 
-            // within the next 10 mins
-            if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
-                return true;
-            } else {
-                // check if another thread is already updating the access token
-                if (connection.attemptRefreshTokenLocked) {
-                    return false;
-                } else {
-                    connection.attemptRefreshTokenLocked = true;
+                // within the next 10 mins
+                if ((accessTokenExpireDate.getTime() - now.getTime()) < (10 * 60 * 1000)) {
                     return true;
+                } else {
+                    // check if another thread is already updating the access token
+                    if (connection.attemptRefreshTokenLocked) {
+                        return false;
+                    } else {
+                        connection.attemptRefreshTokenLocked = true;
+                        return true;
+                    }
                 }
             }
+            return false;
+        } finally {
+            LOCK.unlock();
         }
-        return false;
     }
 
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
-            Object[] msgArgs) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+            Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
         Class<?> clazz = Class.forName(className);
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));

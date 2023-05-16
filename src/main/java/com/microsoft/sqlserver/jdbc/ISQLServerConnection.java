@@ -235,6 +235,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setSendTimeAsDatetime(boolean sendTimeAsDateTimeValue) throws SQLServerException;
 
     /**
+     * Sets the value of the datetimeParameterType connection property, which controls how date and time parameters are sent to the server against SQL Server 2008+.
+     * This setting can affect server-side date conversions and comparisons during statement execution, particularly against SQL Server 2016+. By default, the value is set to "datetime2".
+     * Valid values are: datetime, datetime2 or datetimeoffset.
+     * 
+     * @param datetimeParameterTypeValue
+     *        The datatype to use when encoding Java dates into SQL Server. Valid values are:
+     *        datetime, datetime2 or datetimeoffset.
+     * 
+     * @throws SQLServerException
+     *         if a database access error occurs
+     */
+    void setDatetimeParameterType(String datetimeParameterTypeValue) throws SQLServerException;
+
+    /**
      * Returns the value of the sendTimeAsDatetime property.
      * 
      * @return boolean value of sendTimeAsDatetime
@@ -243,6 +257,16 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *         if a database access error occurs
      */
     boolean getSendTimeAsDatetime() throws SQLServerException;
+
+    /**
+     * Returns the value of the datetimeParameterType property.
+     * 
+     * @return The string value of the datetimeParameterType property.
+     * 
+     * @throws SQLServerException
+     *         if a database access error occurs
+     */
+    String getDatetimeParameterType() throws SQLServerException;
 
     /**
      * Returns the number of currently outstanding prepared statement un-prepare actions.
@@ -391,7 +415,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
-    
+
     /**
      * Sets the name of the preferred type of IP Address.
      * 
@@ -399,27 +423,47 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A String that contains the preferred type of IP Address.
      */
     void setIPAddressPreference(String iPAddressPreference);
-    
+
     /**
      * Gets the name of the preferred type of IP Address.
      * 
      * @return IPAddressPreference
-     *        A String that contains the preferred type of IP Address.
+     *         A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
 
     /**
-     * Gets the time-to-live for the the cached MSI token
+     * This method will always return 0 and is for backwards compatibility only.
      *
-     * @return time-to-live for the cached MSI token
+     * @return Method will always return 0.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
      */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     int getMsiTokenCacheTtl();
 
     /**
-     * Sets time-to-live for the the cached MSI token
+     * Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
      *
      * @param timeToLive
-     *        Changes the setting as per description
+     *        Time-to-live is no longer supported.
+     * @deprecated Time-to-live is no longer supported for the cached Managed Identity tokens.
      */
+    @Deprecated(since = "12.1.0", forRemoval = true)
     void setMsiTokenCacheTtl(int timeToLive);
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    String getAccessTokenCallbackClass();
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param accessTokenCallbackClass
+     */
+    void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 }
