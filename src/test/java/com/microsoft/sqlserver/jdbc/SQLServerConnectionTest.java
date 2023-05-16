@@ -956,7 +956,7 @@ public class SQLServerConnectionTest extends AbstractTest {
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
-                   ds.setServerName("localhost");
+                   ds.setServerName("testServerName");
                    //Field connectionString = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest").getDeclaredField("connectionString");
                    //connectionString.setAccessible(true);
                    //connectionString.set(connectionString.get(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnectionTest")), "");
@@ -969,7 +969,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("localhost");
+           ds.setServerName("testServerName");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {

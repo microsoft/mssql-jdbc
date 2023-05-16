@@ -2449,12 +2449,18 @@ final class SocketFinder {
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
         InetAddress[] debugAddrs = null;
-        if (hostName.equals("localhost")) {
+        if (hostName.equals("testServerName")) {
             try {
                 System.out.println("Set the debug address");
                 debugAddrs = InetAddress.getAllByName("localhost");
                 isTnirFirstAttempt = false;
-            } catch (UnknownHostException e) {}
+                timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
+                findSocketUsingThreading(debugAddrs, portNumber, timeoutInMilliSeconds);
+            } catch (UnknownHostException e) {} catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         try {
@@ -2506,11 +2512,6 @@ final class SocketFinder {
                 // we do not want any retry to happen here. So, terminate the connection
                 // as the config is unsupported.
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
-            }
-
-            if (debugAddrs != null) {
-                System.out.println("Using debugaddrs");
-                findSocketUsingThreading(debugAddrs, portNumber, timeoutInMilliSeconds);
             }
 
             if (inetAddrs != null && inetAddrs.length == 1) {
