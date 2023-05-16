@@ -12,9 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.net.InetAddress;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -974,7 +971,9 @@ public class SQLServerConnectionTest extends AbstractTest {
                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
            }
        } finally {
-           executor.shutdownNow();
+           if (executor != null) {
+               executor.shutdownNow();
+           }
            Thread.sleep(10000);
        }
 
