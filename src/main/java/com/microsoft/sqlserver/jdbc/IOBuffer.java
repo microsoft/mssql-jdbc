@@ -2966,10 +2966,12 @@ final class SocketFinder {
                     try {
                         parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException ie) {
-                        // Catch the interruption and don't re-interupt the current thread. This would interrupt the
-                        // following sleep calls and cause the many retries ('infinite loops') we saw previously.
-
-                        continue;
+                        // This uncaught exception was what was casuing the issues we saw previously with many
+                        // threads being created
+                        if (logger.isLoggable(Level.FINER)) {
+                            logger.finer(this.toString() + " Current thread has been interrupted.");
+                        }
+                        Thread.currentThread().interrupt();
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
