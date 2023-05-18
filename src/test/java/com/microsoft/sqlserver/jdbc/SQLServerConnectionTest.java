@@ -949,15 +949,17 @@ public class SQLServerConnectionTest extends AbstractTest {
    public void testThreadCountWhenFindingSocket() throws InterruptedException {
        ExecutorService executor = null;
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
+       try {
+           Field testArray = Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder").getDeclaredField("testArray");
+           testArray.setAccessible(true);
+           InetAddress[] debugAddrs = {InetAddress.getLocalHost(), InetAddress.getByName("127.0.0.1")};
+           testArray.set(testArray.get(Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder")), debugAddrs);
+       } catch (Exception e) {}
 
        try {
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
            executor.submit(() -> {
                try {
-                   Field testArray = Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder").getDeclaredField("testArray");
-                   testArray.setAccessible(true);
-                   InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
-                   testArray.set(testArray.get(Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder")), debugAddrs);
                    SQLServerDataSource ds = new SQLServerDataSource();
                    ds.setServerName("localhost");
                    Thread.sleep(5000);
@@ -968,10 +970,6 @@ public class SQLServerConnectionTest extends AbstractTest {
                    }
                }
            });
-           Field testArray = Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder").getDeclaredField("testArray");
-           testArray.setAccessible(true);
-           InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
-           testArray.set(testArray.get(Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder")), debugAddrs);
            SQLServerDataSource ds = new SQLServerDataSource();
            ds.setServerName("localhost");
            Connection conn = ds.getConnection();
