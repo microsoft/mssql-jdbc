@@ -371,9 +371,11 @@ public class FedauthTest extends FedauthCommon {
      */
     @Test
     public void testAADServicePrincipalCertAuth() {
+        // for testing same password is used for both certificate and private key
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + azureAADPrincipalId
-                + ";Password=" + azureAADPrincipalCertificate;
+                + ";clientCertificate=" + clientCertificate + ";clientKey=" + clientKey + ";clientKeyPassword="
+                + clientKeyPassword + ";Password=" + clientKeyPassword;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);

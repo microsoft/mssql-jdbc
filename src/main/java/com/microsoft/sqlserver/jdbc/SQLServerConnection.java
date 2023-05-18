@@ -123,6 +123,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false;
 
+    /**
+     * Back off interval in ms for retries
+     */
+    static final int BACKOFF_INTERVAL = 100;
+
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
@@ -603,7 +608,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         static final String ACCESS_TOKEN_EXPIRES_ON_DATE_FORMAT = "M/d/yyyy h:mm:ss a X";
         static final int GET_ACCESS_TOKEN_SUCCESS = 0;
         static final int GET_ACCESS_TOKEN_INVALID_GRANT = 1;
-        static final int GET_ACCESS_TOKEN_TANSISENT_ERROR = 2;
+        static final int GET_ACCESS_TOKEN_TRANSIENT_ERROR = 2;
         static final int GET_ACCESS_TOKEN_OTHER_ERROR = 3;
 
         private ActiveDirectoryAuthentication() {
@@ -3047,7 +3052,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         final boolean isDBMirroring = null != mirror || null != foActual;
 
-        int sleepInterval = 100; // milliseconds to sleep (back off) between attempts.
+        int sleepInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
 
@@ -5721,12 +5726,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
         // No:of milliseconds to sleep for the initial back off.
-        int sleepInterval = 100;
+        int sleepInterval = BACKOFF_INTERVAL;
 
         if (!msalContextExists()
                 && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
             throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+        }
+
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINEST)) {
+            loggerExternal.finest("Getting FedAuth token " + fedAuthInfo.toString());
         }
 
         while (true) {
@@ -5816,7 +5825,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
 
                         int millisecondsRemaining = timerRemaining(timerExpire);
-                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TANSISENT_ERROR != errorCategory
+                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
                                 || timerHasExpired(timerExpire) || (sleepInterval >= millisecondsRemaining)) {
 
                             String errorStatus = Integer.toHexString(adalException.getStatus());
@@ -5898,11 +5907,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private boolean msalContextExists() {
+
         try {
             Class.forName("com.microsoft.aad.msal4j.PublicClientApplication");
         } catch (ClassNotFoundException e) {
             return false;
         }
+
         return true;
     }
 

@@ -60,6 +60,11 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
 
+    private final static String msalVersion = com.microsoft.aad.msal4j.PublicClientApplication.class.getPackage()
+            .getImplementationVersion();
+
+    private final static String logContext = "MSAL version " + msalVersion + ": ";
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerMSAL4JUtils");
 
@@ -72,7 +77,7 @@ class SQLServerMSAL4JUtils {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(logger.toString() + authenticationString + ": get FedAuth token for user: " + user);
+            logger.finest(logContext + authenticationString + ": get FedAuth token for user: " + user);
         }
 
         try {
@@ -88,8 +93,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
-                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(
+                        logContext + authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -110,8 +116,7 @@ class SQLServerMSAL4JUtils {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(
-                    logger.toString() + authenticationString + ": get FedAuth token for principal: " + aadPrincipalID);
+            logger.finest(logContext + authenticationString + ": get FedAuth token for principal: " + aadPrincipalID);
         }
 
         String defaultScopeSuffix = SLASH_DEFAULT;
@@ -132,8 +137,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
-                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(
+                        logContext + authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -155,7 +161,7 @@ class SQLServerMSAL4JUtils {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(logger.toString() + authenticationString + ": get FedAuth token for principal certificate: "
+            logger.finest(logContext + authenticationString + ": get FedAuth token for principal certificate: "
                     + aadPrincipalID);
         }
 
@@ -173,14 +179,16 @@ class SQLServerMSAL4JUtils {
                 KeyStore keyStore = SQLServerCertificateUtils.loadPKCS12KeyStore(certFile, certPassword);
 
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(logger.toString() + "certificate type: " + keyStore.getType());
-                }
-                // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
-                Enumeration<String> enumeration = keyStore.aliases();
-                while (enumeration.hasMoreElements()) {
-                    String alias = (String) enumeration.nextElement();
-                    X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
-                    cert.checkValidity();
+                    logger.finest(logContext + "certificate type: " + keyStore.getType());
+
+                    // we don't need to do this unless logging enabled since MSAL will fail if cert is not valid
+                    Enumeration<String> enumeration = keyStore.aliases();
+                    while (enumeration.hasMoreElements()) {
+                        String alias = (String) enumeration.nextElement();
+                        X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
+                        cert.checkValidity();
+                        logger.finest(logContext + "certificate: " + cert.toString());
+                    }
                 }
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(is, certPassword);
@@ -194,7 +202,7 @@ class SQLServerMSAL4JUtils {
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(logger.toString() + "Error loading PKCS12 certificate: " + e.getMessage());
+                    logger.finest(logContext + "Error loading PKCS12 certificate: " + e.getMessage());
                 }
             }
 
@@ -203,10 +211,12 @@ class SQLServerMSAL4JUtils {
                 X509Certificate cert = (X509Certificate) SQLServerCertificateUtils.loadCertificate(certFile);
 
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(logger.toString() + "certificate type: " + cert.getType());
+                    logger.finest(logContext + "certificate type: " + cert.getType());
+
+                    // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
+                    cert.checkValidity();
+                    logger.finest(logContext + "certificate: " + cert.toString());
                 }
-                // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
-                cert.checkValidity();
 
                 PrivateKey privateKey = SQLServerCertificateUtils.loadPrivateKey(certKey, certKeyPassword);
 
@@ -222,8 +232,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
-                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(
+                        logContext + authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -257,7 +268,7 @@ class SQLServerMSAL4JUtils {
         String user = kerberosPrincipal.getName();
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(logger.toString() + authenticationString + ": get FedAuth token integrated, user: " + user
+            logger.finest(logContext + authenticationString + ": get FedAuth token integrated, user: " + user
                     + "realm name:" + kerberosPrincipal.getRealm());
         }
 
@@ -274,8 +285,9 @@ class SQLServerMSAL4JUtils {
             final IAuthenticationResult authenticationResult = future.get();
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
-                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(
+                        logContext + authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
@@ -296,8 +308,7 @@ class SQLServerMSAL4JUtils {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(
-                    logger.toString() + authenticationString + ": get FedAuth token interactive for user: " + user);
+            logger.finest(logContext + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
         try {
@@ -322,14 +333,14 @@ class SQLServerMSAL4JUtils {
                             acc.append(account.username());
                         }
                     }
-                    logger.finest(logger.toString() + "Accounts in cache = " + acc + ", size = "
+                    logger.finest(logContext + "Accounts in cache = " + acc + ", size = "
                             + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
                 }
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
                     if (null != account) {
                         if (logger.isLoggable(Level.FINEST)) {
-                            logger.finest(logger.toString() + "Silent authentication for user:" + user);
+                            logger.finest(logContext + "Silent authentication for user:" + user);
                         }
                         SilentParameters silentParameters = SilentParameters
                                 .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), account).build();
@@ -341,7 +352,7 @@ class SQLServerMSAL4JUtils {
                 // not an error, need to get token interactively
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.log(Level.FINEST, e,
-                            () -> logger.toString() + "Need to get token interactively: " + e.reason().toString());
+                            () -> logContext + "Need to get token interactively: " + e.reason().toString());
                 }
             }
 
@@ -350,7 +361,7 @@ class SQLServerMSAL4JUtils {
             } else {
                 // acquire token interactively with system browser
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(logger.toString() + "Interactive authentication");
+                    logger.finest(logContext + "Interactive authentication");
                 }
                 InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
@@ -362,8 +373,9 @@ class SQLServerMSAL4JUtils {
             }
 
             if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(logger.toString() + authenticationResult.account() != null ? authenticationResult
-                        .account().username() + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
+                logger.finest(
+                        logContext + authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate());
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
