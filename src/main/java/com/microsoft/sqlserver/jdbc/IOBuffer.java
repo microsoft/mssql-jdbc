@@ -2428,7 +2428,6 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
-
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2507,7 +2506,6 @@ final class SocketFinder {
                 // as the config is unsupported.
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
-
 
             if (inetAddrs != null && inetAddrs.length == 1) {
                 // Single address so do not start any threads
