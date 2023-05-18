@@ -2460,14 +2460,6 @@ final class SocketFinder {
         try {
             InetAddress[] inetAddrs = null;
 
-            // Used in testing to force multiple InetAddress and thus findSocketUsingThreading.
-            // Cleanest way to implement this is for this test condition to be the first one checked.
-            if (hostName.equals("testServerName")) {
-                InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
-                findSocketUsingThreading(debugAddrs, portNumber,
-                        Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS));
-            }
-
             if (!useParallel) {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
@@ -2966,12 +2958,11 @@ final class SocketFinder {
                     try {
                         parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException ie) {
-                        // This uncaught exception was what was casuing the issues we saw previously with many
-                        // threads being created
-                        if (logger.isLoggable(Level.FINER)) {
-                            logger.finer(this.toString() + " Current thread has been interrupted.");
-                        }
-                        Thread.currentThread().interrupt();
+                        // We don't want interruption of the thread here. Interruption of the thread causes disruption
+                        // in SQLServerConnection.login(), as the call to sleep() in that method
+                        // aren't executed, and thus retries are attempted too frequently. Since we don't want any
+                        // interruption, the thread will not be interrupted with Thread.currentThread.interrupt() and
+                        // the exception will not be rethrown as the catch in findSocket() will also interrupt.
                     }
 
                     if (logger.isLoggable(Level.FINER)) {
