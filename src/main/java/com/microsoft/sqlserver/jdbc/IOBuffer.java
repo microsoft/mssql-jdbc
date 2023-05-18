@@ -27,7 +27,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -2429,8 +2428,6 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
-    // used for testing
-    private static InetAddress[] testArray = null;
 
     /**
      * Constructs a new SocketFinder object with appropriate traceId
@@ -2511,9 +2508,6 @@ final class SocketFinder {
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
-            if (testArray != null) {
-                inetAddrs = testArray;
-            }
 
             if (inetAddrs != null && inetAddrs.length == 1) {
                 // Single address so do not start any threads
