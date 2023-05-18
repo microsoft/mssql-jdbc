@@ -2429,6 +2429,9 @@ final class SocketFinder {
     // necessary for raising exceptions so that the connection pool can be notified
     private final SQLServerConnection conn;
 
+    // used for testing
+    private static InetAddress[] testArray = null;
+
     /**
      * Constructs a new SocketFinder object with appropriate traceId
      * 
@@ -2506,6 +2509,10 @@ final class SocketFinder {
                 // we do not want any retry to happen here. So, terminate the connection
                 // as the config is unsupported.
                 conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
+            }
+
+            if (testArray != null) {
+                inetAddrs = testArray;
             }
 
             if (inetAddrs != null && inetAddrs.length == 1) {

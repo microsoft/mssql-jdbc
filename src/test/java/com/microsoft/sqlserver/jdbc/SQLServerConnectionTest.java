@@ -12,6 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -951,6 +954,10 @@ public class SQLServerConnectionTest extends AbstractTest {
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
            executor.submit(() -> {
                try {
+                   Field testArray = Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder").getDeclaredField("testArray");
+                   testArray.setAccessible(true);
+                   InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
+                   testArray.set(testArray.get(Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder")), debugAddrs);
                    SQLServerDataSource ds = new SQLServerDataSource();
                    ds.setServerName("localhost");
                    Thread.sleep(5000);
@@ -961,12 +968,17 @@ public class SQLServerConnectionTest extends AbstractTest {
                    }
                }
            });
+           Field testArray = Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder").getDeclaredField("testArray");
+           testArray.setAccessible(true);
+           InetAddress[] debugAddrs = {InetAddress.getLocalHost(),InetAddress.getByName("127.0.0.1")};
+           testArray.set(testArray.get(Class.forName("com.microsoft.sqlserver.jdbc.SocketFinder")), debugAddrs);
            SQLServerDataSource ds = new SQLServerDataSource();
            ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
            if (!(e instanceof SQLServerException)) {
+               System.out.println(e);
                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
            }
        } finally {
