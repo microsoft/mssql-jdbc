@@ -76,7 +76,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
                 ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).executorService(executorService)
-                        .setTokenCacheAccessAspect(TokenCache.getInstance()).authority(stsurl).build();
+                        .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
                 CompletableFuture<IAuthenticationResult> future = clientApplication
                         .acquireToken(ClientCredentialParameters.builder(scopes).build());
 
