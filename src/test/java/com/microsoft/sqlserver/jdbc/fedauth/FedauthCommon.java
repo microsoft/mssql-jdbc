@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.ITokenCacheAccessAspect;
+import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
@@ -23,6 +25,8 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -122,6 +126,43 @@ public class FedauthCommon extends AbstractTest {
 
     static String adPasswordConnectionStr;
     static String adIntegratedConnectionStr;
+    static class TokenCache implements ITokenCacheAccessAspect {
+        private static TokenCache instance = new TokenCache();
+        private final Lock lock = new ReentrantLock();
+        private TokenCache() {}
+        static TokenCache getInstance() {
+            return instance;
+        }
+        private String cache = null;
+        @Override
+        public void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+            lock.lock();
+            try {
+                if (null != cache && null != iTokenCacheAccessContext
+                        && null != iTokenCacheAccessContext.tokenCache()) {
+                    iTokenCacheAccessContext.tokenCache().deserialize(cache);
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        @Override
+        public void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+            lock.lock();
+            try {
+                if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged()
+                        && null != iTokenCacheAccessContext.tokenCache())
+                    cache = iTokenCacheAccessContext.tokenCache().serialize();
+            } finally {
+                lock.unlock();
+            }
+        }
+        static void clearUserTokenCache() {
+            if (null != instance.cache && !instance.cache.isEmpty()) {
+                instance.cache = null;
+            }
+        }
+    }
 
     @BeforeAll
     public static void getConfigs() throws Exception {
@@ -171,7 +212,8 @@ public class FedauthCommon extends AbstractTest {
             try {
                 if (null == fedauthPcaApp) {
                     fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
-                            .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                            .executorService(Executors.newFixedThreadPool(1))
+                            .setTokenCacheAccessAspect(TokenCache.getInstance()).authority(stsurl).build();
                 }
 
                 final CompletableFuture<IAuthenticationResult> future = fedauthPcaApp
@@ -190,9 +232,8 @@ public class FedauthCommon extends AbstractTest {
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
                 }
             } catch (Exception e) {
-                if (!checkForRetry(e, retry++, interval)) {
-                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + e.getMessage());
-                }
+                e.printStackTrace();
+                fail(ERR_FAILED_FEDAUTH + e.getMessage());
             }
         }
     }
