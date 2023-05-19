@@ -44,7 +44,6 @@ import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
 import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
-import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
@@ -104,7 +103,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MalformedURLException | MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -148,7 +147,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MalformedURLException | MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } finally {
             executorService.shutdown();
@@ -243,7 +242,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MsalThrottlingException | ExecutionException | IOException e) {
+        } catch (ExecutionException | IOException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
@@ -296,7 +295,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (IOException | MsalThrottlingException | ExecutionException e) {
+        } catch (IOException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
@@ -384,7 +383,7 @@ class SQLServerMSAL4JUtils {
             Thread.currentThread().interrupt();
 
             throw new SQLServerException(e.getMessage(), e);
-        } catch (MalformedURLException | URISyntaxException | MsalThrottlingException | ExecutionException e) {
+        } catch (MalformedURLException | URISyntaxException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } finally {
             executorService.shutdown();
