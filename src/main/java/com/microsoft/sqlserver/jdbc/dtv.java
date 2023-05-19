@@ -3589,7 +3589,7 @@ final class ServerDTVImpl extends DTVImpl {
             case DATETIME:
                 int ticksSinceMidnight = (Util.readInt(decryptedValue, 4) * 10 + 1) / 3;
 
-                if (8 != decryptedValue.length || Integer.MAX_VALUE < ticksSinceMidnight) {
+                if (8 != decryptedValue.length) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NormalizationErrorAE"));
                     throw new SQLServerException(form.format(new Object[] {baseSSType}), null, 0, null);
                 }
