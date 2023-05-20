@@ -69,7 +69,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD = TestUtils.R_BUNDLE
             .getString("R_NoUserPasswordForSqlPassword");
     static final String ERR_MSG_CANNOT_SET_ACCESS_TOKEN = "Cannot set the AccessToken property";
-    static final String ERR_MSG_ACCESS_TOKEN_EMPTY = TestUtils.R_BUNDLE.getString("R_AccessTokenCannotBeEmpty");
+    static final String ERR_MSG_ACCESS_TOKEN_EMPTY = TestUtils.R_BUNDLE.getString("R_AccessnnotBeEmpty");
     static final String ERR_MSG_FAILED_AUTHENTICATE = TestResource.getResource("R_failedToAuthenticate");
     static final String ERR_MSG_CANNOT_OPEN_SERVER = TestResource.getResource("R_cannotOpenServer");
     static final String ERR_MSG_CONNECTION_IS_CLOSED = TestResource.getResource("R_connectionIsClosed");
@@ -154,6 +154,8 @@ public class FedauthCommon extends AbstractTest {
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
 
+        getFedauthInfo();
+
         // reset logging to avoid severe logs
         LogManager.getLogManager().reset();
     }
@@ -163,37 +165,40 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
-        int retry = 0;
-        long interval = THROTTLE_RETRY_INTERVAL;
-        while (retry <= THROTTLE_RETRY_COUNT) {
-            try {
-                if (null == fedauthPcaApp) {
-                    fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
-                            .executorService(Executors.newFixedThreadPool(1))
-                            .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
+        if (accessToken == null) {
+            int retry = 0;
+            long interval = THROTTLE_RETRY_INTERVAL;
+            while (retry <= THROTTLE_RETRY_COUNT) {
+                try {
+                    if (null == fedauthPcaApp) {
+                        fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
+                                .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                    }
+
+                    final CompletableFuture<IAuthenticationResult> future = fedauthPcaApp
+                            .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
+                                    azureUserName, azurePassword.toCharArray()).build());
+
+                    final IAuthenticationResult authenticationResult = future.get();
+
+                    secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                            .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
+                    accessToken = authenticationResult.accessToken();
+                    System.out.println("got accessToken: " + authenticationResult.expiresOnDate());
+
+                    retry = THROTTLE_RETRY_COUNT + 1;
+                } catch (MsalThrottlingException te) {
+                    interval = te.retryInMs();
+                    if (!checkForRetry(te, retry++, interval)) {
+                        fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    fail(ERR_FAILED_FEDAUTH + e.getMessage());
                 }
-
-                final CompletableFuture<IAuthenticationResult> future = fedauthPcaApp
-                        .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
-                                azureUserName, azurePassword.toCharArray()).build());
-
-                final IAuthenticationResult authenticationResult = future.get();
-
-                secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                        .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-                accessToken = authenticationResult.accessToken();
-                System.out.println("got accessToken: " + authenticationResult.expiresOnDate());
-
-                retry = THROTTLE_RETRY_COUNT + 1;
-            } catch (MsalThrottlingException te) {
-                interval = te.retryInMs();
-                if (!checkForRetry(te, retry++, interval)) {
-                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                fail(ERR_FAILED_FEDAUTH + e.getMessage());
             }
+        } else {
+            System.out.println("already got accessToken");
         }
     }
 
