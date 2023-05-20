@@ -154,8 +154,6 @@ public class FedauthCommon extends AbstractTest {
         stsurl = getConfiguredProperty("stsurl");
         fedauthClientId = getConfiguredProperty("fedauthClientId");
 
-        getFedauthInfo();
-
         // reset logging to avoid severe logs
         LogManager.getLogManager().reset();
     }
