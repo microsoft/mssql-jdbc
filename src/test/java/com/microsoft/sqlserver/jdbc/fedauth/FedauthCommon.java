@@ -69,7 +69,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_BOTH_USERNAME_PASSWORD_SQLPASSWORD = TestUtils.R_BUNDLE
             .getString("R_NoUserPasswordForSqlPassword");
     static final String ERR_MSG_CANNOT_SET_ACCESS_TOKEN = "Cannot set the AccessToken property";
-    static final String ERR_MSG_ACCESS_TOKEN_EMPTY = TestUtils.R_BUNDLE.getString("R_AccessnnotBeEmpty");
+    static final String ERR_MSG_ACCESS_TOKEN_EMPTY = TestUtils.R_BUNDLE.getString("R_AccessTokenCannotBeEmpty");
     static final String ERR_MSG_FAILED_AUTHENTICATE = TestResource.getResource("R_failedToAuthenticate");
     static final String ERR_MSG_CANNOT_OPEN_SERVER = TestResource.getResource("R_cannotOpenServer");
     static final String ERR_MSG_CONNECTION_IS_CLOSED = TestResource.getResource("R_connectionIsClosed");
