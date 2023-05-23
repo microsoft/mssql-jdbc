@@ -954,7 +954,6 @@ public class SQLServerConnectionTest extends AbstractTest {
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
-                   ds.setServerName("localhost");
                    Thread.sleep(5000);
                    Connection conn2 = ds.getConnection();
                } catch (Exception e) {
@@ -964,12 +963,10 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
            if (!(e instanceof SQLServerException)) {
-               System.out.println(e);
                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
            }
        } finally {
