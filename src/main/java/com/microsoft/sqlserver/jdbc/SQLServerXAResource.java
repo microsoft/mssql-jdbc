@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.net.SocketException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,6 +26,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
+
 
 /**
  * Implements Transaction id used to recover transactions.
@@ -764,7 +766,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                 xaLogger.finer(toString() + " exception:" + ex);
 
             if (ex.getMessage().equals(SQLServerException.getErrString("R_noServerResponse"))
-                    || TransientError.isTransientError(ex.getSQLServerError())) {
+                    || TransientError.isTransientError(ex.getSQLServerError()) || isResourceManagerFailure(ex)) {
                 XAException e = new XAException(ex.toString());
                 e.errorCode = XAException.XAER_RMFAIL;
                 throw e;
@@ -941,6 +943,59 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     // Returns unique id for each PooledConnection instance.
     private static int nextResourceID() {
         return baseResourceID.incrementAndGet();
+    }
+
+    private enum ResourceManagerFailure {
+        CONN_RESET("Connection reset");
+
+        private final String errString;
+
+        ResourceManagerFailure(String errString) {
+            this.errString = errString;
+        }
+
+        @Override
+        public String toString() {
+            return errString;
+        }
+
+        static ResourceManagerFailure fromString(String errString) {
+            for (ResourceManagerFailure resourceManagerFailure : ResourceManagerFailure.values()) {
+                if (errString.equalsIgnoreCase(resourceManagerFailure.toString())) {
+                    return resourceManagerFailure;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Check if the root exception of the throwable should be a XAER_RMFAIL exception
+     *
+     * @param throwable
+     *        The exception to check if the root cause should be a XAER_RMFAIL
+     *
+     * @return True if XAER_RMFAIL, otherwise false
+     */
+    private boolean isResourceManagerFailure(Throwable throwable) {
+        Throwable root = Util.getRootCause(throwable);
+        ResourceManagerFailure err = ResourceManagerFailure.fromString(root.getMessage());
+
+        if (null == root || null == err) {
+            return false;
+        }
+
+        // Add as needed here for future XAER_RMFAIL exceptions
+        if (root instanceof SocketException) {
+            switch (err) {
+                case CONN_RESET:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
     }
 
 }
