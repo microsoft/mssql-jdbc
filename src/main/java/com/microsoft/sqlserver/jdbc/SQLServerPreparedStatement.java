@@ -439,6 +439,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String[] typeDefinitions = new String[nCols];
         for (int i = 0; i < nCols; i++) {
             Parameter param = params[i];
+            param.renewDefinition = renewDefinition;
             String typeDefinition = param.getTypeDefinition(connection, resultsReader());
             if (null == typeDefinition) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
@@ -466,8 +467,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             sb.append(' ');
 
             parameterNames.add(parameterName);
-
-            params[i].renewDefinition = renewDefinition;
             sb.append(typeDefinitions[i]);
 
             if (params[i].isOutput())
