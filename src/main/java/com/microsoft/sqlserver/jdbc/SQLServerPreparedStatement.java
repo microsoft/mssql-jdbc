@@ -422,31 +422,52 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return the required data type definitions.
      */
     private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
-        StringBuilder sb = new StringBuilder();
         int nCols = params.length;
+        if (nCols == 0)
+            return "";
+
+        // Output looks like @P0 timestamp, @P1 varchar
+        int stringLen = nCols * 2;                  // @P
+        stringLen += nCols;                         // spaces
+        stringLen += nCols -1;                      // commas
+        if (nCols > 10)
+            stringLen += 10 + ((nCols - 10) * 2);   // @P{0-99}  Numbers after p
+        else
+            stringLen += nCols;                     // @P{0-9}   Numbers after p less than 10
+
+        // Computing the type definitions up front, so we can get exact string lengths needed for the string builder.
+        String[] typeDefinitions = new String[nCols];
+        for (int i = 0; i < nCols; i++) {
+            Parameter param = params[i];
+            param.renewDefinition = renewDefinition;
+            String typeDefinition = param.getTypeDefinition(connection, resultsReader());
+            if (null == typeDefinition) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
+                Object[] msgArgs = {i + 1};
+                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
+            }
+            typeDefinitions[i] = typeDefinition;
+            stringLen += typeDefinition.length();
+
+            // While we are getting type definitions, check if the params are output and extend the builder if so.
+            stringLen += param.isOutput() ? 7 : 0;
+        }
+
+        StringBuilder sb = new StringBuilder(stringLen);
         char[] cParamName = new char[10];
-        parameterNames = new ArrayList<>();
+        parameterNames = new ArrayList<>(nCols);
 
         for (int i = 0; i < nCols; i++) {
             if (i > 0)
                 sb.append(',');
 
             int l = SQLServerConnection.makeParamName(i, cParamName, 0);
-            for (int j = 0; j < l; j++)
-                sb.append(cParamName[j]);
+            String parameterName = String.valueOf(cParamName, 0, l);
+            sb.append(parameterName);
             sb.append(' ');
 
-            parameterNames.add(i, (new String(cParamName)).trim());
-
-            params[i].renewDefinition = renewDefinition;
-            String typeDefinition = params[i].getTypeDefinition(connection, resultsReader());
-            if (null == typeDefinition) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
-                Object[] msgArgs = {i + 1};
-                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), null, false);
-            }
-
-            sb.append(typeDefinition);
+            parameterNames.add(parameterName);
+            sb.append(typeDefinitions[i]);
 
             if (params[i].isOutput())
                 sb.append(" OUTPUT");
