@@ -979,9 +979,14 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
      */
     private boolean isResourceManagerFailure(Throwable throwable) {
         Throwable root = Util.getRootCause(throwable);
+
+        if (null == root) {
+            return false;
+        }
+
         ResourceManagerFailure err = ResourceManagerFailure.fromString(root.getMessage());
 
-        if (null == root || null == err) {
+        if (null == err) {
             return false;
         }
 
