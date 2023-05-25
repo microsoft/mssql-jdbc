@@ -940,7 +940,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     * Test thread count when finding socket using threading.
     *
     * @throws InterruptedException
-    *         If any thread has interrupted the current thread..
+    *         If any thread has interrupted the current thread.
     */
    @Test
    @Tag(Constants.xAzureSQLDB)
@@ -954,6 +954,7 @@ public class SQLServerConnectionTest extends AbstractTest {
            executor.submit(() -> {
                try {
                    SQLServerDataSource ds = new SQLServerDataSource();
+                   ds.setServerName("localhost");
                    Thread.sleep(5000);
                    Connection conn2 = ds.getConnection();
                } catch (Exception e) {
@@ -963,6 +964,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                }
            });
            SQLServerDataSource ds = new SQLServerDataSource();
+           ds.setServerName("localhost");
            Connection conn = ds.getConnection();
            Thread.sleep(5000);
        } catch (Exception e) {
