@@ -4,10 +4,10 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -370,7 +370,7 @@ public class FedauthTest extends FedauthCommon {
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
                 + ";clientCertificate=" + clientCertificate + ";clientKey=" + clientKey + ";clientKeyPassword="
                 + clientKeyPassword + ";Password=" + clientKeyPassword;
-        String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
+        String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
         try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
@@ -423,7 +423,6 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAccessTokenCache() {
         try {
-
             SilentParameters silentParameters = SilentParameters.builder(Collections.singleton(spn + "/.default"))
                     .build();
 
@@ -431,7 +430,7 @@ public class FedauthTest extends FedauthCommon {
             CompletableFuture<IAuthenticationResult> future = fedauthClientApp.acquireTokenSilently(silentParameters);
             IAuthenticationResult authenticationResult = future.get();
             assertNotNull(authenticationResult.accessToken());
-            assertTrue(authenticationResult.accessToken().equals(accessToken));
+            assertTrue(authenticationResult.accessToken().equals(accessToken), accessToken.toString());
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -442,7 +441,8 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            assertTrue(e.getMessage().replaceAll("\r\n", "").matches(TestUtils.formatErrorMsg(resourceKey)));
+            assertTrue(e.getMessage().replaceAll("\r\n", "").matches(TestUtils.formatErrorMsg(resourceKey)),
+                    e.getMessage());
         }
     }
 

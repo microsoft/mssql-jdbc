@@ -3026,9 +3026,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
-        } finally
-
-        {
+        } finally {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
             if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
