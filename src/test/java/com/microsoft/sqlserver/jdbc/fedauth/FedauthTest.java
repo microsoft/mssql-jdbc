@@ -365,11 +365,10 @@ public class FedauthTest extends FedauthCommon {
      */
     @Test
     public void testAADServicePrincipalCertAuth() {
-        // for testing same password is used for both certificate and private key
+        // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";clientCertificate=" + clientCertificate + ";clientKey=" + clientKey + ";clientKeyPassword="
-                + clientKeyPassword + ";Password=" + clientKeyPassword;
+                + ";clientCertificate=" + clientCertificate + ";Password=" + clientKeyPassword;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -399,12 +398,14 @@ public class FedauthTest extends FedauthCommon {
         url = baseUrl + "user=wrongId;clientCertificate=" + "cert";
         validateException(url, "R_MSALExecution");
 
-        // wrong and certificate password
-        url = baseUrl + "user=" + applicationClientID + ";password=wrongPassword";
+        // wrong certificate password
+        url = baseUrl + "user=" + applicationClientID + "clientCertificate=" + clientCertificate
+                + ";password=wrongPassword";
         validateException(url, "R_readCertError");
 
-        // wrong and certificate key or password
-        url = baseUrl + "user=" + applicationClientID + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
+        // wrong certificate key or password
+        url = baseUrl + "user=" + applicationClientID + "clientCertificate=" + clientCertificate
+                + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
 
