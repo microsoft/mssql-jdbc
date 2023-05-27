@@ -399,7 +399,7 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_MSALExecution");
 
         // wrong certificate password
-        url = baseUrl + "user=" + applicationClientID + "clientCertificate=" + clientCertificate
+        url = baseUrl + "user=" + applicationClientID + ";clientCertificate=" + clientCertificate
                 + ";password=wrongPassword";
         validateException(url, "R_readCertError");
 
