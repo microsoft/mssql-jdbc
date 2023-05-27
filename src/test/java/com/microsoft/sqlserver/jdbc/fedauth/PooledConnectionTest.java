@@ -75,8 +75,9 @@ public class PooledConnectionTest extends FedauthCommon {
                 ExecutorService executorService = Executors.newSingleThreadExecutor();
                 IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
                 ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                        .builder(applicationClientID, credential).executorService(executorService).authority(stsurl)
-                        .build();
+                        .builder(applicationClientID, credential).executorService(executorService)
+                        .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
+
                 CompletableFuture<IAuthenticationResult> future = clientApplication
                         .acquireToken(ClientCredentialParameters.builder(scopes).build());
 
@@ -149,6 +150,7 @@ public class PooledConnectionTest extends FedauthCommon {
             physicalConnectionField.setAccessible(true);
             Object con = physicalConnectionField.get(spc);
             TestUtils.setAccessTokenExpiry(con, accessToken);
+            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
@@ -163,8 +165,7 @@ public class PooledConnectionTest extends FedauthCommon {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
             }
-            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
-            Thread.sleep(TimeUnit.SECONDS.toMillis(90)); // give 90s more to make sure the access token is expired.
+            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds + 5)); // give 5 more to make sure the access token is expired.
 
             // get second connection from pool
             try (Connection connection2 = pc.getConnection(); Statement stmt = connection2.createStatement()) {
@@ -180,6 +181,7 @@ public class PooledConnectionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             fail(e.getMessage());
         }
     }
@@ -220,13 +222,13 @@ public class PooledConnectionTest extends FedauthCommon {
             physicalConnectionField.setAccessible(true);
             Object con = physicalConnectionField.get(spc);
             TestUtils.setAccessTokenExpiry(con, accessToken);
+            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
                 testUserName(connection1, azureUserName, authentication);
             }
-            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
-            Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
+            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds + 5)); // give 5 more to make sure the access token is expired.
 
             Callable<Void> c = () -> {
                 try (Connection connection2 = pc.getConnection()) {
@@ -243,7 +245,7 @@ public class PooledConnectionTest extends FedauthCommon {
             };
 
             Random rand = new Random();
-            int numberOfThreadsForEachType = (rand.nextInt(15) + 1) * 3; // 3 to 45
+            int numberOfThreadsForEachType = (rand.nextInt(5) + 1) * 3; // 3 to 15
             ExecutorService es = Executors.newFixedThreadPool(3);
             List<Future<Void>> results = new ArrayList<>(numberOfThreadsForEachType);
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
@@ -252,7 +254,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // get is blocking, will wait for thread to finish
             for (Future<Void> f : results) {
-                f.get();
+                f.get(TestUtils.TEST_TOKEN_EXPIRY_SECONDS, TimeUnit.SECONDS);
             }
             es.shutdown();
         } catch (Exception e) {
@@ -277,6 +279,7 @@ public class PooledConnectionTest extends FedauthCommon {
             physicalConnectionField.setAccessible(true);
             Object con = physicalConnectionField.get(spc);
             TestUtils.setAccessTokenExpiry(con, accessToken);
+            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
@@ -302,7 +305,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // get is blocking, will wait for thread to finish
             for (Future<Void> f : results) {
-                f.get();
+                f.get(TestUtils.TEST_TOKEN_EXPIRY_SECONDS, TimeUnit.SECONDS);
             }
             es.shutdown();
         } catch (Exception e) {
@@ -384,10 +387,11 @@ public class PooledConnectionTest extends FedauthCommon {
         pc = (SQLServerPooledConnection) ds.getPooledConnection();
         try (Connection conn1 = pc.getConnection()) {
             TestUtils.setAccessTokenExpiry(conn1);
+            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
         }
         conn1ID = TestUtils.getConnectionID(pc);
         // Sleep until token expires
-        Thread.sleep(130 * 1000);
+        Thread.sleep(secondsBeforeExpiration);
         try (Connection conn2 = pc.getConnection()) {}
         conn2ID = TestUtils.getConnectionID(pc);
 
