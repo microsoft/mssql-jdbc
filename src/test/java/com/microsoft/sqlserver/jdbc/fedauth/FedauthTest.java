@@ -368,7 +368,7 @@ public class FedauthTest extends FedauthCommon {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";clientCertificate=" + clientCertificate + ";Password=" + clientKeyPassword;
+                + ";clientCertificate=" + clientCertificate + ";clientKeyPassword=" + clientKeyPassword + ";password=";
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -400,7 +400,7 @@ public class FedauthTest extends FedauthCommon {
 
         // wrong certificate password
         url = baseUrl + "user=" + applicationClientID + ";clientCertificate=" + clientCertificate
-                + ";password=wrongPassword";
+                + ";clientKeyPassword=wrongPassword";
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
