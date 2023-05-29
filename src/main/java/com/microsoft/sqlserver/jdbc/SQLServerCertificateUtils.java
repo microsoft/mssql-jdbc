@@ -353,7 +353,8 @@ final class SQLServerCertificateUtils {
     }
 
     private static KeyManager[] readPKCS12Certificate(String certPath,
-            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, 
+                UnrecoverableKeyException, KeyStoreException, SQLServerException {
 
         KeyStore keyStore = loadPKCS12KeyStore(certPath, keyPassword);
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
