@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
-import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;

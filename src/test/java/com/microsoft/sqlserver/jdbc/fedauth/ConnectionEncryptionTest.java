@@ -36,8 +36,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        //Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
+        // Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
         setConnection();
     }
 
@@ -64,7 +64,7 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     @Test
     public void testWrongCertificate() throws SQLException {
         try (Connection conn = DriverManager
-                .getConnection(adPasswordConnectionStr + ";encrypt=false;HostNameInCertificate=WrongfCertificate")) {
+                .getConnection(adPasswordConnectionStr + ";encrypt=false;HostNameInCertificate=WrongCertificate")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {

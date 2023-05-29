@@ -188,13 +188,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** client key password */
     private String clientKeyPassword = "";
 
-    /** service prinicipal certificate used for ActiveDirectoryServicePrincipalCertificate authentication */
+    /** service principal certificate used for ActiveDirectoryServicePrincipalCertificate authentication */
     private String servicePrincipalCertificate = null;
 
-    /** service prinicipal certificate key used for ActiveDirectoryServicePrincipalCertificate authentication */
+    /** service principal certificate key used for ActiveDirectoryServicePrincipalCertificate authentication */
     private String servicePrincipalCertificateKey = null;
 
-    /** service prinicipal certificate password used for ActiveDirectoryServicePrincipalCertificate authentication */
+    /** service principal certificate password used for ActiveDirectoryServicePrincipalCertificate authentication */
     private String servicePrincipalCertificatePassword = "";
 
     /** AAD principal id */
@@ -2861,7 +2861,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     || (null == servicePrincipalCertificate
                                             || servicePrincipalCertificate.isEmpty()))) {
                         throw new SQLServerException(
-                                SQLServerException.getErrString("R_NoUserorCertForActiveServicePrincipalCertificate"),
+                                SQLServerException.getErrString("R_NoUserOrCertForActiveServicePrincipalCertificate"),
                                 null);
                     }
 

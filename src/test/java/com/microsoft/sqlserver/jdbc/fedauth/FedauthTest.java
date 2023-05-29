@@ -393,7 +393,7 @@ public class FedauthTest extends FedauthCommon {
 
         // no certificate provided.
         String url = baseUrl;
-        validateException(url, "R_NoUserorCertForActiveServicePrincipalCertificate");
+        validateException(url, "R_NoUserOrCertForActiveServicePrincipalCertificate");
 
         // wrong principalid
         url = baseUrl + "user=wrongId;clientCertificate=" + "cert";
@@ -435,7 +435,7 @@ public class FedauthTest extends FedauthCommon {
             CompletableFuture<IAuthenticationResult> future = fedauthClientApp.acquireTokenSilently(silentParameters);
             IAuthenticationResult authenticationResult = future.get();
             assertNotNull(authenticationResult.accessToken());
-            assertTrue(authenticationResult.accessToken().equals(accessToken), accessToken.toString());
+            assertTrue(authenticationResult.accessToken().equals(accessToken), accessToken);
         } catch (Exception e) {
             fail(e.getMessage());
         }

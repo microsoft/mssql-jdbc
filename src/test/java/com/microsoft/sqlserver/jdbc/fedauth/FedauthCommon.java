@@ -46,11 +46,15 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 class FedauthTokenCache implements ITokenCacheAccessAspect {
     private static FedauthTokenCache instance = new FedauthTokenCache();
     private final Lock lock = new ReentrantLock();
+
     private FedauthTokenCache() {}
+
     static FedauthTokenCache getInstance() {
         return instance;
     }
+
     private String cache = null;
+
     @Override
     public void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
         lock.lock();
@@ -62,6 +66,7 @@ class FedauthTokenCache implements ITokenCacheAccessAspect {
             lock.unlock();
         }
     }
+
     @Override
     public void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
         lock.lock();
@@ -73,12 +78,15 @@ class FedauthTokenCache implements ITokenCacheAccessAspect {
             lock.unlock();
         }
     }
+
     static void clearUserTokenCache() {
         if (null != instance.cache && !instance.cache.isEmpty()) {
             instance.cache = null;
         }
     }
 }
+
+
 @Tag(Constants.fedAuth)
 public class FedauthCommon extends AbstractTest {
 
@@ -200,10 +208,10 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
-            int retry = 0;
-            long interval = THROTTLE_RETRY_INTERVAL;
-            while (retry <= THROTTLE_RETRY_COUNT) {
-                try {
+        int retry = 0;
+        long interval = THROTTLE_RETRY_INTERVAL;
+        while (retry <= THROTTLE_RETRY_COUNT) {
+            try {
                 Set<String> scopes = new HashSet<>();
                 scopes.add(spn + "/.default");
                 if (null == fedauthClientApp) {
@@ -211,27 +219,27 @@ public class FedauthCommon extends AbstractTest {
                     fedauthClientApp = ConfidentialClientApplication.builder(applicationClientID, credential)
                             .executorService(Executors.newFixedThreadPool(1))
                             .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
-                    }
+                }
 
                 final CompletableFuture<IAuthenticationResult> future = fedauthClientApp
                         .acquireToken(ClientCredentialParameters.builder(scopes).build());
 
-                    final IAuthenticationResult authenticationResult = future.get();
+                final IAuthenticationResult authenticationResult = future.get();
 
-                    secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                            .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-                    accessToken = authenticationResult.accessToken();
+                secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                        .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
+                accessToken = authenticationResult.accessToken();
 
-                    retry = THROTTLE_RETRY_COUNT + 1;
-                } catch (MsalThrottlingException te) {
-                    interval = te.retryInMs();
-                    if (!checkForRetry(te, retry++, interval)) {
+                retry = THROTTLE_RETRY_COUNT + 1;
+            } catch (MsalThrottlingException te) {
+                interval = te.retryInMs();
+                if (!checkForRetry(te, retry++, interval)) {
                     te.printStackTrace();
-                        fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    fail(ERR_FAILED_FEDAUTH + e.getMessage());
+                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail(ERR_FAILED_FEDAUTH + e.getMessage());
             }
         }
     }
