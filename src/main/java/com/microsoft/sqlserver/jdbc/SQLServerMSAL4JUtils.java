@@ -197,7 +197,8 @@ class SQLServerMSAL4JUtils {
                         .authority(fedAuthInfo.stsurl).build();
             } catch (FileNotFoundException e) {
                 // re-throw if file not there no point to try another format
-                throw e;
+                throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null,
+                        0, null);
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
                 if (logger.isLoggable(Level.FINEST)) {
@@ -246,7 +247,8 @@ class SQLServerMSAL4JUtils {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
-            throw getCorrectedException(e, aadPrincipalID, authenticationString);
+            throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
+                    null);
         } catch (Exception e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 

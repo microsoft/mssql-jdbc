@@ -2566,19 +2566,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         throw new SQLServerException(
                                 SQLServerException.getErrString("R_NoUserPasswordForActiveServicePrincipal"), null);
                     }
-                }
 
-                if ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty())
-                        && (!activeConnectionProperties
-                                .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString()).isEmpty()
-                                || !activeConnectionProperties
-                                        .getProperty(
-                                                SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
-                                        .isEmpty())) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_BothUserPasswordandDeprecated"),
-                            null);
+                    if ((!activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                            .isEmpty()
+                            || !activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty())
+                            && (!activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString())
+                                    .isEmpty()
+                                    || !activeConnectionProperties.getProperty(
+                                            SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString())
+                                            .isEmpty())) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_BothUserPasswordandDeprecated"),
+                                null);
+                    }
                 }
 
                 if (authenticationString.equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())

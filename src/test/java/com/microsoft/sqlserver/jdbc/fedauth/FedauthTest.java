@@ -368,8 +368,9 @@ public class FedauthTest extends FedauthCommon {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";clientCertificate=" + clientCertificate + ";clientKeyPassword=" + clientKeyPassword + ";password=";
+                + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
+
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
         try (Connection conn1 = DriverManager.getConnection(url); Connection conn2 = ds.getConnection();
@@ -388,24 +389,27 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";";
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + applicationClientID;
 
         // no certificate provided.
-        String url = baseUrl + "user=" + applicationClientID;
+        String url = baseUrl;
         validateException(url, "R_NoUserorCertForActiveServicePrincipalCertificate");
 
-        // wrong principal id
+        // wrong principalid
         url = baseUrl + "user=wrongId;clientCertificate=" + "cert";
         validateException(url, "R_MSALExecution");
 
+        // bad cert
+        url = baseUrl + ";clientCertificate=badCert";
+        validateException(url, "R_readCertError");
+
         // wrong certificate password
-        url = baseUrl + "user=" + applicationClientID + ";clientCertificate=" + clientCertificate
-                + ";clientKeyPassword=wrongPassword";
+        url = baseUrl + ";clientCertificate=" + clientCertificate + ";password=wrongPassword";
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
-        url = baseUrl + "user=" + applicationClientID + "clientCertificate=" + clientCertificate
-                + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
+        url = baseUrl + "password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
+                + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
 
