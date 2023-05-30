@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 import javax.sql.ConnectionEvent;
 import javax.sql.PooledConnection;
 
+import org.junit.Assume;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -949,6 +950,18 @@ public class SQLServerConnectionTest extends AbstractTest {
        ExecutorService executor = null;
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
 
+       // First, check to see if there is a reachable local host, or else test will fail.
+       try {
+           SQLServerDataSource ds = new SQLServerDataSource();
+           ds.setServerName("localhost");
+           Connection con = ds.getConnection();
+       } catch (SQLServerException e) {
+           // Assume this will be an error different than 'localhost is unreachable'. If it is a different error, we
+           // fail. If the error is that localhost is unreachable, we end and ignore the test.
+           Assume.assumeFalse(e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost")));
+           fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+       }
+
        try {
            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
            executor.submit(() -> {
@@ -973,9 +986,9 @@ public class SQLServerConnectionTest extends AbstractTest {
            }
        } finally {
            if (executor != null) {
-               executor.shutdownNow();
+               executor.shutdown();
            }
-           Thread.sleep(10000);
+           //Thread.sleep(10000);
        }
 
        // At this point, thread count has returned to normal. If the peak was more
