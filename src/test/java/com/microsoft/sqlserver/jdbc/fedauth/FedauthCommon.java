@@ -106,6 +106,7 @@ public class FedauthCommon extends AbstractTest {
     static String fedauthClientId = null;
     static long secondsBeforeExpiration = -1;
     static String accessToken = null;
+    static String certificatePassword = null;
     static String[] fedauthJksPaths = null;
     static String[] fedauthJksPathsLinux = null;
     static String[] fedauthJavaKeyAliases = null;
@@ -176,6 +177,9 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
+
+        // password for service principal certificate
+        certificatePassword = getConfiguredProperty("certificatePassword");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;

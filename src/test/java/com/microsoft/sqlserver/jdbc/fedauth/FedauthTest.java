@@ -368,7 +368,7 @@ public class FedauthTest extends FedauthCommon {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate;
+                + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
 
         SQLServerDataSource ds = new SQLServerDataSource();
