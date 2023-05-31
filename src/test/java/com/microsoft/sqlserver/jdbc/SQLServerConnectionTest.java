@@ -939,14 +939,11 @@ public class SQLServerConnectionTest extends AbstractTest {
 
    /**
     * Test thread count when finding socket using threading.
-    *
-    * @throws InterruptedException
-    *         If any thread has interrupted the current thread.
     */
    @Test
    @Tag(Constants.xAzureSQLDB)
    @Tag(Constants.xAzureSQLDW)
-   public void testThreadCountWhenFindingSocket() throws InterruptedException {
+   public void testThreadCountWhenFindingSocket() {
        ExecutorService executor = null;
        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
 
@@ -956,10 +953,9 @@ public class SQLServerConnectionTest extends AbstractTest {
            ds.setServerName("localhost");
            Connection con = ds.getConnection();
        } catch (SQLServerException e) {
-           // Assume this will be an error different than 'localhost is unreachable'. If it is a different error, we
-           // fail. If the error is that localhost is unreachable, we end and ignore the test.
+           // Assume this will be an error different than 'localhost is unreachable'. If it is 'localhost is
+           // unreachable' abort and skip the test.
            Assume.assumeFalse(e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost")));
-           //fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
        }
 
        try {
@@ -988,13 +984,12 @@ public class SQLServerConnectionTest extends AbstractTest {
            if (executor != null) {
                executor.shutdown();
            }
-           //Thread.sleep(10000);
        }
 
        // At this point, thread count has returned to normal. If the peak was more
        // than 2 times the current, this is an issue and the test should fail.
-       int acceptableMax = 2 * ManagementFactory.getThreadMXBean().getThreadCount();
-       if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > acceptableMax) {
+       if (ManagementFactory.getThreadMXBean().getPeakThreadCount()
+               > 2 * ManagementFactory.getThreadMXBean().getThreadCount()) {
            fail(TestResource.getResource("R_unexpectedThreadCount"));
        }
    }
