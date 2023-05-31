@@ -165,7 +165,7 @@ public class ClientCertificateAuthenticationTest extends AbstractTest {
         String conStr = connectionString + ";clientCertificate=invalid_path;" + "clientKeyPassword=" + clientKeyPassword
                 + ";";
         try (Connection conn = DriverManager.getConnection(conStr)) {} catch (SQLServerException e) {
-            assertTrue(e.getCause().getMessage().matches(TestUtils.formatErrorMsg("R_clientCertError")));
+            assertTrue(e.getCause().getMessage().matches(TestUtils.formatErrorMsg("R_readCertError")));
         }
     }
 

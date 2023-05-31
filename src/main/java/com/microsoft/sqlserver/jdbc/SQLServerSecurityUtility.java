@@ -29,8 +29,8 @@ import com.azure.identity.DefaultAzureCredentialBuilder;
  *
  */
 class SQLServerSecurityUtility {
-    static final private java.util.logging.Logger connectionlogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
+    static final private java.util.logging.Logger logger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSecurityUtility");
 
     static final int GONE = 410;
     static final int TOO_MANY_RESQUESTS = 429;
@@ -126,8 +126,8 @@ class SQLServerSecurityUtility {
         String serverName = connection.getTrustedServerNameAE();
         assert null != serverName : "serverName should not be null in getKey.";
 
-        if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
-            connectionlogger.fine("Checking trusted master key path...");
+        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
+            logger.finest("Checking trusted master key path...");
         }
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
@@ -333,6 +333,10 @@ class SQLServerSecurityUtility {
             String managedIdentityClientId) throws SQLServerException {
         ManagedIdentityCredential mic = null;
 
+        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
+            logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
+        }
+
         if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
             mic = new ManagedIdentityCredentialBuilder().clientId(managedIdentityClientId).build();
         } else {
@@ -355,6 +359,10 @@ class SQLServerSecurityUtility {
             AccessToken accessToken = accessTokenOptional.get();
             sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
                     accessToken.getExpiresAt().toEpochSecond());
+        }
+
+        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
+            logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
         }
 
         return sqlFedAuthToken;

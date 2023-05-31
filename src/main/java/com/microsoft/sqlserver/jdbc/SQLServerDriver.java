@@ -70,6 +70,7 @@ enum SqlAuthentication {
     ACTIVE_DIRECTORY_INTEGRATED("ActiveDirectoryIntegrated"),
     ACTIVE_DIRECTORY_MANAGED_IDENTITY("ActiveDirectoryManagedIdentity"),
     ACTIVE_DIRECTORY_SERVICE_PRINCIPAL("ActiveDirectoryServicePrincipal"),
+    ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE("ActiveDirectoryServicePrincipalCertificate"),
     ACTIVE_DIRECTORY_INTERACTIVE("ActiveDirectoryInteractive"),
     ACTIVE_DIRECTORY_DEFAULT("ActiveDirectoryDefault");
 
@@ -105,6 +106,9 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
             method = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
             method = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
@@ -867,6 +871,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                             SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString(),
                             SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
