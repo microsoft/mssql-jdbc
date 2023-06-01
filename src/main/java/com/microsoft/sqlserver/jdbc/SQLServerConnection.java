@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -47,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.Date;
 import java.util.logging.Level;
 
 import javax.sql.XAConnection;
@@ -96,6 +97,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Always refresh SerialVersionUID when prompted
      */
     private static final long serialVersionUID = 1965647556064751510L;
+
+    /**
+     * A random netAddress for this process to send during LOGIN7
+     */
+    private static final byte[] netAddress = getRandomNetAddress();
 
     /** timer expiry */
     long timerExpire;
@@ -256,6 +262,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * static lock instance for the class
      **/
     private static final Lock sLock = new ReentrantLock();
+
+    /**
+     * Generate a 6 byte random array for netAddress
+     * 
+     * @return byte[]
+     */
+    private static byte[] getRandomNetAddress() {
+        byte[] a = new byte[6];
+        Random random = new Random();
+        random.nextBytes(a);
+        return a;
+    }
 
     /**
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
@@ -6332,7 +6350,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         byte[] interfaceLibVersionBytes = {(byte) SQLJdbcVersion.BUILD, (byte) SQLJdbcVersion.PATCH,
                 (byte) SQLJdbcVersion.MINOR, (byte) SQLJdbcVersion.MAJOR};
         byte[] databaseNameBytes = toUCS16(databaseName);
-        byte[] netAddress = new byte[6];
         int dataLen = 0;
 
         // TDS version 8 if strict mode
