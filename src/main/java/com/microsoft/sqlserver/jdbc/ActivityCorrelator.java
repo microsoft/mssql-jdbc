@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -15,7 +16,7 @@ import java.util.concurrent.locks.Lock;
 final class ActivityCorrelator {
 
     private static ActivityId s_ActivityId;
-    private static Lock lockObject;
+    private static Lock lockObject = new ReentrantLock();
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
