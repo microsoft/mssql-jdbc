@@ -5,9 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 
 /**
@@ -15,24 +14,20 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class ActivityCorrelator {
 
-    private static Map<Long, ActivityId> activityIdTlsMap = new ConcurrentHashMap<>();
-
-    static void cleanupActivityId() {
-        // remove ActivityIds that belongs to this thread or no longer have an associated thread.
-        activityIdTlsMap.entrySet().removeIf(e -> null == e.getValue() || null == e.getValue().getThread()
-                || e.getValue().getThread() == Thread.currentThread() || !e.getValue().getThread().isAlive());
-    }
+    private static ActivityId s_ActivityId;
+    private static Lock lockObject;
 
     // Get the current ActivityId in TLS
-    @SuppressWarnings("deprecation")
     static ActivityId getCurrent() {
-        // get the value in TLS, not reference
-        Thread thread = Thread.currentThread();
-        if (!activityIdTlsMap.containsKey(thread.getId())) {
-            activityIdTlsMap.put(thread.getId(), new ActivityId(thread));
+        if (s_ActivityId == null) {
+            lockObject.lock();
+            if (s_ActivityId == null) {
+                s_ActivityId = new ActivityId();
+            }
+            lockObject.unlock();
         }
 
-        return activityIdTlsMap.get(thread.getId());
+        return s_ActivityId;
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -47,15 +42,6 @@ final class ActivityCorrelator {
         return activityId;
     }
 
-    static void setCurrentActivityIdSentFlag() {
-        ActivityId activityId = getCurrent();
-        activityId.setSentFlag();
-    }
-
-    static Map<Long, ActivityId> getActivityIdTlsMap() {
-        return activityIdTlsMap;
-    }
-
     /*
      * Prevent instantiation.
      */
@@ -65,19 +51,11 @@ final class ActivityCorrelator {
 
 class ActivityId {
     private final UUID id;
-    private final Thread thread;
     private long sequence;
-    private boolean isSentToServer;
 
-    ActivityId(Thread thread) {
+    ActivityId() {
         id = UUID.randomUUID();
-        this.thread = thread;
-        sequence = 0;
-        isSentToServer = false;
-    }
-
-    Thread getThread() {
-        return thread;
+        sequence = 1;
     }
 
     UUID getId() {
@@ -95,16 +73,6 @@ class ActivityId {
         } else {
             sequence = 0;
         }
-
-        isSentToServer = false;
-    }
-
-    void setSentFlag() {
-        isSentToServer = true;
-    }
-
-    boolean isSentToServer() {
-        return isSentToServer;
     }
 
     @Override

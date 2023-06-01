@@ -3406,37 +3406,14 @@ final class TDSWriter {
         // Include ALL_Headers/MARS header in message's first packet
         // Note: The PKT_BULK message does not nees this ALL_HEADERS
         if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_DTC == tdsMessageType || TDS.PKT_RPC == tdsMessageType)) {
-            boolean includeTraceHeader = false;
             int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
-            if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_RPC == tdsMessageType) && (con.isDenaliOrLater()
-                    && Util.isActivityTraceOn() && !ActivityCorrelator.getCurrent().isSentToServer())) {
-                includeTraceHeader = true;
-                totalHeaderLength += TDS.TRACE_HEADER_LENGTH;
-            }
 
             writeInt(totalHeaderLength); // allHeaders.TotalLength (DWORD)
             writeInt(TDS.MARS_HEADER_LENGTH); // MARS header length (DWORD)
             writeShort((short) 2); // allHeaders.HeaderType(MARS header) (USHORT)
             writeBytes(con.getTransactionDescriptor());
             writeInt(1); // marsHeader.OutstandingRequestCount
-            if (includeTraceHeader) {
-                writeInt(TDS.TRACE_HEADER_LENGTH); // trace header length (DWORD)
-                writeTraceHeaderData();
-                ActivityCorrelator.setCurrentActivityIdSentFlag(); // set the flag to indicate this ActivityId is sent
-            }
         }
-    }
-
-    void writeTraceHeaderData() throws SQLServerException {
-        ActivityId activityId = ActivityCorrelator.getCurrent();
-        final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
-        long seqNum = activityId.getSequence();
-        writeShort(TDS.HEADERTYPE_TRACE); // trace header type
-        writeBytes(actIdByteArray, 0, actIdByteArray.length); // guid part of ActivityId
-        writeInt((int) seqNum); // sequence number of ActivityId
-
-        if (logger.isLoggable(Level.FINER))
-            logger.finer("Send Trace Header - ActivityID: " + activityId.toString());
     }
 
     /**

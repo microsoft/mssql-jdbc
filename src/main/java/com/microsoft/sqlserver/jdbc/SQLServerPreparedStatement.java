@@ -479,7 +479,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeQuery");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY));
@@ -504,7 +504,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public int executeUpdate() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
 
         checkClosed();
@@ -526,7 +526,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         loggerExternal.entering(getClassNameLogging(), "executeLargeUpdate");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
@@ -538,7 +538,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public boolean execute() throws SQLServerException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "execute");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
@@ -591,7 +591,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setMaxRowsAndMaxFieldSize();
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
 
         boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
@@ -2065,7 +2065,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), EXECUTE_BATCH_STRING);
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -2245,7 +2245,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         discardLastExecutionResults();
@@ -2854,7 +2854,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         connection.setMaxRows(0);
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getNext().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
