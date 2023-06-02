@@ -6324,10 +6324,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
-        String serverName = (null != currentConnectPlaceHolder) ? currentConnectPlaceHolder.getServerName()
-                                                                : activeConnectionProperties.getProperty(
-                                                                        SQLServerDriverStringProperty.SERVER_NAME
-                                                                                .toString());
+        String serverName = (null != currentConnectPlaceHolder)
+                ? currentConnectPlaceHolder.getServerName() + "\\" + currentConnectPlaceHolder.getInstanceName()
+                : activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()) + "\\"
+                + activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString());
+
         if (null != serverName && serverName.length() > 128) {
             serverName = serverName.substring(0, 128);
         }
