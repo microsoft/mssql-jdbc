@@ -2954,7 +2954,16 @@ final class SocketFinder {
                     if (timeRemaining <= 0 || (!result.equals(Result.UNKNOWN)))
                         break;
 
-                    parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+                    try {
+                        parentCondition.await(timeRemaining, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException ie) {
+                        // Don't re-interrupt the current thread here.
+                        //
+                        // Thread interrupt is how parentCondition.signalAll works, signaling any thread on await.
+                        // Re-interrupting will just interrupt the next Sleep call that follows this logic path in the
+                        // loop in the SqlServerConnection.login method, causing too many, too fast retries.
+                        // Instead consume the interruption, and let the thread continue.
+                    }
 
                     if (logger.isLoggable(Level.FINER)) {
                         logger.finer(this.toString() + " The parent thread wokeup.");
