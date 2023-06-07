@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.3.1] Preview Release
+### Added
+- Added a case to throw XAER_RMFAIL on connection reset for XA transactions [2118](https://github.com/microsoft/mssql-jdbc/pull/2118)
+- Added support for Azure Active Directory Service Principal Certificate Authentication [2128](https://github.com/microsoft/mssql-jdbc/pull/2128)
+### Changed
+- Improved performance of building parameter type definitions [1938](https://github.com/microsoft/mssql-jdbc/pull/1938)
+- Removed check condition that had no effect [2129](https://github.com/microsoft/mssql-jdbc/pull/2129)
+- Updated azure-security-keyvault-keys, azure-identity, gson and h2 library versions [2133](https://github.com/microsoft/mssql-jdbc/pull/2133)
+- Changed serverName sent in LOGIN packet to include instanceName [2140](https://github.com/microsoft/mssql-jdbc/pull/2140)
+### Fixed issues
+- Resolved high thread count when using findSocketUsingThreading [2104](https://github.com/microsoft/mssql-jdbc/pull/2104)
+- Corrected Activity ID behavior to stay the same for the life of the process, always send Activity ID in PRELOGIN, increment sequence for each new connection and send a unique client ID that persists for duration of process [2136](https://github.com/microsoft/mssql-jdbc/pull/2136)
+
 ## [12.3.0] Preview Release
 ### Added
 - Added additional logging info to help debug [2118](https://github.com/microsoft/mssql-jdbc/pull/2118)
