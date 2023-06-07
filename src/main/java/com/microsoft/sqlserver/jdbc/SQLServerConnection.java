@@ -6324,26 +6324,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
-        // TESTING TO SEE IF THE ISSUE IS THAT IM SENDING IN INSTANCE NAME WITHOUT CHECKING IF ITS BEEN SET FIRST
-        String serverName = "";
+
+        String serverName;
         if (null != currentConnectPlaceHolder) {
-            if (null != currentConnectPlaceHolder.getInstanceName()) {
-                serverName = currentConnectPlaceHolder.getServerName() + "\\" + currentConnectPlaceHolder.getInstanceName();
-            } else {
-                serverName = currentConnectPlaceHolder.getServerName();
-            }
+            serverName = currentConnectPlaceHolder.getFullServerName();
         } else {
+            serverName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
             if (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString())) {
-                serverName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()) + "\\"
-                        + activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString());
-            } else {
-                serverName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+                serverName += "\\" + activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString());
             }
         }
-//        String serverName = (null != currentConnectPlaceHolder)
-//                ? (currentConnectPlaceHolder.getServerName() + "\\" + currentConnectPlaceHolder.getInstanceName())
-//                : (activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()) + "\\"
-//                + activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString()));
 
         if (null != serverName && serverName.length() > 128) {
             serverName = serverName.substring(0, 128);
