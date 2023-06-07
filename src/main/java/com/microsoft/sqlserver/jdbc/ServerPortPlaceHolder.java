@@ -21,6 +21,7 @@ final class ServerPortPlaceHolder implements Serializable {
 
     private final String serverName;
     private final String parsedServerName;
+    private final String fullServerName;
     private final int port;
     private final String instanceName;
     private final boolean checkLink;
@@ -32,6 +33,9 @@ final class ServerPortPlaceHolder implements Serializable {
         // serverName without named instance
         int px = serverName.indexOf('\\');
         parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
+
+        // serverName with named instance
+        fullServerName = (null != instance) ? (serverName + "\\" + instance) : serverName;
 
         port = conPort;
         instanceName = instance;
@@ -55,6 +59,10 @@ final class ServerPortPlaceHolder implements Serializable {
 
     String getParsedServerName() {
         return parsedServerName;
+    }
+
+    String getFullServerName() {
+        return fullServerName;
     }
 
     void doSecurityCheck() {
