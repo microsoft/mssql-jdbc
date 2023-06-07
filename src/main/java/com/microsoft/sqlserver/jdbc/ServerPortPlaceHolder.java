@@ -18,6 +18,7 @@ final class ServerPortPlaceHolder implements Serializable {
      * Always update serialVersionUID when prompted.
      */
     private static final long serialVersionUID = 7393779415545731523L;
+
     private final String serverName;
     private final String parsedServerName;
     private final String fullServerName;
