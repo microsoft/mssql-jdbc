@@ -3703,10 +3703,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         Util.writeInt((int) seqNum, preloginRequest, offset);
         offset += 4;
 
-        if (Util.isActivityTraceOn()) {
-            if (connectionlogger.isLoggable(Level.FINER)) {
-                connectionlogger.finer(toString() + " ActivityId " + activityId.toString());
-            }
+        if (Util.isActivityTraceOn() && connectionlogger.isLoggable(Level.FINER)) {
+            connectionlogger.finer(toString() + " ActivityId " + activityId);
         }
 
         if (connectionlogger.isLoggable(Level.FINER)) {

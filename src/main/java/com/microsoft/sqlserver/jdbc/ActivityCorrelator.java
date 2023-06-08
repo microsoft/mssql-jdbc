@@ -15,20 +15,20 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 final class ActivityCorrelator {
 
-    private static ActivityId s_ActivityId;
+    private static ActivityId activityId;
     private static Lock lockObject = new ReentrantLock();
 
     // Get the current ActivityId in TLS
     static ActivityId getCurrent() {
-        if (s_ActivityId == null) {
+        if (activityId == null) {
             lockObject.lock();
-            if (s_ActivityId == null) {
-                s_ActivityId = new ActivityId();
+            if (activityId == null) {
+                activityId = new ActivityId();
             }
             lockObject.unlock();
         }
 
-        return s_ActivityId;
+        return activityId;
     }
 
     // Increment the Sequence number of the ActivityId in TLS
