@@ -48,7 +48,11 @@ final class Util {
     private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
-        return SYSTEM_JRE.startsWith("IBM");
+        Class<?> clazz = null;
+        try {
+            clazz = Class.forName("com.ibm.security.auth.module.JAASLoginModule");
+        } catch (ClassNotFoundException e) {}
+        return null == clazz;
     }
 
     static String getJVMArchOnWindows() {
