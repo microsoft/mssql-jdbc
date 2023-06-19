@@ -52,7 +52,7 @@ final class Util {
         try {
             clazz = Class.forName("com.ibm.security.auth.module.JAASLoginModule");
         } catch (ClassNotFoundException e) {}
-        return null == clazz;
+        return null != clazz;
     }
 
     static String getJVMArchOnWindows() {
