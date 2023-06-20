@@ -610,7 +610,8 @@ enum SQLServerDriverStringProperty {
     ENCRYPT("encrypt", EncryptOption.TRUE.toString()),
     SERVER_CERTIFICATE("serverCertificate", ""),
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
-    ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", "");
+    ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
+    LOCAL_SOCKET_ADDRESS("localSocketAddress", "");
 
     private final String name;
     private final String defaultValue;
@@ -931,6 +932,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
                     SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.LOCAL_SOCKET_ADDRESS.toString(),
+                    SQLServerDriverStringProperty.LOCAL_SOCKET_ADDRESS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),

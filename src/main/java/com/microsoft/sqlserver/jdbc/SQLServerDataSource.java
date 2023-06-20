@@ -249,6 +249,16 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), null);
     }
 
+    @Override
+    public void setLocalSocketAddress(String localSocketAddress) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.LOCAL_SOCKET_ADDRESS.toString(), localSocketAddress);
+    }
+
+    @Override
+    public String getLocalSocketAddress() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.LOCAL_SOCKET_ADDRESS.toString(), null);
+    }
+
     /**
      * Sets the Column Encryption setting. If lastUpdateCount is set to true, the driver will return only the last
      * update count from all the update counts returned by a batch. The default of false will return all update counts.

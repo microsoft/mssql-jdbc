@@ -1283,4 +1283,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @param accessTokenCallbackClass
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
+
+    /**
+     * Returns the specified address to explicitly to use on the client side for TCP/IP when connecting.
+     *
+     * @return localSocketAddress
+     */
+    String getLocalSocketAddress();
+
+    /**
+     * Sets the address to explicitly use on the client side for TCP/IP when connecting.
+     *
+     * @param localSocketAddress
+     */
+    void setLocalSocketAddress(String localSocketAddress);
 }

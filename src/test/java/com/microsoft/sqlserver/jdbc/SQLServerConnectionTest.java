@@ -170,6 +170,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setLocalSocketAddress(stringPropValue);
+        assertEquals(stringPropValue, ds.getLocalSocketAddress(), TestResource.getResource("R_valuesAreDifferent"));
+
         // verify encrypt=true options
         ds.setEncrypt(EncryptOption.MANDATORY.toString());
         assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
