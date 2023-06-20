@@ -2895,6 +2895,10 @@ final class SocketFinder {
 
         if (null != localSocketAddress && !localSocketAddress.isEmpty()) {
             selectedSocket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(this.toString() + " binding socket to: " + localSocketAddress);
+            }
         }
 
         if (!selectedSocket.isConnected()) {
