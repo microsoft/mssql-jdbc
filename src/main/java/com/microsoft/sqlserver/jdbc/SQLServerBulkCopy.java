@@ -2167,8 +2167,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (bulkNullable) {
                             tdsWriter.writeByte((byte) 0x08);
                         }
-                        float floatValue = ((Number)colValue).floatValue();
-                        tdsWriter.writeDouble(floatValue);
+                        tdsWriter.writeDouble(((Number) colValue).floatValue());
                     }
                     break;
 
