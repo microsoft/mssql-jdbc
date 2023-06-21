@@ -51,7 +51,9 @@ final class Util {
         Class<?> clazz = null;
         try {
             clazz = Class.forName("com.ibm.security.auth.module.JAASLoginModule");
-        } catch (ClassNotFoundException e) {}
+        } catch (ClassNotFoundException e) {
+            //We're using the try-catch to test for IBM jdk, no need to handle exception.
+        }
         return null != clazz;
     }
 
