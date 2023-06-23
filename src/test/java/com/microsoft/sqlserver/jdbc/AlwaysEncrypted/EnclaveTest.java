@@ -211,6 +211,22 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
+     * Tests alter column encryption on char tables
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharWindowsCertificateStore(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekWin, charTable);
+            populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekWin);
+        }
+    }
+    
+    /*
      * Tests alter column encryption on char tables with AKV
      */
     @ParameterizedTest

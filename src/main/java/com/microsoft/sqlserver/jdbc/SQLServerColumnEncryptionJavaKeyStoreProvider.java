@@ -19,12 +19,14 @@ import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
+import java.util.Base64;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -322,14 +324,17 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             CertificateDetails certificateDetails) throws SQLServerException {
         try {
             Signature sig = Signature.getInstance("SHA256withRSA");
-            sig.initSign((PrivateKey) certificateDetails.privateKey);
+
+            PrivateKey privateKey = (PrivateKey) certificateDetails.privateKey;
+            sig.initSign(privateKey);
             sig.update(dataToVerify);
+
             byte[] signedHash = sig.sign();
 
-            sig.initVerify(certificateDetails.certificate.getPublicKey());
+            PublicKey publicKey = certificateDetails.certificate.getPublicKey();
+            sig.initVerify(publicKey);
             sig.update(dataToVerify);
-
-            return sig.verify(signedHash);
+            return sig.verify(signature);
 
         } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_VerifySignatureFailed"));
