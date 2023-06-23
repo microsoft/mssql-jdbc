@@ -220,7 +220,7 @@ public class AESetup extends AbstractTest {
             setAEConnectionString(serverName, url, protocol);
 
             createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
-                    Constants.CMK_SIGNATURE);
+                    Constants.CMK_SIGNATURE_JKS);
             createCEK(AETestConnectionString, cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
@@ -231,7 +231,7 @@ public class AESetup extends AbstractTest {
 
             if (null != windowsKeyPath) {
                 createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath,
-                        Constants.CMK_SIGNATURE);
+                        Constants.CMK_SIGNATURE_WIN);
                 createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
         }
