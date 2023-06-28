@@ -382,7 +382,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AKVSignatureLengthError", "The specified encrypted column encryption key''s signature length: {0} does not match the signature length: {1} when using column master key (Azure Key Vault key) in {2}. The encrypted column encryption key may be corrupt, or the specified Azure Key Vault key path may be incorrect."},
         {"R_HashNull", "Hash should not be null while decrypting encrypted column encryption key."},
         {"R_NoSHA256Algorithm", "SHA-256 Algorithm is not supported."},
-        {"R_VerifySignature", "Unable to verify signature of the column encryption key."},
+        {"R_VerifySignatureFailed", "Unable to verify signature of the column encryption key."},
         {"R_CEKSignatureNotMatchCMK", "The specified encrypted column encryption key signature does not match the signature computed with the column master key (Asymmetric key in Azure Key Vault) in {0}. The encrypted column encryption key may be corrupt, or the specified path may be incorrect."},
         {"R_DecryptCEKError", "Unable to decrypt column encryption key using specified Azure Key Vault key."},
         {"R_EncryptCEKError", "Unable to encrypt column encryption key using specified Azure Key Vault key."},
