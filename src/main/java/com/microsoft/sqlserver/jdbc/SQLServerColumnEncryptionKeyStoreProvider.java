@@ -88,6 +88,21 @@ public abstract class SQLServerColumnEncryptionKeyStoreProvider {
             byte[] signature) throws SQLServerException;
 
     /**
+     * Sign column master key metadata using the column master key with the specified key path
+     * 
+     * @param masterKeyPath
+     *        column master key path
+     * @param allowEnclaveComputations
+     *        indicates whether the column master key supports enclave computations
+     * @return
+     *         signature of the column master key metadata
+     * @throws SQLServerException
+     *         when an error occurs while signing the column master key metadata
+     */
+    public abstract byte[] signColumnMasterKeyMetadata(String masterKeyPath,
+            boolean allowEnclaveComputations) throws SQLServerException;
+
+    /**
      * Returns the time-to-live for items in the cache of column encryption keys, as implemented in the key store provider.
      * 
      * @return the time-to-live for items in the cache.

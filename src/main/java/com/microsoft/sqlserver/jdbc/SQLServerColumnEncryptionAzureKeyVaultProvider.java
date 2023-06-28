@@ -904,6 +904,34 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         }
     }
 
+    @Override
+    public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
+            boolean allowEnclaveComputations) throws SQLServerException {
+        if (!allowEnclaveComputations) {
+            return null;
+        }
+
+        KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
+
+        try {
+            MessageDigest md = MessageDigest.getInstance(SHA_256);
+            md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            // value of allowEnclaveComputations is always true here
+            md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+
+            byte[] dataToVerify = md.digest();
+            if (null == dataToVerify) {
+                throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
+            }
+
+            // Sign the hash
+            return azureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
+    }
+
     private static List<String> getTrustedEndpoints() {
         Properties mssqlJdbcProperties = getMssqlJdbcProperties();
         List<String> trustedEndpoints = new ArrayList<>();
