@@ -1401,7 +1401,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return the index
      */
     private int findColumn(String columnName, CallableStatementGetterSetterMethod method) throws SQLServerException {
-        int matchPos = -1;
 
         if (!isCursorable(executeMethod)) {
             // handle `@name` as well as `name`, since `@name` is what's returned
@@ -1415,7 +1414,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 }
             }
 
-            if (method == CallableStatementGetterSetterMethod.isSetterMethod && matchPos <= 0) {
+            if (method == CallableStatementGetterSetterMethod.isSetterMethod) {
                 for (int i = 0; i < inOutParam.length; i++) {
                     // if it is not already registered as output param or the parameter is not an input parameter, then
                     // set the param name and return index.
@@ -1426,101 +1425,95 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     }
                 }
             }
-
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_parameterNamedIndex"));
-            Object[] msgArgs = {columnName};
-            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, true);
-
-        } else {
-            // stored procedures with cursorable methods are not called directly so we have to get the metadata
-            if (parameterNames == null) {
-                try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
-                    // Note we are concatenating the information from the passed in sql, not any arguments provided by the
-                    // user
-                    // if the user can execute the sql, any fragments of it is potentially executed via the meta data call
-                    // through injection
-                    // is not a security issue.
-                    ThreePartName threePartName = ThreePartName.parse(procedureName);
-                    StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
-                    if (null != threePartName.getDatabasePart()) {
-                        metaQuery.append("@procedure_qualifier=");
-                        metaQuery.append(threePartName.getDatabasePart());
-                        metaQuery.append(", ");
-                    }
-                    if (null != threePartName.getOwnerPart()) {
-                        metaQuery.append("@procedure_owner=");
-                        metaQuery.append(threePartName.getOwnerPart());
-                        metaQuery.append(", ");
-                    }
-                    if (null != threePartName.getProcedurePart()) {
-                        // we should always have a procedure name part
-                        metaQuery.append("@procedure_name=");
-                        metaQuery.append(threePartName.getProcedurePart());
-                        metaQuery.append(" , @ODBCVer=3, @fUsePattern=0");
-                    } else {
-                        // This should rarely happen, this will only happen if we can't find the stored procedure name
-                        // invalidly formatted call syntax.
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
-                        Object[] msgArgs = {columnName, ""};
-                        SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009,
-                                false);
-                    }
-
-                    try (ResultSet rs = s.executeQueryInternal(metaQuery.toString())) {
-                        parameterNames = new HashMap<>();
-                        insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                        int columnIndex = 0;
-                        while (rs.next()) {
-                            String p = rs.getString(4).trim();
-                            parameterNames.put(p, columnIndex);
-                            insensitiveParameterNames.put(p, columnIndex++);
-                        }
-                    }
-                } catch (SQLException e) {
-                    SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
-                }
-            }
-
-
-            // If the server didn't return anything (eg. the param names for the sp_sproc_columns), user might not
-            // have required permissions to view all the parameterNames. And, there's also the case depending on the permissions,
-            // @RETURN_VALUE may or may not be present. So, the parameterNames list might have an additional +1 parameter.
-            if (null != parameterNames && parameterNames.size() <= 1) {
-                return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
-            }
-
-            // handle `@name` as well as `name`, since `@name` is what's returned
-            // by DatabaseMetaData#getProcedureColumns
-            String columnNameWithSign = columnName.startsWith("@") ? columnName : "@" + columnName;
-
-            // In order to be as accurate as possible when locating parameter name
-            // indexes, as well as be deterministic when running on various client
-            // locales, we search for parameter names using the following scheme:
-
-            // 1. Search using case-sensitive non-locale specific (binary) compare first.
-            // 2. Search using case-insensitive, non-locale specific (binary) compare last.
-            matchPos = (parameterNames != null) ? parameterNames.get(columnNameWithSign) : -1;
-            if (matchPos == -1) {
-                matchPos = insensitiveParameterNames.get(columnNameWithSign);
-            }
-
-            if (matchPos == -1) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
-                Object[] msgArgs = {columnName, procedureName};
-                SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
-            }
-
-            // @RETURN_VALUE is always in the list. If the user uses return value ?=call(@p1) syntax then
-            // @p1 is index 2 otherwise its index 1.
-            if (bReturnValueSyntax) // 3.2717
-                return matchPos + 1;
-            else
-                return matchPos;
         }
 
-        return matchPos;
+        // Stored procedures with cursorable methods are not called directly, so we have to get the metadata
+        if (parameterNames == null) {
+            try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
+                // Note we are concatenating the information from the passed in sql, not any arguments provided by the
+                // user
+                // if the user can execute the sql, any fragments of it is potentially executed via the meta data call
+                // through injection
+                // is not a security issue.
+                ThreePartName threePartName = ThreePartName.parse(procedureName);
+                StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
+                if (null != threePartName.getDatabasePart()) {
+                    metaQuery.append("@procedure_qualifier=");
+                    metaQuery.append(threePartName.getDatabasePart());
+                    metaQuery.append(", ");
+                }
+                if (null != threePartName.getOwnerPart()) {
+                    metaQuery.append("@procedure_owner=");
+                    metaQuery.append(threePartName.getOwnerPart());
+                    metaQuery.append(", ");
+                }
+                if (null != threePartName.getProcedurePart()) {
+                    // we should always have a procedure name part
+                    metaQuery.append("@procedure_name=");
+                    metaQuery.append(threePartName.getProcedurePart());
+                    metaQuery.append(" , @ODBCVer=3, @fUsePattern=0");
+                } else {
+                    // This should rarely happen, this will only happen if we can't find the stored procedure name
+                    // invalidly formatted call syntax.
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
+                    Object[] msgArgs = {columnName, ""};
+                    SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009,
+                            false);
+                }
+
+                try (ResultSet rs = s.executeQueryInternal(metaQuery.toString())) {
+                    parameterNames = new HashMap<>();
+                    insensitiveParameterNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                    int columnIndex = 0;
+                    while (rs.next()) {
+                        String p = rs.getString(4).trim();
+                        parameterNames.put(p, columnIndex);
+                        insensitiveParameterNames.put(p, columnIndex++);
+                    }
+                }
+            } catch (SQLException e) {
+                SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
+            }
+        }
+
+
+        // If the server didn't return anything (eg. the param names for the sp_sproc_columns), user might not
+        // have required permissions to view all the parameterNames. And, there's also the case depending on the permissions,
+        // @RETURN_VALUE may or may not be present. So, the parameterNames list might have an additional +1 parameter.
+        if (null != parameterNames && parameterNames.size() <= 1) {
+            return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
+        }
+
+        // handle `@name` as well as `name`, since `@name` is what's returned
+        // by DatabaseMetaData#getProcedureColumns
+        String columnNameWithSign = columnName.startsWith("@") ? columnName : "@" + columnName;
+
+        // In order to be as accurate as possible when locating parameter name
+        // indexes, as well as be deterministic when running on various client
+        // locales, we search for parameter names using the following scheme:
+
+        // 1. Search using case-sensitive non-locale specific (binary) compare first.
+        // 2. Search using case-insensitive, non-locale specific (binary) compare last.
+        int matchPos = (parameterNames != null) ? parameterNames.get(columnNameWithSign) : -1;
+        if (matchPos == -1) {
+            matchPos = insensitiveParameterNames.get(columnNameWithSign);
+        }
+
+        if (matchPos == -1) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_parameterNotDefinedForProcedure"));
+            Object[] msgArgs = {columnName, procedureName};
+            SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
+        }
+
+        // @RETURN_VALUE is always in the list. If the user uses return value ?=call(@p1) syntax then
+        // @p1 is index 2 otherwise its index 1.
+        if (bReturnValueSyntax) // 3.2717
+            return matchPos + 1;
+        else
+            return matchPos;
+
     }
 
     @Override
