@@ -506,6 +506,39 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return cacheItem;
     }
 
+    /**
+     * Checks if remote procedure call is a valid. Example: if exec procName 1,? we should not use RPC call directly,
+     * rather wrap it with sp_executesql call
+     *
+     */
+    static boolean isCallRemoteProcDirectValid(String sql, int paramCount, boolean isReturnSyntax) {
+        int commaCount = SQLServerConnection.countCommas(sql);
+        if (isReturnSyntax) {
+            return paramCount == commaCount + 2; // if return syntax, sql text commas should be equal to paramCount -
+            // 2
+        } else {
+            return paramCount == commaCount + 1; // if not return syntax, sql text commas should be equal to
+            // paramCount -1
+        }
+    }
+
+    /**
+     * Count the number of commas in sql text
+     *
+     */
+    static int countCommas(String sql) {
+        int nParams = 0;
+        int offset = -1;
+        while ((offset = ParameterUtils.scanSQLForChar(',', sql, ++offset)) < sql.length())
+            ++nParams;
+
+        return nParams;
+    }
+
+    static int countParams(String sql) {
+        return locateParams(sql).length;
+    }
+
     /** Default size for prepared statement caches */
     static final int DEFAULT_STATEMENT_POOLING_CACHE_SIZE = 0;
 
@@ -7407,7 +7440,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
+            int srcEnd = ParameterUtils.scanSQLForChar('?', sqlSrc, srcBegin);
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 

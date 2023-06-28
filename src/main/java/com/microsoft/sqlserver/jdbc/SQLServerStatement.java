@@ -64,7 +64,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** response buffer adaptive flag */
-    private boolean isResponseBufferingAdaptive = false;
+    boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -112,10 +112,13 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != tdsReader;
     }
 
+    /** Return parameter for stored procedure calls */
+    Parameter returnParam;
+
     /**
      * The input and out parameters for statement execution.
      */
-    transient Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
+    transient Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
 
     /**
      * The statement's connection.
@@ -1609,6 +1612,14 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
+                    // Only read the return value from stored procedure if we are expecting one. Also, check that it is
+                    // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
+                    // executing sp_executesql for stored procedures.
+                    if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType && null != inOutParam
+                            && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
+                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
+                        return false;
+                    }
                 }
 
                 return true;

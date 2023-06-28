@@ -48,6 +48,7 @@ final class Parameter {
     private boolean shouldHonorAEForParameter = false;
     private boolean userProvidesPrecision = false;
     private boolean userProvidesScale = false;
+    private boolean isReturnValue = false;
 
     // The parameter type definition
     private String typeDefinition = null;
@@ -68,6 +69,60 @@ final class Parameter {
     // Flag set to true if this is a registered OUTPUT parameter.
     boolean isOutput() {
         return null != registeredOutDTV;
+    }
+
+    /**
+     * Returns true/false if the parameter is of return type
+     *
+     * @return isReturnValue
+     */
+    boolean isReturnValue() {
+        return isReturnValue;
+    }
+
+    /**
+     * Sets the parameter to be of return type
+     *
+     * @param isReturnValue
+     */
+    void setReturnValue(boolean isReturnValue) {
+        this.isReturnValue = isReturnValue;
+    }
+
+    /**
+     * Sets the name of the parameter
+     *
+     * @param name
+     */
+    void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Retrieve the name of the parameter
+     *
+     * @return
+     */
+    String getName() {
+        return this.name;
+    }
+
+    /**
+     * Returns the `registeredOutDTV` instance of the parameter
+     *
+     * @return registeredOutDTV
+     */
+    DTV getRegisteredOutDTV() {
+        return this.registeredOutDTV;
+    }
+
+    /**
+     * Returns the `inputDTV` instance of the parameter
+     *
+     * @return inputDTV
+     */
+    DTV getInputDTV() {
+        return this.inputDTV;
     }
 
     // Since a parameter can have only one type definition for both sending its value to the server (IN)
@@ -246,7 +301,7 @@ final class Parameter {
         if (null == getterDTV)
             getterDTV = new DTV();
 
-        getterDTV.setValue(null, JDBCType.INTEGER, returnStatus, JavaType.INTEGER, null, null, null, con,
+        getterDTV.setValue(null, this.getJdbcType(), returnStatus, JavaType.INTEGER, null, null, null, con,
                 getForceEncryption());
     }
 
@@ -387,8 +442,13 @@ final class Parameter {
 
     Object getValue(JDBCType jdbcType, InputStreamGetterArgs getterArgs, Calendar cal, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
-        if (null == getterDTV)
+        if (null == getterDTV) {
             getterDTV = new DTV();
+        }
+
+        if (null != tdsReader) {
+            deriveTypeInfo(tdsReader);
+        }
 
         deriveTypeInfo(tdsReader);
         // If the parameter is not encrypted or column encryption is turned off (either at connection or

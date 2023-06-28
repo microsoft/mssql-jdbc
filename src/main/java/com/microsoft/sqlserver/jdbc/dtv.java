@@ -861,10 +861,17 @@ final class DTV {
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, (valueLength), isOutParam, statement);
                                 }
-                            } else
-                                tdsWriter.writeRPCDateTime2(name,
-                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                            } else {
+                                if (jdbcType == JDBCType.DATETIME || jdbcType == JDBCType.SMALLDATETIME) {
+                                    tdsWriter.writeRPCDateTime(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, isOutParam);
+                                } else {
+                                    tdsWriter.writeRPCDateTime2(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                }
+                            }
 
                             break;
 
@@ -2319,8 +2326,10 @@ final class AppDTVImpl extends DTVImpl {
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
         // Client side type conversion is not supported
-        if (this.jdbcType != jdbcType)
+        // Checking for sql_variant here since the check will be performed elsewhere.
+        if (this.jdbcType != jdbcType && jdbcType != JDBCType.SQL_VARIANT) {
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
+        }
 
         return value;
     }
