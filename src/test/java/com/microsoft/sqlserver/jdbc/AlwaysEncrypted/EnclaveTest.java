@@ -207,14 +207,14 @@ public class EnclaveTest extends AESetup {
         // create CMK with a bad signature
         String badCmk = Constants.CMK_NAME + "_badCMK";
         String badCek = Constants.CEK_NAME + "_badCek";
-        createCMK(AETestConnectionString, badCmk, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, "0x666");
-        createCEK(AETestConnectionString, badCmk, badCek, jksProvider);
-
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadJksSiganture")));
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
+            createCMK(AETestConnectionString, badCmk, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, jksProvider);
+
             createTable(badTable, badCek, varcharTableSimple);
 
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
@@ -227,10 +227,11 @@ public class EnclaveTest extends AESetup {
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                System.out.println("exception" + e.getMessage());
-                e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed"));
-            } finally {
+            }
+        } catch (Exception e) {
+            e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed"));
+        } finally {
+            try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
                 dropCEK(badCek, s);
                 dropCMK(badCmk, s);
@@ -249,14 +250,14 @@ public class EnclaveTest extends AESetup {
         // create CMK with a bad signature
         String badCmk = Constants.CMK_NAME + "_badCMK";
         String badCek = Constants.CEK_NAME + "_badCek";
-        createCMK(AETestConnectionString, badCmk, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], "0x666");
-        createCEK(AETestConnectionString, badCmk, badCek, akvProvider);
-
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadAkvSiganture")));
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
+            createCMK(AETestConnectionString, badCmk, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, akvProvider);
+
             createTable(badTable, badCek, varcharTableSimple);
 
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
@@ -269,10 +270,11 @@ public class EnclaveTest extends AESetup {
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                System.out.println("exception" + e.getMessage());
-                e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed"));
-            } finally {
+            }
+        } catch (Exception e) {
+            e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed"));
+        } finally {
+            try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
                 dropCEK(badCek, s);
                 dropCMK(badCmk, s);
@@ -288,17 +290,17 @@ public class EnclaveTest extends AESetup {
     public void testVerifyBadWinSiganture(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        // create CMK with a bad signature
         String badCmk = Constants.CMK_NAME + "_badCMK";
         String badCek = Constants.CEK_NAME + "_badCek";
-        createCMK(AETestConnectionString, badCmk, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, "0x666");
-        createCEK(AETestConnectionString, badCmk, badCek, null);
-
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadJksSiganture")));
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
+            // create CMK with a bad signature
+            createCMK(AETestConnectionString, badCmk, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, null);
+
             createTable(badTable, badCek, varcharTableSimple);
 
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
@@ -311,10 +313,11 @@ public class EnclaveTest extends AESetup {
             pstmt.setString(1, "t%");
             try (ResultSet rs = pstmt.executeQuery()) {
                 fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                System.out.println("exception" + e.getMessage());
-                e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed"));
-            } finally {
+            }
+        } catch (Exception e) {
+            assert (e.getMessage().contains("signature does not match"));
+        } finally {
+            try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
                 dropCEK(badCek, s);
                 dropCMK(badCmk, s);
