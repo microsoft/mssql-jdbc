@@ -409,6 +409,7 @@ public final class SQLServerResource extends ListResourceBundle {
         // This is used for connection settings. {0}-> property name as is, {1}-> value
         {"R_InvalidConnectionSetting", "The {0} value \"{1}\" is not valid."},
         {"R_InvalidWindowsCertificateStoreEncryption", "Cannot encrypt a column encryption key with the Windows Certificate Store."},
+        {"R_InvalidWindowsCertificateStoreSignCMK", "Cannot sign column master key metadata with the Windows Certificate Store."},
         {"R_AEKeypathEmpty", "Internal error. Certificate path cannot be null. Use the following format: \"certificate location/certificate store/certificate thumbprint\", where \"certificate location\" is either LocalMachine or CurrentUser."},
         {"R_AEWinApiErr", "Windows Api native error."},
         {"R_AECertpathBad", "Internal error. Invalid certificate path: {0}. Use the following format: \"certificate location/certificate store/certificate thumbprint\", where \"certificate location\" is either LocalMachine or CurrentUser."},
