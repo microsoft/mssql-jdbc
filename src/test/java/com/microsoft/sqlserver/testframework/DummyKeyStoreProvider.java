@@ -43,11 +43,4 @@ public class DummyKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProv
         // Not implemented
         throw new UnsupportedOperationException();
     }
-
-    @Override
-    public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
-            boolean allowEnclaveComputations) throws SQLServerException {
-        // not supported
-        throw new UnsupportedOperationException();
-    }
 }

@@ -135,7 +135,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         }
     }
 
-    @Override
     public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
             boolean allowEnclaveComputations) throws SQLServerException {
         if (!allowEnclaveComputations)

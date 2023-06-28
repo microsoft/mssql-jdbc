@@ -85,14 +85,6 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         }
     }
 
-    @Override
-    public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
-            boolean allowEnclaveComputations) throws SQLServerException {
-        // not supported
-        throw new SQLServerException(null, SQLServerException.getErrString("R_InvalidWindowsCertificateStoreSignCMK"),
-                null, 0, false);
-    }
-
     private byte[] decryptColumnEncryptionKeyWindows(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
         try {
