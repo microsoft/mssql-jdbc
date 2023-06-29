@@ -123,15 +123,36 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
 
+        byte[] signedHash = null;
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
             // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-            return rsaVerifySignature(md.digest(), signature, certificateDetails);
+
+            byte[] dataToVerify = md.digest();
+            Signature sig = Signature.getInstance("SHA256withRSA");
+
+            sig.initSign((PrivateKey) certificateDetails.privateKey);
+            sig.update(dataToVerify);
+
+            signedHash = sig.sign();
+
+            sig.initVerify(certificateDetails.certificate.getPublicKey());
+            sig.update(dataToVerify);
+            return sig.verify(signature);
+
+            // return rsaVerifySignature(md.digest(), signature, certificateDetails);
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        } catch (InvalidKeyException | SignatureException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SignatureNotMatch"));
+            Object[] msgArgs = {Util.byteToHexDisplayString(signature),
+                    (signedHash != null) ? Util.byteToHexDisplayString(signedHash) : " ", masterKeyPath,
+                    ": " + e.getMessage()};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+
         }
     }
 
@@ -367,23 +388,16 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
      * Verify signature against certificate
      */
     private boolean rsaVerifySignature(byte[] dataToVerify, byte[] signature,
-            CertificateDetails certificateDetails) throws SQLServerException {
-        try {
-            Signature sig = Signature.getInstance("SHA256withRSA");
+            CertificateDetails certificateDetails) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException {
+        Signature sig = Signature.getInstance("SHA256withRSA");
 
-            sig.initSign((PrivateKey) certificateDetails.privateKey);
-            sig.update(dataToVerify);
+        sig.initSign((PrivateKey) certificateDetails.privateKey);
+        sig.update(dataToVerify);
 
-            byte[] signedHash = sig.sign();
+        byte[] signedHash = sig.sign();
 
-            sig.initVerify(certificateDetails.certificate.getPublicKey());
-            sig.update(dataToVerify);
-            return sig.verify(signature);
-
-        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_VerifySignatureFailed"));
-            Object[] msgArgs = {e.getMessage()};
-            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-        }
+        sig.initVerify(certificateDetails.certificate.getPublicKey());
+        sig.update(dataToVerify);
+        return sig.verify(signature);
     }
 }

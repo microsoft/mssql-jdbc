@@ -229,7 +229,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")));
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -272,7 +272,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")));
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -315,7 +315,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assert (e.getMessage().contains("signature does not match"));
+            assertTrue(e.getMessage().contains("signature does not match"), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -342,40 +342,21 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
-     * Tests alter column encryption on char tables
-     */
-    /*
-     * @ParameterizedTest
-     * @MethodSource("enclaveParams")
-     * public void testCharWindowsCertificateStore(String serverName, String url, String protocol) throws Exception {
-     * setAEConnectionString(serverName, url, protocol);
-     * try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-     * SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-     * TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-     * createTable(CHAR_TABLE_AE, cekWin, charTable);
-     * populateCharNormalCase(createCharValues(false));
-     * testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekWin);
-     * }
-     * }
-     */
-
-    /*
      * Tests alter column encryption on char tables with AKV
      */
-    /*
-     * @ParameterizedTest
-     * @MethodSource("enclaveParams")
-     * public void testCharAkv(String serverName, String url, String protocol) throws Exception {
-     * setAEConnectionString(serverName, url, protocol);
-     * try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
-     * SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-     * TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
-     * createTable(CHAR_TABLE_AE, cekAkv, charTable);
-     * populateCharNormalCase(createCharValues(false));
-     * testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
-     * }
-     * }
-     */
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharAkv(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            createTable(CHAR_TABLE_AE, cekAkv, charTable);
+            populateCharNormalCase(createCharValues(false));
+            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+        }
+    }
 
     /**
      * Test FMTOnly with Always Encrypted
