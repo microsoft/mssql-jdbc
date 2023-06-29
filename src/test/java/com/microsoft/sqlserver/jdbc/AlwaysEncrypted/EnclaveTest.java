@@ -229,7 +229,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -272,7 +272,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
