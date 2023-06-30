@@ -124,6 +124,8 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
 
         byte[] signedHash = null;
+        boolean isValid = false;
+
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
@@ -141,9 +143,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
 
             sig.initVerify(certificateDetails.certificate.getPublicKey());
             sig.update(dataToVerify);
-            return sig.verify(signature);
-
-            // return rsaVerifySignature(md.digest(), signature, certificateDetails);
+            isValid = sig.verify(signature);
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         } catch (InvalidKeyException | SignatureException e) {
@@ -152,8 +152,15 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
                     (signedHash != null) ? Util.byteToHexDisplayString(signedHash) : " ", masterKeyPath,
                     ": " + e.getMessage()};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-
         }
+
+        if (!isValid) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SignatureNotMatch"));
+            Object[] msgArgs = {Util.byteToHexDisplayString(signature), Util.byteToHexDisplayString(signedHash),
+                    masterKeyPath, ""};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+        return isValid;
     }
 
     public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
