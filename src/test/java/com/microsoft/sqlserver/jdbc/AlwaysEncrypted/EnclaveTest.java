@@ -229,6 +229,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
+            e.printStackTrace();
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
@@ -244,14 +245,14 @@ public class EnclaveTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
-    public void testVerifyBadAkvSiganture(String serverName, String url, String protocol) throws Exception {
+    public void testVerifyBadAkvSignature(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
         // create CMK with a bad signature
         String badCmk = Constants.CMK_NAME + "_badCMK";
         String badCek = Constants.CEK_NAME + "_badCek";
         String badTable = TestUtils.escapeSingleQuotes(
-                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadAkvSiganture")));
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadAkvSignature")));
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
@@ -272,6 +273,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
+            e.printStackTrace();
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
@@ -287,13 +289,13 @@ public class EnclaveTest extends AESetup {
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
-    public void testVerifyBadWinSiganture(String serverName, String url, String protocol) throws Exception {
+    public void testVerifyBadWinSignature(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
         String badCmk = Constants.CMK_NAME + "_badCMK";
         String badCek = Constants.CEK_NAME + "_badCek";
         String badTable = TestUtils.escapeSingleQuotes(
-                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadJksSiganture")));
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadWinSignature")));
 
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
@@ -315,6 +317,7 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
+            e.printStackTrace();
             assertTrue(e.getMessage().contains("signature does not match"), e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {

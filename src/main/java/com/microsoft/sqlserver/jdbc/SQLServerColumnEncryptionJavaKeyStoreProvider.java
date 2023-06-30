@@ -160,6 +160,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
                     masterKeyPath, ""};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
+        System.out.println("JKS verifyColumnMasterKeyMetadata returning " + isValid);
         return isValid;
     }
 

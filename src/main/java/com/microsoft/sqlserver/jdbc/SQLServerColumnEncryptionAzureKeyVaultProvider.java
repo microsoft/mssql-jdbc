@@ -878,7 +878,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
 
         byte[] signedHash = null;
         boolean isValid = false;
-        
+
         try {
             MessageDigest md = MessageDigest.getInstance(SHA_256);
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
@@ -916,7 +916,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                     masterKeyPath, ""};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
-
+        System.out.println("AKV verifyColumnMasterKeyMetadata returning " + isValid);
         return isValid;
     }
 
