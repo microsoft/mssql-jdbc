@@ -229,7 +229,10 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
+            assertTrue(
+                    e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch"))
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -272,7 +275,10 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch")), e.getMessage());
+            assertTrue(
+                    e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch"))
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
@@ -315,7 +321,11 @@ public class EnclaveTest extends AESetup {
                 fail(TestResource.getResource("R_expectedFailPassed"));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("signature does not match"), e.getMessage());
+            // windows error message is different
+            assertTrue(
+                    e.getMessage().contains("signature does not match")
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(badTable, s);
