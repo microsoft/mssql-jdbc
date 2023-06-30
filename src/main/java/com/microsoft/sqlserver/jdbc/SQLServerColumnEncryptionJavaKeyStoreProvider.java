@@ -117,8 +117,10 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
     public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {
 
-        if (!allowEnclaveComputations)
+        if (!allowEnclaveComputations) {
+            System.out.println("JKS verifyColumnMasterKeyMetadata returning false");
             return false;
+        }
 
         KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
         CertificateDetails certificateDetails = getCertificateDetails(masterKeyPath);
@@ -160,7 +162,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
                     masterKeyPath, ""};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
-        System.out.println("JKS verifyColumnMasterKeyMetadata returning " + isValid);
         return isValid;
     }
 
