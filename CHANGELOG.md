@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.4.0] Stable Release
+### Fixed issues
+- Fixed issues identified by SonarQube [#2145](https://github.com/microsoft/mssql-jdbc/pull/2145)
+
 ## [12.3.1] Preview Release
 ### Added
 - Added a case to throw XAER_RMFAIL on connection reset for XA transactions [2118](https://github.com/microsoft/mssql-jdbc/pull/2118)

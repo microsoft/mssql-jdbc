@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.4.0-SNAPSHOT</version>
+	<version>12.4.0</version>
 	<packaging>jar</packaging>
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
@@ -49,7 +49,7 @@
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt>-preview</releaseExt>
+		<releaseExt></releaseExt>
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
 		<azure-security-keyvault-keys.version>4.6.1</azure-security-keyvault-keys.version>
