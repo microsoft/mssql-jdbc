@@ -359,7 +359,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AccessTokenCannotBeEmpty", "AccessToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
         {"R_NoUserPasswordForActivePassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryPassword\"."},
-        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal."},
+        {"R_NoUserPasswordForActiveServicePrincipal", "Both \"UserName\" and \"Password\" connection string keywords must be specified, if \"Authentication=ActiveDirectoryServicePrincipal\"."},
         {"R_NoUserOrCertForActiveServicePrincipalCertificate", "\"Both \"UserName\" and \"clientCertificate\" connection string keyword must be specified, if \"Authentication=ActiveDirectoryServicePrincipalCertificate\"."},
         {"R_NoUserPasswordForSqlPassword", "Both \"User\" (or \"UserName\") and \"Password\" connection string keywords must be specified, if \"Authentication=SqlPassword\"."},
         {"R_BothUserPasswordandDeprecated", "Both \"User\" (or \"UserName\"), \"Password\" and \"AADSecurePrincipalId\", \"AADSecurePrincipalSecret\" connection string keywords are specified, please use \"User\" (or \"UserName\"), \"Password\" only."},
