@@ -281,9 +281,8 @@ final class SQLServerCertificateUtils {
      */
     static void validateServerCerticate(X509Certificate cert, String certFile) throws CertificateException {
         try (InputStream is = fileToStream(certFile)) {
-            if (!CertificateFactory.getInstance("X509").generateCertificate(is).getPublicKey()
-                    .equals(cert.getPublicKey())) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_publicKeyMismatch"));
+            if (!CertificateFactory.getInstance("X509").generateCertificate(is).equals(cert)) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_serverCertError"));
                 Object[] msgArgs = {certFile};
                 throw new CertificateException(form.format(msgArgs));
             }
@@ -353,8 +352,7 @@ final class SQLServerCertificateUtils {
     }
 
     private static KeyManager[] readPKCS12Certificate(String certPath,
-            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, 
-                UnrecoverableKeyException, KeyStoreException, SQLServerException {
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
 
         KeyStore keyStore = loadPKCS12KeyStore(certPath, keyPassword);
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
