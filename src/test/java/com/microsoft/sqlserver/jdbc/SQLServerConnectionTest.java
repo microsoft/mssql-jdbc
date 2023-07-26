@@ -333,7 +333,12 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {}
     }
 
-    @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     @Test
     public void testEncryptedStrictConnection() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
