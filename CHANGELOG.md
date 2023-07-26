@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.4.0] Stable Release
 ### Fixed issues
-- Revert #2051 (Big decimal precision) / #2116 (Fix for bigDecimal values between 0 and 1 having too high of a precision) [#2174](https://github.com/microsoft/mssql-jdbc/pull/2176)
+- Revert #2051 (Big decimal precision) / #2116 (Fix for bigDecimal values between 0 and 1 having too high of a precision) [#2176](https://github.com/microsoft/mssql-jdbc/pull/2176)
 - Fixed server certificate validation for encrypt=strict [#2174](https://github.com/microsoft/mssql-jdbc/pull/2174)
 - Fixed issues identified by SonarQube [#2145](https://github.com/microsoft/mssql-jdbc/pull/2145)
 
