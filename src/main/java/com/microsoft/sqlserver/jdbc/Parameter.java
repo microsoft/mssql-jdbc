@@ -530,10 +530,10 @@ final class Parameter {
                         if (userProvidesPrecision) {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
-                    } else
+                    } else {
                         param.typeDefinition = SSType.DECIMAL.toString() + "("
                                 + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
-
+                    }
                     break;
 
                 case MONEY:
