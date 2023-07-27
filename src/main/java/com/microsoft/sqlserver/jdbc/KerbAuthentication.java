@@ -39,6 +39,7 @@ final class KerbAuthentication extends SSPIAuthentication {
     private LoginContext lc = null;
     private boolean isUserCreatedCredential = false;
     private GSSCredential peerCredentials = null;
+    private boolean useDefaultNativeGSSCredential = false;
     private GSSContext peerContext = null;
 
     static {
@@ -62,6 +63,10 @@ final class KerbAuthentication extends SSPIAuthentication {
             // We pass null to indicate that the system should interpret the SPN
             // as it is.
             GSSName remotePeerName = manager.createName(spn, null);
+
+            if (useDefaultNativeGSSCredential) {
+                peerCredentials = manager.createCredential(null, GSSCredential.DEFAULT_LIFETIME, kerberos, GSSCredential.INITIATE_ONLY);
+            }
 
             if (null != peerCredentials) {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
@@ -220,10 +225,11 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param impersonatedUserCred
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            boolean isUserCreated) {
+            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
         this(con, address, port);
         this.peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = isUserCreated;
+        this.useDefaultNativeGSSCredential = useDefaultNativeGSSCredential;
     }
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {

@@ -595,8 +595,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getServerSpn();
 
     /**
+     * Sets the Boolean  value that indicates if the useDefaultGSSCredential property is enabled.
+     *
+     * @param enable
+     *        true if useDefaultGSSCredential is enabled. Otherwise, false.
+     */
+    void setUseDefaultGSSCredential(boolean enable);
+
+    /**
+     * Returns the useDefaultGSSCredential.
+     *
+     * @return if enabled, return true. Otherwise, false.
+     */
+    boolean getUseDefaultGSSCredential();
+
+    /**
      * Sets the GSSCredential.
-     * 
+     *
      * @param userCredential
      *        the credential
      */
@@ -604,7 +619,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      * Returns the GSSCredential.
-     * 
+     *
      * @return GSSCredential
      */
     GSSCredential getGSSCredentials();
