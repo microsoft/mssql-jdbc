@@ -118,7 +118,6 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             byte[] signature) throws SQLServerException {
 
         if (!allowEnclaveComputations) {
-            System.out.println("JKS verifyColumnMasterKeyMetadata returning false");
             return false;
         }
 

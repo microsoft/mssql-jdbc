@@ -865,7 +865,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
     public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {
         if (!allowEnclaveComputations) {
-            System.out.println("AKV verifyColumnMasterKeyMetadata returning false");
             return false;
         }
 
