@@ -50,7 +50,7 @@
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt></releaseExt>
+		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
 		<azure-security-keyvault-keys.version>4.6.1</azure-security-keyvault-keys.version>
