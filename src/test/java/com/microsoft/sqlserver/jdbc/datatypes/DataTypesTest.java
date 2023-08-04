@@ -1624,6 +1624,20 @@ public class DataTypesTest extends AbstractTest {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
 
+                    // Verify SQLState 22005 is in exception for conversion errors
+                    try {
+                        Timestamp timestamp = Timestamp.valueOf("9999-12-31 23:59:59.998");
+                        rs.updateTimestamp(1, timestamp);
+                        rs.updateRow();
+                        rs.getLong(1);
+                    } catch (SQLServerException e) {
+                        assertEquals("22005", e.getSQLState());
+                    }
+
+                    if (!exceptionThrown) {
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    }
+
                     // Update time(5) from Timestamp with nanos more precise than 100ns
                     Timestamp ts = Timestamp.valueOf("2010-01-12 11:05:23");
                     ts.setNanos(987659999);
