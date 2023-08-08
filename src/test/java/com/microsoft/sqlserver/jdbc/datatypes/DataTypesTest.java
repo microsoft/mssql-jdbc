@@ -1624,12 +1624,15 @@ public class DataTypesTest extends AbstractTest {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
 
+
+                    exceptionThrown = true;
                     // Verify SQLState 22005 is in exception for conversion errors
                     try {
                         Timestamp timestamp = Timestamp.valueOf("9999-12-31 23:59:59.998");
                         rs.updateTimestamp(1, timestamp);
                         rs.updateRow();
                         rs.getLong(1);
+                        exceptionThrown = false;
                     } catch (SQLServerException e) {
                         assertEquals("22005", e.getSQLState());
                     }
