@@ -429,7 +429,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         // Validate the signature
         if (!azureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_CEKSignatureNotMatchCMK"));
-            Object[] msgArgs = {masterKeyPath};
+            Object[] msgArgs = {Util.byteToHexDisplayString(signature), masterKeyPath};
             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
@@ -876,6 +876,9 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             return cmkMetadataSignatureVerificationCache.get(key);
         }
 
+        byte[] signedHash = null;
+        boolean isValid = false;
+
         try {
             MessageDigest md = MessageDigest.getInstance(SHA_256);
             md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
@@ -889,19 +892,65 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             }
 
             // Sign the hash
-            byte[] signedHash = azureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
+            signedHash = azureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
             if (null == signedHash) {
                 throw new SQLServerException(SQLServerException.getErrString("R_SignedHashLengthError"), null);
             }
 
             // Validate the signature
-            boolean isValid = azureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
+            isValid = azureKeyVaultVerifySignature(dataToVerify, signature, masterKeyPath);
             cmkMetadataSignatureVerificationCache.put(key, isValid);
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        } catch (SQLServerException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SignatureNotMatch"));
+            Object[] msgArgs = {Util.byteToHexDisplayString(signature),
+                    (signedHash != null) ? Util.byteToHexDisplayString(signedHash) : " ", masterKeyPath,
+                    ": " + e.getMessage()};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
 
-            return isValid;
+        if (!isValid) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SignatureNotMatch"));
+            Object[] msgArgs = {Util.byteToHexDisplayString(signature), Util.byteToHexDisplayString(signedHash),
+                    masterKeyPath, ""};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+        }
+        return isValid;
+    }
+
+    public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
+            boolean allowEnclaveComputations) throws SQLServerException {
+        if (!allowEnclaveComputations) {
+            return null;
+        }
+
+        KeyStoreProviderCommon.validateNonEmptyMasterKeyPath(masterKeyPath);
+
+        byte[] signedHash = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance(SHA_256);
+            md.update(name.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            md.update(masterKeyPath.toLowerCase().getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+            // value of allowEnclaveComputations is always true here
+            md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+
+            byte[] dataToVerify = md.digest();
+            if (null == dataToVerify) {
+                throw new SQLServerException(SQLServerException.getErrString("R_HashNull"), null);
+            }
+
+            // Sign the hash
+            signedHash = azureKeyVaultSignHashedData(dataToVerify, masterKeyPath);
         } catch (NoSuchAlgorithmException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
+
+        if (null == signedHash) {
+            throw new SQLServerException(SQLServerException.getErrString("R_SignedHashLengthError"), null);
+        }
+
+        return signedHash;
     }
 
     private static List<String> getTrustedEndpoints() {
