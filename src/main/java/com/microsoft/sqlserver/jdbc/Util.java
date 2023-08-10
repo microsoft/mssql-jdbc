@@ -50,7 +50,7 @@ final class Util {
     static boolean isIBM() {
         Class<?> clazz = null;
         try {
-            clazz = Class.forName("com.ibm.security.auth.module.JAASLoginModule");
+            clazz = Class.forName("com.ibm.lang.management.MemoryUsage");
         } catch (ClassNotFoundException e) {
             //We're using the try-catch to test for IBM jdk, no need to handle exception.
         }
