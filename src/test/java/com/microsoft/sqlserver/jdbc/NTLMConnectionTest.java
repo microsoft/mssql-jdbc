@@ -178,7 +178,7 @@ public class NTLMConnectionTest extends AbstractTest {
                 verifyNTLM(con);
             }
         } catch (UnknownHostException e) {
-            fail(e.getMessage());
+            fail(e.getMessage() + "NTLM connection string: " + connectionStringNTLM);
         }
     }
 

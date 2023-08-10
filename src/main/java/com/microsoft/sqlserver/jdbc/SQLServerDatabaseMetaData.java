@@ -1709,12 +1709,22 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
         String result = "";
-        try (SQLServerStatement s = (SQLServerStatement) connection.createStatement();
-                SQLServerResultSet rs = s.executeQueryInternal("select system_user")) {
-            // Select system_user will always return a row.
-            boolean next = rs.next();
-            assert next;
-            result = rs.getString(1);
+        try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
+            try (SQLServerResultSet rs = s.executeQueryInternal("SELECT SYSTEM_USER")) {
+                // Select system_user will always return a row.
+                boolean next = rs.next();
+                assert next;
+                result = rs.getString(1);
+            } catch (SQLServerException e) {
+                // execution using impersonated security context is disallowed for Azure SQL Server so return CURRENT_USER instead
+                if (e.getErrorCode() == SQLServerException.IMPERSONATION_CONTEXT_NOT_SUPPORTED) {
+                    try (SQLServerResultSet rs = s.executeQueryInternal("SELECT CURRENT_USER")) {
+                        boolean next = rs.next();
+                        assert next;
+                        result = rs.getString(1);
+                    }
+                }
+            }
         }
         return result;
     }
