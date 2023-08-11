@@ -7389,7 +7389,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
             boolean isReturnValueSyntax) {
         final int MAX_PARAM_NAME_LEN = 6;
-        char[] sqlDst = new char[sqlSrc.length() + params.length * (MAX_PARAM_NAME_LEN + OUT.length)];
+        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length)) + (params.length * 2)];
         int dstBegin = 0;
         int srcBegin = 0;
         int nParam = 0;
@@ -7403,8 +7403,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sqlSrc.length() == srcEnd)
                 break;
 
-            dstBegin += makeParamName(nParam++, sqlDst, dstBegin);
-            srcBegin = srcEnd + 1;
+            dstBegin += makeParamNameForPreparedSql(nParam++, sqlDst, dstBegin);
+            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
 
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
@@ -7446,6 +7446,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String sParam = "" + nParam;
                 sParam.getChars(0, sParam.length(), name, offset + 2);
                 return 2 + sParam.length();
+            }
+        }
+    }
+
+    static int makeParamNameForPreparedSql(int nParam, char[] name, int offset) {
+        name[offset + 0] = ' ';
+        name[offset + 1] = '@';
+        name[offset + 2] = 'P';
+        if (nParam < 10) {
+            name[offset + 3] = (char) ('0' + nParam);
+            name[offset + 4] = ' ';
+            return 5;
+        } else {
+            if (nParam < 100) {
+                int nBase = 2;
+                while (true) { // make a char[] representation of the param number 2.26
+                    if (nParam < nBase * 10) {
+                        name[offset + 3] = (char) ('0' + (nBase - 1));
+                        name[offset + 4] = (char) ('0' + (nParam - ((nBase - 1) * 10)));
+                        name[offset + 5] = ' ';
+                        return 6;
+                    }
+                    nBase++;
+                }
+            } else {
+                String sParam = nParam + " ";
+                sParam.getChars(0, sParam.length(), name, offset + 3);
+                return 3 + sParam.length();
             }
         }
     }
