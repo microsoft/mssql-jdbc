@@ -50,6 +50,7 @@ public class PreparedStatementTest extends AbstractTest {
     final static String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
     final static String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
     final static String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
+    final static String tableName4 = RandomUtil.getIdentifier("tableTestPreparedStatementWithMultipleParams");
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -113,6 +114,94 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate();
                 ps.executeUpdate(); // Takes sp_prepare path
                 ps.executeUpdate();
+            }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementParamNameSpacingWithMultipleParams() throws SQLException {
+        int paramNameCount = 105;
+
+        StringBuilder insertSql = new StringBuilder("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                + "values(");
+
+        for (int i = 1; i <= paramNameCount; i++) {
+            insertSql.append(i % 10);
+
+            if (i != paramNameCount) {
+                insertSql.append(",");
+            } else {
+                insertSql.append(")");
+            }
+        }
+
+        StringBuilder createTableSql = new StringBuilder("create table " + AbstractSQLGenerator.escapeIdentifier(tableName4) + "(");
+
+        for (int i = 1; i <= paramNameCount; i++) {
+            createTableSql.append("c" + i + " char(1)");
+
+            if (i != paramNameCount) {
+                createTableSql.append(",");
+            } else {
+                createTableSql.append(")");
+            }
+        }
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            executeSQL(con, createTableSql.toString());
+            executeSQL(con, insertSql.toString());
+
+            // There are no typos in the queries eg. The 'c1=?and' is not a typo. We are testing the spacing, or lack of spacing.
+            // The driver should automatically space out the params eg. 'c1=?and' becomes 'c1= ? and' in the final string we send to the server.
+
+            // Testing with less than 10 params
+            String sql1 = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName4) + " where c1=?and c2=?";
+
+            // Testing with number of params between 10 and 100
+            String sql2 = "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                    + " where c1=?and c2=? and c3=?and c4=? and c5=? and c6=? and c7=? and c8=? and c9=? and c10=? and c11=? and c12=?";
+
+            // Testing with more than 100 params
+            StringBuilder sql3 = new StringBuilder("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                    + " where c1=?and ");
+
+            for (int i = 2; i <= paramNameCount; i++) {
+                sql3.append("c" + i + "=?");
+
+                if (i != paramNameCount) {
+                    sql3.append(" and ");
+                }
+            }
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql1)) {
+                ps.setString(1, "1");
+                ps.setString(2, "2");
+                ps.executeQuery();
+            }
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql2)) {
+                ps.setString(1, "1");
+                ps.setString(2, "2");
+                ps.setString(3, "3");
+                ps.setString(4, "4");
+                ps.setString(5, "5");
+                ps.setString(6, "6");
+                ps.setString(7, "7");
+                ps.setString(8, "8");
+                ps.setString(9, "9");
+                ps.setString(10, "0");
+                ps.setString(11, "1");
+                ps.setString(12, "2");
+                ps.executeQuery();
+            }
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql3.toString())) {
+                ps.setString(1, "1");
+                for (int i = 2; i <= paramNameCount; i++) {
+                    ps.setString(i, Integer.toString(i % 10));
+                }
+
+                ps.executeQuery();
             }
         }
     }
@@ -787,6 +876,7 @@ public class PreparedStatementTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName3), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName4), stmt);
         }
     }
 
