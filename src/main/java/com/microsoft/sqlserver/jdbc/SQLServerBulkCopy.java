@@ -2461,7 +2461,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             case DATETIME:
                                 if (bulkNullable)
                                     tdsWriter.writeByte((byte) 0x08);
-                                tdsWriter.writeDatetime(colValue.toString());
+
+                                if (colValue instanceof java.sql.Timestamp)
+                                    tdsWriter.writeDatetime((java.sql.Timestamp)colValue);
+                                else
+                                    tdsWriter.writeDatetime(colValue.toString());
                                 break;
                             default: // DATETIME2
                                 if (2 >= bulkScale)

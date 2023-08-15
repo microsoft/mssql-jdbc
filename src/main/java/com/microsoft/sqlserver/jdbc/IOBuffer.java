@@ -5,28 +5,17 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
+import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
+
+import javax.net.SocketFactory;
+import javax.net.ssl.*;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -40,22 +29,11 @@ import java.security.Security;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.SimpleTimeZone;
-import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -67,18 +45,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.net.SocketFactory;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
-import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
-import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 
 final class TDS {
@@ -3756,28 +3722,28 @@ final class TDSWriter {
     }
 
     void writeDatetime(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        writeDatetime(java.sql.Timestamp.valueOf(value));
+    }
+
+    void writeDatetime(java.sql.Timestamp dateValue) throws SQLServerException {
+        LocalDateTime ldt = dateValue.toLocalDateTime();
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
-        java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
-        utcMillis = timestampValue.getTime();
-        subSecondNanos = timestampValue.getNanos();
+        subSecondNanos = ldt.getNano();
 
-        // Load the calendar with the desired value
-        calendar.setTimeInMillis(utcMillis);
 
         // Number of days there have been since the SQL Base Date.
         // These are based on SQL Server algorithms
-        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.DAY_OF_YEAR), TDS.BASE_YEAR_1900);
+        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(),
+                ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                                                                                                         // the current
-                                                                                                         // second
-                1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
-                60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
-                60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
+                // the current
+                // second
+                1000 * ldt.getSecond() + // Seconds into the current minute
+                60 * 1000 * ldt.getMinute() + // Minutes into the current hour
+                60 * 60 * 1000 * ldt.getHour(); // Hours into the current day
 
         // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
