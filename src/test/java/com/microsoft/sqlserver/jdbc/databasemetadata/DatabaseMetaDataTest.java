@@ -188,6 +188,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testImpersonateGetUserName() throws SQLException {
         String newUser = "newUser" + UUID.randomUUID();
 
