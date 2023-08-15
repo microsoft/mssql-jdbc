@@ -66,8 +66,9 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
     static final int USER_ACCOUNT_LOCKED = 18486;
-    static final java.util.logging.Logger exLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
+
+    // Built-in function '%.*ls' in impersonation context is not supported in this version of SQL Server.
+    static final int IMPERSONATION_CONTEXT_NOT_SUPPORTED = 40529;
 
     // Facility for driver-specific error codes
     static final int DRIVER_ERROR_NONE = 0;
@@ -83,6 +84,9 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
+
+    static final java.util.logging.Logger exLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     /** driver error code */
     private int driverErrorCode = DRIVER_ERROR_NONE;

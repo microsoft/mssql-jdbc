@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -43,6 +44,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -155,8 +157,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.xAzureSQLDB)
     public void testDBUserLogin() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
@@ -184,6 +184,45 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     TestResource.getResource("R_userNameNotMatch"));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testImpersonateGetUserName() throws SQLException {
+        String newUser = "newUser" + UUID.randomUUID();
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            String escapedNewUser = AbstractSQLGenerator.escapeIdentifier(newUser);
+            String password = "password" + UUID.randomUUID();
+
+            stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP USER"
+                    + escapedNewUser);
+
+            // create new user and login
+            try {
+                stmt.execute("CREATE USER " + escapedNewUser + " WITH password='" + password + "'");
+            } catch (SQLServerException e) {
+                // handle failed cases when database is master
+                if (e.getMessage().contains("contained database")) {
+                    stmt.execute("CREATE LOGIN " + escapedNewUser + " WITH password='" + password + "'");
+                    stmt.execute("CREATE USER " + escapedNewUser);
+                }
+            }
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            try (CallableStatement asOtherUser = conn.prepareCall("EXECUTE AS USER = '" + newUser + "'")) {
+                asOtherUser.execute();
+                assertTrue(newUser.equalsIgnoreCase(databaseMetaData.getUserName()),
+                        TestResource.getResource("R_userNameNotMatch"));
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            } finally {
+                stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP USER"
+                        + escapedNewUser);
+                stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP LOGIN"
+                        + escapedNewUser);
+            }
         }
     }
 
