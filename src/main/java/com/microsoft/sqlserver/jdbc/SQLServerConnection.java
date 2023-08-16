@@ -7389,7 +7389,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
             boolean isReturnValueSyntax) {
         final int MAX_PARAM_NAME_LEN = 6;
-        char[] sqlDst = new char[sqlSrc.length() + params.length * (MAX_PARAM_NAME_LEN + OUT.length)];
+        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length)) + (params.length * 2)];
         int dstBegin = 0;
         int srcBegin = 0;
         int nParam = 0;
@@ -7403,8 +7403,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sqlSrc.length() == srcEnd)
                 break;
 
-            dstBegin += makeParamName(nParam++, sqlDst, dstBegin);
-            srcBegin = srcEnd + 1;
+            dstBegin += makeParamName(nParam++, sqlDst, dstBegin, true);
+            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
 
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
@@ -7423,31 +7423,86 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param name
      *        the parameter name
      * @param offset
+     *        the offset
+     * @param isPreparedSQL
+     *        if the param is for build preparedSQL
      * @return int
      */
-    static int makeParamName(int nParam, char[] name, int offset) {
-        name[offset + 0] = '@';
-        name[offset + 1] = 'P';
+    static int makeParamName(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+        buildParamInitial(name, offset, isPreparedSQL);
         if (nParam < 10) {
-            name[offset + 2] = (char) ('0' + nParam);
-            return 3;
+            return buildParamLt10(nParam, name, offset, isPreparedSQL);
         } else {
             if (nParam < 100) {
-                int nBase = 2;
-                while (true) { // make a char[] representation of the param number 2.26
-                    if (nParam < nBase * 10) {
-                        name[offset + 2] = (char) ('0' + (nBase - 1));
-                        name[offset + 3] = (char) ('0' + (nParam - ((nBase - 1) * 10)));
-                        return 4;
-                    }
-                    nBase++;
-                }
+                return buildParamLt100(nParam, name, offset, isPreparedSQL);
             } else {
-                String sParam = "" + nParam;
-                sParam.getChars(0, sParam.length(), name, offset + 2);
-                return 2 + sParam.length();
+                return buildParamMt100(nParam, name, offset, isPreparedSQL);
             }
         }
+    }
+
+    private static void buildParamInitial(char[] name, int offset, boolean isPreparedSQL) {
+        int preparedSQLOffset = 0;
+        if (isPreparedSQL) {
+            name[offset + 0] = ' ';
+            preparedSQLOffset++;
+        }
+        name[offset + preparedSQLOffset + 0] = '@';
+        name[offset + preparedSQLOffset + 1] = 'P';
+    }
+
+    private static int buildParamLt10(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+        int preparedSQLOffset = 0;
+
+        if (isPreparedSQL) {
+            preparedSQLOffset++;
+        }
+
+        name[offset + preparedSQLOffset + 2] = (char) ('0' + nParam);
+
+        if (isPreparedSQL) {
+            name[offset + 4] = ' ';
+            return 5;
+        }
+
+        return 3;
+    }
+
+    private static int buildParamLt100(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+        int nBase = 2;
+        int preparedSQLOffset = 0;
+
+        if (isPreparedSQL) {
+            preparedSQLOffset = 1;
+        }
+
+        while (true) { // make a char[] representation of the param number 2.26
+            if (nParam < nBase * 10) {
+                name[offset + preparedSQLOffset + 2] = (char) ('0' + (nBase - 1));
+                name[offset + preparedSQLOffset + 3] = (char) ('0' + (nParam - ((nBase - 1) * 10)));
+
+                if (isPreparedSQL) {
+                    name[offset + 5] = ' ';
+                    preparedSQLOffset++;
+                }
+
+                return 4 + preparedSQLOffset;
+            }
+            nBase++;
+        }
+    }
+
+    private static int buildParamMt100(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+        int preparedSQLOffset = 0;
+        String sParam = Integer.toString(nParam);
+
+        if (isPreparedSQL) {
+            preparedSQLOffset++;
+            sParam = nParam + " ";
+        }
+
+        sParam.getChars(0, sParam.length(), name, offset + preparedSQLOffset + 2);
+        return 2 + sParam.length() + preparedSQLOffset;
     }
 
     /**
