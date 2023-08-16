@@ -461,7 +461,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (i > 0)
                 sb.append(',');
 
-            int l = SQLServerConnection.makeParamName(i, cParamName, 0);
+            int l = SQLServerConnection.makeParamName(i, cParamName, 0, false);
             String parameterName = String.valueOf(cParamName, 0, l);
             sb.append(parameterName);
             sb.append(' ');
@@ -750,7 +750,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         for (int index = 0; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
                 cParamName = new char[10];
-                int paramNameLen = SQLServerConnection.makeParamName(index, cParamName, 0);
+                int paramNameLen = SQLServerConnection.makeParamName(index, cParamName, 0, false);
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
