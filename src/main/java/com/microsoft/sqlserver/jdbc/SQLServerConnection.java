@@ -7431,12 +7431,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static int makeParamName(int nParam, char[] name, int offset, boolean isPreparedSQL) {
         buildParamInitial(name, offset, isPreparedSQL);
         if (nParam < 10) {
-            return buildParamPrimaryCase(nParam, name, offset, isPreparedSQL);
+            return buildParamLt10(nParam, name, offset, isPreparedSQL);
         } else {
             if (nParam < 100) {
-                return buildParamSecondaryCase(nParam, name, offset, isPreparedSQL);
+                return buildParamLt100(nParam, name, offset, isPreparedSQL);
             } else {
-                return buildParamTertiaryCase(nParam, name, offset, isPreparedSQL);
+                return buildParamMt100(nParam, name, offset, isPreparedSQL);
             }
         }
     }
@@ -7451,7 +7451,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         name[offset + preparedSQLOffset + 1] = 'P';
     }
 
-    private static int buildParamPrimaryCase(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+    private static int buildParamLt10(int nParam, char[] name, int offset, boolean isPreparedSQL) {
         int preparedSQLOffset = 0;
 
         if (isPreparedSQL) {
@@ -7468,7 +7468,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return 3;
     }
 
-    private static int buildParamSecondaryCase(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+    private static int buildParamLt100(int nParam, char[] name, int offset, boolean isPreparedSQL) {
         int nBase = 2;
         int preparedSQLOffset = 0;
 
@@ -7492,7 +7492,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private static int buildParamTertiaryCase(int nParam, char[] name, int offset, boolean isPreparedSQL) {
+    private static int buildParamMt100(int nParam, char[] name, int offset, boolean isPreparedSQL) {
         int preparedSQLOffset = 0;
         String sParam = Integer.toString(nParam);
 
