@@ -82,6 +82,8 @@ public class AESetup extends AbstractTest {
     public static final String SCALE_DATE_TABLE_AE = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate")));
 
+    final static char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
     enum ColumnType {
         PLAIN,
         RANDOMIZED,
@@ -220,18 +222,18 @@ public class AESetup extends AbstractTest {
             setAEConnectionString(serverName, url, protocol);
 
             createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
-                    Constants.CMK_SIGNATURE);
+                    TestUtils.byteToHexDisplayString(jksProvider.signColumnMasterKeyMetadata(javaKeyAliases, true)));
             createCEK(AETestConnectionString, cmkJks, cekJks, jksProvider);
 
             if (null != keyIDs && !keyIDs[0].isEmpty()) {
                 createCMK(AETestConnectionString, cmkAkv, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0],
-                        Constants.CMK_SIGNATURE_AKV);
+                        TestUtils.byteToHexDisplayString(akvProvider.signColumnMasterKeyMetadata(keyIDs[0], true)));
                 createCEK(AETestConnectionString, cmkAkv, cekAkv, akvProvider);
             }
 
             if (null != windowsKeyPath) {
                 createCMK(AETestConnectionString, cmkWin, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath,
-                        Constants.CMK_SIGNATURE);
+                        Constants.CMK_SIGNATURE_WIN);
                 createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
         }

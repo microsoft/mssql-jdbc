@@ -23,10 +23,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.microsoft.sqlserver.jdbc.EnclavePackageTest;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -195,6 +197,145 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
+     * Negative Test - bad JKS signature
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVerifyBadJksSignature(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        // create CMK with a bad signature
+        String badCmk = Constants.CMK_NAME + "_badCMK";
+        String badCek = Constants.CEK_NAME + "_badCek";
+        String badTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadJksSignature")));
+
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createCMK(AETestConnectionString, badCmk, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, jksProvider);
+
+            createTable(badTable, badCek, varcharTableSimple);
+
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+
+            pstmt = c.prepareStatement("SELECT * FROM " + badTable + " WHERE RANDOMIZEDVarchar LIKE ?");
+            pstmt.setString(1, "t%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertTrue(
+                    e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch"))
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropTableIfExists(badTable, s);
+                dropCEK(badCek, s);
+                dropCMK(badCmk, s);
+            }
+        }
+    }
+
+    /*
+     * Negative Test - bad AKS signature
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVerifyBadAkvSignature(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        // create CMK with a bad signature
+        String badCmk = Constants.CMK_NAME + "_badCMK";
+        String badCek = Constants.CEK_NAME + "_badCek";
+        String badTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadAkvSignature")));
+
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            createCMK(AETestConnectionString, badCmk, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, akvProvider);
+
+            createTable(badTable, badCek, varcharTableSimple);
+
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+
+            pstmt = c.prepareStatement("SELECT * FROM " + badTable + " WHERE RANDOMIZEDVarchar LIKE ?");
+            pstmt.setString(1, "t%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertTrue(
+                    e.getMessage().matches(TestUtils.formatErrorMsg("R_SignatureNotMatch"))
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropTableIfExists(badTable, s);
+                dropCEK(badCek, s);
+                dropCMK(badCmk, s);
+            }
+        }
+    }
+
+    /*
+     * Negative Test - bad AKS signature
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testVerifyBadWinSignature(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        String badCmk = Constants.CMK_NAME + "_badCMK";
+        String badCek = Constants.CEK_NAME + "_badCek";
+        String badTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadWinSignature")));
+
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement s = c.createStatement()) {
+            // create CMK with a bad signature
+            createCMK(AETestConnectionString, badCmk, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, "0x666");
+            createCEK(AETestConnectionString, badCmk, badCek, null);
+
+            createTable(badTable, badCek, varcharTableSimple);
+
+            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + badTable + " VALUES (?,?,?)");
+            pstmt.setString(1, "a");
+            pstmt.setString(2, "b");
+            pstmt.setString(3, "test");
+            pstmt.execute();
+
+            pstmt = c.prepareStatement("SELECT * FROM " + badTable + " WHERE RANDOMIZEDVarchar LIKE ?");
+            pstmt.setString(1, "t%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            // windows error message is different
+            assertTrue(
+                    e.getMessage().contains("signature does not match")
+                            || e.getMessage().matches(TestUtils.formatErrorMsg("R_VerifySignatureFailed")),
+                    e.getMessage());
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropTableIfExists(badTable, s);
+                dropCEK(badCek, s);
+                dropCMK(badCmk, s);
+            }
+        }
+    }
+
+    /*
      * Tests alter column encryption on char tables
      */
     @ParameterizedTest
@@ -213,6 +354,7 @@ public class EnclaveTest extends AESetup {
     /*
      * Tests alter column encryption on char tables with AKV
      */
+
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testCharAkv(String serverName, String url, String protocol) throws Exception {
@@ -306,6 +448,7 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
+
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
             pstmt.setString(1, "a");
             pstmt.setString(2, "b");
