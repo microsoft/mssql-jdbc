@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.4.1] Hotfix & Stable Release
+### Changed
+- Added default spacing for prepared SQL parameter names [#2196](https://github.com/microsoft/mssql-jdbc/pull/2196)
+### Fixed issues
+- Fixed metadata query getUserName in impersonated security context in Azure SQL database [#2197](https://github.com/microsoft/mssql-jdbc/pull/2197)
+- Fixed IBM JDK detection [#2198](https://github.com/microsoft/mssql-jdbc/pull/2198)
+- Fixed bug where signature is not verified for Java Key Store and add signColumnMasterkeyMetadata API to JKS and AKV [#2199](https://github.com/microsoft/mssql-jdbc/pull/2199)
+- Added localization of error strings that was missing in original release
+
 ## [12.4.0] Stable Release
 ### Fixed issues
 - Revert #2051 (Big decimal precision) / #2116 (Fix for bigDecimal values between 0 and 1 having too high of a precision) [#2176](https://github.com/microsoft/mssql-jdbc/pull/2176)
