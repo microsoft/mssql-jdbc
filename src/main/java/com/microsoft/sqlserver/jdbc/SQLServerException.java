@@ -17,7 +17,8 @@ enum SQLState {
     DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW("22008"),
     NUMERIC_DATA_OUT_OF_RANGE("22003"),
     DATA_EXCEPTION_LENGTH_MISMATCH("22026"),
-    COL_NOT_FOUND("42S22");
+    COL_NOT_FOUND("42S22"),
+    ERROR_IN_ASSIGNMENT("22005");
 
     private final String sqlStateCode;
 
@@ -59,6 +60,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final String EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH = "08001";
     static final String EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST = "08003";
     static final String EXCEPTION_XOPEN_CONNECTION_FAILURE = "08006"; // After connection was connected OK
+    static final String EXCEPTION_XOPEN_ERROR_IN_ASSIGNMENT = "22005"; // Error code is the same in both SQL-99 and X/Open
 
     static final String LOG_CLIENT_CONNECTION_ID_PREFIX = " ClientConnectionId:";
 
@@ -306,6 +308,8 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "08S01";
                 case SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE:
                     return "08S01";
+                case SQLServerException.EXCEPTION_XOPEN_ERROR_IN_ASSIGNMENT:
+                    return "22005";
                 default:
                     return "";
             }
