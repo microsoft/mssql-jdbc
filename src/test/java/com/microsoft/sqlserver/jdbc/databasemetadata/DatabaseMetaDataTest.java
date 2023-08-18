@@ -346,6 +346,57 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
+     * Tests that the schemaPattern parameter containing _ and % are escaped by
+     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testDBSchemasForSchemaPatternWithWildcards() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testCatalog = "catalog" + id;
+        String[] schemas = {"some_schema", "some%schema", "some[schema"};
+        String[] schemaPatterns = {"some\\_schema", "some\\%schema", "some\\[schema"};
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
+            stmt.execute(String.format("USE [%s]", testCatalog));
+
+            for (int i = 0; i < schemas.length; ++i) {
+                stmt.execute(String.format("CREATE SCHEMA [%s]", schemas[i]));
+
+                try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, schemaPatterns[i])) {
+
+                    MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                    Object[] schemaMsgArgs = {schemas[i]};
+                    Object[] catalogMsgArgs = {testCatalog};
+
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        String schemaName = rs.getString(1);
+                        String catalogName = rs.getString(2);
+                        assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                        assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
+                        assertEquals(schemaName, schemaMsgArgs[0]);
+                        assertEquals(catalogName, catalogMsgArgs[0]);
+                    }
+
+                    MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                    assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+                }
+            }
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
+        }
+    }
+
+    /**
      * Get All Tables.
      * 
      * @throws SQLException
