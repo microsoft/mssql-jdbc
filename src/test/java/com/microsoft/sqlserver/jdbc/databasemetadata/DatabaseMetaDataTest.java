@@ -252,6 +252,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogName() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -303,6 +305,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForDashedCatalogNameWithPattern() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "dash-catalog" + id;
@@ -348,6 +352,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBSchemasForSchemaPatternWithWildcards() throws SQLException {
         UUID id = UUID.randomUUID();
         String testCatalog = "catalog" + id;
