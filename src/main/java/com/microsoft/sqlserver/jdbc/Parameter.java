@@ -450,7 +450,6 @@ final class Parameter {
             deriveTypeInfo(tdsReader);
         }
 
-        deriveTypeInfo(tdsReader);
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
         return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader, statement);
