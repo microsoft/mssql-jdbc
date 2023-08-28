@@ -22,7 +22,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneOffsetTransition;
 import java.time.zone.ZoneRules;
@@ -1852,6 +1854,27 @@ public class DataTypesTest extends AbstractTest {
             } finally {
                 TestUtils.dropTableIfExists(ldtTable, st);
             }
+        }
+    }
+
+    @Test
+    public void testGetLocalDateTimeTypes() throws Exception {
+        // test value needs to be in a time zone other than local
+        OffsetDateTime value = OffsetDateTime.now();
+        value = value.withOffsetSameLocal(value.getOffset().getTotalSeconds() == 0 ? ZoneOffset.ofTotalSeconds(3600) : ZoneOffset.UTC);
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString);
+                PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
+            stmt.setObject(1, value);
+
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+
+            // the offset should be ignored for local types instead of converting to local time zone
+            assertEquals(value, rs.getObject(1, OffsetDateTime.class));
+            assertEquals(value.toLocalDateTime(), rs.getObject(1, LocalDateTime.class));
+            assertEquals(value.toLocalDate(), rs.getObject(1, LocalDate.class));
+            assertEquals(value.toLocalTime(), rs.getObject(1, LocalTime.class));
         }
     }
 

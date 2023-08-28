@@ -894,8 +894,9 @@ final class DDC {
             int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
-        // use the path below instead to optimize performance.
-        if (null == timeZoneCalendar) {
+        // or the object type is explicitly a local type that should ignore the timezone,
+        // use the path below instead to optimize performance and ensure correctness.
+        if (null == timeZoneCalendar || jdbcType == JDBCType.LOCALDATETIME) {
             return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
                     fractionalSecondsScale);
         }
