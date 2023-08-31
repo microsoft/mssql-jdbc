@@ -329,12 +329,14 @@ public class CallableStatementTest extends AbstractTest {
 
         // sanity check: unrecognized parameter name
         try (CallableStatement cs = connection.prepareCall(call)) {
-            cs.setString("@whatever", "test");
+            cs.setString("p2", "world");
+            cs.setString("@invalidParamName", "hello");
+            cs.execute();
             fail(TestResource.getResource("R_shouldThrowException"));
         } catch (SQLException sse) {
-
-            MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotDefined"));
-            Object[] msgArgs = {"@whatever"};
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_notValidParameterForProcedure"));
+            Object[] msgArgs = {"@invalidParamName", inputParamsProcedureName
+                    .replace("[", "").replace("]", "")};
 
             if (!sse.getMessage().startsWith(form.format(msgArgs))) {
                 fail(TestResource.getResource("R_unexpectedExceptionContent"));
