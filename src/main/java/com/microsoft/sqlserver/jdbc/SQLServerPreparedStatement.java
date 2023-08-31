@@ -103,6 +103,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     static boolean validRPC = false;
 
+    static boolean callRpcDirectly = false;
+
     /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
@@ -1152,6 +1154,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
+        callRpcDirectly = callRPCDirectly(params, bReturnValueSyntax);
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -1161,7 +1164,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         } else {
             // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly.
-            if (needsPrepare && callRPCDirectly(params, bReturnValueSyntax)) {
+            if (needsPrepare && callRpcDirectly) {
                 buildRPCExecParams(tdsWriter);
             }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.

@@ -1245,7 +1245,7 @@ final class Parameter {
         try {
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
-            inputDTV.sendByRPC(name, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
+            inputDTV.sendByRPC(SQLServerPreparedStatement.callRpcDirectly ? name : null, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
                     isOutput(), tdsWriter, statement);
         } finally {
             // reset the cryptoMeta in IOBuffer
