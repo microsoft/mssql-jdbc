@@ -48,13 +48,8 @@ final class Util {
     private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
-        Class<?> clazz = null;
-        try {
-            clazz = Class.forName("com.ibm.lang.management.MemoryUsage");
-        } catch (ClassNotFoundException e) {
-            //We're using the try-catch to test for IBM jdk, no need to handle exception.
-        }
-        return null != clazz;
+        String vmName = System.getProperty("java.vm.name");
+        return SYSTEM_JRE.startsWith("IBM") && vmName.startsWith("IBM");
     }
 
     static String getJVMArchOnWindows() {
