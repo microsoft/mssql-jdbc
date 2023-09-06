@@ -1518,7 +1518,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
-        return getSchemasInternal(catalog, schemaPattern);
+        return getSchemasInternal(catalog, escapeIDName(schemaPattern));
     }
 
     @Override
