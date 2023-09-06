@@ -442,6 +442,43 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
+     * that the connect is retried the proper number of times. If either of these are not the case, we expect the run
+     * time to take significantly longer, and the test to fail.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCount() {
+        long timerStart = 0;
+        long timerEnd;
+
+        int connectRetryCount = 5;
+        int connectRetryInterval = 5;
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(loginTimeOutInSeconds);
+            ds.setConnectRetryCount(connectRetryCount);
+            ds.setConnectRetryInterval(connectRetryInterval);
+            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+            timerStart = System.currentTimeMillis();
+            try (Connection con = ds.getConnection()) {
+                // Should not have connected
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+            }
+        } catch (Exception e) {
+            // We correctly should not have connected
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+
+            // Now measure the total time. It should be ~1s per attempt plus ~1s per retry plus the length of each
+            // retry interval.
+            timerEnd = System.currentTimeMillis();
+            long totalTime = timerEnd - timerStart;
+            int expectedTotalTimeInMillis = (1 + (connectRetryInterval * connectRetryCount)) * 1000;
+            assertTrue(totalTime <= expectedTotalTimeInMillis, TestResource.getResource("R_executionTooLong"));
+        }
+    }
+
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
