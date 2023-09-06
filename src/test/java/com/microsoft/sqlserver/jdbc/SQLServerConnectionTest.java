@@ -474,7 +474,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             // retry interval.
             timerEnd = System.currentTimeMillis();
             long totalTime = timerEnd - timerStart;
-            int expectedTotalTimeInMillis = (1 + (connectRetryInterval * connectRetryCount)) * 1000;
+            int expectedTotalTimeInMillis = ((1 + connectRetryCount + (connectRetryCount * connectRetryInterval)) * 1000);
             assertTrue(totalTime <= expectedTotalTimeInMillis, TestResource.getResource("R_executionTooLong"));
         }
     }
