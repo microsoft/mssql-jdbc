@@ -1616,7 +1616,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
                     // executing sp_executesql for stored procedures.
                     if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType && null != inOutParam
-                            && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
+                            && inOutParam.length > 0 && inOutParam[0].isReturnValue() && !connection.isColumnEncryptionSettingEnabled()) {
                         inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
                         return false;
                     }

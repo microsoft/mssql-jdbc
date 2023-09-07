@@ -192,7 +192,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             return inOutParam[i - 1];
         }
 
-        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType) {
+        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && !connection.isColumnEncryptionSettingEnabled()) {
             return inOutParam[i - 1];
         }
 
@@ -341,7 +341,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         OutParamHandler outParamHandler = new OutParamHandler();
 
         if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType
-                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax)) {
+                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && !connection.isColumnEncryptionSettingEnabled()) {
             nOutParamsAssigned++;
         }
 
@@ -389,7 +389,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
 
                 if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection
-                        .isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax)) {
+                        .isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && !connection.isColumnEncryptionSettingEnabled()) {
                     outParamIndex++;
                 } else {
                     // Statements need to have their out param indices adjusted by the number
