@@ -451,8 +451,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         long timerStart = 0;
 
         int connectRetryCount = 5;
-        int connectRetryInterval = 3;
-        int longLoginTimeout = 10800; // 3 hours
+        int connectRetryInterval = 5;
+        int longLoginTimeout = loginTimeOutInSeconds * 3;
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -472,8 +472,8 @@ public class SQLServerConnectionTest extends AbstractTest {
             long totalTime = System.currentTimeMillis() - timerStart;
             int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000;
 
-            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of waiting.
-            // Maximum is unknown, but less than loginTimeout.
+            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
+            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong"));
             assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
         }
@@ -489,7 +489,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         int connectRetryCount = 0;
         int connectRetryInterval = 60;
-        int longLoginTimeout = 10800; // 3 hours
+        int longLoginTimeout = loginTimeOutInSeconds * 3;
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -508,8 +508,8 @@ public class SQLServerConnectionTest extends AbstractTest {
 
             long totalTime = System.currentTimeMillis() - timerStart;
 
-            // Minimum expected time is 0 as retry count is zero.
-            // Maximum is unknown, but is less than loginTimeout.
+            // Minimum time is 0 as retry count is zero.
+            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime > 0, TestResource.getResource("R_executionNotLong"));
             assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
         }
