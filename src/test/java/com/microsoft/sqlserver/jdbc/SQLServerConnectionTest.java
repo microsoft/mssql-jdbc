@@ -4,6 +4,11 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
@@ -41,8 +46,6 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 
 @RunWith(JUnitPlatform.class)
@@ -461,7 +464,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             timerStart = System.currentTimeMillis();
 
             try (Connection con = ds.getConnection()) {
-                assertNull(con, TestResource.getResource("R_shouldNotConnect"));
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
             }
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
@@ -498,7 +501,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             timerStart = System.currentTimeMillis();
 
             try (Connection con = ds.getConnection()) {
-                assertNull(con, TestResource.getResource("R_shouldNotConnect"));
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
             }
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
