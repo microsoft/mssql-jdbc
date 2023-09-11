@@ -4,11 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
@@ -46,6 +41,8 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @RunWith(JUnitPlatform.class)
@@ -444,38 +441,74 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     /**
      * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
-     * that the connect is retried the proper number of times. If either of these are not the case, we expect the run
-     * time to take significantly longer, and the test to fail.
+     * that connection is retried the proper number of times.
      */
     @Test
     public void testConnectCountInLoginAndCorrectRetryCount() {
         long timerStart = 0;
-        long timerEnd;
 
         int connectRetryCount = 5;
-        int connectRetryInterval = 5;
+        int connectRetryInterval = 3;
+        int longLoginTimeout = 10800; // 3 hours
+
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setURL(connectionString);
-            ds.setLoginTimeout(loginTimeOutInSeconds);
+            ds.setLoginTimeout(longLoginTimeout);
             ds.setConnectRetryCount(connectRetryCount);
             ds.setConnectRetryInterval(connectRetryInterval);
             ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
             timerStart = System.currentTimeMillis();
+
             try (Connection con = ds.getConnection()) {
-                // Should not have connected
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+                assertNull(con, TestResource.getResource("R_shouldNotConnect"));
             }
         } catch (Exception e) {
-            // We correctly should not have connected
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
 
-            // Now measure the total time. It should be ~1s per attempt plus ~1s per retry plus the length of each
-            // retry interval.
-            timerEnd = System.currentTimeMillis();
-            long totalTime = timerEnd - timerStart;
-            int expectedTotalTimeInMillis = ((1 + connectRetryCount + (connectRetryCount * connectRetryInterval)) * 1000);
-            assertTrue(totalTime <= expectedTotalTimeInMillis, TestResource.getResource("R_executionTooLong"));
+            long totalTime = System.currentTimeMillis() - timerStart;
+            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000;
+
+            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of waiting.
+            // Maximum is unknown, but less than loginTimeout.
+            assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong"));
+            assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
+        }
+    }
+
+    /**
+     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
+     * that connection is retried the proper number of times. This is for cases with zero retries.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCountWithZeroRetry() {
+        long timerStart = 0;
+
+        int connectRetryCount = 0;
+        int connectRetryInterval = 60;
+        int longLoginTimeout = 10800; // 3 hours
+
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(longLoginTimeout);
+            ds.setConnectRetryCount(connectRetryCount);
+            ds.setConnectRetryInterval(connectRetryInterval);
+            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+            timerStart = System.currentTimeMillis();
+
+            try (Connection con = ds.getConnection()) {
+                assertNull(con, TestResource.getResource("R_shouldNotConnect"));
+            }
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+
+            long totalTime = System.currentTimeMillis() - timerStart;
+
+            // Minimum expected time is 0 as retry count is zero.
+            // Maximum is unknown, but is less than loginTimeout.
+            assertTrue(totalTime > 0, TestResource.getResource("R_executionNotLong"));
+            assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
         }
     }
 
