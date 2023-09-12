@@ -191,7 +191,7 @@ public class AESetup extends AbstractTest {
         }
 
         // TODO: update AE test servers to support
-        AETestConnectionString += ";trustServerCertificate=true;";
+        AETestConnectionString += ";encrypt=false;trustServerCertificate=true;";
     }
 
     @BeforeAll
