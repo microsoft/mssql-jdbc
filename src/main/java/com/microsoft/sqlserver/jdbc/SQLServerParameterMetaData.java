@@ -397,7 +397,9 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
     private boolean isValidParamProc(int n) {
         // Note row 1 is the 'return value' meta data
-        return ((stmtParent.bReturnValueSyntax && isTVP && procMetadata.size() >= n) || procMetadata.size() > n);
+        
+        return (n >= 1 // JDBC index is 1 based
+                && ((stmtParent.bReturnValueSyntax && isTVP && procMetadata.size() >= n) || procMetadata.size() > n));
     }
 
     private boolean isValidParamQuery(int n) {

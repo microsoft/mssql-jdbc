@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.parametermetadata;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -127,6 +128,10 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assert (metadata.getPrecision(2) == 38);
                     assert (metadata.getScale(2) == 5);
                     assert (!metadata.isSigned(1));
+
+                    // test invalid index
+                    assertThrows(SQLException.class, () -> metadata.getParameterType(0));
+                    assertThrows(SQLException.class, () -> metadata.getParameterType(3));
                 }
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
@@ -160,6 +165,10 @@ public class ParameterMetaDataTest extends AbstractTest {
                 assert (metadata.getScale(1) == 0);
                 assert (metadata.isNullable(1) == ParameterMetaData.parameterNullable);
                 assert (!metadata.isSigned(1));
+
+                // test invalid index
+                assertThrows(SQLException.class, () -> metadata.getParameterType(0));
+                assertThrows(SQLException.class, () -> metadata.getParameterType(3));
             }
         }
     }
