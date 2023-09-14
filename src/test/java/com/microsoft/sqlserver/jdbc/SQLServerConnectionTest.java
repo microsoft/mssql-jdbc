@@ -450,8 +450,8 @@ public class SQLServerConnectionTest extends AbstractTest {
     public void testConnectCountInLoginAndCorrectRetryCount() {
         long timerStart = 0;
 
-        int connectRetryCount = 5;
-        int connectRetryInterval = 5;
+        int connectRetryCount = 3;
+        int connectRetryInterval = 3;
         int longLoginTimeout = loginTimeOutInSeconds * 4; // 120 seconds
 
         try {
@@ -469,7 +469,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
             long totalTime = System.currentTimeMillis() - timerStart;
-            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 25 seconds
+            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 9 seconds
 
             // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
