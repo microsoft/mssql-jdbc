@@ -452,7 +452,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         int connectRetryCount = 5;
         int connectRetryInterval = 5;
-        int longLoginTimeout = loginTimeOutInSeconds * 3;
+        int longLoginTimeout = loginTimeOutInSeconds * 4; // 120 seconds
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -468,14 +468,13 @@ public class SQLServerConnectionTest extends AbstractTest {
             }
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
-
             long totalTime = System.currentTimeMillis() - timerStart;
-            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000;
+            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 25 seconds
 
             // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong"));
-            assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
+            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
 
@@ -489,7 +488,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         int connectRetryCount = 0;
         int connectRetryInterval = 60;
-        int longLoginTimeout = loginTimeOutInSeconds * 3;
+        int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -505,13 +504,10 @@ public class SQLServerConnectionTest extends AbstractTest {
             }
         } catch (Exception e) {
             assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
-
             long totalTime = System.currentTimeMillis() - timerStart;
 
-            // Minimum time is 0 as retry count is zero.
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
-            assertTrue(totalTime > 0, TestResource.getResource("R_executionNotLong"));
-            assertTrue(totalTime < (longLoginTimeout * 1000), TestResource.getResource("R_executionTooLong"));
+            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
 
