@@ -69,8 +69,8 @@ class SQLServerMSAL4JUtils {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
-    static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
-            String authenticationString) throws SQLServerException {
+    static synchronized SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user,
+            String password, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -108,8 +108,8 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
-            String aadPrincipalSecret, String authenticationString) throws SQLServerException {
+    static synchronized SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo,
+            String aadPrincipalID, String aadPrincipalSecret, String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -152,7 +152,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenPrincipalCertificate(SqlFedAuthInfo fedAuthInfo,
+    static synchronized SqlAuthenticationToken getSqlFedAuthTokenPrincipalCertificate(SqlFedAuthInfo fedAuthInfo,
             String aadPrincipalID, String certFile, String certPassword, String certKey, String certKeyPassword,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -253,7 +253,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
+    static synchronized SqlAuthenticationToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -300,7 +300,7 @@ class SQLServerMSAL4JUtils {
         }
     }
 
-    static SqlAuthenticationToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
+    static synchronized SqlAuthenticationToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
