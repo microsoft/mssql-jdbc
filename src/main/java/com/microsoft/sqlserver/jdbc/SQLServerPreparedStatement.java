@@ -764,10 +764,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, params.length, bReturnValueSyntax)) {
             returnParam = params[index];
             params[index].setReturnValue(true);
-
-            if (!connection.isColumnEncryptionSettingEnabled()) {
-                index++;
-            }
+            index++;
         }
         for (; index < params.length; index++) {
             if (JDBCType.TVP == params[index].getJdbcType()) {
@@ -1167,7 +1164,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildServerCursorExecParams(tdsWriter);
         } else {
             // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly.
-            if (needsPrepare && callRpcDirectly && !connection.isColumnEncryptionSettingEnabled()) {
+            if (needsPrepare && callRpcDirectly) {
                 buildRPCExecParams(tdsWriter);
             }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
