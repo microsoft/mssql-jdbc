@@ -56,6 +56,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Always update serialVersionUID when prompted.
      */
+
     private static final long serialVersionUID = -4421134713913331507L;
 
     final static char LEFT_CURLY_BRACKET = 123;
@@ -65,6 +66,9 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /** response buffer adaptive flag */
     boolean isResponseBufferingAdaptive = false;
+
+    /** TDS token return value status **/
+    int returnValueStatus;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -1627,11 +1631,21 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
+                // Status: A value of 0x01 means the return value corresponds to an output parameter from
+                // a stored procedure. If it's 0x02 then the value corresponds to a return value from a
+                // user defined function.
+                //
+                // If it's a return value from a user defined function, we need to return false from this method
+                // so that the return value is not skipped.
+                int status = tdsReader.peekReturnValueStatus();
+
+                SQLServerStatement.this.returnValueStatus = status;
+
                 // We are only interested in return values that are statement OUT parameters,
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-                if (moreResults && null == procedureRetStatToken) {
+                if (moreResults && null == procedureRetStatToken && status != 2) {
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);
