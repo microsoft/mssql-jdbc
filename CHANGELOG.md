@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.4.2] Hotfix & Stable Release
+### Fixed issues
+- Reverted the IBM check to vendor check and added an additional vm name check to remove false positives [#2209](https://github.com/microsoft/mssql-jdbc/pull/2209)
+
 ## [12.4.1] Hotfix & Stable Release
 ### Changed
 - Added default spacing for prepared SQL parameter names [#2196](https://github.com/microsoft/mssql-jdbc/pull/2196)
