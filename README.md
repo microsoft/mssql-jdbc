@@ -17,7 +17,7 @@ SQL Server Team
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="50" width="125" src="https://img.shields.io/badge/Survey-green"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="50" width="125" src="https://img.shields.io/badge/Survey-70B244"></a>
 
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
