@@ -11,7 +11,7 @@ The Microsoft JDBC Driver for SQL Server is a Type 4 JDBC driver that provides d
 
 We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
-SQL Server Team
+Microsoft JDBC driver for SQL Server Team
 
 ## Take our survey
 
