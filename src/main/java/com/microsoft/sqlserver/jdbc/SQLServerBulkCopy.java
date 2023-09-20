@@ -1710,24 +1710,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * True if computed cols are supported by database server
-     *
-     * @return true if computed cols are supported
-     */
-    private boolean isComputedColsSupported() {
-        if (connection.sqlServerVersion != null) {
-            try {
-                int majorVersion = Integer.parseInt(connection.sqlServerVersion.split("\\.")[0]);
-                if (majorVersion >= 13) { // SQL Server 2016
-                    return true;
-                }
-            } catch (NumberFormatException e) {
-            }
-        }
-        return false;
-    }
-
-    /**
      * Returns the column metadata for the destination table (and saves it for later)
      */
     private void getDestinationMetadata() throws SQLServerException {
