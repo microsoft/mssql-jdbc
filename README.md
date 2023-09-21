@@ -11,13 +11,13 @@ The Microsoft JDBC Driver for SQL Server is a Type 4 JDBC driver that provides d
 
 We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
-SQL Server Team
+Microsoft JDBC driver for SQL Server Team
 
 ## Take our survey
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="50" width="125" src="https://img.shields.io/badge/Survey-70B244"></a>
 
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
@@ -28,10 +28,7 @@ Let us know how you think we're doing.
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
 
 ## Get Started 
-* [**Ubuntu + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/ubuntu) 
-* [**Red Hat + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/rhel)
-* [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/mac)
-* [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/windows)
+[**Getting started with SQL Server and Java**](https://github.com/AzureSQLDB/sql-driver-examples/blob/main/examples/sql/drivers/java-driver-example.md)
 
 ## Build
 ### Prerequisites
