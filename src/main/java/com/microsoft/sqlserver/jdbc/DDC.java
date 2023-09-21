@@ -861,6 +861,9 @@ final class DDC {
      *
      * java.sql.Date java.sql.Time java.sql.Timestamp java.lang.String
      *
+     * @param connection
+     *        the JDBC connection from which value was read
+     *
      * @param jdbcType
      *        the JDBC type indicating the desired conversion
      *
@@ -890,13 +893,14 @@ final class DDC {
      *
      * @return a Java object of the desired type.
      */
-    static final Object convertTemporalToObject(JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
+    static final Object convertTemporalToObject(
+            SQLServerConnection connection, JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
             int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
-        // or the object type is explicitly a local type that should ignore the timezone,
+        // or the object type is explicitly a local type and the connection is configured to behave like java.time,
         // use the path below instead to optimize performance and ensure correctness.
-        if (null == timeZoneCalendar || jdbcType == JDBCType.LOCALDATETIME) {
+        if (null == timeZoneCalendar || (jdbcType == JDBCType.LOCALDATETIME && connection.getJavaCompatibleTimeConversion())) {
             return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
                     fractionalSecondsScale);
         }

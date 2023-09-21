@@ -633,6 +633,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public boolean getJavaCompatibleTimeConversion() {
+        return wrappedConnection.getJavaCompatibleTimeConversion();
+    }
+
+    @Override
+    public void setJavaCompatibleTimeConversion(boolean javaCompatibleTimeConversion) {
+        wrappedConnection.setJavaCompatibleTimeConversion(javaCompatibleTimeConversion);
+    }
+
+    @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
 

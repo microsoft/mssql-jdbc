@@ -973,6 +973,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    /** Boolean that indicates whether datetime types are converted to java.time objects using java.time rules */
+    private boolean javaCompatibleTimeConversion = SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.getDefaultValue();
+
+    @Override
+    public boolean getJavaCompatibleTimeConversion() {
+        return javaCompatibleTimeConversion;
+    }
+
+    @Override
+    public void setJavaCompatibleTimeConversion(boolean javaCompatibleTimeConversion) {
+        this.javaCompatibleTimeConversion = javaCompatibleTimeConversion;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2924,6 +2937,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                javaCompatibleTimeConversion = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 FailoverInfo fo = null;
                 String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();

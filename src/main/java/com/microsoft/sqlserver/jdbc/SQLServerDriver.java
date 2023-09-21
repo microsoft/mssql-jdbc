@@ -693,7 +693,8 @@ enum SQLServerDriverBooleanProperty {
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
-    DELAY_LOADING_LOBS("delayLoadingLobs", true);
+    DELAY_LOADING_LOBS("delayLoadingLobs", true),
+    JAVA_COMPATIBLE_TIME_CONVERSION("javaCompatibleTimeConversion", false);
 
     private final String name;
     private final boolean defaultValue;

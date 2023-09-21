@@ -417,6 +417,21 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setDelayLoadingLobs(boolean delayLoadingLobs);
 
     /**
+     * Returns the current flag value for javaCompatibleTimeConversion.
+     *
+     * @return 'javaCompatibleTimeConversion' property value.
+     */
+    boolean getJavaCompatibleTimeConversion();
+
+    /**
+     * Specifies the flag to use rules compatible with java.time to convert datetime types.
+     *
+     * @param javaCompatibleTimeConversion
+     *        boolean value for 'javaCompatibleTimeConversion'.
+     */
+    void setJavaCompatibleTimeConversion(boolean javaCompatibleTimeConversion);
+
+    /**
      * Sets the name of the preferred type of IP Address.
      * 
      * @param iPAddressPreference

@@ -7229,7 +7229,7 @@ final class TDSReader implements Serializable {
         }
 
         // Convert the DATETIME/SMALLDATETIME value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, appTimeZoneCalendar, daysSinceSQLBaseDate,
+        return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIME, appTimeZoneCalendar, daysSinceSQLBaseDate,
                 msecSinceMidnight, 0); // scale
                                        // (ignored
                                        // for
@@ -7246,7 +7246,7 @@ final class TDSReader implements Serializable {
         int localDaysIntoCE = readDaysIntoCE();
 
         // Convert the DATE value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0, // midnight
+        return DDC.convertTemporalToObject(con, jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0, // midnight
                                                                                                            // local to
                                                                                                            // app time
                                                                                                            // zone
@@ -7262,7 +7262,7 @@ final class TDSReader implements Serializable {
         long localNanosSinceMidnight = readNanosSinceMidnight(typeInfo.getScale());
 
         // Convert the TIME value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.TIME, appTimeZoneCalendar, 0, localNanosSinceMidnight,
+        return DDC.convertTemporalToObject(con, jdbcType, SSType.TIME, appTimeZoneCalendar, 0, localNanosSinceMidnight,
                 typeInfo.getScale());
     }
 
@@ -7276,7 +7276,7 @@ final class TDSReader implements Serializable {
         int localDaysIntoCE = readDaysIntoCE();
 
         // Convert the DATETIME2 value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, appTimeZoneCalendar, localDaysIntoCE,
+        return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIME2, appTimeZoneCalendar, localDaysIntoCE,
                 localNanosSinceMidnight, typeInfo.getScale());
     }
 
@@ -7291,7 +7291,7 @@ final class TDSReader implements Serializable {
         int localMinutesOffset = readShort();
 
         // Convert the DATETIMEOFFSET value to the desired Java type.
-        return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
+        return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIMEOFFSET,
                 new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US), utcDaysIntoCE,
                 utcNanosSinceMidnight, typeInfo.getScale());
     }
