@@ -1860,7 +1860,7 @@ public class DataTypesTest extends AbstractTest {
     @Test
     public void testGetLocalDateTimeTypes() throws Exception {
         // test value needs to be in a time zone other than local
-        OffsetDateTime value = OffsetDateTime.now();
+        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
         value = value.withOffsetSameLocal(value.getOffset().getTotalSeconds() == 0 ? ZoneOffset.ofTotalSeconds(3600) : ZoneOffset.UTC);
         LocalDateTime valueWithOffsetConversion = value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
 

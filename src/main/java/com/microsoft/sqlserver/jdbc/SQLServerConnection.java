@@ -7299,6 +7299,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original delayLoadingLobs */
     private boolean originalDelayLoadingLobs;
+    
+    /** original javaCompatibleTimeConversion */
+    private boolean originalJavaCompatibleTimeConversion;
 
     /** Always Encrypted version */
     private int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
@@ -7324,6 +7327,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
                 originalDelayLoadingLobs = delayLoadingLobs;
+                originalJavaCompatibleTimeConversion = javaCompatibleTimeConversion;
                 requestStarted = true;
             }
         } finally {
@@ -7381,6 +7385,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (delayLoadingLobs != originalDelayLoadingLobs) {
                     setDelayLoadingLobs(originalDelayLoadingLobs);
+                }
+                if (javaCompatibleTimeConversion != originalJavaCompatibleTimeConversion) {
+                    setJavaCompatibleTimeConversion(originalJavaCompatibleTimeConversion);
                 }
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
