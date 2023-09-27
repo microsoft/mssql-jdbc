@@ -898,9 +898,8 @@ final class DDC {
             int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
-        // or the object type is explicitly a local type and the connection is configured to behave like java.time,
-        // use the path below instead to optimize performance and ensure correctness.
-        if (null == timeZoneCalendar || (jdbcType == JDBCType.LOCALDATETIME && connection.getJavaCompatibleTimeConversion())) {
+        // use the path below instead to optimize performance.
+        if (null == timeZoneCalendar) {
             return convertTemporalToObject(jdbcType, ssType, daysSinceBaseDate, ticksSinceMidnight,
                     fractionalSecondsScale);
         }
@@ -1132,7 +1131,13 @@ final class DDC {
                 java.sql.Timestamp ts2 = new java.sql.Timestamp(cal.getTimeInMillis());
                 ts2.setNanos(subSecondNanos);
                 if (jdbcType == JDBCType.LOCALDATETIME) {
-                    return ts2.toLocalDateTime();
+                    if (connection.getIgnoreOffsetOnDateTimeOffsetConversion()) {
+                        return LocalDateTime.of(
+                                cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH),
+                                cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), subSecondNanos);
+                    } else {
+                        return ts2.toLocalDateTime();
+                    }
                 }
                 return ts2;
 

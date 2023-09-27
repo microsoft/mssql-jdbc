@@ -974,16 +974,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Boolean that indicates whether datetime types are converted to java.time objects using java.time rules */
-    private boolean javaCompatibleTimeConversion = SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.getDefaultValue();
+    private boolean ignoreOffsetOnDateTimeOffsetConversion = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue();
 
     @Override
-    public boolean getJavaCompatibleTimeConversion() {
-        return javaCompatibleTimeConversion;
+    public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
+        return ignoreOffsetOnDateTimeOffsetConversion;
     }
 
     @Override
-    public void setJavaCompatibleTimeConversion(boolean javaCompatibleTimeConversion) {
-        this.javaCompatibleTimeConversion = javaCompatibleTimeConversion;
+    public void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion) {
+        this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
     /** Session Recovery Object */
@@ -2938,13 +2938,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
 
-                sPropKey = SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.toString();
+                sPropKey = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.JAVA_COMPATIBLE_TIME_CONVERSION.getDefaultValue());
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
-                javaCompatibleTimeConversion = isBooleanPropertyOn(sPropKey, sPropValue);
+                ignoreOffsetOnDateTimeOffsetConversion = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 FailoverInfo fo = null;
                 String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
@@ -7300,8 +7300,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original delayLoadingLobs */
     private boolean originalDelayLoadingLobs;
     
-    /** original javaCompatibleTimeConversion */
-    private boolean originalJavaCompatibleTimeConversion;
+    /** original ignoreOffsetOnDateTimeOffsetConversion */
+    private boolean originalIgnoreOffsetOnDateTimeOffsetConversion;
 
     /** Always Encrypted version */
     private int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
@@ -7327,7 +7327,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
                 originalDelayLoadingLobs = delayLoadingLobs;
-                originalJavaCompatibleTimeConversion = javaCompatibleTimeConversion;
+                originalIgnoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
                 requestStarted = true;
             }
         } finally {
@@ -7386,8 +7386,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (delayLoadingLobs != originalDelayLoadingLobs) {
                     setDelayLoadingLobs(originalDelayLoadingLobs);
                 }
-                if (javaCompatibleTimeConversion != originalJavaCompatibleTimeConversion) {
-                    setJavaCompatibleTimeConversion(originalJavaCompatibleTimeConversion);
+                if (ignoreOffsetOnDateTimeOffsetConversion != originalIgnoreOffsetOnDateTimeOffsetConversion) {
+                    setIgnoreOffsetOnDateTimeOffsetConversion(originalIgnoreOffsetOnDateTimeOffsetConversion);
                 }
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {

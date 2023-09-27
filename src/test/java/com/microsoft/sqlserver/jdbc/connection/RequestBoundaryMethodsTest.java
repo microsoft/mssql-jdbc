@@ -399,7 +399,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int networkTimeout, int holdability, boolean sendTimeAsDatetime, int statementPoolingCacheSize,
             boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs, boolean javaCompatibleTimeConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
@@ -413,14 +413,14 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
         con.setUseFmtOnly(useFmtOnly);
         con.setDelayLoadingLobs(delayLoadingLobs);
-        con.setJavaCompatibleTimeConversion(javaCompatibleTimeConversion);
+        con.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
     }
 
     private void compareValuesAgainstConnection(SQLServerConnection con, boolean autoCommitMode,
             int transactionIsolationLevel, int networkTimeout, int holdability, boolean sendTimeAsDatetime,
             int statementPoolingCacheSize, boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs, boolean javaCompatibleTimeConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
         assertEquals(transactionIsolationLevel, con.getTransactionIsolation(),
@@ -441,7 +441,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 "useBulkCopyForBatchInsert" + description);
         assertEquals(useFmtOnly, con.getUseFmtOnly(), "useFmtOnly" + description);
         assertEquals(delayLoadingLobs, con.getDelayLoadingLobs(), "delayLoadingLobs" + description);
-        assertEquals(javaCompatibleTimeConversion, con.getJavaCompatibleTimeConversion(), "javaCompatibleTimeConversion" + description);
+        assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(), "ignoreOffsetOnDateTimeOffsetConversion" + description);
     }
 
     private void generateWarning(Connection con) throws SQLException {
@@ -499,7 +499,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("createArrayOf");
         verifiedMethodNames.add("setUseFmtOnly");
         verifiedMethodNames.add("setDelayLoadingLobs");
-        verifiedMethodNames.add("setJavaCompatibleTimeConversion");
+        verifiedMethodNames.add("setIgnoreOffsetOnDateTimeOffsetConversion");
         verifiedMethodNames.add("registerColumnEncryptionKeyStoreProvidersOnConnection");
         verifiedMethodNames.add("getPrepareMethod");
         verifiedMethodNames.add("setPrepareMethod");

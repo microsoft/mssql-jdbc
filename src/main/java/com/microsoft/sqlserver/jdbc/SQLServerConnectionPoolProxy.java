@@ -633,13 +633,13 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public boolean getJavaCompatibleTimeConversion() {
-        return wrappedConnection.getJavaCompatibleTimeConversion();
+    public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
+        return wrappedConnection.getIgnoreOffsetOnDateTimeOffsetConversion();
     }
 
     @Override
-    public void setJavaCompatibleTimeConversion(boolean javaCompatibleTimeConversion) {
-        wrappedConnection.setJavaCompatibleTimeConversion(javaCompatibleTimeConversion);
+    public void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion) {
+        wrappedConnection.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
     }
 
     @Override

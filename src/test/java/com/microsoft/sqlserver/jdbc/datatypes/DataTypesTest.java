@@ -1861,7 +1861,9 @@ public class DataTypesTest extends AbstractTest {
     public void testGetLocalDateTimeTypes() throws Exception {
         // test value needs to be in a time zone other than local
         OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
-        value = value.withOffsetSameLocal(value.getOffset().getTotalSeconds() == 0 ? ZoneOffset.ofTotalSeconds(3600) : ZoneOffset.UTC);
+        int offsetSeconds = value.getOffset().getTotalSeconds();
+        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
+        value = value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
         LocalDateTime valueWithOffsetConversion = value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
@@ -1879,7 +1881,7 @@ public class DataTypesTest extends AbstractTest {
             }
             
             // change the behavior to be compatible with java.time conversion methods
-            conn.setJavaCompatibleTimeConversion(true);
+            conn.setIgnoreOffsetOnDateTimeOffsetConversion(true);
             
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
                 stmt.setObject(1, value);
