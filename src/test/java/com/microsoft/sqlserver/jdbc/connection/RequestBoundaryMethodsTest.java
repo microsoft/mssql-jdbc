@@ -74,7 +74,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean useBulkCopyForBatchInsert1 = true;
         boolean useFmtOnly1 = true;
         boolean delayLoadingLobs1 = false;
-        boolean javaCompatibleTimeConversion1 = true;
+        boolean ignoreOffsetOnDateTimeOffsetConversion1 = true;
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
@@ -89,7 +89,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean useBulkCopyForBatchInsert2 = false;
         boolean useFmtOnly2 = false;
         boolean delayLoadingLobs2 = true;
-        boolean javaCompatibleTimeConversion2 = false;
+        boolean ignoreOffsetOnDateTimeOffsetConversion2 = false;
 
         try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
             if (TestUtils.isJDBC43OrGreater(con)) {
@@ -100,53 +100,53 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                         sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                         serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, javaCompatibleTimeConversion1);
+                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1);
                 con.beginRequest();
                 // Call setters with the second set of values inside beginRequest()/endRequest() block.
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                         sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, javaCompatibleTimeConversion2);
+                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2);
                 con.endRequest();
                 // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
                 compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1,
                         holdability1, sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                         serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, javaCompatibleTimeConversion1);
+                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1);
 
                 // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                         sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, javaCompatibleTimeConversion2);
+                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2);
                 con.beginRequest();
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                         sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                         serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, javaCompatibleTimeConversion1);
+                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1);
                 con.beginRequest();
                 con.endRequest();
                 // Same values as before the first beginRequest()
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                         holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, javaCompatibleTimeConversion2);
+                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2);
 
                 // A call to endRequest() without an intervening call to beginRequest() is no-op.
                 setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                         sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                         serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, javaCompatibleTimeConversion1);
+                        useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1);
                 setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                         sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, javaCompatibleTimeConversion2);
+                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2);
                 con.endRequest();
                 // No change.
                 compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                         holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                         serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, javaCompatibleTimeConversion2);
+                        useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2);
             }
         } finally {
             TestUtils.dropDatabaseIfExists(sCatalog2, connectionString);
