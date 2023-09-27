@@ -203,5 +203,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_connectTimedOut", "connect timed out"},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
             {"R_failedFedauth", "Failed to acquire fedauth token: "},
+            {"R_noLoginModulesConfiguredForJdbcDriver", "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
             {"R_unexpectedThreadCount", "Thread count is higher than expected."}};
 }
