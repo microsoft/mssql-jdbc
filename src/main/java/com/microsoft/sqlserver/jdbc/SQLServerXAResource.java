@@ -946,7 +946,10 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     }
 
     private enum ResourceManagerFailure {
-        CONN_RESET("Connection reset");
+        CONN_RESET("Connection reset"),
+        CONN_RESET_BY_PEER("Connection reset by peer"),
+        CONN_TIMEOUT("Connection timed out"),
+        CONN_RESILIENCY_CLIENT_UNRECOVERABLE(SQLServerException.getErrString("R_crClientUnrecoverable"));
 
         private final String errString;
 
@@ -984,6 +987,10 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             return false;
         }
 
+        if (xaLogger.isLoggable(Level.FINE)) {
+            xaLogger.fine(toString() + " Resource manager failure root exception: " + root);
+        }
+
         ResourceManagerFailure err = ResourceManagerFailure.fromString(root.getMessage());
 
         if (null == err) {
@@ -991,16 +998,15 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
         }
 
         // Add as needed here for future XAER_RMFAIL exceptions
-        if (root instanceof SocketException) {
-            switch (err) {
-                case CONN_RESET:
-                    return true;
-                default:
-                    return false;
-            }
+        switch (err) {
+            case CONN_RESET:
+            case CONN_RESET_BY_PEER:
+            case CONN_TIMEOUT:
+            case CONN_RESILIENCY_CLIENT_UNRECOVERABLE:
+                return true;
+            default:
+                return false;
         }
-
-        return false;
     }
 
 }

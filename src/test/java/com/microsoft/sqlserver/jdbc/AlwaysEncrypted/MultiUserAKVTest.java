@@ -355,7 +355,7 @@ public class MultiUserAKVTest extends AESetup {
 
         // Create cmk and cek for DummyKeyStoreProvider
         createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0],
-                Constants.CMK_SIGNATURE_AKV);
+                TestUtils.byteToHexDisplayString(akvProvider.signColumnMasterKeyMetadata(keyIDs[0], true)));
         createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
 
         // Create an empty table for testing
@@ -440,7 +440,7 @@ public class MultiUserAKVTest extends AESetup {
 
         // Create an empty table for testing
         createCMK(AETestConnectionString, cmkDummy, Constants.DUMMY_KEYSTORE_NAME, keyIDs[0],
-                Constants.CMK_SIGNATURE_AKV);
+                TestUtils.byteToHexDisplayString(akvProvider.signColumnMasterKeyMetadata(keyIDs[0], true)));
         createCEK(AETestConnectionString, cmkDummy, cekDummy, akvProvider);
 
         createTableForCustomProvider(AETestConnectionString, customProviderTableName, cekDummy);

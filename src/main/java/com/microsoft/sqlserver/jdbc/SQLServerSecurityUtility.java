@@ -315,7 +315,7 @@ class SQLServerSecurityUtility {
         }
 
         if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, cmkSignature)) {
-            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignature"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_VerifySignatureFailed"), null);
         }
     }
 

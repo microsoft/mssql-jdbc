@@ -336,6 +336,22 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {}
     }
 
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Test
+    public void testEncryptedStrictConnection() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setServerCertificate(serverCertificate);
+        ds.setEncrypt(Constants.STRICT);
+
+        try (Connection con = ds.getConnection()) {}
+    }
+
     @Test
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
@@ -426,6 +442,75 @@ public class SQLServerConnectionTest extends AbstractTest {
             // make sure that connection is closed.
             if (null != pooledConnection)
                 pooledConnection.close();
+        }
+    }
+
+    /**
+     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
+     * that connection is retried the proper number of times.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCount() {
+        long timerStart = 0;
+
+        int connectRetryCount = 3;
+        int connectRetryInterval = 1;
+        int longLoginTimeout = loginTimeOutInSeconds * 4; // 120 seconds
+
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(longLoginTimeout);
+            ds.setConnectRetryCount(connectRetryCount);
+            ds.setConnectRetryInterval(connectRetryInterval);
+            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+            timerStart = System.currentTimeMillis();
+
+            try (Connection con = ds.getConnection()) {
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+            }
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            long totalTime = System.currentTimeMillis() - timerStart;
+            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 3 seconds
+
+            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
+            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
+            assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong"));
+            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
+        }
+    }
+
+    /**
+     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
+     * that connection is retried the proper number of times. This is for cases with zero retries.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCountWithZeroRetry() {
+        long timerStart = 0;
+
+        int connectRetryCount = 0;
+        int connectRetryInterval = 60;
+        int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
+
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(longLoginTimeout);
+            ds.setConnectRetryCount(connectRetryCount);
+            ds.setConnectRetryInterval(connectRetryInterval);
+            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+            timerStart = System.currentTimeMillis();
+
+            try (Connection con = ds.getConnection()) {
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+            }
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            long totalTime = System.currentTimeMillis() - timerStart;
+
+            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
+            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
 
@@ -939,65 +1024,63 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
+    /**
+     * Test thread count when finding socket using threading.
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    public void testThreadCountWhenFindingSocket() {
+        ExecutorService executor = null;
+        ManagementFactory.getThreadMXBean().resetPeakThreadCount();
 
-   /**
-    * Test thread count when finding socket using threading.
-    */
-   @Test
-   @Tag(Constants.xAzureSQLDB)
-   @Tag(Constants.xAzureSQLDW)
-   public void testThreadCountWhenFindingSocket() {
-       ExecutorService executor = null;
-       ManagementFactory.getThreadMXBean().resetPeakThreadCount();
+        // First, check to see if there is a reachable local host, or else test will fail.
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName("localhost");
+            Connection con = ds.getConnection();
+        } catch (SQLServerException e) {
+            // Assume this will be an error different than 'localhost is unreachable'. If it is 'localhost is
+            // unreachable' abort and skip the test.
+            Assume.assumeFalse(e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost")));
+        }
 
-       // First, check to see if there is a reachable local host, or else test will fail.
-       try {
-           SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("localhost");
-           Connection con = ds.getConnection();
-       } catch (SQLServerException e) {
-           // Assume this will be an error different than 'localhost is unreachable'. If it is 'localhost is
-           // unreachable' abort and skip the test.
-           Assume.assumeFalse(e.getMessage().startsWith(TestResource.getResource("R_tcpipConnectionToHost")));
-       }
+        try {
+            executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
+            executor.submit(() -> {
+                try {
+                    SQLServerDataSource ds = new SQLServerDataSource();
+                    ds.setServerName("localhost");
+                    Thread.sleep(5000);
+                    Connection conn2 = ds.getConnection();
+                } catch (Exception e) {
+                    if (!(e instanceof SQLServerException)) {
+                        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                    }
+                }
+            });
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName("localhost");
+            Connection conn = ds.getConnection();
+            Thread.sleep(5000);
+        } catch (Exception e) {
+            if (!(e instanceof SQLServerException)) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        } finally {
+            if (executor != null) {
+                executor.shutdown();
+            }
+        }
 
-       try {
-           executor = Executors.newSingleThreadExecutor(r -> new Thread(r, ""));
-           executor.submit(() -> {
-               try {
-                   SQLServerDataSource ds = new SQLServerDataSource();
-                   ds.setServerName("localhost");
-                   Thread.sleep(5000);
-                   Connection conn2 = ds.getConnection();
-               } catch (Exception e) {
-                   if (!(e instanceof SQLServerException)) {
-                       fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-                   }
-               }
-           });
-           SQLServerDataSource ds = new SQLServerDataSource();
-           ds.setServerName("localhost");
-           Connection conn = ds.getConnection();
-           Thread.sleep(5000);
-       } catch (Exception e) {
-           if (!(e instanceof SQLServerException)) {
-               fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-           }
-       } finally {
-           if (executor != null) {
-               executor.shutdown();
-           }
-       }
+        // At this point, thread count has returned to normal. If the peak was more
+        // than 2 times the current, this is an issue and the test should fail.
+        if (ManagementFactory.getThreadMXBean().getPeakThreadCount() > 2
+                * ManagementFactory.getThreadMXBean().getThreadCount()) {
+            fail(TestResource.getResource("R_unexpectedThreadCount"));
+        }
+    }
 
-       // At this point, thread count has returned to normal. If the peak was more
-       // than 2 times the current, this is an issue and the test should fail.
-       if (ManagementFactory.getThreadMXBean().getPeakThreadCount()
-               > 2 * ManagementFactory.getThreadMXBean().getThreadCount()) {
-           fail(TestResource.getResource("R_unexpectedThreadCount"));
-       }
-   }
-
-    
     /**
      * Test calling method to get redirected server string.
      */

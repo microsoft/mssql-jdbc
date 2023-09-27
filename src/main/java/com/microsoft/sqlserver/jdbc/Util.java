@@ -48,7 +48,8 @@ final class Util {
     private static final Lock LOCK = new ReentrantLock();
 
     static boolean isIBM() {
-        return SYSTEM_JRE.startsWith("IBM");
+        String vmName = System.getProperty("java.vm.name");
+        return SYSTEM_JRE.startsWith("IBM") && vmName.startsWith("IBM");
     }
 
     static String getJVMArchOnWindows() {

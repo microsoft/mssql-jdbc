@@ -77,13 +77,15 @@ public abstract class AbstractTest {
     protected static String trustStore = "";
     protected static String trustStorePassword = "";
 
+    protected static String serverCertificate = "";
+
     protected static String encrypt = "";
     protected static String trustServerCertificate = "";
 
     protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
-    protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    protected static SQLServerColumnEncryptionJavaKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
@@ -208,6 +210,12 @@ public abstract class AbstractTest {
         if (!trustStorePassword.trim().isEmpty()) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStorePassword",
                     trustStorePassword);
+        }
+
+        serverCertificate = getConfiguredProperty("serverCertificate", "");
+        if (!serverCertificate.trim().isEmpty()) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "serverCertificate",
+                    serverCertificate);
         }
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();

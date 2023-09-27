@@ -1693,7 +1693,7 @@ final class TDSChannel implements Serializable {
             // Otherwise, we'll validate the certificate using a real TrustManager obtained
             // from the a security provider that is capable of validating X.509 certificates.
             else {
-                if (isTDS8) {
+                if (isTDS8 && serverCert != null) {
                     if (logger.isLoggable(Level.FINEST))
                         logger.finest(toString() + " Verify server certificate for TDS 8");
 

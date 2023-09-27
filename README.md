@@ -11,13 +11,13 @@ The Microsoft JDBC Driver for SQL Server is a Type 4 JDBC driver that provides d
 
 We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
-SQL Server Team
+Microsoft JDBC driver for SQL Server Team
 
 ## Take our survey
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="50" width="125" src="https://img.shields.io/badge/Survey-70B244"></a>
 
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
@@ -28,10 +28,7 @@ Let us know how you think we're doing.
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
 
 ## Get Started 
-* [**Ubuntu + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/ubuntu) 
-* [**Red Hat + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/rhel)
-* [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/mac)
-* [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/windows)
+[**Getting started with SQL Server and Java**](https://github.com/AzureSQLDB/sql-driver-examples/blob/main/examples/sql/drivers/java-driver-example.md)
 
 ## Build
 ### Prerequisites
@@ -82,7 +79,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0.jre11</version>
+	<version>12.4.0.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc).
@@ -93,7 +90,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0.jre11</version>
+	<version>12.4.0.jre11</version>
 </dependency>
 ```
 
@@ -128,7 +125,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0.jre11</version>
+	<version>12.4.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -146,7 +143,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0.jre11</version>
+	<version>12.4.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -173,7 +170,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.2.0.jre11</version>
+	<version>12.4.0.jre11</version>
 </dependency>
 
 <dependency>
@@ -213,7 +210,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Version conventions
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4, 10.2, 11.2, 12.2. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, 12.1, and so on.
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4, 10.2, 11.2, 12.2, 12.4. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, 12.1, 12.3, and so on.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project. 
@@ -229,13 +226,13 @@ Here are our Top 15 contributors from the community:
 - simon04 (Simon Legner)
 - gstojsic
 - cosmofrit
-- harawata- shayaantx
-- (Iwao AVE!)
-- nsidhaye (Nikhil Sidhaye)
+- mmimica  (Milan Mimica)
+- harawata (Iwao AVE!)
 - rPraml (Roland Praml)
+- laeubi (Christoph Laubrich)
 - worldtiki (Daniel Albuquerque)
 - shayaantx
-- mfriesen (Mike Friesen)
+- mnhubspot 
 
 
 ## License
