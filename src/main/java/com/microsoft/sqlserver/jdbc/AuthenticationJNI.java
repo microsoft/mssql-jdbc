@@ -91,7 +91,6 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
             return ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId,
                     expirationFileTime, authLogger);
-
         } finally {
             lock.unlock();
         }
