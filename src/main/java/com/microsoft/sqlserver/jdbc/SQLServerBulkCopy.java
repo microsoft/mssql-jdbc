@@ -2699,15 +2699,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 tdsWriter.writeTime((java.sql.Timestamp) colValue, timeBulkScale);
                 break;
 
-            case DATETIME8:
-                writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeDatetime(colValue.toString());
-                break;
-
             case DATETIME4:
                 // when the type is ambiguous, we write to bigger type
+            case DATETIME8:
                 writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeDatetime(colValue.toString());
+                if (colValue instanceof java.sql.Timestamp)
+                    tdsWriter.writeDatetime((java.sql.Timestamp)colValue);
+                else
+                    tdsWriter.writeDatetime(colValue.toString());
                 break;
 
             case DATETIME2N:
