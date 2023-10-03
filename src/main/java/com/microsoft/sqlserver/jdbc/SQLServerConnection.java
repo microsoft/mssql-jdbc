@@ -8100,19 +8100,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return supportsTransactions;
         }
 
-        supportsTransactions = true;
-
         try {
             this.connectionCommand("SELECT @@TRANCOUNT", "SQLServerConnection.supportsTransactions");
         } catch (SQLServerException e) {
-            if (e.getMessage().equals(SQLServerException.getErrString("R_transactionsNotSupported"))) {
+            if (e.getMessage().trim().equals(SQLServerException.getErrString("R_transactionsNotSupported"))) {
                 supportsTransactions = false;
                 return false;
             }
             throw e;
         }
 
-        return supportsTransactions;
+        supportsTransactions = true;
+        return true;
     }
 
     /**
