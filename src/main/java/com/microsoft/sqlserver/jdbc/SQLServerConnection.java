@@ -1859,7 +1859,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (0 == connectRetryCount) {
                         // connection retry disabled
                         throw e;
-                    } else if (++connectRetryAttempt > connectRetryCount) {
+                    } else if (connectRetryAttempt++ > connectRetryCount) {
                         // maximum connection retry count reached
                         if (connectionlogger.isLoggable(Level.FINE)) {
                             connectionlogger.fine("Connection failed. Maximum connection retry count "
@@ -3249,7 +3249,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                                 && (!isDBMirroring || attemptNumber > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
                         || timerHasExpired(timerExpire)
-                        || (state.equals(State.CONNECTED) && !isDBMirroring)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
                     // close the connection and throw the error back
@@ -6329,9 +6328,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             serverName = currentConnectPlaceHolder.getFullServerName();
         } else {
             serverName = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
-            if (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString())) {
-                serverName += "\\" +
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString());
+            if (null != activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString())) {
+                serverName += "\\" + activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.INSTANCE_NAME.toString());
             }
         }
 
@@ -7390,7 +7390,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
             boolean isReturnValueSyntax) {
         final int MAX_PARAM_NAME_LEN = 6;
-        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length)) + (params.length * 2)];
+        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
+                + (params.length * 2)];
         int dstBegin = 0;
         int srcBegin = 0;
         int nParam = 0;
