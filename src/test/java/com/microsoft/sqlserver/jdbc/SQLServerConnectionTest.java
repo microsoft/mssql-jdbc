@@ -459,7 +459,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         int connectRetryCount = 3;
         int connectRetryInterval = 1;
-        int longLoginTimeout = loginTimeOutInSeconds * 4; // 120 seconds
+        int longLoginTimeout = 120;
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -479,9 +479,40 @@ public class SQLServerConnectionTest extends AbstractTest {
             int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 3 seconds
 
             // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
-            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
+            // Maximum is unknown, but will be considerably less than loginTimeout (measured here as 1/2 loginTimeout).
             assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong"));
-            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
+            assertTrue(totalTime < 0.5 * (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
+        }
+    }
+
+    /**
+     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop.
+     * This is for cases with zero retries.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCountWithZeroRetry() {
+        long timerStart = 0;
+
+        int connectRetryCount = 0;
+        int longLoginTimeout = 90;
+
+        try {
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(longLoginTimeout);
+            ds.setConnectRetryCount(connectRetryCount);
+            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
+            timerStart = System.currentTimeMillis();
+
+            try (Connection con = ds.getConnection()) {
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+            }
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
+            long totalTime = System.currentTimeMillis() - timerStart;
+
+            // Maximum is unknown, but will be considerably less than loginTimeout (measured here as 1/2 loginTimeout).
+            assertTrue(totalTime < 0.5 * (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
 

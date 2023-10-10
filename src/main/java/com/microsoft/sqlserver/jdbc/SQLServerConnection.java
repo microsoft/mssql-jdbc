@@ -3259,6 +3259,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                                 && (!isDBMirroring || attemptNumber > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
                         || timerHasExpired(timerExpire)
+                        || (state.equals(State.CONNECTED) && !isDBMirroring)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
                     // close the connection and throw the error back
