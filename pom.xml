@@ -48,7 +48,7 @@
 			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,Kerberos</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
