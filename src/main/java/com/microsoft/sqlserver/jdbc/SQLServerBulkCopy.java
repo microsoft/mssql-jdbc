@@ -1768,10 +1768,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Unable to retrieve metadata for destination
                 throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
             } finally {
-                if (null != rs)
+                if (null != rs) {
                     rs.close();
-                if (null != stmt)
+                }
+                if (null != stmt) {
                     stmt.close();
+                }
             }
         }
     }
