@@ -89,7 +89,7 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * NOTE: All the public functions in this class also need to be defined in SQLServerConnectionPoolProxy Declare all new
  * custom (non-static) Public APIs in ISQLServerConnection interface such that they can also be implemented by
  * SQLServerConnectionPoolProxy
- *
+ * 
  */
 public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
 
@@ -111,7 +111,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
-     *
+     * 
      * The default for the prepared statement clean-up action threshold (i.e. when sp_unprepare is called).
      */
     static final int DEFAULT_SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD = 10; // Used to set the initial default, can
@@ -123,7 +123,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * The default for if prepared statements should execute sp_executesql before following the prepare, unprepare
      * pattern.
-     *
+     * 
      * Used to set the initial default, can be changed later. false == use sp_executesql -> sp_prepexec -> sp_execute ->
      * batched -> sp_unprepare pattern, true == skip sp_executesql part of pattern.
      */
@@ -265,7 +265,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Generate a 6 byte random array for netAddress
-     *
+     * 
      * @return byte[]
      */
     private static byte[] getRandomNetAddress() {
@@ -279,7 +279,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Return an existing cached SharedTimer associated with this Connection or create a new one.
      *
      * The SharedTimer will be released when the Connection is closed.
-     *
+     * 
      * @throws SQLServerException
      */
     SharedTimer getSharedTimer() throws SQLServerException {
@@ -295,7 +295,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Get the server name string including redirected server if applicable
-     *
+     * 
      * @param serverName
      * @return
      */
@@ -412,7 +412,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         /**
          * Makes sure handle cannot be re-used.
-         *
+         * 
          * @return false: Handle could not be discarded, it is in use. true: Handle was successfully put on path for
          *         discarding.
          */
@@ -427,7 +427,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         /**
          * Adds a new reference to this handle, i.e. re-using it.
-         *
+         * 
          * @return false: Reference could not be added, statement has been discarded or does not have a handle
          *         associated with it. true: Reference was successfully added.
          */
@@ -523,7 +523,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Locates statement parameters.
-     *
+     * 
      * @param sql
      *        SQL text to parse for positions of parameters to initialize.
      */
@@ -756,7 +756,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns the cancelTimeout in seconds.
-     *
+     * 
      * @return
      */
     final int getCancelQueryTimeoutSeconds() {
@@ -777,7 +777,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns the useBulkCopyForBatchInsert value.
-     *
+     * 
      * @return flag for using Bulk Copy API for batch insert operations.
      */
     public boolean getUseBulkCopyForBatchInsert() {
@@ -786,7 +786,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Specifies the flag for using Bulk Copy API for batch insert operations.
-     *
+     * 
      * @param useBulkCopyForBatchInsert
      *        boolean value for useBulkCopyForBatchInsert.
      */
@@ -999,7 +999,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Registers key store providers in the globalCustomColumnEncryptionKeyStoreProviders.
-     *
+     * 
      * @param clientKeyStoreProviders
      *        a map containing the store providers information.
      * @throws SQLServerException
@@ -1290,7 +1290,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Sets Trusted Master Key Paths in the columnEncryptionTrustedMasterKeyPaths.
-     *
+     * 
      * @param trustedKeyPaths
      *        all master key paths that are trusted
      */
@@ -1315,7 +1315,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Updates the columnEncryptionTrustedMasterKeyPaths with the new Server and trustedKeyPaths.
-     *
+     * 
      * @param server
      *        String server name
      * @param trustedKeyPaths
@@ -1339,7 +1339,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Removes the trusted Master key Path from the columnEncryptionTrustedMasterKeyPaths.
-     *
+     * 
      * @param server
      *        String server name
      */
@@ -1701,7 +1701,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Generates the next unique connection id.
-     *
+     * 
      * @return the next conn id
      */
     private static int nextConnectionID() {
@@ -1725,7 +1725,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Checks if the connection is closed
-     *
+     * 
      * @throws SQLServerException
      */
     void checkClosed() throws SQLServerException {
@@ -1737,7 +1737,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns if Federated Authentication is in use or is about to expire soon
-     *
+     * 
      * @return true/false
      */
     protected boolean needsReconnect() {
@@ -1746,7 +1746,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns if a string property is enabled.
-     *
+     * 
      * @param propName
      *        the string property name
      * @param propValue
@@ -1783,7 +1783,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Validates propName against maximum allowed length MAX_SQL_LOGIN_NAME_WCHARS. Throws exception if name length
      * exceeded.
-     *
+     * 
      * @param propName
      *        the name of the property.
      * @param propValue
@@ -3478,7 +3478,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Get time remaining to timer expiry
-     *
+     * 
      * @param timerExpire
      * @return remaining time to expiry
      */
@@ -3492,7 +3492,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * This is a helper function to connect this gets the port of the server to connect and the server name to connect
      * and the timeout This function achieves one connection attempt Create a prepared statement for internal use by the
      * driver.
-     *
+     * 
      * @param serverInfo
      * @param timeOutSliceInMillis
      *        -timeout value in milli seconds for one try
@@ -4281,7 +4281,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Build the syntax to initialize the connection at the database side.
-     *
+     * 
      * @return the syntax string
      */
     private String sqlStatementToInitialize() {
@@ -4293,7 +4293,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Sets the syntax to set the database calatog to use.
-     *
+     * 
      * @param sDB
      *        the new catalog
      */
@@ -4317,7 +4317,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns the syntax to set the database isolation level.
-     *
+     * 
      * @return the required syntax
      */
     String sqlStatementToSetTransactionIsolationLevel() throws SQLServerException {
@@ -4355,7 +4355,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns the syntax to set the database commit mode.
-     *
+     * 
      * @return the required syntax
      */
     static String sqlStatementToSetCommit(boolean autoCommit) {
@@ -4446,7 +4446,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Makes all changes made since the previous commit/rollback permanent and releases any database locks currently
      * held by this <code>Connection</code> object. This method should be used only when auto-commit mode has been
      * disabled.
-     *
+     * 
      * @param delayedDurability
      *        flag to indicate whether the commit will occur with delayed durability on.
      * @throws SQLServerException
@@ -6158,7 +6158,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Delist the local transaction with DTC.
-     *
+     * 
      * @throws SQLServerException
      */
     final void jtaUnenlistConnection() throws SQLServerException {
@@ -6169,7 +6169,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Enlist this connection's local transaction with MS DTC
-     *
+     * 
      * @param cookie
      *        the cookie identifying the transaction
      * @throws SQLServerException
@@ -6186,7 +6186,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Convert to a String UCS16 encoding.
-     *
+     * 
      * @param s
      *        the string
      * @return the encoded data
@@ -6208,7 +6208,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Encrypt a password for the SQL Server logon.
-     *
+     * 
      * @param pwd
      *        the password
      * @return the encrypted password
@@ -6232,7 +6232,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Send a TDS 7.x logon packet.
-     *
+     * 
      * @param logonCommand
      *        the logon command
      * @param authentication
@@ -7388,7 +7388,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Replaces JDBC syntax parameter markets '?' with SQL Server parameter markers @p1, @p2 etc...
-     *
+     * 
      * @param sql
      *        the user's SQL
      * @throws SQLServerException
@@ -7428,7 +7428,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Makes a SQL Server style parameter name.
-     *
+     * 
      * @param nParam
      *        the parameter number
      * @param name
@@ -7545,7 +7545,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Determines the listening port of a named SQL Server instance.
-     *
+     * 
      * @param server
      *        the server name
      * @param instanceName
@@ -7688,7 +7688,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * feature. The default value is 2 hours. This variable holds the value in seconds. This only applies to
      * global-level key store providers. Connection and Statement-level providers need to set their own cache TTL
      * values.
-     *
+     * 
      * @param columnEncryptionKeyCacheTTL
      *        The timeunit in seconds
      * @param unit
@@ -7723,7 +7723,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Enqueues a discarded prepared statement handle to be clean-up on the server.
-     *
+     * 
      * @param statementHandle
      *        The prepared statement handle that should be scheduled for unprepare.
      */
@@ -7828,7 +7828,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Cleans up discarded prepared statement handles on the server using batched un-prepare actions if the batching
      * threshold has been reached.
-     *
+     * 
      * @param force
      *        When force is set to true we ignore the current threshold for if the discard actions should run and run
      *        them anyway.
@@ -8027,12 +8027,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Checks if connection is established to SQL Azure server
-     *
+     * 
      * SERVERPROPERTY('EngineEdition') is used to determine if the db server is SQL Azure. This is more reliable
      * than @@version or serverproperty('edition').
-     *
+     * 
      * Reference: https://docs.microsoft.com/sql/t-sql/functions/serverproperty-transact-sql
-     *
+     * 
      * <pre>
      * SERVERPROPERTY('EngineEdition') means
      * Database Engine edition of the instance of SQL Server installed on the server.
@@ -8047,9 +8047,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 11 = Azure Synapse serverless SQL pool
      * Base data type: int
      * </pre>
-     *
+     * 
      * @return if connected to SQL Azure
-     *
+     * 
      */
     boolean isAzure() {
         if (null == isAzure) {
@@ -8082,7 +8082,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Checks if connection is established to SQL Azure DW
-     *
+     * 
      * @return if connected to SQL Azure DW
      */
     boolean isAzureDW() {
@@ -8092,7 +8092,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Checks if connection is established to Azure Managed Instance
-     *
+     * 
      * @return if connected to SQL Azure MI
      */
     boolean isAzureMI() {
@@ -8126,7 +8126,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Adds statement to openStatements
-     *
+     * 
      * @param st
      *        Statement to add to openStatements
      */
@@ -8143,7 +8143,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Removes state from openStatements
-     *
+     * 
      * @param st
      *        Statement to remove from openStatements
      */
@@ -8227,7 +8227,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
 /**
  * Provides Helper class for security manager functions used by SQLServerConnection class.
- *
+ * 
  */
 final class SQLServerConnectionSecurityManager {
     static final String DLLNAME = SQLServerDriver.AUTH_DLL_NAME + ".dll";
@@ -8241,7 +8241,7 @@ final class SQLServerConnectionSecurityManager {
 
     /**
      * Checks if the calling thread is allowed to open a socket connection to the specified serverName and portNumber.
-     *
+     * 
      * @throws SecurityException
      *         when an error occurs
      */
@@ -8255,7 +8255,7 @@ final class SQLServerConnectionSecurityManager {
 
     /**
      * Checks if the calling thread is allowed to dynamically link the library code.
-     *
+     * 
      * @throws SecurityException
      *         when an error occurs
      */
