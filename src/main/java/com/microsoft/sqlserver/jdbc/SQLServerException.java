@@ -17,7 +17,8 @@ enum SQLState {
     DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW("22008"),
     NUMERIC_DATA_OUT_OF_RANGE("22003"),
     DATA_EXCEPTION_LENGTH_MISMATCH("22026"),
-    COL_NOT_FOUND("42S22");
+    COL_NOT_FOUND("42S22"),
+    ERROR_IN_ASSIGNMENT("22005");
 
     private final String sqlStateCode;
 
@@ -59,6 +60,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final String EXCEPTION_XOPEN_CONNECTION_CANT_ESTABLISH = "08001";
     static final String EXCEPTION_XOPEN_CONNECTION_DOES_NOT_EXIST = "08003";
     static final String EXCEPTION_XOPEN_CONNECTION_FAILURE = "08006"; // After connection was connected OK
+    static final String EXCEPTION_XOPEN_ERROR_IN_ASSIGNMENT = "22005"; // Error code is the same in both SQL-99 and X/Open
 
     static final String LOG_CLIENT_CONNECTION_ID_PREFIX = " ClientConnectionId:";
 
@@ -66,8 +68,9 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int LOGON_FAILED = 18456;
     static final int PASSWORD_EXPIRED = 18488;
     static final int USER_ACCOUNT_LOCKED = 18486;
-    static final java.util.logging.Logger exLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
+
+    // Built-in function '%.*ls' in impersonation context is not supported in this version of SQL Server.
+    static final int IMPERSONATION_CONTEXT_NOT_SUPPORTED = 40529;
 
     // Facility for driver-specific error codes
     static final int DRIVER_ERROR_NONE = 0;
@@ -83,6 +86,9 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
+
+    static final java.util.logging.Logger exLogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
     /** driver error code */
     private int driverErrorCode = DRIVER_ERROR_NONE;
@@ -302,6 +308,8 @@ public final class SQLServerException extends java.sql.SQLException {
                     return "08S01";
                 case SQLServerException.EXCEPTION_XOPEN_CONNECTION_FAILURE:
                     return "08S01";
+                case SQLServerException.EXCEPTION_XOPEN_ERROR_IN_ASSIGNMENT:
+                    return "22005";
                 default:
                     return "";
             }

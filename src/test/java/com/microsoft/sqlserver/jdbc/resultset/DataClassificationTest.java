@@ -167,6 +167,7 @@ public class DataClassificationTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
     @Test
     public void testDataClassificationNotSupported() throws Exception {
         try (Statement stmt = connection.createStatement();) {
