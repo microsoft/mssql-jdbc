@@ -20,6 +20,7 @@ import java.util.Map;
 public class KerberosTest extends AbstractTest {
 
     private static String kerberosAuth = "KERBEROS";
+    private static String authSchemeQuery = "select auth_scheme from sys.dm_exec_connections where session_id=@@spid";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -33,7 +34,7 @@ public class KerberosTest extends AbstractTest {
 
         // Initial connection should succeed with default JAAS config
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringUseDefaultJaasConfig)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
+            ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
             rs.next();
             Assertions.assertEquals(kerberosAuth, rs.getString(1));
         }
@@ -44,7 +45,7 @@ public class KerberosTest extends AbstractTest {
 
         // New connection should successfully connect and continue to use the default JAAS config.
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringUseDefaultJaasConfig)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
+            ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
             rs.next();
             Assertions.assertEquals(kerberosAuth, rs.getString(1));
         }
@@ -57,7 +58,7 @@ public class KerberosTest extends AbstractTest {
         // useDefaultJaasConfig=false by default
         // Initial connection should succeed with default JAAS config
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringKerberos)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
+            ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
             rs.next();
             Assertions.assertEquals(kerberosAuth, rs.getString(1));
         }
@@ -72,6 +73,30 @@ public class KerberosTest extends AbstractTest {
         } catch (SQLServerException e) {
             Assertions.assertTrue(e.getMessage()
                     .contains(TestResource.getResource("R_noLoginModulesConfiguredForJdbcDriver")));
+        }
+    }
+
+    @Tag(Constants.Kerberos)
+    @Test
+    public void testUseDefaultNativeGSSCredential() throws Exception {
+        // This is a negative test. This test should fail as expected as the JVM arg "-Dsun.security.jgss.native=true"
+        // isn't provided.
+        String connectionString = connectionStringKerberos + ";useDefaultGSSCredential=true;";
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            Assertions.assertEquals(e.getCause().getMessage(), TestResource.getResource("R_kerberosNativeGSSFailure"));
+        }
+    }
+
+    @Tag(Constants.Kerberos)
+    @Test
+    public void testBasicKerberosAuth() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringKerberos)) {
+            ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
+            rs.next();
+            Assertions.assertEquals(kerberosAuth, rs.getString(1));
         }
     }
 
