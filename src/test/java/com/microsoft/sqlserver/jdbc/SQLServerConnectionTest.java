@@ -138,6 +138,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setJAASConfigurationName(stringPropValue);
         assertEquals(stringPropValue, ds.getJAASConfigurationName(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setUseDefaultJaasConfig(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getUseDefaultJaasConfig(), TestResource.getResource("R_valuesAreDifferent"));
+
         ds.setMSIClientId(stringPropValue);
         assertEquals(stringPropValue, ds.getMSIClientId(), TestResource.getResource("R_valuesAreDifferent"));
 

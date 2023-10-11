@@ -58,6 +58,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.reqExternalSetup)
 public class MultiUserAKVTest extends AESetup {
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> requiredKeyStoreProvider = new HashMap<>();

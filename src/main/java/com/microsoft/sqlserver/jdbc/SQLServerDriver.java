@@ -693,7 +693,8 @@ enum SQLServerDriverBooleanProperty {
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
-    DELAY_LOADING_LOBS("delayLoadingLobs", true);
+    DELAY_LOADING_LOBS("delayLoadingLobs", true),
+    USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false);
 
     private final String name;
     private final boolean defaultValue;
@@ -892,6 +893,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                     SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.getDefaultValue()), false,
+                    TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
                     SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(), false,
                     new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(),
