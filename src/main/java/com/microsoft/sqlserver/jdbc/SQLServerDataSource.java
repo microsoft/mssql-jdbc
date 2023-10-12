@@ -1030,6 +1030,18 @@ public class SQLServerDataSource
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
 
+    @Override
+    public boolean getUseDefaultJaasConfig() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.toString(),
+                SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.getDefaultValue());
+    }
+
+    @Override
+    public void setUseDefaultJaasConfig(boolean useDefaultJaasConfig) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.toString(),
+                useDefaultJaasConfig);
+    }
+
     /**
      * @deprecated This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
      *

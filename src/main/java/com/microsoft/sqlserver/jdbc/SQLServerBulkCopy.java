@@ -1724,53 +1724,57 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         SQLServerStatement stmt = null;
         String metaDataQuery = null;
 
-        try {
-            if (null != destinationTableMetadata) {
-                rs = (SQLServerResultSet) destinationTableMetadata;
-            } else {
-                stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+        if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
+            try {
+                if (null != destinationTableMetadata) {
+                    rs = (SQLServerResultSet) destinationTableMetadata;
+                } else {
+                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                            ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
-                // Get destination metadata
-                rs = stmt.executeQueryInternal(
-                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
-            }
+                    // Get destination metadata
+                    rs = stmt.executeQueryInternal(
+                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
+                }
 
-            destColumnCount = rs.getMetaData().getColumnCount();
-            destColumnMetadata = new HashMap<>();
-            destCekTable = rs.getCekTable();
+                destColumnCount = rs.getMetaData().getColumnCount();
+                destColumnMetadata = new HashMap<>();
+                destCekTable = rs.getCekTable();
 
-            if (!connection.getServerSupportsColumnEncryption()) {
-                metaDataQuery = "select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
-                        + escapedDestinationTableName + "') " + "order by column_id ASC";
-            } else {
-                metaDataQuery = "select collation_name, encryption_type from sys.columns where "
-                        + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
-            }
+                if (!connection.getServerSupportsColumnEncryption()) {
+                    metaDataQuery = "select collation_name from sys.columns where " + "object_id=OBJECT_ID('"
+                            + escapedDestinationTableName + "') " + "order by column_id ASC";
+                } else {
+                    metaDataQuery = "select collation_name, encryption_type from sys.columns where "
+                            + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+                }
 
-            try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
-                    SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
-                for (int i = 1; i <= destColumnCount; ++i) {
-                    if (rsMoreMetaData.next()) {
-                        String bulkCopyEncryptionType = null;
-                        if (connection.getServerSupportsColumnEncryption()) {
-                            bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
+                try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
+                     SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
+                    for (int i = 1; i <= destColumnCount; ++i) {
+                        if (rsMoreMetaData.next()) {
+                            String bulkCopyEncryptionType = null;
+                            if (connection.getServerSupportsColumnEncryption()) {
+                                bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
+                            }
+                            destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                    rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
+                        } else {
+                            destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                         }
-                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
-                    } else {
-                        destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                     }
                 }
+            } catch (SQLException e) {
+                // Unable to retrieve metadata for destination
+                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
+            } finally {
+                if (null != rs) {
+                    rs.close();
+                }
+                if (null != stmt) {
+                    stmt.close();
+                }
             }
-        } catch (SQLException e) {
-            // Unable to retrieve metadata for destination
-            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
-        } finally {
-            if (null != rs)
-                rs.close();
-            if (null != stmt)
-                stmt.close();
         }
     }
 
@@ -1779,41 +1783,43 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * BulkColumnMetaData object helps to access source metadata from the same place for both ResultSet and File.
      */
     private void getSourceMetadata() throws SQLServerException {
-        srcColumnMetadata = new HashMap<>();
-        int currentColumn;
-        if (null != sourceResultSet) {
-            try {
-                srcColumnCount = sourceResultSetMetaData.getColumnCount();
-                for (int i = 1; i <= srcColumnCount; ++i) {
-                    srcColumnMetadata.put(i,
-                            new BulkColumnMetaData(sourceResultSetMetaData.getColumnName(i),
-                                    (ResultSetMetaData.columnNoNulls != sourceResultSetMetaData.isNullable(i)),
-                                    sourceResultSetMetaData.getPrecision(i), sourceResultSetMetaData.getScale(i),
-                                    sourceResultSetMetaData.getColumnType(i), null));
+        if (null == srcColumnMetadata || srcColumnMetadata.isEmpty()) {
+            srcColumnMetadata = new HashMap<>();
+            int currentColumn;
+            if (null != sourceResultSet) {
+                try {
+                    srcColumnCount = sourceResultSetMetaData.getColumnCount();
+                    for (int i = 1; i <= srcColumnCount; ++i) {
+                        srcColumnMetadata.put(i,
+                                new BulkColumnMetaData(sourceResultSetMetaData.getColumnName(i),
+                                        (ResultSetMetaData.columnNoNulls != sourceResultSetMetaData.isNullable(i)),
+                                        sourceResultSetMetaData.getPrecision(i), sourceResultSetMetaData.getScale(i),
+                                        sourceResultSetMetaData.getColumnType(i), null));
+                    }
+                } catch (SQLException e) {
+                    // Unable to retrieve meta data for destination
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
                 }
-            } catch (SQLException e) {
-                // Unable to retrieve meta data for destination
-                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
-            }
-        } else if (null != serverBulkData) {
-            Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
-            if (null == columnOrdinals || columnOrdinals.isEmpty()) {
-                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
+            } else if (null != serverBulkData) {
+                Set<Integer> columnOrdinals = serverBulkData.getColumnOrdinals();
+                if (null == columnOrdinals || columnOrdinals.isEmpty()) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
+                } else {
+                    srcColumnCount = columnOrdinals.size();
+                    for (Integer columnOrdinal : columnOrdinals) {
+                        currentColumn = columnOrdinal;
+                        srcColumnMetadata.put(currentColumn, new BulkColumnMetaData(
+                                serverBulkData.getColumnName(currentColumn), true,
+                                serverBulkData.getPrecision(currentColumn), serverBulkData.getScale(currentColumn),
+                                serverBulkData.getColumnType(currentColumn),
+                                ((serverBulkData instanceof SQLServerBulkCSVFileRecord) ? ((SQLServerBulkCSVFileRecord) serverBulkData)
+                                        .getColumnDateTimeFormatter(currentColumn) : null)));
+                    }
+                }
             } else {
-                srcColumnCount = columnOrdinals.size();
-                for (Integer columnOrdinal : columnOrdinals) {
-                    currentColumn = columnOrdinal;
-                    srcColumnMetadata.put(currentColumn, new BulkColumnMetaData(
-                            serverBulkData.getColumnName(currentColumn), true,
-                            serverBulkData.getPrecision(currentColumn), serverBulkData.getScale(currentColumn),
-                            serverBulkData.getColumnType(currentColumn),
-                            ((serverBulkData instanceof SQLServerBulkCSVFileRecord) ? ((SQLServerBulkCSVFileRecord) serverBulkData)
-                                    .getColumnDateTimeFormatter(currentColumn) : null)));
-                }
+                // Unable to retrieve meta data for source
+                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
             }
-        } else {
-            // Unable to retrieve meta data for source
-            throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), null);
         }
     }
 

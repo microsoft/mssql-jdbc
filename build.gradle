@@ -11,7 +11,8 @@
 
 apply plugin: 'java'
 
-version = '12.4.0'
+version = '12.5.0-SNAPSHOT'
+def releaseExt = '-preview'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -32,17 +33,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre20")) {
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre21")) {
 
-	jreVersion = "jre20"
+	jreVersion = "jre21"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 20
-	targetCompatibility = 20
+	sourceCompatibility = 21
+	targetCompatibility = 21
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre17") {
@@ -85,7 +86,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	}
 }
 
-jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}.jar"
+jar.archiveFileName = "${archivesBaseName}-${version}.${jreVersion}${releaseExt}.jar"
 jar {
 	manifest {
         attributes 'Title': "Microsoft JDBC Driver ${archiveVersion} for SQL Server",

@@ -9,7 +9,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 
 
 /**
- * DummyKeyStoreProvider Class for Tests. 
+ * DummyKeyStoreProvider Class for Tests.
  * 
  */
 public class DummyKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProvider {
@@ -28,19 +28,17 @@ public class DummyKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreProv
             byte[] encryptedColumnEncryptionKey) throws SQLServerException {
         // Not implemented
         throw new UnsupportedOperationException();
-            }
+    }
 
     @Override
-    public byte[] encryptColumnEncryptionKey(String masterKeyPath,
-            String encryptionAlgorithm,
+    public byte[] encryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] columnEncryptionKey) throws SQLServerException {
         // Not implemented
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean verifyColumnMasterKeyMetadata(String masterKeyPath,
-            boolean allowEnclaveComputations,
+    public boolean verifyColumnMasterKeyMetadata(String masterKeyPath, boolean allowEnclaveComputations,
             byte[] signature) throws SQLServerException {
         // Not implemented
         throw new UnsupportedOperationException();

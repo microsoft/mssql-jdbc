@@ -11,13 +11,13 @@ The Microsoft JDBC Driver for SQL Server is a Type 4 JDBC driver that provides d
 
 We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
-SQL Server Team
+Microsoft JDBC driver for SQL Server Team
 
 ## Take our survey
 
 Let us know how you think we're doing.
 
-<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="67" width="156" src="https://sqlchoice.blob.core.windows.net/sqlchoice/static/images/survey.png"></a>
+<a href="https://aka.ms/mssqljdbcsurvey"><img style="float: right;"  height="50" width="125" src="https://img.shields.io/badge/Survey-70B244"></a>
 
 ## Status of Most Recent Builds
 | Azure Pipelines (Windows) | Azure Pipelines (Linux) | Azure Pipelines (MacOS) |
@@ -28,10 +28,7 @@ Let us know how you think we're doing.
 What's coming next?  We will look into adding a more comprehensive set of tests, improving our javadocs, and start developing the next set of features.
 
 ## Get Started 
-* [**Ubuntu + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/ubuntu) 
-* [**Red Hat + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/rhel)
-* [**Mac + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/mac)
-* [**Windows + SQL Server + Java**](https://www.microsoft.com/en-us/sql-server/developer-get-started/java/windows)
+[**Getting started with SQL Server and Java**](https://github.com/AzureSQLDB/sql-driver-examples/blob/main/examples/sql/drivers/java-driver-example.md)
 
 ## Build
 ### Prerequisites
@@ -47,7 +44,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre20`. This creates JRE 20 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 20).
+        * Run `mvn install -Pjre21`. This creates JRE 21 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 21).
         * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
@@ -55,7 +52,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre20`. This creates JRE 20 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 20).
+        * Run `gradle build -PbuildProfile=jre21`. This creates JRE 21 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 21).
         * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).

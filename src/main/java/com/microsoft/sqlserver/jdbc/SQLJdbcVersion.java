@@ -7,7 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 final class SQLJdbcVersion {
     static final int MAJOR = 12;
-    static final int MINOR = 4;
+    static final int MINOR = 5;
     static final int PATCH = 0;
     static final int BUILD = 0;
     /*
@@ -15,7 +15,7 @@ final class SQLJdbcVersion {
      * 1. Set to "-preview" for preview release.
      * 2. Set to "" (empty String) for official release.
      */
-    static final String RELEASE_EXT = "";
+    static final String RELEASE_EXT = "-preview";
 
     private SQLJdbcVersion() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
