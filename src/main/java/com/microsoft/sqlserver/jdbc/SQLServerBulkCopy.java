@@ -1750,7 +1750,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
                             }
                             // Skip computed columns
-                            if (Boolean.FALSE.equals(rsMoreMetaData.getBoolean("is_computed"))) {
+                            if (!rsMoreMetaData.getBoolean("is_computed")) {
                                 destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
                                         bulkCopyEncryptionType));
                             }
