@@ -28,6 +28,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -461,6 +463,13 @@ public class SQLServerConnectionTest extends AbstractTest {
         int connectRetryInterval = 1;
         int longLoginTimeout = loginTimeOutInSeconds * 4; // 120 seconds
 
+        final ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.FINE);
+        Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
+        logger.addHandler(handler);
+        logger.setLevel(Level.FINEST);
+        logger.log(Level.FINE, "The Sql Server logger is correctly configured.");
+
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
             ds.setURL(connectionString);
@@ -499,6 +508,13 @@ public class SQLServerConnectionTest extends AbstractTest {
         int connectRetryCount = 0;
         int connectRetryInterval = 60;
         int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
+
+        final ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.FINE);
+        Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc");
+        logger.addHandler(handler);
+        logger.setLevel(Level.FINEST);
+        logger.log(Level.FINE, "The Sql Server logger is correctly configured.");
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
