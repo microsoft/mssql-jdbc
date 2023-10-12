@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -36,19 +35,26 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag(Constants.xSQLv11)
 @Tag(Constants.xAzureSQLDW)
 public class ResultSetsWithResiliencyTest extends AbstractTest {
-    static String tableName = AbstractSQLGenerator.escapeIdentifier("resilencyTestTable");
+    static String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("resiliencyTestTable"));
     static int numberOfRows = 10;
 
-    private static String callableStatementICROnDoneTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneTest_SP"));
-    private static String callableStatementICROnDoneErrorTestSp = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneErrorTest_SP"));
+    private static String callableStatementICROnDoneTestSp = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneTest_SP"));
+    private static String callableStatementICROnDoneErrorTestSp = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatement_ICROnDoneErrorTest_SP"));
     private static String createClientCursorInitTableQuery = "create table %s (col1 int, col2 varchar(8000), col3 int identity(1,1))";
     private static String createFetchBufferTableQuery = "create table %s (col1 int not null)";
     private static String insertIntoFetchBufferTableQuery = "insert into %s (col1) values (%s);";
-    private static final String clientCursorInitTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable1"));
-    private static final String clientCursorInitTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable2"));
-    private static final String clientCursorInitTable3 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable3"));
-    private static final String fetchBufferTestTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable1"));
-    private static final String fetchBufferTestTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable2"));
+    private static final String clientCursorInitTable1 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable1"));
+    private static final String clientCursorInitTable2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable2"));
+    private static final String clientCursorInitTable3 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("clientCursorInitTable3"));
+    private static final String fetchBufferTestTable1 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable1"));
+    private static final String fetchBufferTestTable2 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("fetchBufferTestTable2"));
     private static final String clientCursorInitTableQuery1 = "select * from " + clientCursorInitTable1;
     private static final String clientCursorInitTableQuery2 = "select * from " + clientCursorInitTable2;
     private static final String clientCursorInitTableQuery3 = "select * from " + clientCursorInitTable3;
@@ -169,8 +175,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public void testResultSetClientCursorInitializerOnDone() throws SQLException {
         try (Connection con = ResiliencyUtils.getConnection(connectionString); Statement stmt = con.createStatement()) {
 
-            boolean hasResults = stmt.execute(clientCursorInitTableQuery1+ "; " + clientCursorInitTableQuery2);
-            while(hasResults) {
+            boolean hasResults = stmt.execute(clientCursorInitTableQuery1 + "; " + clientCursorInitTableQuery2);
+            while (hasResults) {
                 ResultSet rs = stmt.getResultSet();
                 while (rs.next()) {}
                 hasResults = stmt.getMoreResults();
@@ -178,9 +184,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             ResiliencyUtils.killConnection(con, connectionString, 1);
 
-            try (ResultSet rs = con.createStatement()
-                    .executeQuery(clientCursorInitTableQuery3)) {
-                while(rs.next()) {}
+            try (ResultSet rs = con.createStatement().executeQuery(clientCursorInitTableQuery3)) {
+                while (rs.next()) {}
             }
         }
     }
@@ -191,7 +196,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             try {
                 boolean hasResults = stmt.execute(clientCursorInitTableQuery1 + "; " + errorQuery);
-                while(hasResults) {
+                while (hasResults) {
                     ResultSet rs = stmt.getResultSet();
                     while (rs.next()) {}
                     hasResults = stmt.getMoreResults();
@@ -205,8 +210,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             ResiliencyUtils.killConnection(con, connectionString, 1);
 
-            try (ResultSet rs = con.createStatement()
-                    .executeQuery(clientCursorInitTableQuery3)) {
+            try (ResultSet rs = con.createStatement().executeQuery(clientCursorInitTableQuery3)) {
                 while (rs.next()) {}
             }
         }
@@ -238,10 +242,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
     @Test
     public void testCallableStatementErrorOnDone() throws SQLException {
-        String errorCallableStmt = "{CALL "
-                + callableStatementICROnDoneErrorTestSp + " (?, ?)}";
-        String validCallableStmt = "{CALL "
-                + callableStatementICROnDoneTestSp + " (?, ?)}";
+        String errorCallableStmt = "{CALL " + callableStatementICROnDoneErrorTestSp + " (?, ?)}";
+        String validCallableStmt = "{CALL " + callableStatementICROnDoneTestSp + " (?, ?)}";
 
         try (Connection con = ResiliencyUtils.getConnection(connectionString)) {
 
@@ -286,7 +288,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             try (Statement stmt = con.createStatement()) {
                 boolean hasResults = stmt.execute(fetchBufferTableQuery1 + "; " + fetchBufferTableQuery2);
-                while(hasResults) {
+                while (hasResults) {
                     ResultSet rs = stmt.getResultSet();
                     while (rs.next()) {}
                     hasResults = stmt.getMoreResults();
@@ -326,7 +328,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
             try (Statement stmt = con.createStatement()) {
                 boolean hasResults = stmt.execute(fetchBufferTableQuery1 + "; " + errorQuery);
-                while(hasResults) {
+                while (hasResults) {
                     ResultSet rs = stmt.getResultSet();
                     while (rs.next()) {}
                     hasResults = stmt.getMoreResults();
@@ -386,7 +388,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     @Test
     public void testResultSetWithException() throws Exception {
         try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement();
-             ResultSet rs = s.executeQuery("SELECT 1/0")) {
+                ResultSet rs = s.executeQuery("SELECT 1/0")) {
 
             while (rs.next()) {
                 ResiliencyUtils.killConnection(c, connectionString, 0);
