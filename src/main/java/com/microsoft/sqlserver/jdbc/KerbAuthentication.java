@@ -241,9 +241,9 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     void releaseClientContext() {
         try {
-            if (null != peerCredentials && !isUserCreatedCredential) {
+            if (null != peerCredentials && !isUserCreatedCredential && !useDefaultNativeGSSCredential) {
                 peerCredentials.dispose();
-            } else if (null != peerCredentials && isUserCreatedCredential) {
+            } else if (null != peerCredentials && (isUserCreatedCredential || useDefaultNativeGSSCredential)) {
                 peerCredentials = null;
             }
             if (null != peerContext) {
