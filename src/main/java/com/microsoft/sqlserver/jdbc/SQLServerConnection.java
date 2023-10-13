@@ -3292,9 +3292,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
             if (!isDBMirroring || (1 == attemptNumber % 2)) {
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " sleeping milisec: " + sleepInterval);
                     connectionlogger.fine(toString() + " Connection state: " + state);
-                    connectionlogger.fine(toString() + " isMirroring?: " + isDBMirroring);
                 }
                 try {
                     Thread.sleep(sleepInterval);
