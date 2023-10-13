@@ -3247,8 +3247,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } catch (SQLServerException sqlex) {
                 int errorCode = sqlex.getErrorCode();
                 int driverErrorCode = sqlex.getDriverErrorCode();
-                    System.out.println("Connection state: " + state);
-                    System.out.println("Is mirroring? - " + isDBMirroring);
                 if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
                         || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
@@ -3295,6 +3293,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (!isDBMirroring || (1 == attemptNumber % 2)) {
                 if (connectionlogger.isLoggable(Level.FINE)) {
                     connectionlogger.fine(toString() + " sleeping milisec: " + sleepInterval);
+                    connectionlogger.fine(toString() + " Connection state: " + state);
+                    connectionlogger.fine(toString() + " isMirroring?: " + isDBMirroring);
                 }
                 try {
                     Thread.sleep(sleepInterval);
