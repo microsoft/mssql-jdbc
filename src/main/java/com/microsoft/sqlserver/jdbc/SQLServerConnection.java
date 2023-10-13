@@ -3247,6 +3247,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } catch (SQLServerException sqlex) {
                 int errorCode = sqlex.getErrorCode();
                 int driverErrorCode = sqlex.getDriverErrorCode();
+                if (connectionlogger.isLoggable(Level.FINE)) {
+                    connectionlogger.fine("Connection state: " + state);
+                    connectionlogger.fine("Is mirroring? - " + isDBMirroring);
+                }
                 if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
                         || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
