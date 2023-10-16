@@ -763,6 +763,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testComputedCols() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols) + " (id, json)"
