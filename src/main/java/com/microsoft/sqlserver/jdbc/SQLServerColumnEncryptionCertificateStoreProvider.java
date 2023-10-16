@@ -19,8 +19,6 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     static final private java.util.logging.Logger windowsCertificateStoreLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionCertificateStoreProvider");
 
-    static boolean isWindows;
-
     String name = "MSSQL_CERTIFICATE_STORE";
 
     static final String LOCAL_MACHINE_DIRECTORY = "LocalMachine";
@@ -28,14 +26,6 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
     static final String MY_CERTIFICATE_STORE = "My";
 
     private static final Lock lock = new ReentrantLock();
-
-    static {
-        if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
-            isWindows = true;
-        } else {
-            isWindows = false;
-        }
-    }
 
     /**
      * Constructs a SQLServerColumnEncryptionCertificateStoreProvider.
@@ -67,7 +57,7 @@ public final class SQLServerColumnEncryptionCertificateStoreProvider extends SQL
         windowsCertificateStoreLogger.entering(SQLServerColumnEncryptionCertificateStoreProvider.class.getName(),
                 "decryptColumnEncryptionKey", "Decrypting Column Encryption Key.");
         byte[] plainCek;
-        if (isWindows) {
+        if (SQLServerConnection.isWindows) {
             plainCek = decryptColumnEncryptionKeyWindows(masterKeyPath, encryptionAlgorithm,
                     encryptedColumnEncryptionKey);
         } else {

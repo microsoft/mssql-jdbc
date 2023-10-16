@@ -29,7 +29,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos')
     }
 }
 

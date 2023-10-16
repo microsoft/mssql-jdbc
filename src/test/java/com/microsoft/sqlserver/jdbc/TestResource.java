@@ -43,6 +43,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_lengthTruncated", " The inserted length is truncated or not correct!"},
             {"R_timeValueTruncated", " The time value is truncated or not correct!"},
             {"R_invalidErrorMessage", "Invalid Error Message: "},
+            {"R_kerberosNativeGSSFailure", "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
             {"R_expectedFailPassed", "Expected failure did not fail"}, {"R_dataTypeNotFound", "Cannot find data type"},
             {"R_illegalCharWktPosition", "Illegal character in Well-Known text at position {0}."},
             {"R_illegalCharWkt", "Illegal Well-Known text. Please make sure Well-Known text is valid."},

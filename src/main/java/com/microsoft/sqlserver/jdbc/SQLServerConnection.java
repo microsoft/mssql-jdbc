@@ -983,8 +983,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** global system ColumnEncryptionKeyStoreProviders */
     static Map<String, SQLServerColumnEncryptionKeyStoreProvider> globalSystemColumnEncryptionKeyStoreProviders = new HashMap<>();
 
+    static boolean isWindows = System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows");
+
     static {
-        if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")) {
+        if (isWindows) {
             SQLServerColumnEncryptionCertificateStoreProvider provider = new SQLServerColumnEncryptionCertificateStoreProvider();
             globalSystemColumnEncryptionKeyStoreProviders.put(provider.getName(), provider);
         }
@@ -1425,6 +1427,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** integrated authentication scheme */
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
+
+    /** use default native GSS-API Credential flag */
+    private boolean useDefaultGSSCredential = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue();
 
     /** impersonated user credential */
     private transient GSSCredential impersonatedUserCred;
@@ -2479,6 +2484,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (activeConnectionProperties.containsKey(sPropKey)) {
                         impersonatedUserCred = (GSSCredential) activeConnectionProperties.get(sPropKey);
                         isUserCreatedCredential = true;
+                    }
+                    sPropKey = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if(null != sPropValue && isWindows) {
+                        useDefaultGSSCredential = isBooleanPropertyOn(sPropKey, sPropValue);
                     }
                 } else if (intAuthScheme == AuthenticationScheme.NTLM) {
                     String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
@@ -5097,9 +5107,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 authentication = new AuthenticationJNI(this, currentConnectPlaceHolder.getServerName(),
                         currentConnectPlaceHolder.getPortNumber());
             } else if (AuthenticationScheme.JAVA_KERBEROS == intAuthScheme) {
-                if (null != impersonatedUserCred) {
+                if (null != impersonatedUserCred || useDefaultGSSCredential) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential);
+                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential, useDefaultGSSCredential);
                 } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());
@@ -5800,8 +5810,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
                 // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (System.getProperty("os.name").toLowerCase(Locale.ENGLISH).startsWith("windows")
-                        && AuthenticationJNI.isDllLoaded()) {
+                if (isWindows && AuthenticationJNI.isDllLoaded()) {
                     try {
                         FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
                                 fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),

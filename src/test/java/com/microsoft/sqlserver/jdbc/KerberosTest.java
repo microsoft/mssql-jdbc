@@ -16,62 +16,78 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 
+@Tag(Constants.kerberos)
 @RunWith(JUnitPlatform.class)
 public class KerberosTest extends AbstractTest {
 
     private static String kerberosAuth = "KERBEROS";
+    private static String authSchemeQuery = "select auth_scheme from sys.dm_exec_connections where session_id=@@spid";
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
     }
 
-    @Tag(Constants.Kerberos)
     @Test
     public void testUseDefaultJaasConfigConnectionStringPropertyTrue() throws Exception {
         String connectionStringUseDefaultJaasConfig = connectionStringKerberos + ";useDefaultJaasConfig=true;";
 
         // Initial connection should succeed with default JAAS config
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringUseDefaultJaasConfig)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
-            rs.next();
-            Assertions.assertEquals(kerberosAuth, rs.getString(1));
-        }
+        createKerberosConnection(connectionStringUseDefaultJaasConfig);
 
         // Attempt to overwrite JAAS config. Since useDefaultJaasConfig=true, this should have no effect
         // and subsequent connections should succeed.
         overwriteJaasConfig();
 
         // New connection should successfully connect and continue to use the default JAAS config.
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringUseDefaultJaasConfig)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
-            rs.next();
-            Assertions.assertEquals(kerberosAuth, rs.getString(1));
-        }
+        createKerberosConnection(connectionStringUseDefaultJaasConfig);
     }
 
-    @Tag(Constants.Kerberos)
     @Test
     public void testUseDefaultJaasConfigConnectionStringPropertyFalse() throws Exception {
 
         // useDefaultJaasConfig=false by default
         // Initial connection should succeed with default JAAS config
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringKerberos)) {
-            ResultSet rs = conn.createStatement().executeQuery("select auth_scheme from sys.dm_exec_connections where session_id=@@spid");
-            rs.next();
-            Assertions.assertEquals(kerberosAuth, rs.getString(1));
-        }
+        createKerberosConnection(connectionStringKerberos);
 
         // Overwrite JAAS config. Since useDefaultJaasConfig=false, overwriting should succeed and have an effect.
         // Subsequent connections will fail.
         overwriteJaasConfig();
 
         // New connection should fail as it is attempting to connect using an overwritten JAAS config.
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionStringKerberos)) {
+        try {
+            createKerberosConnection(connectionStringKerberos);
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
             Assertions.assertTrue(e.getMessage()
                     .contains(TestResource.getResource("R_noLoginModulesConfiguredForJdbcDriver")));
+        }
+    }
+
+    @Test
+    public void testUseDefaultNativeGSSCredential() throws Exception {
+        // This is a negative test. This test should fail as expected as the JVM arg "-Dsun.security.jgss.native=true"
+        // isn't provided.
+        String connectionString = connectionStringKerberos + ";useDefaultGSSCredential=true;";
+
+        try {
+            createKerberosConnection(connectionString);
+            Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            Assertions.assertEquals(e.getCause().getMessage(), TestResource.getResource("R_kerberosNativeGSSFailure"));
+        }
+    }
+
+    @Test
+    public void testBasicKerberosAuth() throws Exception {
+        createKerberosConnection(connectionStringKerberos);
+    }
+
+    private static void createKerberosConnection(String connectionString) throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
+            rs.next();
+            Assertions.assertEquals(kerberosAuth, rs.getString(1));
         }
     }
 
@@ -84,7 +100,7 @@ public class KerberosTest extends AbstractTest {
                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                 new HashMap<>());
         Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("KAFKA_CLIENT_CONTEXT_NAME",
+        configurationEntries.put("CLIENT_CONTEXT_NAME",
                 new AppConfigurationEntry[] { kafkaClientConfigurationEntry });
         Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
     }
@@ -100,6 +116,5 @@ public class KerberosTest extends AbstractTest {
         public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
             return this.configurationEntries.get(name);
         }
-
     }
 }
