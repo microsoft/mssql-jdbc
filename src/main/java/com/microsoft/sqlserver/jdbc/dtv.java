@@ -862,15 +862,9 @@ final class DTV {
                                             subSecondNanos, (valueLength), isOutParam, statement);
                                 }
                             } else {
-                                if (jdbcType == JDBCType.DATETIME || jdbcType == JDBCType.SMALLDATETIME) {
-                                    tdsWriter.writeRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam);
-                                } else {
-                                    tdsWriter.writeRPCDateTime2(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-                                }
+                                tdsWriter.writeRPCDateTime2(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
                             }
 
                             break;
