@@ -21,6 +21,7 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import com.microsoft.sqlserver.jdbc.*;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,11 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -95,6 +91,17 @@ public class CallableStatementTest extends AbstractTest {
             createTableManyParams();
             createProcedureManyParams();
             createGetObjectOffsetDateTimeProcedure(stmt);
+        }
+    }
+
+    @Test
+    public void testCallableStatementClosedConnection() throws Exception {
+        try (SQLServerCallableStatement stmt = (SQLServerCallableStatement) connection.prepareCall("sproc")) {
+            stmt.close(); // Prematurely close the statement, which causes inOutParams to be null.
+            stmt.setStructured("myParam", "myTvp", (SQLServerDataTable) null);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_statementClosed"), e.getMessage());
         }
     }
 

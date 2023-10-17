@@ -1402,6 +1402,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      */
     private int findColumn(String columnName, CallableStatementGetterSetterMethod method) throws SQLServerException {
 
+        // If inOutParam is null, likely the statement was closed beforehand.
+        if (null == inOutParam) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_statementIsClosed"), null, false);
+        }
+
         if (!isCursorable(executeMethod)) {
             // handle `@name` as well as `name`, since `@name` is what's returned
             // by DatabaseMetaData#getProcedureColumns
