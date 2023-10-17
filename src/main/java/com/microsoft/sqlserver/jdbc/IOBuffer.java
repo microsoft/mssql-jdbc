@@ -5032,7 +5032,8 @@ final class TDSWriter {
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
-            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant) throws SQLServerException {
+            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant)
+            throws SQLServerException, IllegalArgumentException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {
@@ -5104,9 +5105,18 @@ final class TDSWriter {
 
                     /*
                      * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
-                     * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0,
+                     * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
+                     *
+                     * Additionally, we should check here if the scale is within the bounds of SQLServer as it is
+                     * possible for a number with a scale larger than 38 to be passed in.
                      */
+                    if (columnPair.getValue().scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
+                        Object[] msgArgs = {columnPair.getValue()};
+                        throw new IllegalArgumentException(form.format(msgArgs));
+                    }
+
                     bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
 
                     byte[] val = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
