@@ -3262,6 +3262,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || (state.equals(State.CONNECTED) && !isDBMirroring)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(toString() + " Success Connection state: " + state);
+                    }
                     // close the connection and throw the error back
                     close();
                     throw sqlex;
@@ -3292,7 +3295,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
             if (!isDBMirroring || (1 == attemptNumber % 2)) {
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " Connection state: " + state);
+                    connectionlogger.fine(toString() + " Failed Connection state: " + state);
                 }
                 try {
                     Thread.sleep(sleepInterval);
