@@ -5113,7 +5113,7 @@ final class TDSWriter {
                      */
                     if (columnPair.getValue().scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
-                        Object[] msgArgs = {columnPair.getValue()};
+                        Object[] msgArgs = {columnPair.getValue().scale};
                         throw new IllegalArgumentException(form.format(msgArgs));
                     }
 

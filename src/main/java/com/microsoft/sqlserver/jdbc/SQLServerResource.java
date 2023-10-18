@@ -541,7 +541,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."},
         {"R_AmbiguousRowUpdate", "Failed to execute updateRow(). The update is attempting an ambiguous update on tables \"{0}\" and \"{1}\". Ensure all columns being updated prior to the updateRow() call belong to the same table."},
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
-        {"R_InvalidScale", "BigDecimal scale for provided input, {0}, is larger than maximum allowed by SQL Server (38)."}
+        {"R_InvalidScale", "Scale of input value, {0}, is larger than the maximum allowed by SQL Server (38)."}
     };
 }
 // @formatter:on

@@ -31,6 +31,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.microsoft.sqlserver.jdbc.*;
+import org.bouncycastle.asn1.cmp.Challenge;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,14 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
-import com.microsoft.sqlserver.jdbc.SQLServerStatement;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -1224,6 +1218,10 @@ public class StatementTest extends AbstractTest {
     public class TCStatementParam {
         private final String tableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
+
+        private final String typeName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
+
         private final String procName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
 
@@ -1450,6 +1448,39 @@ public class StatementTest extends AbstractTest {
                     try (ResultSet rs = cstmt.executeQuery()) {} catch (Exception ex) {} ;
 
                     assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                }
+            }
+        }
+
+        /**
+         * Tests whether overly large bigDecimal values (
+         *
+         * @throws SQLException When an exception occurs
+         */
+        @Test
+        public void testLargeBigDecimalInTVPRowValues() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+                TestUtils.dropTypeIfExists(typeName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT PRIMARY KEY, value NUMERIC(10, 2))");
+                stmt.executeUpdate("CREATE TYPE " + typeName + " AS TABLE ( id INT, value NUMERIC(38, 10));");
+                stmt.execute("CREATE PROCEDURE" + procName + " @dataToUpsert AS " + typeName + " READONLY " +
+                        "AS BEGIN MERGE INTO " + tableName + " AS target USING @dataToUpsert AS source " +
+                        "ON (target.id = source.id) WHEN MATCHED THEN UPDATE SET target.value = source.value " +
+                        "WHEN NOT MATCHED THEN INSERT (id, value) VALUES (source.id, source.value); END");
+
+                try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("{CALL " + procName + "(?)}")) {
+                    SQLServerDataTable tb = new SQLServerDataTable();
+                    tb.addColumnMetadata("id", Types.INTEGER);
+                    tb.addColumnMetadata("value", Types.NUMERIC);
+                    BigDecimal bd = new BigDecimal(0.222);
+                    //bd.setScale(4, BigDecimal.ROUND_FLOOR);
+                    tb.addRow(1, bd);
+
+                    cstmt.setStructured(1, typeName, tb);
+                    cstmt.execute();
+                    cstmt.close();
                 }
             }
         }
