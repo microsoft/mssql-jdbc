@@ -240,6 +240,17 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setUseDefaultGSSCredential(boolean enable) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(), enable);
+    }
+
+    @Override
+    public boolean getUseDefaultGSSCredential() {
+       return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
+               SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue());
+    }
+
+    @Override
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
