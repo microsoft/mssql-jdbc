@@ -2462,10 +2462,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 if (bulkNullable)
                                     tdsWriter.writeByte((byte) 0x08);
 
-                                if (colValue instanceof java.sql.Timestamp)
-                                    tdsWriter.writeDatetime((java.sql.Timestamp)colValue);
-                                else
-                                    tdsWriter.writeDatetime(colValue.toString());
+                                if (colValue instanceof java.sql.Timestamp) {
+                                    tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
+                                } else {
+                                    tdsWriter.writeDatetime(java.sql.Timestamp.valueOf(colValue.toString()));
+                                }
                                 break;
                             default: // DATETIME2
                                 if (2 >= bulkScale)
@@ -2703,10 +2704,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // when the type is ambiguous, we write to bigger type
             case DATETIME8:
                 writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
-                if (colValue instanceof java.sql.Timestamp)
-                    tdsWriter.writeDatetime((java.sql.Timestamp)colValue);
-                else
-                    tdsWriter.writeDatetime(colValue.toString());
+                if (colValue instanceof java.sql.Timestamp) {
+                    tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
+                } else {
+                    tdsWriter.writeDatetime(java.sql.Timestamp.valueOf(colValue.toString()));
+                }
                 break;
 
             case DATETIME2N:

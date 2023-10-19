@@ -3756,13 +3756,8 @@ final class TDSWriter {
         writeShort((short) minutesSinceMidnight);
     }
 
-    void writeDatetime(String value) throws SQLServerException {
-        writeDatetime(java.sql.Timestamp.valueOf(value));
-    }
-
     void writeDatetime(java.sql.Timestamp dateValue) throws SQLServerException {
         LocalDateTime ldt = dateValue.toLocalDateTime();
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         subSecondNanos = ldt.getNano();
 

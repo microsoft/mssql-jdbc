@@ -55,7 +55,6 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
-        createDatetimeTestTable();
     }
 
     /**
@@ -123,8 +122,8 @@ public class BulkCopyAllTypesTest extends AbstractTest {
         }
     }
 
-    public static final int DATETIME_COL_COUNT = 2;
-    public static final int DATETIME_ROW_COUNT = 1;
+    private static final int DATETIME_COL_COUNT = 2;
+    private static final int DATETIME_ROW_COUNT = 1;
     private static final String dateTimeTestTable =
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bulkCopyTimestampTest"));
 
@@ -132,6 +131,11 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     public void testBulkCopyTimestamp() throws SQLException {
         List<Timestamp> timeStamps = new ArrayList<>();
         try (Connection con = getConnection(); Statement stmt = connection.createStatement()) {
+            String colSpec = IntStream.range(1, DATETIME_COL_COUNT + 1).mapToObj(x -> String.format("c%d datetime", x)).collect(
+                    Collectors.joining(","));
+            String sql1 = String.format("create table %s (%s)", dateTimeTestTable, colSpec);
+            stmt.execute(sql1);
+
             RowSetFactory rsf = RowSetProvider.newFactory();
             CachedRowSet crs = rsf.createCachedRowSet();
             RowSetMetaData rsmd = new RowSetMetaDataImpl();
@@ -180,14 +184,5 @@ public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static long getTime(Timestamp time) {
         return (3 * time.getTime() + 5) / 10;
-    }
-
-    private static void createDatetimeTestTable() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            String colSpec = IntStream.range(1, DATETIME_COL_COUNT + 1).mapToObj(x -> String.format("c%d datetime", x)).collect(
-                    Collectors.joining(","));
-            String sql1 = String.format("create table %s (%s)", dateTimeTestTable, colSpec);
-            stmt.execute(sql1);
-        }
     }
 }
