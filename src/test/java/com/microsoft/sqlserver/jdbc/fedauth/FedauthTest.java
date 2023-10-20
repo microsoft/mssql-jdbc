@@ -111,6 +111,7 @@ public class FedauthTest extends FedauthCommon {
         ds.setUser(azureUserName);
         ds.setPassword(azurePassword);
         ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
+        ds.setConnectRetryCount(10);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
@@ -141,7 +142,7 @@ public class FedauthTest extends FedauthCommon {
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"),
-                "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword;
+                "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword + ";connectRetryCount=10";
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {

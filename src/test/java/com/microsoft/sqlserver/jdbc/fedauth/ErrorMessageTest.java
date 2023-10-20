@@ -384,7 +384,7 @@ public class ErrorMessageTest extends FedauthCommon {
     public void testADPasswordWrongPasswordWithConnectionStringUserName() throws SQLException {
         try (Connection connection = DriverManager
                 .getConnection(connectionUrl + ";userName=" + azureUserName + ";password=WrongPassword;"
-                        + "Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString())) {
+                        + "Authentication=" + SqlAuthentication.ActiveDirectoryPassword.toString() + ";connectRetryCount=10")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
@@ -409,6 +409,7 @@ public class ErrorMessageTest extends FedauthCommon {
             ds.setUser(azureUserName);
             ds.setPassword("WrongPassword");
             ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
+            ds.setConnectRetryCount(10);
 
             try (Connection connection = ds.getConnection()) {}
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
