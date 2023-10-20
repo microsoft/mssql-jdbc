@@ -1460,15 +1460,12 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testLargeBigDecimalInTVPRowValues() throws SQLException {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                TestUtils.dropProcedureIfExists(procName, stmt);
-                TestUtils.dropTypeIfExists(typeName, stmt);
-                TestUtils.dropTableIfExists(tableName, stmt);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT PRIMARY KEY, value NUMERIC(10, 2))");
                 stmt.executeUpdate("CREATE TYPE " + typeName + " AS TABLE ( id INT, value NUMERIC(38, 10));");
-                stmt.execute("CREATE PROCEDURE" + procName + " @dataToUpsert AS " + typeName + " READONLY " +
-                        "AS BEGIN MERGE INTO " + tableName + " AS target USING @dataToUpsert AS source " +
-                        "ON (target.id = source.id) WHEN MATCHED THEN UPDATE SET target.value = source.value " +
-                        "WHEN NOT MATCHED THEN INSERT (id, value) VALUES (source.id, source.value); END");
+                stmt.execute("CREATE PROCEDURE " + procName + " @InputData "
+                        + typeName + " READONLY " + " AS " + " BEGIN "
+                        + " INSERT INTO " + tableName + " SELECT * FROM @InputData"
+                        + " END");
 
                 try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("{CALL " + procName + "(?)}")) {
                     SQLServerDataTable tb = new SQLServerDataTable();
@@ -1481,6 +1478,9 @@ public class StatementTest extends AbstractTest {
                     cstmt.setStructured(1, typeName, tb);
                     cstmt.execute();
                     cstmt.close();
+                } catch (IllegalArgumentException e) {
+                    assertEquals("Scale of input value is larger than the maximum allowed by SQL Server (38).",
+                            e.getMessage(), TestResource.getResource("R_unexpectedException"));
                 }
             }
         }
@@ -1580,6 +1580,7 @@ public class StatementTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
                 TestUtils.dropProcedureIfExists(procName, stmt);
+                TestUtils.dropTypeIfExists(typeName, stmt);
             }
         }
     }
