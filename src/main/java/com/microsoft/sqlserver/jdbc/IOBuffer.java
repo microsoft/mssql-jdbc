@@ -5033,7 +5033,7 @@ final class TDSWriter {
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
             Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant)
-            throws SQLServerException, IllegalArgumentException {
+                    throws SQLServerException, IllegalArgumentException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {

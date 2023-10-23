@@ -31,8 +31,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import com.microsoft.sqlserver.jdbc.*;
-import org.bouncycastle.asn1.cmp.Challenge;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +40,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -1453,7 +1461,7 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests whether overly large bigDecimal values (
+         * Tests whether overly large bigDecimal values (scale greater than 38) are correctly caught when using TVP.
          *
          * @throws SQLException When an exception occurs
          */
@@ -1462,17 +1470,15 @@ public class StatementTest extends AbstractTest {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT PRIMARY KEY, value NUMERIC(10, 2))");
                 stmt.executeUpdate("CREATE TYPE " + typeName + " AS TABLE ( id INT, value NUMERIC(38, 10));");
-                stmt.execute("CREATE PROCEDURE " + procName + " @InputData "
-                        + typeName + " READONLY " + " AS " + " BEGIN "
-                        + " INSERT INTO " + tableName + " SELECT * FROM @InputData"
-                        + " END");
+                stmt.execute("CREATE PROCEDURE " + procName + " @InputData " + typeName + " READONLY " + " AS "
+                        + " BEGIN " + " INSERT INTO " + tableName + " SELECT * FROM @InputData" + " END");
 
-                try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall("{CALL " + procName + "(?)}")) {
+                try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall(
+                        "{CALL " + procName + "(?)}")) {
                     SQLServerDataTable tb = new SQLServerDataTable();
                     tb.addColumnMetadata("id", Types.INTEGER);
                     tb.addColumnMetadata("value", Types.NUMERIC);
                     BigDecimal bd = new BigDecimal(0.222);
-                    //bd.setScale(4, BigDecimal.ROUND_FLOOR);
                     tb.addRow(1, bd);
 
                     cstmt.setStructured(1, typeName, tb);
