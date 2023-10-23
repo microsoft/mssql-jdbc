@@ -41,7 +41,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -1473,17 +1472,14 @@ public class StatementTest extends AbstractTest {
                 stmt.execute("CREATE PROCEDURE " + procName + " @InputData " + typeName + " READONLY " + " AS "
                         + " BEGIN " + " INSERT INTO " + tableName + " SELECT * FROM @InputData" + " END");
 
-                try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con.prepareCall(
-                        "{CALL " + procName + "(?)}")) {
+                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?)}")) {
                     SQLServerDataTable tb = new SQLServerDataTable();
                     tb.addColumnMetadata("id", Types.INTEGER);
                     tb.addColumnMetadata("value", Types.NUMERIC);
-                    BigDecimal bd = new BigDecimal(0.222);
-                    tb.addRow(1, bd);
+                    tb.addRow(1, new BigDecimal(0.222));
 
-                    cstmt.setStructured(1, typeName, tb);
+                    cstmt.setObject(1, tb);
                     cstmt.execute();
-                    cstmt.close();
                 } catch (IllegalArgumentException e) {
                     assertEquals("Scale of input value is larger than the maximum allowed by SQL Server (38).",
                             e.getMessage(), TestResource.getResource("R_unexpectedException"));
