@@ -167,6 +167,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
+    void registerOutParameterNonPLP(int index, int sqlType) throws SQLServerException {
+        registerOutParameter(index, sqlType);
+        inOutParam[index - 1].isNonPLP = true;
+    }
+
     /**
      * Locate any output parameter values returned from the procedure call
      */

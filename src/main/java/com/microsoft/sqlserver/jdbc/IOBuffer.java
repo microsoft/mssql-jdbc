@@ -4791,7 +4791,7 @@ final class TDSWriter {
      * Utility for internal writeRPCString calls
      */
     void writeRPCStringUnicode(String sValue) throws SQLServerException {
-        writeRPCStringUnicode(null, sValue, false, null);
+        writeRPCStringUnicode(null, sValue, false, null, false);
     }
 
     /**
@@ -4807,7 +4807,7 @@ final class TDSWriter {
      *        the collation of the data value
      */
     void writeRPCStringUnicode(String sName, String sValue, boolean bOut,
-            SQLCollation collation) throws SQLServerException {
+            SQLCollation collation, boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
         // Textual RPC requires a collation. If none is provided, as is the case when
@@ -4819,7 +4819,7 @@ final class TDSWriter {
          * Use PLP encoding if either OUT params were specified or if the user query exceeds
          * DataTypes.SHORT_VARTYPE_MAX_BYTES
          */
-        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
+        if ((nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) && !isNonPLP) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
             // Handle Yukon v*max type header here.
@@ -5565,7 +5565,7 @@ final class TDSWriter {
     }
 
     void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
-            SQLCollation collation) throws SQLServerException {
+            SQLCollation collation, boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5611,7 +5611,7 @@ final class TDSWriter {
 
         writeRPCNameValType(sName, bOut, tdsType);
 
-        if (usePLP) {
+        if (usePLP && !isNonPLP) {
             // Handle Yukon v*max type header here.
             writeVMaxHeader(nValueLen, bValueNull, collation);
 

@@ -37,6 +37,8 @@ final class Parameter {
     // For unencrypted parameters cryptometa will be null. For encrypted parameters it will hold encryption metadata.
     CryptoMetadata cryptoMeta = null;
 
+    boolean isNonPLP = false;
+
     TypeInfo getTypeInfo() {
         return typeInfo;
     }
@@ -1243,6 +1245,7 @@ final class Parameter {
         SQLServerConnection conn = statement.connection;
 
         try {
+            inputDTV.isNonPLP = isNonPLP;
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
             inputDTV.sendByRPC(SQLServerPreparedStatement.callRpcDirectly ? name : null, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,

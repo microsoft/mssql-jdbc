@@ -132,6 +132,8 @@ final class DTV {
     int valueLength = 0;
     boolean sendStringParametersAsUnicode = true;
 
+    boolean isNonPLP = false;
+
     /**
      * Sets a DTV value from a Java object.
      *
@@ -289,7 +291,7 @@ final class DTV {
         }
 
         void execute(DTV dtv, String strValue) throws SQLServerException {
-            tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+            tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
         }
 
         void execute(DTV dtv, Clob clobValue) throws SQLServerException {
@@ -311,7 +313,7 @@ final class DTV {
             if (null != collation && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType
                     || JDBCType.LONGVARCHAR == jdbcType || JDBCType.CLOB == jdbcType)) {
                 if (null == clobReader) {
-                    tdsWriter.writeRPCByteArray(name, null, isOutParam, jdbcType, collation);
+                    tdsWriter.writeRPCByteArray(name, null, isOutParam, jdbcType, collation, false);
                 } else {
                     ReaderInputStream clobStream = new ReaderInputStream(clobReader, collation.getCharset(),
                             clobLength);
@@ -322,7 +324,7 @@ final class DTV {
             } else // Send CLOB value as Unicode
             {
                 if (null == clobReader) {
-                    tdsWriter.writeRPCStringUnicode(name, null, isOutParam, collation);
+                    tdsWriter.writeRPCStringUnicode(name, null, isOutParam, collation, false);
                 } else {
                     tdsWriter.writeRPCReaderUnicode(name, clobReader, clobLength, isOutParam, collation);
                 }
@@ -1075,7 +1077,7 @@ final class DTV {
                             DriverError.NOT_SET, null);
                 } else {
                     String strValue = bigDecimalValue.toString();
-                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, false);
                 }
             } else {
                 tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
@@ -1126,7 +1128,7 @@ final class DTV {
                 }
 
             } else
-                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
+                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation, dtv.isNonPLP);
 
         }
 
@@ -1379,7 +1381,7 @@ final class DTV {
             }
 
             if (null == blobStream) {
-                tdsWriter.writeRPCByteArray(name, null, isOutParam, dtv.getJdbcType(), collation);
+                tdsWriter.writeRPCByteArray(name, null, isOutParam, dtv.getJdbcType(), collation, false);
             } else {
                 tdsWriter.writeRPCInputStream(name, blobStream, blobLength, isOutParam, dtv.getJdbcType(), collation);
             }
