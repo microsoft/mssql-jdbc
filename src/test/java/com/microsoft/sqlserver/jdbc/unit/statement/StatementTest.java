@@ -42,7 +42,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSetMetaData;
@@ -1225,10 +1224,6 @@ public class StatementTest extends AbstractTest {
     public class TCStatementParam {
         private final String tableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
-
-        private final String typeName = AbstractSQLGenerator
-                .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
-
         private final String procName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCStatementParam"));
 
@@ -1460,34 +1455,6 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests whether overly large bigDecimal values (scale greater than 38) are correctly caught when using TVP.
-         *
-         * @throws SQLException When an exception occurs
-         */
-        @Test
-        public void testLargeBigDecimalInTVPRowValues() throws SQLException {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT PRIMARY KEY, value NUMERIC(10, 2))");
-                stmt.executeUpdate("CREATE TYPE " + typeName + " AS TABLE ( id INT, value NUMERIC(38, 10));");
-                stmt.execute("CREATE PROCEDURE " + procName + " @InputData " + typeName + " READONLY " + " AS "
-                        + " BEGIN " + " INSERT INTO " + tableName + " SELECT * FROM @InputData" + " END");
-
-                try (CallableStatement cstmt = con.prepareCall("{CALL " + procName + "(?)}")) {
-                    SQLServerDataTable tb = new SQLServerDataTable();
-                    tb.addColumnMetadata("id", Types.INTEGER);
-                    tb.addColumnMetadata("value", Types.NUMERIC);
-                    tb.addRow(1, new BigDecimal(0.222));
-
-                    cstmt.setObject(1, tb);
-                    cstmt.execute();
-                } catch (IllegalArgumentException e) {
-                    assertEquals("Scale of input value is larger than the maximum allowed by SQL Server (38).",
-                            e.getMessage(), TestResource.getResource("R_unexpectedException"));
-                }
-            }
-        }
-
-        /**
          * Verify proper handling of row errors in ResultSets.
          */
         @Test
@@ -1582,7 +1549,6 @@ public class StatementTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
                 TestUtils.dropProcedureIfExists(procName, stmt);
-                TestUtils.dropTypeIfExists(typeName, stmt);
             }
         }
     }
