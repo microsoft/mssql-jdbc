@@ -725,8 +725,17 @@ final class TDSChannel implements Serializable {
             setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
-            int socketTimeout = con.getSocketTimeoutMilliseconds();
-            tcpSocket.setSoTimeout(socketTimeout);
+            if (!con.isConnected()) {
+                // if not connected then this should be bounded by remaining loginTimeout
+                /*
+                 * int remainingTime = con.getLoginTimeoutSeconds()
+                 * - (int) (TimeUnit.MILLISECONDS.toSeconds(con.getConnectTimer().getElapsedTime()));
+                 */
+                int remainingTime =  (int) (TimeUnit.MILLISECONDS.toSeconds(con.timerRemaining(con.timerExpire)));
+                tcpSocket.setSoTimeout(remainingTime);
+            } else {
+                tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
+            }
 
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
