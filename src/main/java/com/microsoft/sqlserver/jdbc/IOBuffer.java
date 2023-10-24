@@ -5107,15 +5107,7 @@ final class TDSWriter {
                      * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
                      * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
-                     *
-                     * Additionally, we should check here if the scale is within the bounds of SQLServer as it is
-                     * possible for a number with a scale larger than 38 to be passed in.
                      */
-                    if (columnPair.getValue().scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
-                        Object[] msgArgs = {columnPair.getValue().scale};
-                        throw new IllegalArgumentException(form.format(msgArgs));
-                    }
 
                     bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
 
@@ -5125,7 +5117,13 @@ final class TDSWriter {
                     byte[] byteValue = new byte[17];
 
                     // removing the precision and scale information from the valueBytes array
-                    System.arraycopy(val, 2, byteValue, 0, val.length - 2);
+                    try {
+                        System.arraycopy(val, 2, byteValue, 0, val.length - 2);
+                    } catch (IndexOutOfBoundsException e) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
+                        Object[] msgArgs = {columnPair.getValue().scale};
+                        throw new IllegalArgumentException(form.format(msgArgs));
+                    }
                     writeBytes(byteValue);
                 }
                 break;
