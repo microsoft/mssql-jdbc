@@ -5119,7 +5119,7 @@ final class TDSWriter {
                     // removing the precision and scale information from the valueBytes array
                     try {
                         System.arraycopy(val, 2, byteValue, 0, val.length - 2);
-                    } catch (IndexOutOfBoundsException e) {
+                    } catch (ArrayIndexOutOfBoundsException e) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
                         Object[] msgArgs = {columnPair.getValue().scale};
                         throw new IllegalArgumentException(form.format(msgArgs));
