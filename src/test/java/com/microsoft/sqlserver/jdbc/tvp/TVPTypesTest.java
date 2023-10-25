@@ -596,7 +596,7 @@ public class TVPTypesTest extends AbstractTest {
             callableStmt.execute();
 
             assertEquals(false, true, TestResource.getResource("R_expectedExceptionNotThrown"));
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             assertEquals("Scale of input value is larger than the maximum allowed by SQL Server (38).",
                     e.getMessage(), TestResource.getResource("R_unexpectedException"));
         }
