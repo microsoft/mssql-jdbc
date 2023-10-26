@@ -3249,6 +3249,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
                             + retryAttempt);
                 }
+                sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
             } else {
                 if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode
                         && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && !timerHasExpired(timerExpire)) {
