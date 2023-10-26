@@ -103,7 +103,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private static final byte[] netAddress = getRandomNetAddress();
 
-    /** timer expiry */
+    /** timer expiry in ms */
     long timerExpire;
 
     /** flag to indicate if attempt refresh token is locked */
@@ -3181,6 +3181,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
+                System.out.println("errorCode: " + errorCode + " driverErrorCode: " + driverErrorCode
+                        + " sqlServerError: " + sqlServerError);
                 if (retryAttempt >= connectRetryCount || !TransientError.isTransientError(sqlServerError)
                         || SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
@@ -3255,7 +3257,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
             }
-            
+
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
             if (useParallel) {
                 intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (retryAttempt + 1));

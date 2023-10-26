@@ -727,12 +727,7 @@ final class TDSChannel implements Serializable {
             // set SO_TIMEOUT
             if (!con.isConnected()) {
                 // if not connected then this should be bounded by remaining loginTimeout
-                /*
-                 * int remainingTime = con.getLoginTimeoutSeconds()
-                 * - (int) (TimeUnit.MILLISECONDS.toSeconds(con.getConnectTimer().getElapsedTime()));
-                 */
-                int remainingTime =  (int) (TimeUnit.MILLISECONDS.toSeconds(con.timerRemaining(con.timerExpire)));
-                tcpSocket.setSoTimeout(remainingTime);
+                tcpSocket.setSoTimeout((int) (con.timerRemaining(con.timerExpire)));
             } else {
                 tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
             }
