@@ -1667,6 +1667,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectRetryCount;
     }
 
+    final boolean isOpened() {
+        return state.equals(State.OPENED);
+    }
+
     final boolean isConnected() {
         return state.equals(State.CONNECTED);
     }
@@ -2968,7 +2972,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             state = State.OPENED;
-
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
@@ -2984,9 +2987,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return this;
     }
 
-    private void sleepInterval(int interval) {
+    /**
+     * sleep for ms interval
+     * 
+     * @param interval
+     *        in ms
+     */
+    private void sleepInterval(long interval) {
         try {
-            Thread.sleep(TimeUnit.SECONDS.toMillis(interval));
+            Thread.sleep(interval);
         } catch (InterruptedException e) {
             // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
@@ -3004,8 +3013,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // for all other cases, including multiSubnetFailover
 
         final boolean isDBMirroring = null != mirror || null != foActual;
-
-        int sleepInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
 
@@ -3181,8 +3188,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
-                System.out.println("errorCode: " + errorCode + " driverErrorCode: " + driverErrorCode
-                        + " sqlServerError: " + sqlServerError);
                 if (retryAttempt >= connectRetryCount || !TransientError.isTransientError(sqlServerError)
                         || SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
@@ -3216,7 +3221,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
                 // attempt.
                 // For DB Mirroring, we only sleep after every other attempt.
-                if (!isDBMirroring || 1 == retryAttempt % 2) {
+                if (!isDBMirroring || 1 == retryAttempt % 2
+                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) < timerRemaining(timerExpire)) {
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
                     long remainingMilliseconds = timerRemaining(timerExpire);
@@ -3243,7 +3249,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
                             + retryAttempt);
                 }
-                sleepInterval(connectRetryInterval);
             } else {
                 if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode
                         && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && !timerHasExpired(timerExpire)) {
@@ -5833,12 +5838,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + millisecondsRemaining + " milliseconds.");
                         }
 
-                        try {
-                            Thread.sleep(sleepInterval);
-                        } catch (InterruptedException e1) {
-                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                            Thread.currentThread().interrupt();
-                        }
+                        sleepInterval(sleepInterval);
                         sleepInterval = sleepInterval * 2;
                     }
                 }
