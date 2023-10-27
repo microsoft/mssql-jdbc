@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.lang.Thread.State;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -450,8 +451,9 @@ final class ReconnectThread extends Thread {
         }
 
         boolean keepRetrying = true;
+        long connectRetryInterval = TimeUnit.SECONDS.toMillis(con.getRetryInterval());
 
-        while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
+        while ((connectRetryCount >= 0) && (!stopRequested) && keepRetrying) {
             if (loggerExternal.isLoggable(Level.FINER)) {
                 loggerExternal.finer("Running reconnect for command: " + command.toString() + " ; ConnectRetryCount = "
                         + connectRetryCount);
@@ -468,7 +470,7 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                Thread.sleep((long) (con.getRetryInterval()) * 1000);
+                                Thread.sleep(connectRetryInterval);
                             }
                         } catch (InterruptedException ie) {
                             // re-interrupt thread
@@ -492,7 +494,7 @@ final class ReconnectThread extends Thread {
             }
         }
 
-        if ((connectRetryCount == 0) && (keepRetrying)) {
+        if ((connectRetryCount < 0) && (keepRetrying)) {
             eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
                     eReceived);
         }

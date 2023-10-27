@@ -39,7 +39,7 @@ public class TimeoutTest extends AbstractTest {
     static String randomServer = RandomUtil.getIdentifier("Server");
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     static final int waitForDelaySeconds = 10;
-    static final int defaultTimeout = 15; // loginTimeout default value
+    static final int defaultTimeout = 60; // loginTimeout default value
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -228,8 +228,8 @@ public class TimeoutTest extends AbstractTest {
     @Test
     public void testConnectRetryTimeout() {
         long timerEnd = 0;
-        long timerStart = System.currentTimeMillis();
         int loginTimeout = 2;
+        long timerStart = System.currentTimeMillis();
 
         // non existent server with very short loginTimeout so there is no time to do all retries
         try (Connection con = PrepUtil.getConnection(
