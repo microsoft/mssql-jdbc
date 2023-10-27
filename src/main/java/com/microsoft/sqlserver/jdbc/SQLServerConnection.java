@@ -3221,12 +3221,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
                 // attempt.
                 // For DB Mirroring, we only sleep after every other attempt.
+                long remainingTime = timerRemaining(timerExpire);
                 if (!isDBMirroring || 1 == retryAttempt % 2
-                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) < timerRemaining(timerExpire)) {
+                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime) {
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
-                    long remainingMilliseconds = timerRemaining(timerExpire);
-                    if (remainingMilliseconds <= connectRetryInterval) {
+                    if (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval)) {
                         throw e;
                     }
                 }

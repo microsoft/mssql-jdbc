@@ -165,7 +165,10 @@ class IdleConnectionResiliency {
 
     void reconnect(TDSCommand cmd) throws InterruptedException {
         reconnectErrorReceived = null;
+        connectRetryCount = this.connection.getRetryCount();
+if (connectRetryCount > 0) {
         reconnectThread = new ReconnectThread(this.connection, cmd);
+}
         reconnectThread.start();
         reconnectThread.join();
         reconnectErrorReceived = reconnectThread.getException();
@@ -494,7 +497,7 @@ final class ReconnectThread extends Thread {
             }
         }
 
-        if ((connectRetryCount < 0) && (keepRetrying)) {
+        if ((connectRetryCount <= 0) && (keepRetrying)) {
             eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
                     eReceived);
         }
