@@ -694,6 +694,7 @@ enum SQLServerDriverBooleanProperty {
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
+    IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false);
 

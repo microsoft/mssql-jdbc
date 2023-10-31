@@ -973,6 +973,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         delayLoadingLobs = b;
     }
 
+    /** Boolean that indicates whether datetime types are converted to java.time objects using java.time rules */
+    private boolean ignoreOffsetOnDateTimeOffsetConversion = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue();
+
+    @Override
+    public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
+        return ignoreOffsetOnDateTimeOffsetConversion;
+    }
+
+    @Override
+    public void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion) {
+        this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2934,6 +2947,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 delayLoadingLobs = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                ignoreOffsetOnDateTimeOffsetConversion = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 FailoverInfo fo = null;
                 String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
@@ -7288,6 +7309,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original delayLoadingLobs */
     private boolean originalDelayLoadingLobs;
+    
+    /** original ignoreOffsetOnDateTimeOffsetConversion */
+    private boolean originalIgnoreOffsetOnDateTimeOffsetConversion;
 
     /** Always Encrypted version */
     private int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
@@ -7313,6 +7337,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
                 originalDelayLoadingLobs = delayLoadingLobs;
+                originalIgnoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
                 requestStarted = true;
             }
         } finally {
@@ -7370,6 +7395,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 if (delayLoadingLobs != originalDelayLoadingLobs) {
                     setDelayLoadingLobs(originalDelayLoadingLobs);
+                }
+                if (ignoreOffsetOnDateTimeOffsetConversion != originalIgnoreOffsetOnDateTimeOffsetConversion) {
+                    setIgnoreOffsetOnDateTimeOffsetConversion(originalIgnoreOffsetOnDateTimeOffsetConversion);
                 }
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {

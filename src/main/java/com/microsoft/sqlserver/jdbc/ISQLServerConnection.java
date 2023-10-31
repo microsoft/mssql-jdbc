@@ -417,6 +417,21 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setDelayLoadingLobs(boolean delayLoadingLobs);
 
     /**
+     * Returns the current flag value for ignoreOffsetOnDateTimeOffsetConversion.
+     *
+     * @return 'ignoreOffsetOnDateTimeOffsetConversion' property value.
+     */
+    boolean getIgnoreOffsetOnDateTimeOffsetConversion();
+
+    /**
+     * Specifies the flag to ignore offset when converting DATETIMEOFFSET to LocalDateTime.
+     *
+     * @param ignoreOffsetOnDateTimeOffsetConversion
+     *        boolean value for 'ignoreOffsetOnDateTimeOffsetConversion'.
+     */
+    void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion);
+
+    /**
      * Sets the name of the preferred type of IP Address.
      * 
      * @param iPAddressPreference

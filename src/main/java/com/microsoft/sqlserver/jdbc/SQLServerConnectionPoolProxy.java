@@ -633,6 +633,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
+        return wrappedConnection.getIgnoreOffsetOnDateTimeOffsetConversion();
+    }
+
+    @Override
+    public void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion) {
+        wrappedConnection.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
+    }
+
+    @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
 
