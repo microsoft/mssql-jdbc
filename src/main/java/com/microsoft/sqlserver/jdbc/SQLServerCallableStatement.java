@@ -1424,18 +1424,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     return i + 1;
                 }
             }
-
-            if (method == CallableStatementGetterSetterMethod.isSetterMethod) {
-                for (int i = 0; i < inOutParam.length; i++) {
-                    // if it is not already registered as output param or the parameter is not an input parameter, then
-                    // set the param name and return index.
-                    if (null == inOutParam[i].getName() && !inOutParam[i].isReturnValue()
-                            && null == inOutParam[i].getInputDTV() && null == inOutParam[i].getRegisteredOutDTV()) {
-                        inOutParam[i].setName(columnNameWithoutAtSign);
-                        return i + 1;
-                    }
-                }
-            }
         }
 
         // Stored procedures with cursorable methods are not called directly, so we have to get the metadata
