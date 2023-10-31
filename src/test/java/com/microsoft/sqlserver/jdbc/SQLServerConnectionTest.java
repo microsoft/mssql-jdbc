@@ -997,7 +997,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(8000);
         executor.shutdownNow();
 
-        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet") + " status: "
+                + status + " isCancelled: " + future.isCancelled());
     }
 
     /**
