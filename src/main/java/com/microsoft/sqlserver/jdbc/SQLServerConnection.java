@@ -514,11 +514,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static boolean isCallRemoteProcDirectValid(String sql, int paramCount, boolean isReturnSyntax) {
         int commaCount = SQLServerConnection.countCommas(sql);
         if (isReturnSyntax) {
-            return paramCount == commaCount + 2; // if return syntax, sql text commas should be equal to paramCount -
-            // 2
+            // If return syntax, sql text commas should be equal to paramCount - 2.
+            // Or, if return syntax and paramCount is 1, it's a no param sproc.
+            return (paramCount == commaCount + 2) || paramCount == 1;
         } else {
-            return paramCount == commaCount + 1; // if not return syntax, sql text commas should be equal to
-            // paramCount -1
+            // if not return syntax, sql text commas should be equal to paramCount - 1.
+            return paramCount == commaCount + 1;
         }
     }
 
