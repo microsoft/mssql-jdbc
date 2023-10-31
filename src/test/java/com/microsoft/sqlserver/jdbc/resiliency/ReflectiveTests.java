@@ -52,8 +52,8 @@ public class ReflectiveTests extends AbstractTest {
             } catch (SQLException e) {
                 double elapsedTime = System.currentTimeMillis() - startTime;
                 // Timeout should occur after query timeout and not login timeout
-                assertTrue("Query did not timeout in " + expectedDuration + "ms, elapsed time(ms): " + elapsedTime,
-                        elapsedTime < expectedDuration);
+                assertTrue("Exception: " + e.getMessage() + ": Query did not timeout in " + expectedDuration
+                        + "ms, elapsed time(ms): " + elapsedTime, elapsedTime < expectedDuration);
                 if (expectedErrMsg.isPresent()) {
                     assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(),
                             e.getMessage().matches(TestUtils.formatErrorMsg(expectedErrMsg.get())));
