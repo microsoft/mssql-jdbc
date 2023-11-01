@@ -979,19 +979,14 @@ public class SQLServerConnectionTest extends AbstractTest {
                 SQLServerDataSource ds = new SQLServerDataSource();
                 System.out.println("start");
 
-                long startTime = 0;
                 ds.setURL(connectionString);
-                ds.setServerName("invalidServerName" + UUID.randomUUID());
-              //  ds.setConnectRetryCount(10);
-              //  ds.setConnectRetryInterval(10);
-                ds.setLoginTimeout(5);
+                ds.setDatabaseName("invalidDatabase" + UUID.randomUUID());
+                ds.setLoginTimeout(30);
                 try (Connection con = ds.getConnection()) {
                     System.out.println("should not be here ");
 
                 } catch (Exception e) { 
-                    double elapsedTime = System.currentTimeMillis() - startTime;
                     System.out.println("caught exceptiON: " + e.getMessage());
-                    System.out.println("elapsed time: " + elapsedTime);
 
                 }
                 System.out.println("done");
