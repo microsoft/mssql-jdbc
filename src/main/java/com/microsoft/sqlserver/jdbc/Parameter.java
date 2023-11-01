@@ -531,8 +531,36 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        param.typeDefinition = SSType.DECIMAL.toString() + "("
-                                + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
+                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != dtv.getSetterValue()) {
+                            String[] plainValueArray
+                                    = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString().split("\\.");
+
+                            // Precision is computed as opposed to using BigDecimal.precision(). This is because the
+                            // BigDecimal method can lead to inaccurate results.
+                            int calculatedPrecision;
+
+                            // If the string array has two parts, e.g .the input was a decimal, check if the first
+                            // part is a 0. For BigDecimals with leading zeroes, the leading zero does not count towards
+                            // precision. For all other decimals, we include the integer portion as part of the precision
+                            // When the string array has just one part, we only look at that part to compute precision.
+                            if (plainValueArray.length == 2) {
+                                if (plainValueArray[0].length() == 1 && (Integer.parseInt(plainValueArray[0]) == 0)) {
+                                    calculatedPrecision = plainValueArray[1].length();
+                                } else {
+                                    calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
+                                }
+                            } else  {
+                                calculatedPrecision = plainValueArray[0].length();
+                            }
+
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + calculatedPrecision + "," +
+                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
+                        } else {
+                            param.typeDefinition = SSType.DECIMAL.toString() + "("
+                                    + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
+                        }
+//                        param.typeDefinition = SSType.DECIMAL.toString() + "("
+//                                + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                     }
                     break;
 
