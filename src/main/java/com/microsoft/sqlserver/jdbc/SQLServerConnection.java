@@ -3086,7 +3086,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Of these methods, only #1 exits normally. This preserves the call stack on the exception
         // back into the parser for the error cases.
         while (true) {
-            // while (retryAttempt <= connectRetryCount && !timerHasExpired(timerExpire)) {
             clientConnectionId = null;
             state = State.INITIALIZED;
 
@@ -3194,7 +3193,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
-                        // || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
+                        || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
                         || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
                                                                                                  // (eg Sphinx, invalid
                                                                                                  // packetsize, etc)
