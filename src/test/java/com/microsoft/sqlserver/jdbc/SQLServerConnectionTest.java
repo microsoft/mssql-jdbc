@@ -977,24 +977,43 @@ public class SQLServerConnectionTest extends AbstractTest {
         Runnable runnable = new Runnable() {
             public void run() {
                 SQLServerDataSource ds = new SQLServerDataSource();
+                System.out.println("start");
 
+                long startTime = 0;
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
-                ds.setConnectRetryCount(10);
-                ds.setConnectRetryInterval(10);
-                ds.setLoginTimeout(30);
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
+              //  ds.setConnectRetryCount(10);
+              //  ds.setConnectRetryInterval(10);
+                ds.setLoginTimeout(5);
+                try (Connection con = ds.getConnection()) {
+                    System.out.println("should not be here ");
+
+                } catch (Exception e) { 
+                    double elapsedTime = System.currentTimeMillis() - startTime;
+                    System.out.println("caught exceptiON: " + e.getMessage());
+                    System.out.println("elapsed time: " + elapsedTime);
+
+                }
+                System.out.println("done");
             }
         };
 
         ExecutorService executor = Executors.newFixedThreadPool(1);
         Future<?> future = executor.submit(runnable);
 
+        System.out.println("here1");
         Thread.sleep(1000);
+        System.out.println("here2");
 
         // interrupt the thread in the Runnable
+        System.out.println("calling cancel");
+
         boolean status = future.cancel(true);
+        System.out.println("done cancel");
+
         Thread.sleep(8000);
+        System.out.println("going to shutdown");
+
         executor.shutdownNow();
 
         assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet") + " status: "
