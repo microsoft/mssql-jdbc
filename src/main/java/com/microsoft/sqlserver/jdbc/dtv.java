@@ -864,9 +864,26 @@ final class DTV {
                                             subSecondNanos, (valueLength), isOutParam, statement);
                                 }
                             } else {
-                                tdsWriter.writeRPCDateTime2(name,
-                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                if (jdbcType == JDBCType.SMALLDATETIME) {
+                                    tdsWriter.writeRPCDateTime(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, isOutParam);
+
+                                } else if (jdbcType == JDBCType.DATETIME) {
+                                    if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
+                                        tdsWriter.writeRPCDateTime2(name,
+                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                                subSecondNanos, 3, isOutParam);
+                                    } else if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME.toString())) {
+                                        tdsWriter.writeRPCDateTime(name,
+                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                                subSecondNanos, isOutParam);
+                                    }
+                                } else {
+                                    tdsWriter.writeRPCDateTime2(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                }
                             }
 
                             break;

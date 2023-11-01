@@ -7,14 +7,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,6 +42,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
     private static final String timeTVP = RandomUtil.getIdentifier("timeTVP");
     private static final String timestampTVP = RandomUtil.getIdentifier("timestampTVP");
     private static final String tableName = RandomUtil.getIdentifier("DataTypesTable");
+    private static final String datetimeTable = RandomUtil.getIdentifier("DateTimeTable");
+    private static final String datetimeSproc = RandomUtil.getIdentifier("dateTimeSproc");
     private static final String primaryKeyConstraintName = "pk_" + tableName;
 
     /**
@@ -241,7 +236,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
 
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2"); 
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2");
             PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-02 23:59:59.1234567");
@@ -295,6 +290,86 @@ public class DateAndTimeTypeTest extends AbstractTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    public void testCstmtRegisterDatetimeOutParameterDateTimeParameterTypeDatetime() throws Exception {
+        String expected = "3160-08-17 19:09:06.937";
+        String actual = null;
+        String query = "{CALL " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc) + "(?)}";
+
+        // The following should be the T-SQL executed. Since datetimeParameterType=dateTime, the registererd param type
+        // should be 'datetime' eg. declare @p1 datetime as shown below. The expected fractional seconds should be 3.
+        //
+        // declare @p1 datetime
+        // set @p1='3160-08-17 19:09:06.937'
+        // exec sproc @p1 output
+        // select @p1
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime");
+                CallableStatement stmt = conn.prepareCall(query)) {
+
+            stmt.registerOutParameter(1, microsoft.sql.Types.DATETIME);
+            stmt.execute();
+
+            actual = stmt.getString(1);
+            System.out.println(actual);
+        }
+
+        assertEquals(expected, actual.toString());
+    }
+
+    @Test
+    public void testCstmtRegisterDatetimeOutParameterDateTimeParameterTypeDatetime2() throws Exception {
+        String expected = "3160-08-17 19:09:06.937";
+        String actual = null;
+        String query = "{CALL " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc) + "(?)}";
+
+        // The following should be the T-SQL executed. Since datetimeParameterType=dateTime2, the registered param type
+        // should be 'datetime2(3)' eg. declare @p1 datetime2(3) as shown below. The expected fractional seconds
+        // should be 7 in the T-SQL, but in the expected actual output it's rounded so fractional seconds should be 3.
+        //
+        // declare @p1 datetime2(3)
+        // set @p1='set @p1='3160-08-17 19:09:06.9370000''
+        // exec sproc @p1 output
+        // select @p1
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2");
+                CallableStatement stmt = conn.prepareCall(query)) {
+
+            stmt.registerOutParameter(1, microsoft.sql.Types.DATETIME);
+            stmt.execute();
+
+            actual = stmt.getString(1);
+            System.out.println(actual);
+        }
+
+        assertEquals(expected, actual.toString());
+    }
+
+
+    @Test
+    public void testCstmtRegisterTimestampOutParameter() throws Exception {
+        String expected = "3160-08-17 19:09:06.9366667";
+        String actual = null;
+        String query = "{CALL " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc) + "(?)}";
+
+        // The following should be the T-SQL executed. Default driver behaviour for Timestamp SQL types is to register
+        // the param in the RPC as datetime2(7). So fractional seconds should be 7.
+        //
+        // declare @p1 datetime2(7)
+        // set @p1='3160-08-17 19:09:06.9366667'
+        // exec sproc @p1 output
+        // select @p1
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString);
+                CallableStatement stmt = conn.prepareCall(query)) {
+
+            stmt.registerOutParameter(1, Types.TIMESTAMP);
+            stmt.execute();
+
+            actual = stmt.getString(1);
+            System.out.println(actual);
+        }
+
+        assertEquals(expected, actual.toString());
+    }
+
     @BeforeEach
     public void testSetup() throws TestAbortedException, Exception {
         // To get TIME & setTime working on Servers >= 2008, we must add 'sendTimeAsDatetime=false'
@@ -305,7 +380,12 @@ public class DateAndTimeTypeTest extends AbstractTest {
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint "
                     + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
+            String sql2 = "create table " + AbstractSQLGenerator.escapeIdentifier(datetimeTable) + " (c1 datetime2 NULL)";
+            String sql3 = "create procedure " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc)
+                    + " (@p1 datetime2 output) as select top 1 @p1=c1 from " + AbstractSQLGenerator.escapeIdentifier(datetimeTable);
             stmt.execute(sql1);
+            stmt.execute(sql2);
+            stmt.execute(sql3);
 
             // add one sample data
             String sPrepStmt = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
@@ -321,6 +401,9 @@ public class DateAndTimeTypeTest extends AbstractTest {
                 createTVPs(timeTVP, "time");
                 createTVPs(timestampTVP, "datetime2");
             }
+
+            stmt.execute("insert into " + AbstractSQLGenerator.escapeIdentifier(datetimeTable)
+                    + " values('3160-08-17 19:09:06.9366667')");
         }
     }
 
@@ -328,6 +411,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(datetimeTable), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(datetimeSproc), stmt);
         }
     }
 }
