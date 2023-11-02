@@ -232,6 +232,17 @@ class TDSTokenHandler {
     }
 
     boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
+        // Very unlikely to return true. If we do, it was because any return values in the
+        // tds response were never read after the RPC. If they were never read, it's safe to skip
+        // them here
+        if (this.logContext.equals("ExecDoneHandler")) {
+            Parameter param = new Parameter(false);
+            param.skipRetValStatus(tdsReader);
+            param.skipValue(tdsReader, true);
+
+            return true;
+        }
+
         TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
         return false;
     }
