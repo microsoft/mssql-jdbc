@@ -63,6 +63,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
+    private static String outOfOrderSproc= AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("outOfOrderSproc"));
 
     /**
      * Setup before test
@@ -81,6 +83,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
+            TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
@@ -95,6 +98,7 @@ public class CallableStatementTest extends AbstractTest {
             createProcedureManyParams();
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
+            createOutOfOrderSproc();
         }
     }
 
@@ -380,6 +384,44 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testNonOrderedRegisteringAndSettingOfParams() throws SQLException {
+        String call ="{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            int scale = 6;
+            Double obj1 = 2015.0123;
+            Double obj2 = 2015.012345;
+            Integer obj3 = -3;
+            Float obj4 = 2015.04f;
+            Integer obj5 = 3;
+            String obj6 = "foo";
+            String obj7 = "bar";
+            Long obj8 = 2015L;
+
+            cstmt.setObject("i5", obj5, Types.CHAR);
+            cstmt.setObject("i6", obj6, Types.VARCHAR);
+            cstmt.setObject("i7", obj7, Types.CHAR);
+            cstmt.setObject("i8", obj8, Types.SMALLINT);
+
+            cstmt.setObject(1, obj1, Types.NUMERIC);
+            cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+            cstmt.setObject(3, obj3, Types.INTEGER);
+            cstmt.setObject(4, obj4, Types.FLOAT);
+
+            cstmt.registerOutParameter(9, Types.NUMERIC);
+            cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
+            cstmt.registerOutParameter("o3", Types.INTEGER);
+            cstmt.registerOutParameter("o4", Types.FLOAT);
+
+            cstmt.registerOutParameter(13, Types.CHAR);
+            cstmt.registerOutParameter(14, Types.VARCHAR);
+            cstmt.registerOutParameter(15, Types.CHAR);
+            cstmt.registerOutParameter(16, Types.SMALLINT);
+            cstmt.execute();
+        }
+    }
+
     /**
      * Cleanup after test
      * 
@@ -396,6 +438,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
+            TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
         }
     }
 
@@ -467,6 +510,19 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createProcedureZeroParams() throws SQLException {
         String sql = "CREATE PROCEDURE " + zeroParamSproc + " AS RETURN 1";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createOutOfOrderSproc() throws SQLException {
+        String sql = "CREATE PROCEDURE " + outOfOrderSproc + " @i1 NUMERIC(16,10)," + " @i2 NUMERIC(16,6),"
+                + " @i3 INT," + " @i4 REAL," + " @i5 CHAR," + " @i6 VARCHAR(6)," + " @i7 CHAR,"
+                + " @i8 SMALLINT, " + " @o1 NUMERIC(16,10) OUTPUT," + " @o2 NUMERIC(16,6) OUTPUT,"
+                + " @o3 INT OUTPUT," + " @o4 REAL OUTPUT," + " @o5 CHAR OUTPUT," + " @o6 VARCHAR(6) OUTPUT,"
+                + " @o7 CHAR OUTPUT," + " @o8 SMALLINT OUTPUT" + " as begin " + " set @o1=@i1;"
+                + " set @o2=@i2;" + " set @o3=@i3;" + " set @o4=@i4;" + " set @o5=@i5;" + " set @o6=@i6;"
+                + " set @o7=@i7;" + " set @o8=@i8;" + " end";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
