@@ -63,8 +63,10 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
-    private static String outOfOrderSproc= AbstractSQLGenerator
+    private static String outOfOrderSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("outOfOrderSproc"));
+    private static String userDefinedFunction = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("userDefinedFunction"));
 
     /**
      * Setup before test
@@ -84,6 +86,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
+            TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
@@ -99,6 +102,7 @@ public class CallableStatementTest extends AbstractTest {
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
             createOutOfOrderSproc();
+            createUserDefinedFunction();
         }
     }
 
@@ -376,7 +380,7 @@ public class CallableStatementTest extends AbstractTest {
 
         try (CallableStatement cs = connection.prepareCall(call)) {
             cs.registerOutParameter(1, Types.BINARY);
-            cs.execute(); // Should not be able to get return value as binary
+            cs.execute(); // Should not be able to get return value as bytes
             cs.getBytes(1);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
@@ -422,6 +426,22 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testExecutingUserDefinedFunctionDirectly() throws SQLException {
+        String call ="{? = CALL " + userDefinedFunction + " (?,?,?,?,?,?)}";
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setObject(2, "param");
+            cstmt.setObject(3, "param");
+            cstmt.setObject(4, "param");
+            cstmt.setObject(5, "param");
+            cstmt.setObject(6, "param");
+            cstmt.setObject(7, "param");
+            cstmt.registerOutParameter(1, Types.VARCHAR);
+            cstmt.execute();
+        }
+    }
+
     /**
      * Cleanup after test
      * 
@@ -439,6 +459,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
+            TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
 
@@ -523,6 +544,17 @@ public class CallableStatementTest extends AbstractTest {
                 + " @o7 CHAR OUTPUT," + " @o8 SMALLINT OUTPUT" + " as begin " + " set @o1=@i1;"
                 + " set @o2=@i2;" + " set @o3=@i3;" + " set @o4=@i4;" + " set @o5=@i5;" + " set @o6=@i6;"
                 + " set @o7=@i7;" + " set @o8=@i8;" + " end";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createUserDefinedFunction() throws SQLException {
+        String sql = "CREATE FUNCTION " +  userDefinedFunction
+                + " (@p0 char(20), @p1 varchar(50), @p2 varchar(max), @p3 nchar(30), @p4 nvarchar(60), @p5 nvarchar(max)) "
+                + "RETURNS varchar(50) AS BEGIN "
+                + "DECLARE @ret varchar(50); "
+                + "SELECT @ret = 'foobar'; " + " RETURN @ret; end;";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }

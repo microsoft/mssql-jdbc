@@ -197,7 +197,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             return inOutParam[i - 1];
         }
 
-        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && returnValueStatus != 2) {
+        if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && returnValueStatus != userDefinedFunctionReturnStatus) {
             return inOutParam[i - 1];
         }
 
@@ -346,7 +346,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         OutParamHandler outParamHandler = new OutParamHandler();
 
         if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType
-                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && returnValueStatus != 2) {
+                && SQLServerConnection.isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && returnValueStatus != userDefinedFunctionReturnStatus) {
             nOutParamsAssigned++;
         }
 
@@ -394,7 +394,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
 
                 if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && SQLServerConnection
-                        .isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && returnValueStatus != 2) {
+                        .isCallRemoteProcDirectValid(userSQL, inOutParam.length, bReturnValueSyntax) && returnValueStatus != userDefinedFunctionReturnStatus) {
                     outParamIndex++;
                 } else {
                     // Statements need to have their out param indices adjusted by the number
