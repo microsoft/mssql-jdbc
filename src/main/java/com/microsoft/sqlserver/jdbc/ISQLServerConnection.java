@@ -483,18 +483,18 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
-     * Specifies whether to use big decimal computing behavior.
-     *
-     * @param ComputeBigDecimal
-     *        A boolean that indicates whether to use big decimal computing behavior.
-     */
-    void setComputeBigDecimal(boolean ComputeBigDecimal);
-
-    /**
      * Returns the current flag for computeBigDecimal.
      *
      * @return IPAddressPreference
      *        Whether big decimal computing behavior is enabled or disabled.
      */
     boolean getComputeBigDecimal();
+
+    /**
+     * Specifies whether to use big decimal computing behavior.
+     *
+     * @param ComputeBigDecimal
+     *        A boolean that indicates whether to use big decimal computing behavior.
+     */
+    void setComputeBigDecimal(boolean ComputeBigDecimal);
 }

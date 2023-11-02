@@ -691,4 +691,25 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
         wrappedConnection.setAccessTokenCallbackClass(accessTokenCallbackClass);
     }
+
+    /**
+     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @return accessTokenCallbackClass
+     */
+    @Override
+    public boolean getComputeBigDecimal() {
+        return wrappedConnection.getComputeBigDecimal();
+    }
+
+    /**
+     * Sets 'accessTokenCallbackClass' to the fully qualified class name
+     * of the implementing class for {@link SQLServerAccessTokenCallback}.
+     *
+     * @param computeBigDecimal
+     */
+    @Override
+    public void setComputeBigDecimal(boolean computeBigDecimal) {
+        wrappedConnection.setComputeBigDecimal(computeBigDecimal);
+    }
 }
