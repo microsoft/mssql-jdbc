@@ -65,6 +65,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
     private static String outOfOrderSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("outOfOrderSproc"));
+    private static String byParamNameSproc= AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("byParamNameSproc"));
     private static String userDefinedFunction = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("userDefinedFunction"));
 
@@ -86,6 +88,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
+            TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
@@ -102,6 +105,7 @@ public class CallableStatementTest extends AbstractTest {
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
             createOutOfOrderSproc();
+            createByParamNameSproc();
             createUserDefinedFunction();
         }
     }
@@ -439,6 +443,41 @@ public class CallableStatementTest extends AbstractTest {
             cstmt.setObject(7, "param");
             cstmt.registerOutParameter(1, Types.VARCHAR);
             cstmt.execute();
+            assertEquals("foobar", cstmt.getString(1));
+
+            // Re-execute again to test skipping of unread return values on statement close.
+            // If it fails, TDS errors will be thrown.
+            cstmt.execute();
+        }
+    }
+
+    @Test
+    public void testRegisteringOutputByIndexandAcquiringOutputParamByName() throws SQLException {
+        String call ="{CALL " + byParamNameSproc + " (?,?)}";
+
+        // Param names are p1 and p2
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setString(1, "foobar");
+            cstmt.registerOutParameter(2, Types.NVARCHAR);
+            cstmt.execute();
+
+            assertEquals("foobar", cstmt.getString("p2"));
+        }
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setString("p1", "foobar");
+            cstmt.registerOutParameter("p2", Types.NVARCHAR);
+            cstmt.execute();
+
+            assertEquals("foobar", cstmt.getString("p2"));
+        }
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setString("p1", "foobar");
+            cstmt.registerOutParameter("p2", Types.NVARCHAR);
+            cstmt.execute();
+
+            assertEquals("foobar", cstmt.getString(2));
         }
     }
 
@@ -459,6 +498,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
+            TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
@@ -544,6 +584,14 @@ public class CallableStatementTest extends AbstractTest {
                 + " @o7 CHAR OUTPUT," + " @o8 SMALLINT OUTPUT" + " as begin " + " set @o1=@i1;"
                 + " set @o2=@i2;" + " set @o3=@i3;" + " set @o4=@i4;" + " set @o5=@i5;" + " set @o6=@i6;"
                 + " set @o7=@i7;" + " set @o8=@i8;" + " end";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createByParamNameSproc() throws SQLException {
+        String sql = "CREATE PROCEDURE " + byParamNameSproc
+                + " (@p1 nvarchar(30), @p2 nvarchar(30) output) AS BEGIN SELECT @p2 = @p1 END;";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
