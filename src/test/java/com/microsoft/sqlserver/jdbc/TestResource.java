@@ -77,6 +77,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_supportUnwrapping", "{0} supports unwrapping."},
             {"R_cantAccessSnapshot", "Cant access the TRANSACTION_SNAPSHOT "},
             {"R_newConnectionShouldBeValid", "Newly created connection should be valid"},
+            {"R_outputParamCastError", "class java.lang.Integer cannot be cast to class [B (java.lang.Integer and [B are in module java.base of loader 'bootstrap')"},
             {"R_closedConnectionShouldBeInvalid", "Closed connection should be invalid"},
             {"R_noExceptionNegativeTimeout", "No exception thrown with negative timeout"},
             {"R_noExceptionClosedConnection",

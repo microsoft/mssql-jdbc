@@ -61,6 +61,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Procedure"));
     private static String manyParamUserDefinedType = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
+    private static String zeroParamSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
 
     /**
      * Setup before test
@@ -78,6 +80,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
@@ -91,6 +94,7 @@ public class CallableStatementTest extends AbstractTest {
             createTableManyParams();
             createProcedureManyParams();
             createGetObjectOffsetDateTimeProcedure(stmt);
+            createProcedureZeroParams();
         }
     }
 
@@ -351,6 +355,31 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testZeroParamSproc() throws SQLException {
+        String call = "{? = CALL " + zeroParamSproc + "}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            assertEquals(1, cs.getInt(1));
+        }
+    }
+
+    @Test
+    public void testSprocCastingError() throws SQLException {
+        String call = "{? = CALL " + zeroParamSproc + "}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.BINARY);
+            cs.execute(); // Should not be able to get return value as binary
+            cs.getBytes(1);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_outputParamCastError"), e.getMessage());
+        }
+    }
+
     /**
      * Cleanup after test
      * 
@@ -366,6 +395,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectLocalDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
+            TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
         }
     }
 
@@ -432,6 +462,13 @@ public class CallableStatementTest extends AbstractTest {
         String TVPCreateCmd = "CREATE TYPE " + manyParamUserDefinedType + " FROM MONEY";
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(TVPCreateCmd);
+        }
+    }
+
+    private static void createProcedureZeroParams() throws SQLException {
+        String sql = "CREATE PROCEDURE " + zeroParamSproc + " AS RETURN 1";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
         }
     }
 }
