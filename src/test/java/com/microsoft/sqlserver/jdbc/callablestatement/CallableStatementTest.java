@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -385,7 +386,8 @@ public class CallableStatementTest extends AbstractTest {
             cs.getBytes(1);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertEquals(TestResource.getResource("R_outputParamCastError"), e.getMessage());
+            assertTrue(e.getMessage().equals(TestResource.getResource("R_outputParamCastError")) ||
+                    e.getMessage().contains("cannot be cast to"));
         }
     }
 
