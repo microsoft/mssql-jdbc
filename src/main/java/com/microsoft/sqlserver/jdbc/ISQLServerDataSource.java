@@ -1313,4 +1313,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @param accessTokenCallbackClass
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
+
+    /**
+     * <TODO>
+     *
+     * @return computeBigDecimal boolean value
+     */
+    boolean getComputeBigDecimal();
+
+    /**
+     * <TODO>
+     *
+     * @param computeBigDecimal
+     *         boolean property to have the driver compute a big decimal from input
+     */
+    void setComputeBigDecimal(boolean computeBigDecimal);
 }
