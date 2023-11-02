@@ -1240,7 +1240,7 @@ final class Parameter {
         return typeDefinition;
     }
 
-    void sendByRPC(TDSWriter tdsWriter, SQLServerStatement statement) throws SQLServerException {
+    void sendByRPC(TDSWriter tdsWriter, boolean callRPCDirectly, SQLServerStatement statement) throws SQLServerException {
         assert null != inputDTV : "Parameter was neither set nor registered";
         SQLServerConnection conn = statement.connection;
 
@@ -1248,7 +1248,7 @@ final class Parameter {
             inputDTV.isNonPLP = isNonPLP;
             inputDTV.sendCryptoMetaData(this.cryptoMeta, tdsWriter);
             inputDTV.setJdbcTypeSetByUser(getJdbcTypeSetByUser(), getValueLength());
-            inputDTV.sendByRPC(SQLServerPreparedStatement.callRpcDirectly ? name : null, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
+            inputDTV.sendByRPC(callRPCDirectly ? name : null, null, conn.getDatabaseCollation(), valueLength, isOutput() ? outScale : scale,
                     isOutput(), tdsWriter, statement);
         } finally {
             // reset the cryptoMeta in IOBuffer

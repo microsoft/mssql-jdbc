@@ -101,10 +101,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Check if statement contains TVP Type */
     static boolean isTVPType = false;
 
-    static boolean validRPC = false;
-
-    static boolean callRpcDirectly = false;
-
     /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
@@ -757,7 +753,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Sends the statement parameters by RPC.
      */
-    void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params, boolean bReturnValueSyntax) throws SQLServerException {
+    void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params, boolean bReturnValueSyntax, boolean callRpcDirectly) throws SQLServerException {
         char[] cParamName;
         int index = 0;
         if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType
@@ -773,7 +769,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 tdsWriter.writeByte((byte) paramNameLen);
                 tdsWriter.writeString(new String(cParamName, 0, paramNameLen));
             }
-            params[index].sendByRPC(tdsWriter, this);
+            params[index].sendByRPC(tdsWriter, callRpcDirectly, this);
         }
     }
 
@@ -1154,7 +1150,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
-        callRpcDirectly = callRPCDirectly(params, bReturnValueSyntax);
+        boolean callRpcDirectly = callRPCDirectly(params, bReturnValueSyntax);
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -1195,7 +1191,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax);
+        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax, callRpcDirectly);
 
         return needsPrepare;
     }
@@ -3061,7 +3057,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     resetForReexecute();
                                     tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
                                     buildExecParams(tdsWriter);
-                                    sendParamsByRPC(tdsWriter, batchParam, bReturnValueSyntax);
+                                    sendParamsByRPC(tdsWriter, batchParam, bReturnValueSyntax, false);
                                     ensureExecuteResultsReader(
                                             batchCommand.startResponse(getIsResponseBufferingAdaptive()));
                                     startResults();
