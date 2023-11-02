@@ -696,7 +696,8 @@ enum SQLServerDriverBooleanProperty {
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
-    USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false);
+    USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
+    COMPUTE_BIG_DECIMAL("computeBigDecimal", false);
 
     private final String name;
     private final boolean defaultValue;

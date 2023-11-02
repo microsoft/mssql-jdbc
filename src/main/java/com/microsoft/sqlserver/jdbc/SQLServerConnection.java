@@ -986,6 +986,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
+    private boolean computeBigDecimal = SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue();
+
+    @Override
+    public boolean getComputeBigDecimal() {
+        return computeBigDecimal;
+    }
+
+    @Override
+    public void setComputeBigDecimal(boolean computeBigDecimal) {
+        this.computeBigDecimal = computeBigDecimal;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2167,6 +2179,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey,
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
+
+                sPropKey = SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+
+                computeBigDecimal = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);

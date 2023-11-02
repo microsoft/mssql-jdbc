@@ -531,7 +531,8 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        if (dtv.getJavaType() == JavaType.BIGDECIMAL && null != dtv.getSetterValue()) {
+                        if (con.getComputeBigDecimal() && dtv.getJavaType() == JavaType.BIGDECIMAL
+                                && null != dtv.getSetterValue()) {
                             String[] plainValueArray
                                     = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString().split("\\.");
 
@@ -559,8 +560,6 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
                                     + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                         }
-//                        param.typeDefinition = SSType.DECIMAL.toString() + "("
-//                                + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";
                     }
                     break;
 
