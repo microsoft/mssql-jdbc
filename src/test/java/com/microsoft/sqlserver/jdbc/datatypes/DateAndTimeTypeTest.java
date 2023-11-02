@@ -377,6 +377,8 @@ public class DateAndTimeTypeTest extends AbstractTest {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";sendTimeAsDatetime=false");
                 Statement stmt = (SQLServerStatement) connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(datetimeTable), stmt);
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(datetimeSproc), stmt);
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint "
                     + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
