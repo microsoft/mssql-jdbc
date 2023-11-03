@@ -1346,7 +1346,7 @@ public class SQLServerDataSource
     @Override
     public boolean getComputeBigDecimal() {
         return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.toString(),
-                false);
+                SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue());
     }
 
     /**
