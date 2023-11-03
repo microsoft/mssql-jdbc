@@ -3187,8 +3187,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
-                if (retryAttempt >= connectRetryCount || !TransientError.isTransientError(sqlServerError)
-                        || SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
+                if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                         || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
                         || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
@@ -3236,31 +3235,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // the network with requests, then update sleep interval for next iteration (max 1 second interval)
             // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
-            retryAttempt++;
-
-            if (!isDBMirroring || (1 == retryAttempt % 2)) {
+            if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode
+                    && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && !timerHasExpired(timerExpire)) {
+                // special case for TLS intermittent failures: no wait retries
+                tlsRetryAttempt++;
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " sleeping milisec: " + connectRetryInterval);
+                    connectionlogger.fine(
+                            "Connection failed during SSL handshake. Retry due to an intermittent TLS 1.2 failure issue. Retry attempt = "
+                                    + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY);
                 }
-                if (connectionlogger.isLoggable(Level.FINEST)) {
-                    connectionlogger.finest(toString() + "Connection failed on transient error "
-                            + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
-                            + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
-                            + retryAttempt);
-                }
-                sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
             } else {
-                if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode
-                        && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && !timerHasExpired(timerExpire)) {
-                    // special case for TLS intermittent failures: no wait retries
-                    tlsRetryAttempt++;
-                    if (connectionlogger.isLoggable(Level.FINE)) {
-                        connectionlogger.fine(
-                                "Connection failed during SSL handshake. Retry due to an intermittent TLS 1.2 failure issue. Retry attempt = "
-                                        + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY);
-                    }
-                }
 
+                if (retryAttempt++ >= connectRetryCount || !TransientError.isTransientError(sqlServerError)
+                        && (!isDBMirroring || (1 == retryAttempt % 2))) {
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(toString() + " sleeping milisec: " + connectRetryInterval);
+                    }
+                    if (connectionlogger.isLoggable(Level.FINEST)) {
+                        connectionlogger.finest(toString() + "Connection failed on transient error "
+                                + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
+                                + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
+                                + retryAttempt);
+                    }
+                    sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                }
             }
 
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
