@@ -3245,9 +3245,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY);
                 }
             } else {
-
-                if (retryAttempt++ >= connectRetryCount || !TransientError.isTransientError(sqlServerError)
-                        && (!isDBMirroring || (1 == retryAttempt % 2))) {
+                if (retryAttempt++ >= connectRetryCount && TransientError.isTransientError(sqlServerError)
+                        && !timerHasExpired(timerExpire) && (!isDBMirroring || (1 == retryAttempt % 2))) {
                     if (connectionlogger.isLoggable(Level.FINE)) {
                         connectionlogger.fine(toString() + " sleeping milisec: " + connectRetryInterval);
                     }

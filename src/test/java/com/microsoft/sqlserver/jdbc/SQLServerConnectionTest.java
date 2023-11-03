@@ -482,9 +482,9 @@ public class SQLServerConnectionTest extends AbstractTest {
             // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong")
-                    + " totalTime: " + totalTime + "expectedTime: " + expectedMinimumTimeInMillis);
-            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
-                    + "totalTime: " + totalTime + "expectedTime: " + expectedMinimumTimeInMillis);
+                    + " totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
+            assertTrue( totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
+                    + "totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
         }
     }
 
