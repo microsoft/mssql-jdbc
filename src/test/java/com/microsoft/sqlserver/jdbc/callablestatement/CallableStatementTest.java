@@ -386,8 +386,7 @@ public class CallableStatementTest extends AbstractTest {
             cs.getBytes(1);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().equals(TestResource.getResource("R_outputParamCastError"))
-                    || e.getMessage().contains("cannot be cast to"));
+            assertTrue(e.getMessage().contains("cannot be cast to"));
         }
     }
 
