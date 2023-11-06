@@ -251,6 +251,17 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setUseFastCallableStatements(boolean enable) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.toString(), enable);
+    }
+
+    @Override
+    public boolean getUseFastCallableStatements() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.toString(),
+                SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.getDefaultValue());
+    }
+
+    @Override
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }

@@ -396,6 +396,7 @@ public class CallableStatementTest extends AbstractTest {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
+            connection.setUseFastCallableStatements(true);
             int scale = 6;
             Double obj1 = 2015.0123;
             Double obj2 = 2015.012345;

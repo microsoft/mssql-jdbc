@@ -164,6 +164,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Flag that determines whether the accessToken callback was set **/
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
+    /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
+    private boolean useFastCallableStatements = SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.getDefaultValue();
+
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
      * info
@@ -2311,6 +2314,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useFastCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
                 if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
@@ -7829,6 +7841,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
         this.accessTokenCallbackClass = accessTokenCallbackClass;
+    }
+
+    /**
+     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
+     *
+     * @return useFastCallableStatements
+     */
+    public boolean getUseFastCallableStatement() {
+        return this.useFastCallableStatements;
+    }
+
+    /**
+     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
+     *
+     * @return useFastCallableStatements
+     */
+    public void setUseFastCallableStatements(boolean useFastCallableStatements) {
+        this.useFastCallableStatements = useFastCallableStatements;
     }
 
     /**

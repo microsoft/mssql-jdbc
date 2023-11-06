@@ -198,6 +198,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_disableStatementPoolingPropertyDescription", "Disables the statement pooling feature."},
         {"R_integratedSecurityPropertyDescription", "Indicates whether Windows authentication will be used to connect to SQL Server."},
         {"R_useDefaultGSSCredentialPropertyDescription", "Indicates whether GSSCredential will be created using native GSS-API."},
+        {"R_useFastCallableStatementsPropertyDescription", "Indicates whether sp_sproc_columns will be used for parameter name lookup when setting or registering parameters for callable statements."},
         {"R_authenticationSchemePropertyDescription", "The authentication scheme to be used for integrated authentication."},
         {"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
         {"R_connectRetryCountPropertyDescription", "The number of reconnection attempts if there is a connection failure."},

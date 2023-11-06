@@ -695,7 +695,8 @@ enum SQLServerDriverBooleanProperty {
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
-    USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false);
+    USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
+    USE_FAST_CALLABLESTATEMENTS("useFastCallableStatements", false);
 
     private final String name;
     private final boolean defaultValue;
@@ -771,6 +772,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue()), false,
+                    TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_FAST_CALLABLESTATEMENTS.getDefaultValue()), false,
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue(), false,
