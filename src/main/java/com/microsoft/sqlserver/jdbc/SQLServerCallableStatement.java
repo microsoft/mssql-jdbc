@@ -70,7 +70,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private transient Closeable activeStream;
 
     /** Checks if return values is already accessed in stored procedure */
-    private boolean returnValueIsAccessed = false;
+    private boolean isReturnValueAccessed = false;
 
     /** map */
     private Map<String, Integer> map = new ConcurrentHashMap<>();
@@ -96,7 +96,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     SQLServerCallableStatement(SQLServerConnection connection, String sql, int nRSType, int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(connection, sql, nRSType, nRSConcur, stmtColEncSetting);
-        returnValueIsAccessed = false;
+        isReturnValueAccessed = false;
     }
 
     @Override
@@ -178,10 +178,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // driver is executing
             // the stored procedure for cursorable ones differently ( calling sp_cursorexecute r sp_cursorprepexec.
             if (bReturnValueSyntax && inOutParam[i - 1].isValueGotten() && inOutParam[i - 1].isReturnValue()
-                    && !returnValueIsAccessed && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType
+                    && !isReturnValueAccessed && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType
                     && callRPCDirectly(inOutParam)) {
                 nOutParamsAssigned++;
-                returnValueIsAccessed = true;
+                isReturnValueAccessed = true;
             }
             return inOutParam[i - 1];
         }
