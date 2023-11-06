@@ -18,14 +18,14 @@ import java.util.Random;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.DTC)
-public class DTC extends AbstractTest {
+public class DTCTest extends AbstractTest {
     @BeforeAll
     public static void setupTest() throws Exception {
         setConnection();
     }
 
     @Test
-    public void testCstmtXpSqljdbcXaInit() throws Exception {
+    public void testXaStartXpSqljdbcXaInit() throws Exception {
         SQLServerXADataSource XADataSource = new SQLServerXADataSource();
         XADataSource.setURL(connectionString);
         XAConnection XAConnection = XADataSource.getXAConnection();
@@ -107,7 +107,7 @@ public class DTC extends AbstractTest {
                 bqual[i + 12] = (byte) (randID % 0x100);
                 randID >>= 8;
             }
-            return new DTC.XidImpl(0x1234, gtrid, bqual);
+            return new DTCTest.XidImpl(0x1234, gtrid, bqual);
         }
     }
 }

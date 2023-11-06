@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.CallableStatement;
+import java.sql.Types;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
