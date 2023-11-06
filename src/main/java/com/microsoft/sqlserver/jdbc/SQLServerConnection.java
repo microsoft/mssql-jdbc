@@ -242,7 +242,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private SharedTimer sharedTimer;
 
     /* connect timer */
-    // private ConnectTimer connectTimer;
 
     /** connect retry count */
     private int connectRetryCount = 0;
@@ -1946,8 +1945,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         try {
             if (propsIn != null) {
 
-                // activeConnectionProperties = (Properties) propsIn.clone();
-
                 pooledConnectionParent = pooledConnection;
 
                 String trustStorePassword = activeConnectionProperties
@@ -3041,11 +3038,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long intervalExpire;
 
-        /*
-         * if (0 == loginTimeoutSeconds) {
-         * loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-         * }
-         */
         long loginTimeoutMs = loginTimeoutSeconds * 1000L; // ConnectTimeout is in seconds, we need timer millis
         timerExpire = loginStartTime + loginTimeoutMs;
 
@@ -3219,11 +3211,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // attempt.
                 // For DB Mirroring, we only sleep after every other attempt.
                 long remainingTime = timerRemaining(timerExpire);
-                if (!isDBMirroring || 1 == retryAttempt % 2
-                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime) {
+                if ((!isDBMirroring || 1 == retryAttempt % 2
+                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime) &&
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
-                    if (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval)) {
+                     (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval))) {
                         throw e;
                     }
                 }
@@ -3289,24 +3281,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        // If we get here, connection/login succeeded! Just a few more checks & record-keeping
-        // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
-        if (useFailoverHost && null == failoverPartnerServerProvided)
+    // If we get here, connection/login succeeded! Just a few more checks & record-keeping
+    // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
+    if(useFailoverHost&&null==failoverPartnerServerProvided)
 
-        {
-            String curserverinfo = currentConnectPlaceHolder.getServerName();
-            if (null != currentFOPlaceHolder.getInstanceName()) {
-                curserverinfo = curserverinfo + "\\";
-                curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
-            }
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-            Object[] msgArgs = {
-                    activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
-                    curserverinfo};
-            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+    {
+        String curserverinfo = currentConnectPlaceHolder.getServerName();
+        if (null != currentFOPlaceHolder.getInstanceName()) {
+            curserverinfo = curserverinfo + "\\";
+            curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
         }
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
+        Object[] msgArgs = {
+                activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                curserverinfo};
+        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+    }
 
-        if (null != failoverPartnerServerProvided) {
+    if(null!=failoverPartnerServerProvided)
+    {
             // if server returns failoverPartner when multiSubnetFailover keyword is used, fail
             if (multiSubnetFailover) {
                 String msg = SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover");
@@ -4502,12 +4495,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             sharedTimer = null;
         }
 
-        /*
-         * if (connectTimer != null) {
-         * connectTimer.stopTimer();
-         * connectTimer = null;
-         * }
-         */
         /*
          * Close the TDS channel. When the channel is closed, the server automatically rolls back any pending
          * transactions and closes associated resources like prepared handles.
