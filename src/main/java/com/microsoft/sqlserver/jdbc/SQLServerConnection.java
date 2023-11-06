@@ -3210,14 +3210,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
                 // attempt.
                 // For DB Mirroring, we only sleep after every other attempt.
+                // Also check sleep interval to make sure we won't exceed the timeout
                 long remainingTime = timerRemaining(timerExpire);
                 if ((!isDBMirroring || 1 == retryAttempt % 2
-                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime) &&
-                    // Check sleep interval to make sure we won't exceed the timeout
-                    // Do this in the catch block so we can re-throw the current exception
-                     (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval))) {
-                        throw e;
-                    }
+                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime)
+                        && (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval))) {
+                    throw e;
                 }
             }
 
@@ -3281,25 +3279,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-    // If we get here, connection/login succeeded! Just a few more checks & record-keeping
-    // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
-    if(useFailoverHost&&null==failoverPartnerServerProvided)
+        // If we get here, connection/login succeeded! Just a few more checks & record-keeping
+        // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
+        if (useFailoverHost && null == failoverPartnerServerProvided)
 
-    {
-        String curserverinfo = currentConnectPlaceHolder.getServerName();
-        if (null != currentFOPlaceHolder.getInstanceName()) {
-            curserverinfo = curserverinfo + "\\";
-            curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
+        {
+            String curserverinfo = currentConnectPlaceHolder.getServerName();
+            if (null != currentFOPlaceHolder.getInstanceName()) {
+                curserverinfo = curserverinfo + "\\";
+                curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
+            }
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
+            Object[] msgArgs = {
+                    activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                    curserverinfo};
+            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
         }
-        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-        Object[] msgArgs = {
-                activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
-                curserverinfo};
-        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
-    }
 
-    if(null!=failoverPartnerServerProvided)
-    {
+        if (null != failoverPartnerServerProvided) {
             // if server returns failoverPartner when multiSubnetFailover keyword is used, fail
             if (multiSubnetFailover) {
                 String msg = SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover");
