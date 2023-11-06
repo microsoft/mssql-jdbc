@@ -465,6 +465,7 @@ final class TDS {
     final static int COLINFO_STATUS_DIFFERENT_NAME = 0x20;
 
     final static int MAX_FRACTIONAL_SECONDS_SCALE = 7;
+    final static int DEFAULT_FRACTIONAL_SECONDS_SCALE = 3;
 
     final static Timestamp MAX_TIMESTAMP = Timestamp.valueOf("2079-06-06 23:59:59");
     final static Timestamp MIN_TIMESTAMP = Timestamp.valueOf("1900-01-01 00:00:00");

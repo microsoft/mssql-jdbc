@@ -847,14 +847,41 @@ final class DTV {
 
                     switch (jdbcType) {
                         case DATETIME:
+                            if (null != cryptoMeta) {
+                                tdsWriter.writeEncryptedRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam, jdbcType, statement);
+                                } else {
+                                    if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
+                                        tdsWriter.writeRPCDateTime2(name,
+                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                                subSecondNanos, TDS.DEFAULT_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                    } else if (conn.getDatetimeParameterType()
+                                            .equals(DatetimeType.DATETIME.toString())) {
+                                        tdsWriter.writeRPCDateTime(name,
+                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                                subSecondNanos, isOutParam);
+                                    }
+                                }
+
+                            break;
+
                         case SMALLDATETIME:
+                            if (null != cryptoMeta) {
+                                tdsWriter.writeEncryptedRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam, jdbcType, statement);
+                            } else {
+                                tdsWriter.writeRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam);
+                            }
+
+                            break;
+
                         case TIMESTAMP:
                             if (null != cryptoMeta) {
-                                if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
-                                    tdsWriter.writeEncryptedRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam, jdbcType, statement);
-                                } else if (0 == valueLength) {
+                                if (0 == valueLength) {
                                     tdsWriter.writeEncryptedRPCDateTime2(name,
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, outScale, isOutParam, statement);
@@ -864,27 +891,9 @@ final class DTV {
                                             subSecondNanos, (valueLength), isOutParam, statement);
                                 }
                             } else {
-                                if (jdbcType == JDBCType.SMALLDATETIME) {
-                                    tdsWriter.writeRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam);
-
-                                } else if (jdbcType == JDBCType.DATETIME) {
-                                    if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
-                                        tdsWriter.writeRPCDateTime2(name,
-                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                                subSecondNanos, 3, isOutParam);
-                                    } else if (conn.getDatetimeParameterType()
-                                            .equals(DatetimeType.DATETIME.toString())) {
-                                        tdsWriter.writeRPCDateTime(name,
-                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                                subSecondNanos, isOutParam);
-                                    }
-                                } else {
-                                    tdsWriter.writeRPCDateTime2(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
-                                }
+                                tdsWriter.writeRPCDateTime2(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
                             }
 
                             break;
