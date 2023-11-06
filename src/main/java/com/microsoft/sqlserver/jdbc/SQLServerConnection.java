@@ -506,36 +506,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return cacheItem;
     }
 
-    /**
-     * Checks if remote procedure call is a valid. Example: if exec procName 1,? we should not use RPC call directly,
-     * rather wrap it with sp_executesql call
-     *
-     */
-    static boolean isCallRemoteProcDirectValid(String sql, int paramCount, boolean isReturnSyntax) {
-        int commaCount = SQLServerConnection.countCommas(sql);
-        if (isReturnSyntax) {
-            // If return syntax, sql text commas should be equal to paramCount - 2.
-            // Or, if return syntax and paramCount is 1, it's a no param sproc.
-            return (paramCount == commaCount + 2) || paramCount == 1;
-        } else {
-            // if not return syntax, sql text commas should be equal to paramCount - 1.
-            return paramCount == commaCount + 1;
-        }
-    }
-
-    /**
-     * Count the number of commas in sql text
-     *
-     */
-    static int countCommas(String sql) {
-        int nParams = 0;
-        int offset = -1;
-        while ((offset = ParameterUtils.scanSQLForChar(',', sql, ++offset)) < sql.length())
-            ++nParams;
-
-        return nParams;
-    }
-
     static int countParams(String sql) {
         return locateParams(sql).length;
     }
@@ -1463,7 +1433,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private AuthenticationScheme intAuthScheme = AuthenticationScheme.NATIVE_AUTHENTICATION;
 
     /** use default native GSS-API Credential flag */
-    private boolean useDefaultGSSCredential = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue();
+    private boolean useDefaultGSSCredential = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL
+            .getDefaultValue();
 
     /** impersonated user credential */
     private transient GSSCredential impersonatedUserCred;
@@ -2521,7 +2492,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     sPropKey = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString();
                     sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                    if(null != sPropValue && isWindows) {
+                    if (null != sPropValue && isWindows) {
                         useDefaultGSSCredential = isBooleanPropertyOn(sPropKey, sPropValue);
                     }
                 } else if (intAuthScheme == AuthenticationScheme.NTLM) {
@@ -5143,7 +5114,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             } else if (AuthenticationScheme.JAVA_KERBEROS == intAuthScheme) {
                 if (null != impersonatedUserCred || useDefaultGSSCredential) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential, useDefaultGSSCredential);
+                            currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential,
+                            useDefaultGSSCredential);
                 } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber());

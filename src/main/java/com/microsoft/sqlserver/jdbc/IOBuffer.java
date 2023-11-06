@@ -4806,8 +4806,8 @@ final class TDSWriter {
      * @param collation
      *        the collation of the data value
      */
-    void writeRPCStringUnicode(String sName, String sValue, boolean bOut,
-            SQLCollation collation, boolean isNonPLP) throws SQLServerException {
+    void writeRPCStringUnicode(String sName, String sValue, boolean bOut, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
         // Textual RPC requires a collation. If none is provided, as is the case when
@@ -5564,8 +5564,8 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
-            SQLCollation collation, boolean isNonPLP) throws SQLServerException {
+    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);

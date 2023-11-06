@@ -200,21 +200,21 @@ public class DateAndTimeTypeTest extends AbstractTest {
      * Test to make sure that a Timestamp is treated as a datetime object.
      */
     @Test
-    public void testSendTimestampAsDatetime() throws Exception { 
+    public void testSendTimestampAsDatetime() throws Exception {
         String expected = "2010-02-01T23:59:59.997";
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
 
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime"); 
-            PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime");
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-01 23:59:59.996"); // if cast to a datetime, 996ms is rounded up to 997ms
 
             /*
-            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
-            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
-            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
-            */
+             * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+             * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+             * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+             */
             stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
             ResultSet rs = stmt.executeQuery();
 
@@ -231,21 +231,21 @@ public class DateAndTimeTypeTest extends AbstractTest {
      * Test to make sure that a Timestamp is treated as a datetime2 object.
      */
     @Test
-    public void testSendTimestampAsDatetime2() throws Exception { 
+    public void testSendTimestampAsDatetime2() throws Exception {
         String expected = "2010-02-02T23:59:59.1234567";
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 126) as [value]";
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetime2");
-            PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-02 23:59:59.1234567");
 
             /*
-            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
-            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
-            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
-            */
+             * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+             * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+             * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+             */
             stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
             ResultSet rs = stmt.executeQuery();
 
@@ -262,22 +262,22 @@ public class DateAndTimeTypeTest extends AbstractTest {
      * Test to make sure that a Timestamp is treated as a datetime2 object.
      */
     @Test
-    public void testSendTimestampAsDatetimeoffset() throws Exception { 
+    public void testSendTimestampAsDatetimeoffset() throws Exception {
         String expected = "2010-02-03T23:59:59.7654321Z";
         String actual = null;
         String query = "SELECT CONVERT(VARCHAR(40), ?, 127) as [value]";
 
-
-        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString + ";datetimeParameterType=datetimeoffset"); 
-            PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (SQLServerConnection conn = PrepUtil
+                .getConnection(connectionString + ";datetimeParameterType=datetimeoffset");
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             Timestamp ts = Timestamp.valueOf("2010-02-03 23:59:59.7654321");
 
             /*
-            * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
-            * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
-            * midnight because it should be sending a DATETIME which has only 1/300s accuracy
-            */
+             * send the timestamp to the server using the TIME SQL type rather than TIMESTAMP. The driver will
+             * strip the date portion and, because sendTimeAsDatetime=true, round the resulting time value to
+             * midnight because it should be sending a DATETIME which has only 1/300s accuracy
+             */
             stmt.setObject(1, ts, java.sql.Types.TIMESTAMP);
             ResultSet rs = stmt.executeQuery();
 
@@ -343,7 +343,6 @@ public class DateAndTimeTypeTest extends AbstractTest {
         assertEquals(expected, actual.toString());
     }
 
-
     @Test
     public void testCstmtRegisterTimestampOutParameter() throws Exception {
         String expected = "3160-08-17 19:09:06.9366667";
@@ -382,9 +381,11 @@ public class DateAndTimeTypeTest extends AbstractTest {
             String sql1 = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id integer not null, my_date date, my_time time, my_timestamp datetime2 constraint "
                     + AbstractSQLGenerator.escapeIdentifier(primaryKeyConstraintName) + " primary key (id))";
-            String sql2 = "create table " + AbstractSQLGenerator.escapeIdentifier(datetimeTable) + " (c1 datetime2 NULL)";
+            String sql2 = "create table " + AbstractSQLGenerator.escapeIdentifier(datetimeTable)
+                    + " (c1 datetime2 NULL)";
             String sql3 = "create procedure " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc)
-                    + " (@p1 datetime2 output) as select top 1 @p1=c1 from " + AbstractSQLGenerator.escapeIdentifier(datetimeTable);
+                    + " (@p1 datetime2 output) as select top 1 @p1=c1 from "
+                    + AbstractSQLGenerator.escapeIdentifier(datetimeTable);
             stmt.execute(sql1);
             stmt.execute(sql2);
             stmt.execute(sql3);

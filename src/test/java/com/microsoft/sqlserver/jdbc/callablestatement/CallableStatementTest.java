@@ -66,7 +66,7 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
     private static String outOfOrderSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("outOfOrderSproc"));
-    private static String byParamNameSproc= AbstractSQLGenerator
+    private static String byParamNameSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("byParamNameSproc"));
     private static String userDefinedFunction = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("userDefinedFunction"));
@@ -386,14 +386,14 @@ public class CallableStatementTest extends AbstractTest {
             cs.getBytes(1);
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().equals(TestResource.getResource("R_outputParamCastError")) ||
-                    e.getMessage().contains("cannot be cast to"));
+            assertTrue(e.getMessage().equals(TestResource.getResource("R_outputParamCastError"))
+                    || e.getMessage().contains("cannot be cast to"));
         }
     }
 
     @Test
     public void testNonOrderedRegisteringAndSettingOfParams() throws SQLException {
-        String call ="{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
             int scale = 6;
@@ -431,7 +431,7 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testExecutingUserDefinedFunctionDirectly() throws SQLException {
-        String call ="{? = CALL " + userDefinedFunction + " (?,?,?,?,?,?)}";
+        String call = "{? = CALL " + userDefinedFunction + " (?,?,?,?,?,?)}";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
             cstmt.setObject(2, "param");
@@ -452,7 +452,7 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testRegisteringOutputByIndexandAcquiringOutputParamByName() throws SQLException {
-        String call ="{CALL " + byParamNameSproc + " (?,?)}";
+        String call = "{CALL " + byParamNameSproc + " (?,?)}";
 
         // Param names are p1 and p2
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -577,12 +577,11 @@ public class CallableStatementTest extends AbstractTest {
 
     private static void createOutOfOrderSproc() throws SQLException {
         String sql = "CREATE PROCEDURE " + outOfOrderSproc + " @i1 NUMERIC(16,10)," + " @i2 NUMERIC(16,6),"
-                + " @i3 INT," + " @i4 REAL," + " @i5 CHAR," + " @i6 VARCHAR(6)," + " @i7 CHAR,"
-                + " @i8 SMALLINT, " + " @o1 NUMERIC(16,10) OUTPUT," + " @o2 NUMERIC(16,6) OUTPUT,"
-                + " @o3 INT OUTPUT," + " @o4 REAL OUTPUT," + " @o5 CHAR OUTPUT," + " @o6 VARCHAR(6) OUTPUT,"
-                + " @o7 CHAR OUTPUT," + " @o8 SMALLINT OUTPUT" + " as begin " + " set @o1=@i1;"
-                + " set @o2=@i2;" + " set @o3=@i3;" + " set @o4=@i4;" + " set @o5=@i5;" + " set @o6=@i6;"
-                + " set @o7=@i7;" + " set @o8=@i8;" + " end";
+                + " @i3 INT," + " @i4 REAL," + " @i5 CHAR," + " @i6 VARCHAR(6)," + " @i7 CHAR," + " @i8 SMALLINT, "
+                + " @o1 NUMERIC(16,10) OUTPUT," + " @o2 NUMERIC(16,6) OUTPUT," + " @o3 INT OUTPUT,"
+                + " @o4 REAL OUTPUT," + " @o5 CHAR OUTPUT," + " @o6 VARCHAR(6) OUTPUT," + " @o7 CHAR OUTPUT,"
+                + " @o8 SMALLINT OUTPUT" + " as begin " + " set @o1=@i1;" + " set @o2=@i2;" + " set @o3=@i3;"
+                + " set @o4=@i4;" + " set @o5=@i5;" + " set @o6=@i6;" + " set @o7=@i7;" + " set @o8=@i8;" + " end";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
@@ -597,11 +596,10 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createUserDefinedFunction() throws SQLException {
-        String sql = "CREATE FUNCTION " +  userDefinedFunction
+        String sql = "CREATE FUNCTION " + userDefinedFunction
                 + " (@p0 char(20), @p1 varchar(50), @p2 varchar(max), @p3 nchar(30), @p4 nvarchar(60), @p5 nvarchar(max)) "
-                + "RETURNS varchar(50) AS BEGIN "
-                + "DECLARE @ret varchar(50); "
-                + "SELECT @ret = 'foobar'; " + " RETURN @ret; end;";
+                + "RETURNS varchar(50) AS BEGIN " + "DECLARE @ret varchar(50); " + "SELECT @ret = 'foobar'; "
+                + " RETURN @ret; end;";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }

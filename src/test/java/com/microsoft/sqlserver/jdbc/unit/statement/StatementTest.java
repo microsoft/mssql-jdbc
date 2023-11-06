@@ -1452,8 +1452,7 @@ public class StatementTest extends AbstractTest {
                     try {
                         cstmt.getString(2);
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-                    } catch (Exception e) {
-                    }
+                    } catch (Exception e) {}
                 }
             }
         }

@@ -43,7 +43,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_lengthTruncated", " The inserted length is truncated or not correct!"},
             {"R_timeValueTruncated", " The time value is truncated or not correct!"},
             {"R_invalidErrorMessage", "Invalid Error Message: "},
-            {"R_kerberosNativeGSSFailure", "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
+            {"R_kerberosNativeGSSFailure",
+                    "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
             {"R_expectedFailPassed", "Expected failure did not fail"}, {"R_dataTypeNotFound", "Cannot find data type"},
             {"R_illegalCharWktPosition", "Illegal character in Well-Known text at position {0}."},
             {"R_illegalCharWkt", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
@@ -77,7 +78,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_supportUnwrapping", "{0} supports unwrapping."},
             {"R_cantAccessSnapshot", "Cant access the TRANSACTION_SNAPSHOT "},
             {"R_newConnectionShouldBeValid", "Newly created connection should be valid"},
-            {"R_outputParamCastError", "class java.lang.Integer cannot be cast to class [B (java.lang.Integer and [B are in module java.base of loader 'bootstrap')"},
+            {"R_outputParamCastError",
+                    "class java.lang.Integer cannot be cast to class [B (java.lang.Integer and [B are in module java.base of loader 'bootstrap')"},
             {"R_closedConnectionShouldBeInvalid", "Closed connection should be invalid"},
             {"R_noExceptionNegativeTimeout", "No exception thrown with negative timeout"},
             {"R_noExceptionClosedConnection",
@@ -206,6 +208,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_connectTimedOut", "connect timed out"},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
             {"R_failedFedauth", "Failed to acquire fedauth token: "},
-            {"R_noLoginModulesConfiguredForJdbcDriver", "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
+            {"R_noLoginModulesConfiguredForJdbcDriver",
+                    "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
             {"R_unexpectedThreadCount", "Thread count is higher than expected."}};
 }

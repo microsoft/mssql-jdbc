@@ -874,7 +874,8 @@ final class DTV {
                                         tdsWriter.writeRPCDateTime2(name,
                                                 timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                                 subSecondNanos, 3, isOutParam);
-                                    } else if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME.toString())) {
+                                    } else if (conn.getDatetimeParameterType()
+                                            .equals(DatetimeType.DATETIME.toString())) {
                                         tdsWriter.writeRPCDateTime(name,
                                                 timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                                 subSecondNanos, isOutParam);
@@ -1145,7 +1146,8 @@ final class DTV {
                 }
 
             } else
-                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation, dtv.isNonPLP);
+                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation,
+                        dtv.isNonPLP);
 
         }
 
