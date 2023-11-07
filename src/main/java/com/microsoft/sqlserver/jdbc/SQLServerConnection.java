@@ -772,18 +772,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return socketTimeoutMilliseconds;
     }
 
-    /** login timeout in seconds */
-    private int loginTimeoutSeconds;
-
-    /**
-     * Returns the loginTimeoutSeconds in seconds.
-     * 
-     * @return
-     */
-    final int getLoginTimeoutSeconds() {
-        return loginTimeoutSeconds;
-    }
-
     /**
      * boolean value for deciding if the driver should use bulk copy API for batch inserts.
      */
@@ -1822,7 +1810,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (propsIn != null) {
             activeConnectionProperties = (Properties) propsIn.clone();
         }
-        loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+
+        int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
         // Interactive auth may involve MFA which require longer timeout
         if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
@@ -2000,6 +1989,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverStringProperty.DATABASE_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 validateMaxSQLLoginName(sPropKey, sPropValue);
+
+                int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
                 // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
                 // operation of RFC 3490.
