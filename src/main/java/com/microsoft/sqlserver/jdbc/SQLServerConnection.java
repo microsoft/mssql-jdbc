@@ -7855,7 +7855,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
-     * @return useFastCallableStatements
+     * @param useFastCallableStatements
+     *        When set to true, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements.
      */
     public void setUseFastCallableStatements(boolean useFastCallableStatements) {
         this.useFastCallableStatements = useFastCallableStatements;

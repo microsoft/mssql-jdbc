@@ -610,17 +610,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultGSSCredential();
 
     /**
-     * Sets the value to indicate whether useDefaultGSSCredential is enabled.
+     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
-     * @param enable
-     *        true if useDefaultGSSCredential is enabled. Otherwise, false.
+     * @param useFastCallableStatements
+     *        When set to true, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements.
      */
-    void setUseFastCallableStatements(boolean enable);
+    void setUseFastCallableStatements(boolean useFastCallableStatements);
 
     /**
-     * Returns the useDefaultGSSCredential.
+     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
      *
-     * @return if enabled, return true. Otherwise, false.
+     * @return useFastCallableStatements
      */
     boolean getUseFastCallableStatements();
 
