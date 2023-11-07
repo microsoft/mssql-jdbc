@@ -224,7 +224,7 @@
 			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
-  </dependencies>
+        </dependencies>
 	<profiles>
 		<profile>
 			<id>jre8</id>
