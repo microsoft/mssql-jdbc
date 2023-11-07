@@ -1327,29 +1327,6 @@ public class SQLServerDataSource
     }
 
     /**
-     * Test
-     *
-     * @param computeBigDecimal
-     *         boolean property to have the driver compute a big decimal from input
-     */
-    @Override
-    public void setComputeBigDecimal(boolean computeBigDecimal) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.toString(),
-                computeBigDecimal);
-    }
-
-    /**
-     * Test
-     *
-     * @return computeBigDecimal boolean value
-     */
-    @Override
-    public boolean getComputeBigDecimal() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.toString(),
-                SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue());
-    }
-
-    /**
      * Sets a property string value.
      *
      * @param props
