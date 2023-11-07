@@ -1509,6 +1509,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         String columnNameWithoutAtSign = stripLeadingAtSign(columnName);
 
+        for (int i = 0; i < inOutParam.length; i++) {
+            if (null != inOutParam[i].getName()
+                    && inOutParam[i].getName().equalsIgnoreCase(columnNameWithoutAtSign)) {
+                return i + 1;
+            }
+        }
+
         if (method == CallableStatementGetterSetterMethod.IS_SETTER_METHOD) {
             for (int i = 0; i < inOutParam.length; i++) {
                 // if it is not already registered as output param or the parameter is not an input parameter, then
@@ -1518,13 +1525,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     inOutParam[i].setName(columnNameWithoutAtSign);
                     return i + 1;
                 }
-            }
-        }
-
-        for (int i = 0; i < inOutParam.length; i++) {
-            if (null != inOutParam[i].getName()
-                    && inOutParam[i].getName().equalsIgnoreCase(columnNameWithoutAtSign)) {
-                return i + 1;
             }
         }
 
