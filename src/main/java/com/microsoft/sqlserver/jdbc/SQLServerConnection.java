@@ -3029,6 +3029,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long intervalExpire;
 
+        if (0 == loginTimeoutSeconds) {
+            loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+        }
+
         long loginTimeoutMs = loginTimeoutSeconds * 1000L; // ConnectTimeout is in seconds, we need timer millis
         timerExpire = loginStartTime + loginTimeoutMs;
 
