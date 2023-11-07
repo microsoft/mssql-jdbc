@@ -26,7 +26,6 @@ public final class Constants {
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * NTLM  - - - - - - - For NTLM tests
      * Kerberos  - - - - - For Kerberos tests
-     * DTC - - - - - - - - For DTC tests
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
      * Fedauth - - - - - - For Fedauth tests
@@ -44,7 +43,6 @@ public final class Constants {
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
     public static final String kerberos = "kerberos";
-    public static final String DTC = "DTC";
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
     public static final String clientCertAuth = "clientCertAuth";

@@ -44,13 +44,12 @@
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
 			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default)
 			kerberos  - - - - - For tests using Kerberos authentication (excluded by default)
-			DTC - - - - - - - - For tests using MSDTC authentication (excluded by default)
 			reqExternalSetup - For tests requiring external setup (excluded by default)
 			clientCertAuth - - For tests requiring client certificate authentication 
 			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,DTC</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
