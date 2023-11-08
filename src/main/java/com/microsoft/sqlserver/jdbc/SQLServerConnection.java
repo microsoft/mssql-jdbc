@@ -7848,7 +7848,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *
      * @return useFlexibleCallableStatements
      */
-    public boolean geUseFlexibleCallableStatements() {
+    public boolean getUseFlexibleCallableStatements() {
         return this.useFlexibleCallableStatements;
     }
 
