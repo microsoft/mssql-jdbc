@@ -531,7 +531,7 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        if (con.getComputeBigDecimal() && dtv.getJavaType() == JavaType.BIGDECIMAL
+                        if (con.getCalcBigDecimalScale() && dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != dtv.getSetterValue()) {
                             String[] plainValueArray
                                     = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString().split("\\.");

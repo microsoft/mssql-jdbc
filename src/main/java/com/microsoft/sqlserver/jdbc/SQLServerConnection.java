@@ -986,16 +986,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean computeBigDecimal = SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue();
+    private boolean calcBigDecimalScale = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue();
 
     @Override
-    public boolean getComputeBigDecimal() {
-        return computeBigDecimal;
+    public boolean getCalcBigDecimalScale() {
+        return calcBigDecimalScale;
     }
 
     @Override
-    public void setComputeBigDecimal(boolean computeBigDecimal) {
-        this.computeBigDecimal = computeBigDecimal;
+    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
+        this.calcBigDecimalScale = calcBigDecimalScale;
     }
 
     /** Session Recovery Object */
@@ -2180,14 +2180,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.toString();
+                sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.COMPUTE_BIG_DECIMAL.getDefaultValue());
+                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
 
-                computeBigDecimal = isBooleanPropertyOn(sPropKey, sPropValue);
+                calcBigDecimalScale = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
