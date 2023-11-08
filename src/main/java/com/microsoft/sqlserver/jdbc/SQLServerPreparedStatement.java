@@ -828,6 +828,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         outParamIndexAdjustment = 0;
         tdsWriter.writeShort((short) procedureName.length()); // procedure name length
         tdsWriter.writeString(procedureName);
+        if (connection.isAEv2()) {
+            tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
+        }
 
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
@@ -1206,7 +1209,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
-        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isInternalEncryptionQuery);
+        return (null != procedureName && paramCount != 0 && !isTVPType(params));
     }
 
     /**
