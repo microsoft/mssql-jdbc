@@ -1206,7 +1206,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
-        return (null != procedureName && paramCount != 0 && !isTVPType(params));
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isInternalEncryptionQuery);
     }
 
     /**
