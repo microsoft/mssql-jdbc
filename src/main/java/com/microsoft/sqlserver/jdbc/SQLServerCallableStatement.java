@@ -1418,7 +1418,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     SQLServerException.getErrString("R_statementIsClosed"), null, false);
         }
 
-        if (!connection.getUseFastCallableStatement() || isCursorable(executeMethod)) {
+        if (connection.geUseFlexibleCallableStatements() || isCursorable(executeMethod)) {
             // Stored procedures with cursorable methods are not called directly, so we have to get the metadata
             if (parameterNames == null) {
                 try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
