@@ -4118,8 +4118,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     preparedStatementHandleCache.clear();
                                 }
 
-                                if (loggerResiliency.isLoggable(Level.FINER)) {
-                                    loggerResiliency.finer(toString() + " Idle connection resiliency - attempting reconnect.");
+                                if (loggerResiliency.isLoggable(Level.FINE)) {
+                                    loggerResiliency.fine(toString() + " Idle connection resiliency - starting idle connection resiliency reconnect.");
                                 }
 
                                 sessionRecovery.reconnect(newCommand);

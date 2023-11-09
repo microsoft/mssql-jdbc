@@ -463,17 +463,22 @@ final class ReconnectThread extends Thread {
                 loggerResiliency.finer("Idle connection resiliency - running reconnect for command: " + command.toString() + " ; connectRetryCount = "
                         + connectRetryCount);
             }
+
             try {
                 eReceived = null;
                 con.connect(null, con.getPooledConnectionParent());
                 keepRetrying = false;
 
-                if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency.finer("Idle connection resiliency - reconnect for command: " + command.toString() + " succeeded ; connectRetryCount = "
-                            + connectRetryCount);
+                if (loggerResiliency.isLoggable(Level.FINE)) {
+                    loggerResiliency.fine("Idle connection resiliency - reconnect attempt succeeded ; connectRetryCount = " + connectRetryCount);
                 }
 
             } catch (SQLServerException e) {
+
+                if (loggerResiliency.isLoggable(Level.FINE)) {
+                    loggerResiliency.fine("Idle connection resiliency - reconnect attempt failed ; connectRetryCount = " + connectRetryCount);
+                }
+
                 if (!stopRequested) {
                     eReceived = e;
                     if (con.isFatalError(e)) {
