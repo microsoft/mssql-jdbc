@@ -58,4 +58,21 @@ public interface ISQLServerStatement extends java.sql.Statement, Serializable {
      *         if any error occurs
      */
     void setCancelQueryTimeout(int seconds) throws SQLServerException;
+
+    /**
+     * Set a message handler for the Statement. 
+     * 
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     * @return Previously installed message handler on this Statement
+     */
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler msgHandler);
+
+    /**
+     * Get Currently installed message handler for the Statement. If no message handler is installed, 
+     * we will use any installed message handler on the connection.
+     * 
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     * @return 
+     */
+    public ISQLServerMessageHandler getServerMessageHandler();
 }

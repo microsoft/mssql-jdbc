@@ -1581,7 +1581,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         }
                     }
                 }
-
+//System.out.println(">>>>>>>>>>> SQLServerStatement::getNextResult.onDone(): doneToken.isError()=" + doneToken.isError());
                 // If the current command (whatever it was) produced an error then stop parsing and propagate it up.
                 // In this case, the command is likely to be a RAISERROR, but it could be anything.
                 if (doneToken.isError())
@@ -1633,8 +1633,17 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onInfo(TDSReader tdsReader) throws SQLServerException {
-                StreamInfo infoToken = new StreamInfo();
-                infoToken.setFromTDS(tdsReader);
+                SQLServerInfoMessage infoMessage = new SQLServerInfoMessage();
+                infoMessage.setFromTDS(tdsReader);
+//System.out.println("------------------ SQLServerStatement:NextResult.onInfo() \n"
+//		+ "infoMessage.msg.getErrorNumber   = |" + infoMessage.msg.getErrorNumber()   + "| \n" 
+//		+ "infoMessage.msg.getErrorSeverity = |" + infoMessage.msg.getErrorSeverity() + "| \n" 
+//		+ "infoMessage.msg.getErrorState    = |" + infoMessage.msg.getErrorState()    + "| \n" 
+//		+ "infoMessage.msg.getLineNumber    = |" + infoMessage.msg.getLineNumber()    + "| \n" 
+//		+ "infoMessage.msg.getProcedureName = |" + infoMessage.msg.getProcedureName() + "| \n" 
+//		+ "infoMessage.msg.getServerName    = |" + infoMessage.msg.getServerName()    + "| \n" 
+//		+ "infoMessage.msg.getErrorMessage  = |" + infoMessage.msg.getErrorMessage()  + "| \n" 
+//			);
 
                 // Under some circumstances the server cannot produce the cursored result set
                 // that we requested, but produces a client-side (default) result set instead.
@@ -1648,13 +1657,53 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // ErrorCause: Server cursor is not supported on the specified SQL, falling back to default result set
                 // ErrorCorrectiveAction: None required
                 //
-                if (16954 == infoToken.msg.getErrorNumber())
+                if (16954 == infoMessage.msg.getErrorNumber())
                     executedSqlDirectly = true;
 
-                SQLWarning warning = new SQLWarning(
-                        infoToken.msg.getErrorMessage(), SQLServerException.generateStateCode(connection,
-                                infoToken.msg.getErrorNumber(), infoToken.msg.getErrorState()),
-                        infoToken.msg.getErrorNumber());
+
+                // Call the message handler to see what that think of the message
+                // - discard
+                // - upgrade to Error
+                // - or simply pass on
+                ISQLServerMessageHandler msgHandler = getServerMessageHandler();
+//System.out.println(" -- SQLServerStatement.getServerMessageHandler(): " + msgHandler);
+                if (msgHandler != null)
+                {
+                    // Let the message handler decide if the error should be unchanged/down-graded or ignored
+                    ISQLServerMessage msgType = msgHandler.messageHandler(infoMessage);
+                
+                    // Ignored
+                    if (msgType == null) {
+                    	return true;
+                    }
+                
+                    // Up-graded to a "SQLException"
+                    if (msgType != null && msgType instanceof SQLServerError) {
+                    	SQLServerError databaseError = (SQLServerError)msgType;
+
+                    	// Set/Add the error message to the "super"
+                    	setDatabaseError(databaseError);
+                    	
+                    	// Should we also abort current execution, if we have any?
+                    	// Or should we just continue as "normal"
+                    	// TODO: Abort in some way?
+                
+//System.out.println("  <<<<<< SQLServerStatement.msgHandler.upgraded.info-2-error: databaseError=" + databaseError);
+                        return true;
+                    }
+                    
+                    // Still a "info message", just set infoMessage and the code in the below section will create the Warnings
+                    if (msgType != null && msgType instanceof SQLServerInfoMessage) {
+                    	infoMessage = (SQLServerInfoMessage)msgType;
+                    }
+                }
+
+                // Create the SQLWarning and add them to the Warning chain
+//                SQLWarning warning = new SQLWarning(
+//                        infoToken.msg.getErrorMessage(), SQLServerException.generateStateCode(connection,
+//                                infoToken.msg.getErrorNumber(), infoToken.msg.getErrorState()),
+//                        infoToken.msg.getErrorNumber());
+                SQLWarning warning = new SQLServerWarning(infoMessage.msg);
 
                 if (sqlWarnings == null) {
                     sqlWarnings = new Vector<>();
@@ -1686,15 +1735,21 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Figure out the next result.
         NextResult nextResult = new NextResult();
+//System.out.println(" ???????????????? nextResult="+nextResult);
 
         // Signal to not read all token other than TDS_MSG if reading only warnings
         TDSParser.parse(resultsReader(), nextResult, !clearFlag);
 
+//System.out.println(" ???????????????? nextResult.getDatabaseError()="+nextResult.getDatabaseError());
+//if (null != nextResult.getDatabaseError())
+//	(new Exception("DUMMY Exception. to get stacktrace")).printStackTrace();
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
             SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
                     nextResult.getDatabaseError(), false);
         }
+//if (null != nextResult.getDatabaseError())
+//	System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX: We should not get here if we had ERRORS");
 
         // If we didn't clear current ResultSet, we wanted to read only warnings. Return back from here.
         if (!clearFlag)
@@ -2529,6 +2584,27 @@ public class SQLServerStatement implements ISQLServerStatement {
         } finally {
             lock.unlock();
         }
+    }
+
+    /** Holds a local message handler on the statement level, if null we will try to get one from the connection */
+    private ISQLServerMessageHandler serverMessageHandler;
+
+    @Override
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler msgHandler)
+    {
+        ISQLServerMessageHandler installedMessageHandler = this.serverMessageHandler;
+        this.serverMessageHandler = msgHandler;
+        return installedMessageHandler;
+    }
+    
+    @Override
+    public ISQLServerMessageHandler getServerMessageHandler()
+    {
+    	ISQLServerMessageHandler msgHandler = this.serverMessageHandler;
+        if (msgHandler == null) {
+        	msgHandler = connection.getServerMessageHandler();
+        }
+        return msgHandler;
     }
 }
 

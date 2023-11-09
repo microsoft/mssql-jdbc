@@ -196,6 +196,14 @@ class TDSTokenHandler {
     final SQLServerError getDatabaseError() {
         return databaseError;
     }
+    public void setDatabaseError(SQLServerError databaseError)
+    {
+        if (this.databaseError == null) {
+            this.databaseError = databaseError;
+        } else {
+        	this.databaseError.addError(databaseError);
+        }
+    }
 
     TDSTokenHandler(String logContext) {
         this.logContext = logContext;
@@ -247,12 +255,45 @@ class TDSTokenHandler {
     }
 
     boolean onError(TDSReader tdsReader) throws SQLServerException {
-        if (null == databaseError) {
-            databaseError = new SQLServerError();
-            databaseError.setFromTDS(tdsReader);
-        } else {
-            (new SQLServerError()).setFromTDS(tdsReader);
+    	SQLServerError tmpDatabaseError = new SQLServerError();
+        tmpDatabaseError.setFromTDS(tdsReader);
+
+//System.out.println("tdsParser.onError(): From TDS\n"
+//		+ "tmpDatabaseError.getErrorNumber   = |" + tmpDatabaseError.getErrorNumber()   + "| \n" 
+//		+ "tmpDatabaseError.getErrorSeverity = |" + tmpDatabaseError.getErrorSeverity() + "| \n" 
+//		+ "tmpDatabaseError.getErrorState    = |" + tmpDatabaseError.getErrorState()    + "| \n" 
+//		+ "tmpDatabaseError.getLineNumber    = |" + tmpDatabaseError.getLineNumber()    + "| \n" 
+//		+ "tmpDatabaseError.getProcedureName = |" + tmpDatabaseError.getProcedureName() + "| \n" 
+//		+ "tmpDatabaseError.getServerName    = |" + tmpDatabaseError.getServerName()    + "| \n" 
+//		+ "tmpDatabaseError.getErrorMessage  = |" + tmpDatabaseError.getErrorMessage()  + "| \n" 
+//		);
+//
+        ISQLServerMessageHandler msgHandler = tdsReader.getConnection().getServerMessageHandler();
+        if (msgHandler != null)
+        {
+        	// Let the message handler decide if the error should be unchanged/down-graded or ignored
+            ISQLServerMessage msgType = msgHandler.messageHandler(tmpDatabaseError);
+
+            // Ignored
+            if (msgType == null) {
+            	return true;
+            }
+
+            // Down-graded to a SQLWarning
+            if (msgType != null && msgType instanceof SQLServerInfoMessage) {
+            	SQLServerInfoMessage infoMessage = (SQLServerInfoMessage)msgType;
+
+            	// Add the warning to the Connection objects warnings chain
+            	SQLServerWarning warning = new SQLServerWarning(infoMessage.getSQLServerMessage());
+            	SQLServerConnection conn = tdsReader.getConnection();
+                conn.addWarning(warning);
+
+                return true;
+            }
         }
+
+        // set/add the database error
+        setDatabaseError(tmpDatabaseError);
 
         return true;
     }

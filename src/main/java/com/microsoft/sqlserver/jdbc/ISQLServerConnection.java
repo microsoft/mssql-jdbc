@@ -481,4 +481,17 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param accessTokenCallbackClass
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
+
+    /**
+     * Get Currently installed message handler on the connection
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     * @return 
+     */
+    public ISQLServerMessageHandler getServerMessageHandler();
+
+    /**
+     * Set message handler on the connection
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     */
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
 }

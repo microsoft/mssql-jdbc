@@ -4727,6 +4727,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    // Any changes to SQLWarnings should be synchronized.
+    void addWarning(SQLWarning sqlWarning) {
+        warningSynchronization.lock();
+        try {
+            if (null == sqlWarnings) {
+                sqlWarnings = sqlWarning;
+            } else {
+                sqlWarnings.setNextWarning(sqlWarning);
+            }
+        } finally {
+            warningSynchronization.unlock();
+        }
+    }
+
     @Override
     public void clearWarnings() throws SQLServerException {
         warningSynchronization.lock();
@@ -8249,6 +8263,63 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public String getIPAddressPreference() {
         return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
+    }
+
+
+
+    /** Message handler */
+    private transient ISQLServerMessageHandler serverMessageHandler;
+    
+    /**
+     * Set current message handler
+     * 
+     * @param messageHandler
+     * @return The previously installed message handler (null if none)
+     */
+    @Override
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler)
+    {
+    	ISQLServerMessageHandler installedMessageHandler = this.serverMessageHandler;
+    	this.serverMessageHandler = messageHandler;
+        return installedMessageHandler;
+	}
+
+    /**
+     * @return Get Currently installed message handler on the connection
+     */
+    @Override
+	public ISQLServerMessageHandler getServerMessageHandler()
+    {
+//        // THE BELOW SHOULD BE REMOVED
+//        // IT'S JUST AT DUMMY IMPLEMENTATION DURING DEVELOPMENT 
+//        if (this.messageHandler == null)
+//        {
+//            this.messageHandler = new ISQLServerMessageHandler()
+//            {
+//                @Override
+//                public ISQLServerMessage messageHandler(ISQLServerMessage databaseErrorOrWarning)
+//                {
+//                    System.out.println("--------------------messageHandler received: " + databaseErrorOrWarning);
+//                    if (databaseErrorOrWarning instanceof SQLServerError) {
+//                        SQLServerError errorMsg = (SQLServerError)databaseErrorOrWarning;
+//                        System.out.println("--------------------DOWNGRADE-------------------: " + databaseErrorOrWarning);
+//                    	databaseErrorOrWarning = errorMsg.toSQLServerInfoMessage();
+//                        System.out.println("--------------------DOWNGRADED--to--------------: " + databaseErrorOrWarning);
+//                    }
+//                    if (databaseErrorOrWarning instanceof SQLServerInfoMessage) {
+//                        SQLServerInfoMessage infoMsg = (SQLServerInfoMessage)databaseErrorOrWarning;
+//                        if (infoMsg.getSQLServerMessage().getErrorNumber() == 50000)
+//                        {
+//                            System.out.println("--------------------UPGRADE-------------------: " + databaseErrorOrWarning);
+//                        	databaseErrorOrWarning = infoMsg.toSQLServerError(16);
+//                            System.out.println("--------------------UPGRADED--to--------------: " + databaseErrorOrWarning);
+//                        }
+//                    }
+//                    return databaseErrorOrWarning;
+//                }
+//            };
+//        }
+        return this.serverMessageHandler;
     }
 }
 
