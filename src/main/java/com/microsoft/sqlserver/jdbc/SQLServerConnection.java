@@ -3119,6 +3119,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
+                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                    loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: " + retryAttempt);
+                }
+
                 if (loggerResiliency.isLoggable(Level.FINER)) {
                     loggerResiliency
                             .finer(toString() + " Connection open - attempt server name: " + currentConnectPlaceHolder.getServerName()
@@ -3197,13 +3201,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         continue;
                     }
                 } else {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection succeeded on attempt: " + retryAttempt);
+                    if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                        loggerResiliency.fine(toString() + " Connection open - connection retry succeeded on attempt number: " + retryAttempt);
                     }
 
                     break; // leave the while loop -- we've successfully connected
                 }
             } catch (SQLServerException e) {
+
+                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                    loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: " + retryAttempt);
+                }
 
                 if (loggerResiliency.isLoggable(Level.FINER) && (retryAttempt >= connectRetryCount)) {
                     loggerResiliency.finer(toString() + " Connection open - connection failed. Maximum connection retry count " + connectRetryCount + " reached.");
