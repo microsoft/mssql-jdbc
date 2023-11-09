@@ -252,13 +252,13 @@ public class SQLServerDataSource
 
     @Override
     public void setUseFlexibleCallableStatements(boolean enable) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.toString(), enable);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(), enable);
     }
 
     @Override
     public boolean getUseFlexibleCallableStatements() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.toString(),
-                SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.getDefaultValue());
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+                SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
     }
 
     @Override

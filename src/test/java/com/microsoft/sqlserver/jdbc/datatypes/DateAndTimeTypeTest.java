@@ -305,7 +305,7 @@ public class DateAndTimeTypeTest extends AbstractTest {
         String actual = null;
         String query = "{CALL " + AbstractSQLGenerator.escapeIdentifier(datetimeSproc) + "(?)}";
 
-        // The following should be the T-SQL executed. Since datetimeParameterType=dateTime, the registererd param type
+        // The following should be the T-SQL executed. Since datetimeParameterType=dateTime, the registered parameter type
         // should be 'datetime' eg. declare @p1 datetime as shown below. The expected fractional seconds should be 3.
         //
         // declare @p1 datetime

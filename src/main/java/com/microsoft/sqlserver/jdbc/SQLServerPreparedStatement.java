@@ -98,8 +98,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
-    /** Check if statement contains TVP Type */
-    static boolean isTVPType = false;
+
 
     /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
@@ -259,7 +258,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
-        isTVPType = false;
     }
 
     /**
@@ -438,10 +436,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         int stringLen = nCols * 2; // @P
         stringLen += nCols; // spaces
         stringLen += nCols - 1; // commas
-        if (nCols > 10)
+        if (nCols > 10) {
             stringLen += 10 + ((nCols - 10) * 2); // @P{0-99} Numbers after p
-        else
+        } else {
             stringLen += nCols; // @P{0-9} Numbers after p less than 10
+        }
 
         // Computing the type definitions up front, so we can get exact string lengths needed for the string builder.
         String[] typeDefinitions = new String[nCols];

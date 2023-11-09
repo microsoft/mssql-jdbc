@@ -165,7 +165,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
     /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
-    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.getDefaultValue();
+    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue();
 
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
@@ -2315,11 +2315,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
 
-                sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
                     sPropValue = Boolean
-                            .toString(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.getDefaultValue());
+                            .toString(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 useFlexibleCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);

@@ -192,7 +192,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // driver is executing
             // the stored procedure for cursorable ones differently ( calling sp_cursorexecute r sp_cursorprepexec.
             if (bReturnValueSyntax && inOutParam[i - 1].isValueGotten() && inOutParam[i - 1].isReturnValue()
-                    && !isReturnValueAccessed && !isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType
+                    && !isReturnValueAccessed && !isCursorable(executeMethod) && !isTVPType
                     && callRPCDirectly(inOutParam)) {
                 nOutParamsAssigned++;
                 isReturnValueAccessed = true;

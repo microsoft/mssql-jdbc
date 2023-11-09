@@ -696,7 +696,7 @@ enum SQLServerDriverBooleanProperty {
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
-    USE_FLEXIBLE_CALLABLESTATEMENTS("useFlexibleCallableStatements", true);
+    USE_FLEXIBLE_CALLABLE_STATEMENTS("useFlexibleCallableStatements", true);
 
     private final String name;
     private final boolean defaultValue;
@@ -773,8 +773,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue()), false,
                     TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLESTATEMENTS.getDefaultValue()), false,
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue()), false,
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue(), false,

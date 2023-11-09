@@ -70,6 +70,9 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** TDS token return value status **/
     int returnValueStatus;
 
+    /** Check if statement contains TVP Type */
+    boolean isTVPType = false;
+
     static int userDefinedFunctionReturnStatus = 2;
 
     final boolean getIsResponseBufferingAdaptive() {
@@ -119,7 +122,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /** Return parameter for stored procedure calls */
-    Parameter returnParam;
+    transient Parameter returnParam;
 
     /**
      * The input and out parameters for statement execution.
@@ -1621,7 +1624,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // Only read the return value from stored procedure if we are expecting one. Also, check that it is
                     // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
                     // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !SQLServerPreparedStatement.isTVPType && null != inOutParam
+                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam
                             && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
                         inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
                         return false;
