@@ -196,8 +196,8 @@ class TDSTokenHandler {
     final SQLServerError getDatabaseError() {
         return databaseError;
     }
-    public void setDatabaseError(SQLServerError databaseError)
-    {
+
+    public void setDatabaseError(SQLServerError databaseError) {
         if (this.databaseError == null) {
             this.databaseError = databaseError;
         } else {
@@ -255,38 +255,26 @@ class TDSTokenHandler {
     }
 
     boolean onError(TDSReader tdsReader) throws SQLServerException {
-    	SQLServerError tmpDatabaseError = new SQLServerError();
+        SQLServerError tmpDatabaseError = new SQLServerError();
         tmpDatabaseError.setFromTDS(tdsReader);
 
-//System.out.println("tdsParser.onError(): From TDS\n"
-//		+ "tmpDatabaseError.getErrorNumber   = |" + tmpDatabaseError.getErrorNumber()   + "| \n" 
-//		+ "tmpDatabaseError.getErrorSeverity = |" + tmpDatabaseError.getErrorSeverity() + "| \n" 
-//		+ "tmpDatabaseError.getErrorState    = |" + tmpDatabaseError.getErrorState()    + "| \n" 
-//		+ "tmpDatabaseError.getLineNumber    = |" + tmpDatabaseError.getLineNumber()    + "| \n" 
-//		+ "tmpDatabaseError.getProcedureName = |" + tmpDatabaseError.getProcedureName() + "| \n" 
-//		+ "tmpDatabaseError.getServerName    = |" + tmpDatabaseError.getServerName()    + "| \n" 
-//		+ "tmpDatabaseError.getErrorMessage  = |" + tmpDatabaseError.getErrorMessage()  + "| \n" 
-//		);
-//
         ISQLServerMessageHandler msgHandler = tdsReader.getConnection().getServerMessageHandler();
-        if (msgHandler != null)
-        {
-        	// Let the message handler decide if the error should be unchanged/down-graded or ignored
+        if (msgHandler != null) {
+            // Let the message handler decide if the error should be unchanged/down-graded or ignored
             ISQLServerMessage msgType = msgHandler.messageHandler(tmpDatabaseError);
 
             // Ignored
             if (msgType == null) {
-            	return true;
+                return true;
             }
 
             // Down-graded to a SQLWarning
             if (msgType != null && msgType instanceof SQLServerInfoMessage) {
-            	SQLServerInfoMessage infoMessage = (SQLServerInfoMessage)msgType;
+                SQLServerInfoMessage infoMessage = (SQLServerInfoMessage)msgType;
 
-            	// Add the warning to the Connection objects warnings chain
-            	SQLServerWarning warning = new SQLServerWarning(infoMessage.getSQLServerMessage());
-            	SQLServerConnection conn = tdsReader.getConnection();
-                conn.addWarning(warning);
+                // Add the warning to the Connection objects warnings chain
+                SQLServerWarning warning = new SQLServerWarning(infoMessage.getSQLServerMessage());
+                tdsReader.getConnection().addWarning(warning);
 
                 return true;
             }

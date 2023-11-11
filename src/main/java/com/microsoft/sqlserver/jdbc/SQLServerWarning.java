@@ -14,15 +14,17 @@ extends SQLWarning
     /** SQL server error */
     private SQLServerError sqlServerError;
     
-    public SQLServerWarning(SQLServerError sqlServerError)
-	{
-    	super(sqlServerError.getErrorMessage(), 
-    			SQLServerException.generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()), 
-    			sqlServerError.getErrorNumber(), 
-    			null);
+    /*
+     * Create a SQLWarning from an SQLServerError object
+     */
+    public SQLServerWarning(SQLServerError sqlServerError) {
+        super(sqlServerError.getErrorMessage(), 
+            SQLServerException.generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()), 
+            sqlServerError.getErrorNumber(), 
+            null);
 
-    	this.sqlServerError = sqlServerError;
-	}
+        this.sqlServerError = sqlServerError;
+    }
 
     /**
      * Returns SQLServerError object containing detailed info about exception as received from SQL Server. This API

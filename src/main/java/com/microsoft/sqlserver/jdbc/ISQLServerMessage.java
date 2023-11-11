@@ -9,19 +9,11 @@ import java.sql.SQLException;
 public interface ISQLServerMessage
 {
     /**
-     * Returns ISQLServerMessage containing detailed info about SQL Server Message as received from SQL Server.
+     * Returns SQLServerError containing detailed info about SQL Server Message as received from SQL Server.
      * 
-     * @return ISQLServerMessage
+     * @return SQLServerError
      */
-//    public ISQLServerMessage getSQLServerMessage();
     public SQLServerError getSQLServerMessage();
-
-//    /**
-//     * Set SQLServerError which holds detailed info about SQL Server Message.
-//     * 
-//     * @return SQLServerError
-//     */
-//    public void setSQLServerMessage(SQLServerError msg);
 
     /**
      * Returns error message as received from SQL Server
@@ -74,9 +66,28 @@ public interface ISQLServerMessage
     public long getLineNumber();
 
     /**
-     * Creates a SQLServerException or SQLServerWarning from this SQLServerMessage
+     * Creates a SQLServerException or SQLServerWarning from this SQLServerMessage<br>
      * @return
+     * <ul>
+     *   <li>SQLServerException if it's a SQLServerError object</li>
+     *   <li>SQLServerWarning if it's a SQLServerInfoMessage object</li>
+     * </ul>
      */
     public SQLException toSqlExceptionOrSqlWarning();
 
+    /**
+     * Check if this is a isErrorMessage
+     * @return true if it's an instance of SQLServerError
+     */
+    public default boolean isErrorMessage() {
+        return this instanceof SQLServerError;
+    }
+
+    /**
+     * Check if this is a SQLServerInfoMessage
+     * @return true if it's an instance of SQLServerInfoMessage
+     */
+    public default boolean isInfoMessage() {
+        return this instanceof SQLServerInfoMessage;
+    }
 }

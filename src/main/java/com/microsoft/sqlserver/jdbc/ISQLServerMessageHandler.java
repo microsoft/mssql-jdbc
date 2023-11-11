@@ -48,21 +48,29 @@ public interface ISQLServerMessageHandler
      * 
      * Example code:
      * <pre>
-     * public StreamPacket messageHandler(StreamPacket databaseErrorOrWarning)
-     * {
-     * FIXME: CHANGE THE BELOW CODE TO SOMETHING BETTER
-     * TODO: SQLServerError and needs SQLServerInfoMessage needs to extend a new class "SQLServerMessage" or similar... which makes it easier ...
-     *     System.out.println("--------------------messageHandler received: " + databaseErrorOrWarning);
-     *     if (databaseErrorOrWarning instanceof SQLServerError) {
-     *         System.out.println("--------------------DOWNGRADE-------------------: " + databaseErrorOrWarning);
-     *         databaseErrorOrWarning = databaseErrorOrWarning = errorMsg.toSQLServerInfoMessage();
-     *     }
-     *     return databaseErrorOrWarning;
-     * }
+     *  public ISQLServerMessage messageHandler(ISQLServerMessage srvErrorOrWarning)
+     *  {
+     *      ISQLServerMessage retObj = srvErrorOrWarning;
+     *
+     *      if (srvErrorOrWarning.isErrorMessage()) {
+     *
+     *          // Downgrade: 2601 -- Cannot insert duplicate key row...
+     *          if (2601 == srvErrorOrWarning.getErrorNumber()) {
+     *              retObj = srvErrorOrWarning.getSQLServerMessage().toSQLServerInfoMessage();
+     *          }
+     *
+     *          // Discard: 3701 -- Cannot drop the table ...
+     *          if (3701 == srvErrorOrWarning.getErrorNumber()) {
+     *              retObj = null;
+     *          }
+     *      }
+     *
+     *      return retObj;
+     *  }
     
      * </pre>
      * 
-     * @param databaseErrorOrWarning
+     * @param srvErrorOrWarning
      * @return 
      * <ul>
      *   <li><b>unchanged</b> same object as passed in.<br>
@@ -83,5 +91,5 @@ public interface ISQLServerMessageHandler
      *   </li>
      * </ul>
      */
-    ISQLServerMessage messageHandler(ISQLServerMessage databaseErrorOrWarning);
+    ISQLServerMessage messageHandler(ISQLServerMessage srvErrorOrWarning);
 }
