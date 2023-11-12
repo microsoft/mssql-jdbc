@@ -201,7 +201,7 @@ class TDSTokenHandler {
         if (this.databaseError == null) {
             this.databaseError = databaseError;
         } else {
-        	this.databaseError.addError(databaseError);
+            this.databaseError.addError(databaseError);
         }
     }
 

@@ -273,10 +273,8 @@ public final class SQLServerException extends java.sql.SQLException {
 
         // Add any extra messages to the SQLException error chain
         List<SQLServerError> errorChain = sqlServerError.getErrorChain();
-        if (errorChain != null)
-        {
-            for (SQLServerError srvError : errorChain)
-			{
+        if (errorChain != null) {
+            for (SQLServerError srvError : errorChain) {
                 String state2 = generateStateCode(con, srvError.getErrorNumber(), srvError.getErrorState());
 
                 SQLServerException chainException = new SQLServerException(obj,
@@ -285,9 +283,9 @@ public final class SQLServerException extends java.sql.SQLException {
                 chainException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
                 
                 theException.setNextException(chainException);
-			}
+            }
         }
-        
+
         // Close the connection if we get a severity 20 or higher error class (nClass is severity of error).
         if ((sqlServerError.getErrorSeverity() >= 20) && (null != con)) {
             con.notifyPooledConnection(theException);

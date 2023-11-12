@@ -8295,35 +8295,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
 	public ISQLServerMessageHandler getServerMessageHandler()
     {
-//        // THE BELOW SHOULD BE REMOVED
-//        // IT'S JUST AT DUMMY IMPLEMENTATION DURING DEVELOPMENT 
-//        if (this.messageHandler == null)
-//        {
-//            this.messageHandler = new ISQLServerMessageHandler()
-//            {
-//                @Override
-//                public ISQLServerMessage messageHandler(ISQLServerMessage databaseErrorOrWarning)
-//                {
-//                    System.out.println("--------------------messageHandler received: " + databaseErrorOrWarning);
-//                    if (databaseErrorOrWarning instanceof SQLServerError) {
-//                        SQLServerError errorMsg = (SQLServerError)databaseErrorOrWarning;
-//                        System.out.println("--------------------DOWNGRADE-------------------: " + databaseErrorOrWarning);
-//                    	databaseErrorOrWarning = errorMsg.toSQLServerInfoMessage();
-//                        System.out.println("--------------------DOWNGRADED--to--------------: " + databaseErrorOrWarning);
-//                    }
-//                    if (databaseErrorOrWarning instanceof SQLServerInfoMessage) {
-//                        SQLServerInfoMessage infoMsg = (SQLServerInfoMessage)databaseErrorOrWarning;
-//                        if (infoMsg.getSQLServerMessage().getErrorNumber() == 50000)
-//                        {
-//                            System.out.println("--------------------UPGRADE-------------------: " + databaseErrorOrWarning);
-//                        	databaseErrorOrWarning = infoMsg.toSQLServerError(16);
-//                            System.out.println("--------------------UPGRADED--to--------------: " + databaseErrorOrWarning);
-//                        }
-//                    }
-//                    return databaseErrorOrWarning;
-//                }
-//            };
-//        }
         return this.serverMessageHandler;
     }
 }

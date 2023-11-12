@@ -1,24 +1,7 @@
-/*******************************************************************************
- * Copyright (C) 2010-2019 Goran Schwarz
- * 
- * This file is part of DbxTune
- * DbxTune is a family of sub-products *Tune, hence the Dbx
- * Here are some of the tools: AseTune, IqTune, RsTune, RaxTune, HanaTune, 
- *          SqlServerTune, PostgresTune, MySqlTune, MariaDbTune, Db2Tune, ...
- * 
- * DbxTune is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * DbxTune is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with DbxTune.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc;
 
 public interface ISQLServerMessageHandler
@@ -30,7 +13,7 @@ public interface ISQLServerMessageHandler
      *   <li><b>"message feedback"</b><br>
      *       Display Server messages from a long running SQL Statement<br>
      *       Like <code>RAISERROR ('Progress message...', 0, 1) WITH NOWAIT</code><br>
-     *       Or Status message from a running backup...<br>
+     *       Or Status messages from a running backup...<br>
      *   </li>
      *   <li><b>"Universal" error logging</b><br>
      *       Your error-message handler can contain the logic for handling all error logging.
