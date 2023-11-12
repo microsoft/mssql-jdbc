@@ -212,46 +212,43 @@ public class MsgHandlerTest extends AbstractTest {
             // Create a massage handler
             conn.setServerMessageHandler(testMsgHandler); 
 
-            // NOTE: stmnt.execute() or executeUpdate() wont work in here since it do not read through the full TDS stream
-//          execSql(con, sql);
-
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate("CREATE TABLE #msghandler_tmp_table(id int, c1 varchar(255))");
+                stmnt.executeUpdate("CREATE TABLE #msghandler_tmp_table(id int, c1 varchar(255))");
                 assertNull(conn .getWarnings(), "Expecting NO SQLWarnings from 'create table', at Connection.");
                 assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Statement.");
             }
 
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate("CREATE UNIQUE INDEX ix_id ON #msghandler_tmp_table(id)");
+                stmnt.executeUpdate("CREATE UNIQUE INDEX ix_id ON #msghandler_tmp_table(id)");
                 assertNull(conn .getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
                 assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
             }
 
             try (PreparedStatement stmnt = conn.prepareStatement("INSERT INTO #msghandler_tmp_table VALUES(?, ?)")) { 
-            	stmnt.setInt(1, 1);
-            	stmnt.setString(2, "row 1");
-            	stmnt.executeUpdate();
+                stmnt.setInt(1, 1);
+                stmnt.setString(2, "row 1");
+                stmnt.executeUpdate();
                 assertNull(conn .getWarnings(), "Expecting NO SQLWarnings from 'first insert', at Connection.");
                 assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'first insert', at Statement.");
             }
 
             try (PreparedStatement stmnt = conn.prepareStatement("INSERT INTO #msghandler_tmp_table VALUES(?, ?)")) { 
-            	stmnt.setInt(1, 1);
-            	stmnt.setString(2, "row 1 - again - msg handler downgrades it");
-            	stmnt.executeUpdate();
+                stmnt.setInt(1, 1);
+                stmnt.setString(2, "row 1 - again - msg handler downgrades it");
+                stmnt.executeUpdate();
                 assertNotNull(conn .getWarnings(), "Expecting at least ONE SQLWarnings from 'second insert', which is a duplicate row, at Connection.");
                 assertNull   (stmnt.getWarnings(), "Expecting NO SQLWarnings from 'second insert', which is a duplicate row, at Statement.");
                 conn.clearWarnings(); // Clear Warnings at Connection level
             }
 
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate("DROP TABLE #msghandler_tmp_table");
+                stmnt.executeUpdate("DROP TABLE #msghandler_tmp_table");
                 assertNull(conn .getWarnings(), "Expecting NO SQLWarnings from 'first drop table', at Connection.");
                 assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'first drop table', at Statement.");
             }
 
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate("DROP TABLE #msghandler_tmp_table");
+                stmnt.executeUpdate("DROP TABLE #msghandler_tmp_table");
                 assertNull(conn .getWarnings(), "Expecting NO SQLWarnings from 'first drop table', at Connection.");
                 assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'first drop table', at Statement.");
             }
@@ -330,55 +327,55 @@ public class MsgHandlerTest extends AbstractTest {
 
             // SQL to create procedure
             String sqlCreateProc = ""
-            		+ "CREATE PROCEDURE #msghandler_tmp_proc( \n"
-            		+ "    @out_row_count INT OUTPUT \n"
-            		+ ") \n"
-            		+ "AS \n"
-            		+ "BEGIN \n"
-            		+ "    -- Create a dummy table, with index \n"
-            		+ "    CREATE TABLE #msghandler_tmp_table(id int, c1 varchar(255)) \n"
-            		+ "    CREATE UNIQUE INDEX ix_id ON #msghandler_tmp_table(id) \n"
-            		+ "     \n"
-            		+ "    -- Insert records 1 \n"
-            		+ "    INSERT INTO #msghandler_tmp_table VALUES(1, 'row 1') \n"
-            		+ "     \n"
-            		+ "    -- Insert records 1 -- Again, which will FAIL, but the message handler will downgrade it into a INFO Message \n"
-            		+ "    INSERT INTO #msghandler_tmp_table VALUES(1, 'row 1 - again - msg handler downgrades it') \n"
-            		+ "     \n"
-            		+ "    -- Count records \n"
-            		+ "    SELECT @out_row_count = count(*) \n"
-            		+ "    FROM #msghandler_tmp_table \n"
-            		+ "     \n"
-            		+ "    -- Drop the table \n"
-            		+ "    DROP TABLE #msghandler_tmp_table \n"
-            		+ "     \n"
-            		+ "    -- Drop the table agin... The message handler will DISCARD the error\n"
-            		+ "    DROP TABLE #msghandler_tmp_table \n"
-            		+ "     \n"
-            		+ "    RETURN 1 \n"
-            		+ "END \n"
-            		;
+                    + "CREATE PROCEDURE #msghandler_tmp_proc( \n"
+                    + "    @out_row_count INT OUTPUT \n"
+                    + ") \n"
+                    + "AS \n"
+                    + "BEGIN \n"
+                    + "    -- Create a dummy table, with index \n"
+                    + "    CREATE TABLE #msghandler_tmp_table(id int, c1 varchar(255)) \n"
+                    + "    CREATE UNIQUE INDEX ix_id ON #msghandler_tmp_table(id) \n"
+                    + "     \n"
+                    + "    -- Insert records 1 \n"
+                    + "    INSERT INTO #msghandler_tmp_table VALUES(1, 'row 1') \n"
+                    + "     \n"
+                    + "    -- Insert records 1 -- Again, which will FAIL, but the message handler will downgrade it into a INFO Message \n"
+                    + "    INSERT INTO #msghandler_tmp_table VALUES(1, 'row 1 - again - msg handler downgrades it') \n"
+                    + "     \n"
+                    + "    -- Count records \n"
+                    + "    SELECT @out_row_count = count(*) \n"
+                    + "    FROM #msghandler_tmp_table \n"
+                    + "     \n"
+                    + "    -- Drop the table \n"
+                    + "    DROP TABLE #msghandler_tmp_table \n"
+                    + "     \n"
+                    + "    -- Drop the table agin... The message handler will DISCARD the error\n"
+                    + "    DROP TABLE #msghandler_tmp_table \n"
+                    + "     \n"
+                    + "    RETURN 1 \n"
+                    + "END \n"
+                    ;
 
             // Create the proc
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate(sqlCreateProc);
-            	assertEquals(0, getWarningCount("Conn" , conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Connection.");
-            	assertEquals(0, getWarningCount("Stmnt", conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Statement.");
+                stmnt.executeUpdate(sqlCreateProc);
+                assertEquals(0, getWarningCount("Conn" , conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Connection.");
+                assertEquals(0, getWarningCount("Stmnt", conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Statement.");
             }
 
             // Execute the proc
             try (CallableStatement cstmnt = conn.prepareCall("{ ? =call  #msghandler_tmp_proc(?) }")) { 
-            	cstmnt.registerOutParameter(1, Types.INTEGER);
-            	cstmnt.registerOutParameter(2, Types.INTEGER);
-            	cstmnt.execute();
-            	int procReturnCode = cstmnt.getInt(1);
-            	int procRowCount   = cstmnt.getInt(2);
+                cstmnt.registerOutParameter(1, Types.INTEGER);
+                cstmnt.registerOutParameter(2, Types.INTEGER);
+                cstmnt.execute();
+                int procReturnCode = cstmnt.getInt(1);
+                int procRowCount   = cstmnt.getInt(2);
 
                 assertEquals(1, procReturnCode, "Expecting ReturnCode 1 from the temp procedure.");
                 assertEquals(1, procRowCount  , "Expecting procRowCount 1 from the temp procedure.");
 
-            	assertEquals(1, getWarningCount("Conn"  , conn  .getWarnings()), "Expecting NO SQLWarnings from 'exec proc', at Connection.");
-            	assertEquals(0, getWarningCount("CStmnt", cstmnt.getWarnings()), "Expecting NO SQLWarnings from 'exec proc', at CallableStatement.");
+                assertEquals(1, getWarningCount("Conn"  , conn  .getWarnings()), "Expecting NO SQLWarnings from 'exec proc', at Connection.");
+                assertEquals(0, getWarningCount("CStmnt", cstmnt.getWarnings()), "Expecting NO SQLWarnings from 'exec proc', at CallableStatement.");
             }
 
             // numOfCalls to the message handler should be: 3
@@ -419,8 +416,8 @@ public class MsgHandlerTest extends AbstractTest {
 
                     if (50_000 == srvErrorOrWarning.getErrorNumber()) {
                         //System.out.println("DEBUG: testMsgHandlerWithProcedureFeedback.messageHandler(): FEEDBACK: " + srvErrorOrWarning.getErrorMessage());
-                        // Remember when the message was received	
-                      	feedbackMsgTs.put(srvErrorOrWarning.getErrorMessage(), System.currentTimeMillis());
+                        // Remember when the message was received
+                        feedbackMsgTs.put(srvErrorOrWarning.getErrorMessage(), System.currentTimeMillis());
                     }
 
                     return srvErrorOrWarning;
@@ -456,21 +453,21 @@ public class MsgHandlerTest extends AbstractTest {
 
             // Create the proc
             try (Statement stmnt = conn.createStatement()) { 
-            	stmnt.executeUpdate(sqlCreateProc);
-            	assertEquals(0, getWarningCount("Conn" , conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Connection.");
-            	assertEquals(0, getWarningCount("Stmnt", conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Statement.");
+                stmnt.executeUpdate(sqlCreateProc);
+                assertEquals(0, getWarningCount("Conn" , conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Connection.");
+                assertEquals(0, getWarningCount("Stmnt", conn .getWarnings()), "Expecting NO SQLWarnings from 'create proc', at Statement.");
             }
 
             // Execute the proc
             try (CallableStatement cstmnt = conn.prepareCall("{ ? =call  #msghandler_feeback_proc }")) { 
-            	cstmnt.registerOutParameter(1, Types.INTEGER);
-            	cstmnt.execute();
-            	int procReturnCode = cstmnt.getInt(1);
+                cstmnt.registerOutParameter(1, Types.INTEGER);
+                cstmnt.execute();
+                int procReturnCode = cstmnt.getInt(1);
 
                 assertEquals(0, procReturnCode, "Unexpected ReturnCode from the temp procedure.");
 
-            	assertEquals(0,              getWarningCount("conn"  , conn  .getWarnings()), "Unexpected Number Of SQLWarnings from 'exec proc', at Connection.");
-            	assertEquals(doSqlLoopCount, getWarningCount("cstmnt", cstmnt.getWarnings()), "Unexpected Number Of SQLWarnings from 'exec proc', at CallableStatement.");
+                assertEquals(0,              getWarningCount("conn"  , conn  .getWarnings()), "Unexpected Number Of SQLWarnings from 'exec proc', at Connection.");
+                assertEquals(doSqlLoopCount, getWarningCount("cstmnt", cstmnt.getWarnings()), "Unexpected Number Of SQLWarnings from 'exec proc', at CallableStatement.");
             }
 
             // numOfCalls to the message handler should be: #
@@ -480,17 +477,17 @@ public class MsgHandlerTest extends AbstractTest {
             long prevTime = 0;
             for (Entry<String, Long> entry : testMsgHandler.feedbackMsgTs.entrySet()) {
                 if (prevTime == 0) {
-                	prevTime = entry.getValue();
+                    prevTime = entry.getValue();
                     continue;
                 }
 
                 long msDiff = entry.getValue() - prevTime;
                 if (msDiff < 800 || msDiff > 1200) {
-                	fail("Received Messages is to far apart. They should be approx 1000 ms. msDiff=" + msDiff + " Message=|" + entry.getKey() + "|.");
+                    fail("Received Messages is to far apart. They should be approx 1000 ms. msDiff=" + msDiff + " Message=|" + entry.getKey() + "|.");
                 }
 
                 prevTime = entry.getValue();
-			}
+            }
 
         } catch (SQLException ex) {
             fail(TestResource.getResource("R_unexpectedErrorMessage"));
