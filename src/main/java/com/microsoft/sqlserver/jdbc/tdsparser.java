@@ -197,7 +197,7 @@ class TDSTokenHandler {
         return databaseError;
     }
 
-    public void setDatabaseError(SQLServerError databaseError) {
+    public void addDatabaseError(SQLServerError databaseError) {
         if (this.databaseError == null) {
             this.databaseError = databaseError;
         } else {
@@ -261,27 +261,22 @@ class TDSTokenHandler {
         ISQLServerMessageHandler msgHandler = tdsReader.getConnection().getServerMessageHandler();
         if (msgHandler != null) {
             // Let the message handler decide if the error should be unchanged/down-graded or ignored
-            ISQLServerMessage msgType = msgHandler.messageHandler(tmpDatabaseError);
+            ISQLServerMessage srvMessage = msgHandler.messageHandler(tmpDatabaseError);
 
             // Ignored
-            if (msgType == null) {
+            if (srvMessage == null) {
                 return true;
             }
 
             // Down-graded to a SQLWarning
-            if (msgType != null && msgType instanceof SQLServerInfoMessage) {
-                SQLServerInfoMessage infoMessage = (SQLServerInfoMessage)msgType;
-
-                // Add the warning to the Connection objects warnings chain
-                SQLServerWarning warning = new SQLServerWarning(infoMessage.getSQLServerMessage());
-                tdsReader.getConnection().addWarning(warning);
-
+            if (srvMessage.isInfoMessage()) {
+                tdsReader.getConnection().addWarning(srvMessage);
                 return true;
             }
         }
 
         // set/add the database error
-        setDatabaseError(tmpDatabaseError);
+        addDatabaseError(tmpDatabaseError);
 
         return true;
     }

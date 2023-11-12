@@ -4741,6 +4741,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    // Any changes to SQLWarnings should be synchronized.
+    void addWarning(ISQLServerMessage sqlServerMessage) {
+        addWarning(new SQLServerWarning(sqlServerMessage.getSQLServerMessage()));
+    }
+
     @Override
     public void clearWarnings() throws SQLServerException {
         warningSynchronization.lock();

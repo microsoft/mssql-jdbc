@@ -1657,27 +1657,25 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // - or simply pass on
                 ISQLServerMessageHandler msgHandler = ((SQLServerConnection)getConnection()).getServerMessageHandler();
                 if (msgHandler != null) {
-                    // Let the message handler decide if the error should be unchanged/down-graded or ignored
-                    ISQLServerMessage msgType = msgHandler.messageHandler(infoMessage);
+
+                    // Let the message handler decide if the error should be unchanged, up/down-graded or ignored
+                    ISQLServerMessage srvMessage = msgHandler.messageHandler(infoMessage);
                 
                     // Ignored
-                    if (msgType == null) {
+                    if (srvMessage == null) {
                     	return true;
                     }
                 
-                    // Up-graded to a "SQLException"
-                    if (msgType != null && msgType instanceof SQLServerError) {
-                        SQLServerError databaseError = (SQLServerError)msgType;
-
+                    // The message handler changed it to an "Error Message"
+                    if (srvMessage.isErrorMessage()) {
                         // Set/Add the error message to the "super"
-                        setDatabaseError(databaseError);
-
+                        addDatabaseError( (SQLServerError)srvMessage );
                         return true;
                     }
                     
                     // Still a "info message", just set infoMessage and the code in the below section will create the Warnings
-                    if (msgType != null && msgType instanceof SQLServerInfoMessage) {
-                        infoMessage = (SQLServerInfoMessage)msgType;
+                    if (srvMessage.isInfoMessage()) {
+                        infoMessage = (SQLServerInfoMessage)srvMessage;
                     }
                 }
 
