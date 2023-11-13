@@ -58,5 +58,4 @@ public interface ISQLServerStatement extends java.sql.Statement, Serializable {
      *         if any error occurs
      */
     void setCancelQueryTimeout(int seconds) throws SQLServerException;
-
 }

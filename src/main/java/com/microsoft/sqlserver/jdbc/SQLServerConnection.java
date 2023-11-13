@@ -8293,7 +8293,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @return Get Currently installed message handler on the connection
      */
     @Override
-	public ISQLServerMessageHandler getServerMessageHandler()
+    public ISQLServerMessageHandler getServerMessageHandler()
     {
         return this.serverMessageHandler;
     }
