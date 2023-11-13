@@ -1655,7 +1655,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // - discard
                 // - upgrade to Error
                 // - or simply pass on
-                ISQLServerMessageHandler msgHandler = ((SQLServerConnection)getConnection()).getServerMessageHandler();
+                ISQLServerMessageHandler msgHandler = ((ISQLServerConnection)getConnection()).getServerMessageHandler();
                 if (msgHandler != null) {
 
                     // Let the message handler decide if the error should be unchanged, up/down-graded or ignored
