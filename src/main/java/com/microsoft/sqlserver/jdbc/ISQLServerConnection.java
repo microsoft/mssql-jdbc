@@ -487,11 +487,11 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
      * @return 
      */
-    public ISQLServerMessageHandler getServerMessageHandler();
+    ISQLServerMessageHandler getServerMessageHandler();
 
     /**
      * Set message handler on the connection
      * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
      */
-    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
+    ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
 }
