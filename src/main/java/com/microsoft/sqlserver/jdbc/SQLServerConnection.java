@@ -3237,7 +3237,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
                         loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isBlank()) {
+                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
                             loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
                         }
                     }
@@ -3249,7 +3249,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
                         loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isBlank()) {
+                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
                             loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
                         }
                     }
@@ -3271,7 +3271,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
                         loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isBlank()) {
+                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
                             loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
                         }
                     }
