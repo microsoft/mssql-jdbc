@@ -56,7 +56,6 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * Always update serialVersionUID when prompted.
      */
-
     private static final long serialVersionUID = -4421134713913331507L;
 
     final static char LEFT_CURLY_BRACKET = 123;
