@@ -3110,7 +3110,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else {
                     if (routingInfo != null) {
                         if (loggerRedirection.isLoggable(Level.FINE)) {
-                            loggerRedirection.finer(toString() + " Connection open - redirecting to server and instance: " + routingInfo.getFullServerName());
+                            loggerRedirection.fine(toString() + " Connection open - redirecting to server and instance: " + routingInfo.getFullServerName());
                         }
                         currentPrimaryPlaceHolder = routingInfo;
                         routingInfo = null;
@@ -3155,7 +3155,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     noOfRedirections++;
 
                     if (loggerRedirection.isLoggable(Level.FINE)) {
-                        loggerRedirection.finer(toString() + " Connection open - redirection count: " + noOfRedirections);
+                        loggerRedirection.fine(toString() + " Connection open - redirection count: " + noOfRedirections);
                     }
 
                     if (noOfRedirections > 1) {
