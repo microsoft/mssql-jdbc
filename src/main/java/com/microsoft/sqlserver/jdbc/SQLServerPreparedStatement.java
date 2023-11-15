@@ -98,8 +98,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
 
-
-
     /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
 
