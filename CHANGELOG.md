@@ -3,6 +3,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.5.0] Preview Release
+### Added
+- Added connection property, `useDefaultJaasConfig`, to allow Kerberos authentication without any additional external configuration [#2147](https://github.com/microsoft/mssql-jdbc/pull/2147)
+- Allow calling of stored procedures directly, simplifying the procedure and improving performance [#2154](https://github.com/microsoft/mssql-jdbc/pull/2154)
+- Added connection property, `useDefaultGSSCredential`, to allow the driver to create GSSCredential on behalf of a user using Native GSS-API for Kerberos authentication [#2177](https://github.com/microsoft/mssql-jdbc/pull/2177)
+- Added Java 21 support [#2229](https://github.com/microsoft/mssql-jdbc/pull/2229)
+- Added connection property, `calBigDecimalScale`, to allow the driver to calculate scale and percision from Big Decimal inputs [#2248](https://github.com/microsoft/mssql-jdbc/pull/2248)
+- Added a new named logger for connection open retries and idle connection resiliency reconnects [#2250](https://github.com/microsoft/mssql-jdbc/pull/2250)
+### Changed
+- Changed how IBM JDK is checked for to prevent issues with OSGi environments [#2150](https://github.com/microsoft/mssql-jdbc/pull/2150)
+- Updated azure-security-keyvault-keys, bouncycastle, and h2 library versions [#2162](https://github.com/microsoft/mssql-jdbc/pull/2162)[#2182](https://github.com/microsoft/mssql-jdbc/pull/2182)[#2249](https://github.com/microsoft/mssql-jdbc/pull/2249)
+- Changes to bulkcopy to allow for performance improvements when loading a large number of timestamps [#2194](https://github.com/microsoft/mssql-jdbc/pull/2194)
+- Properly synchronize all calls to MSAL, preventing the driver from making extra calls and providing unneccessary dialogues [#2218](https://github.com/microsoft/mssql-jdbc/pull/2218)
+- Changed driver retry behavior to retry the correct number of times based on connectRetryCount [#2247](https://github.com/microsoft/mssql-jdbc/pull/2247)
+### Fixed issues
+- Fix to ignore irrelevant computed columns during bulk insert [#1562](https://github.com/microsoft/mssql-jdbc/pull/1562)
+- Fixed an issue where signature was not properly verfied when using Java Key Store, as well as adding a new API to sign column master key metadata (and return generated signature) for use with Java Key Store and Azure Key Vault [#2160](https://github.com/microsoft/mssql-jdbc/pull/2160)
+- Fixed an issue where a null SQLState was returned when trying to convert a date to a long [#2185](https://github.com/microsoft/mssql-jdbc/pull/2185)
+- Fixed an issue where schemaPattern was not properly being escaped in SQLServerDatabaseMetadata [#2195](https://github.com/microsoft/mssql-jdbc/pull/2195)
+- Fixes getObject()'s erroneous conversion of DateTimeOffset to LocalDateTime [#2204](https://github.com/microsoft/mssql-jdbc/pull/2204)
+- Fixed an issue with ParameterMetadata not properly checking for an invalid index 0 [#2217](https://github.com/microsoft/mssql-jdbc/pull/2217)
+- Fixed bulkcopy metadata query to make use of cached data, if it's available [#2231](https://github.com/microsoft/mssql-jdbc/pull/2231)
+- Fixed an issue when writing TVP row values, where input values were not properly filtered for BigDecimal scale [#2239](https://github.com/microsoft/mssql-jdbc/pull/2239)
+
 ## [12.4.0] Stable Release
 ### Fixed issues
 - Revert #2051 (Big decimal precision) / #2116 (Fix for bigDecimal values between 0 and 1 having too high of a precision) [#2176](https://github.com/microsoft/mssql-jdbc/pull/2176)
