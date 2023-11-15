@@ -481,4 +481,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param accessTokenCallbackClass
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
+
+    /**
+     * Returns the current flag for calcBigDecimalScale.
+     *
+     * @return calcBigDecimalScale
+     *        Whether calculating big decimal scale from input values is enabled.
+     */
+    boolean getCalcBigDecimalScale();
+
+    /**
+     * Specifies whether to calculate scale from inputted big decimal values.
+     *
+     * @param calcBigDecimalScale
+     *        A boolean that indicates if the driver should calculate scale from inputted big decimal values.
+     */
+    void setCalcBigDecimalScale(boolean computeBigDecimal);
 }
