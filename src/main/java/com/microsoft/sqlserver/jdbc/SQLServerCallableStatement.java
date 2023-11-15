@@ -89,7 +89,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      */
     enum CallableStatementGetterSetterMethod {
         IS_SETTER_METHOD,
-       IS_GETTER_METHOD
+        IS_GETTER_METHOD
     }
 
     /**
