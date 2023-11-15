@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Allow calling of stored procedures directly, simplifying the procedure and improving performance [#2154](https://github.com/microsoft/mssql-jdbc/pull/2154)
 - Added connection property, `useDefaultGSSCredential`, to allow the driver to create GSSCredential on behalf of a user using Native GSS-API for Kerberos authentication [#2177](https://github.com/microsoft/mssql-jdbc/pull/2177)
 - Added Java 21 support [#2229](https://github.com/microsoft/mssql-jdbc/pull/2229)
-- Added connection property, `calBigDecimalScale`, to allow the driver to calculate scale and percision from Big Decimal inputs [#2248](https://github.com/microsoft/mssql-jdbc/pull/2248)
+- Added connection property, `calcBigDecimalScale`, to allow the driver to calculate scale and percision from Big Decimal inputs [#2248](https://github.com/microsoft/mssql-jdbc/pull/2248)
 - Added a new named logger for connection open retries and idle connection resiliency reconnects [#2250](https://github.com/microsoft/mssql-jdbc/pull/2250)
 ### Changed
 - Changed how IBM JDK is checked for to prevent issues with OSGi environments [#2150](https://github.com/microsoft/mssql-jdbc/pull/2150)
