@@ -633,6 +633,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
+    public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
+        return wrappedConnection.getIgnoreOffsetOnDateTimeOffsetConversion();
+    }
+
+    @Override
+    public void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion) {
+        wrappedConnection.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
+    }
+
+    @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
 
@@ -680,5 +690,26 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
         wrappedConnection.setAccessTokenCallbackClass(accessTokenCallbackClass);
+    }
+
+    /**
+     * Returns the current value for 'calcBigDecimalScale'.
+     *
+     * @return calcBigDecimalScale
+     *          a boolean
+     */
+    @Override
+    public boolean getCalcBigDecimalScale() {
+        return wrappedConnection.getCalcBigDecimalScale();
+    }
+
+    /**
+     * Sets the current value of 'calculateBigDecimalScale' for the driver.
+     *
+     * @param calcBigDecimalScale
+     */
+    @Override
+    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
+        wrappedConnection.setCalcBigDecimalScale(calcBigDecimalScale);
     }
 }

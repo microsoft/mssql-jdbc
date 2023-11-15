@@ -417,6 +417,21 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setDelayLoadingLobs(boolean delayLoadingLobs);
 
     /**
+     * Returns the current flag value for ignoreOffsetOnDateTimeOffsetConversion.
+     *
+     * @return 'ignoreOffsetOnDateTimeOffsetConversion' property value.
+     */
+    boolean getIgnoreOffsetOnDateTimeOffsetConversion();
+
+    /**
+     * Specifies the flag to ignore offset when converting DATETIMEOFFSET to LocalDateTime.
+     *
+     * @param ignoreOffsetOnDateTimeOffsetConversion
+     *        boolean value for 'ignoreOffsetOnDateTimeOffsetConversion'.
+     */
+    void setIgnoreOffsetOnDateTimeOffsetConversion(boolean ignoreOffsetOnDateTimeOffsetConversion);
+
+    /**
      * Sets the name of the preferred type of IP Address.
      * 
      * @param iPAddressPreference
@@ -466,4 +481,20 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param accessTokenCallbackClass
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
+
+    /**
+     * Returns the current flag for calcBigDecimalScale.
+     *
+     * @return calcBigDecimalScale
+     *        Whether calculating big decimal scale from input values is enabled.
+     */
+    boolean getCalcBigDecimalScale();
+
+    /**
+     * Specifies whether to calculate scale from inputted big decimal values.
+     *
+     * @param calcBigDecimalScale
+     *        A boolean that indicates if the driver should calculate scale from inputted big decimal values.
+     */
+    void setCalcBigDecimalScale(boolean computeBigDecimal);
 }

@@ -393,7 +393,7 @@ public final class SQLServerException extends java.sql.SQLException {
      *         original error string.
      */
     static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) {
-        if (null != conn && conn.attachConnId()) {
+        if (null != conn && conn.isConnected()) {
             UUID clientConnId = conn.getClientConIdInternal();
             assert null != clientConnId;
             StringBuilder sb = new StringBuilder(errMsg);

@@ -3576,13 +3576,13 @@ final class ServerDTVImpl extends DTVImpl {
                 // cannot reuse method
                 int daysIntoCE = getDaysIntoCE(decryptedValue, baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, baseSSType, cal, daysIntoCE, 0, 0);
+                return DDC.convertTemporalToObject(con, jdbcType, baseSSType, cal, daysIntoCE, 0, 0);
 
             case TIME:
                 long localNanosSinceMidnight = readNanosSinceMidnightAE(decryptedValue, baseTypeInfo.getScale(),
                         baseSSType);
 
-                return DDC.convertTemporalToObject(jdbcType, SSType.TIME, cal, 0, localNanosSinceMidnight,
+                return DDC.convertTemporalToObject(con, jdbcType, SSType.TIME, cal, 0, localNanosSinceMidnight,
                         baseTypeInfo.getScale());
 
             case DATETIME2:
@@ -3603,7 +3603,7 @@ final class ServerDTVImpl extends DTVImpl {
                 int daysIntoCE2 = getDaysIntoCE(datePortion, baseSSType);
 
                 // Convert the DATETIME2 value to the desired Java type.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME2, cal, daysIntoCE2,
+                return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIME2, cal, daysIntoCE2,
                         localNanosSinceMidnight2, baseTypeInfo.getScale());
 
             case SMALLDATETIME:
@@ -3615,7 +3615,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL smalldatetime has less precision. It stores 2 bytes
                 // for the days since SQL Base Date and 2 bytes for minutes
                 // after midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal,
+                return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIME, cal,
                         Util.readUnsignedShort(decryptedValue, 0),
                         Util.readUnsignedShort(decryptedValue, 2) * 60L * 1000L, 0);
 
@@ -3630,7 +3630,7 @@ final class ServerDTVImpl extends DTVImpl {
                 // SQL datetime is 4 bytes for days since SQL Base Date
                 // (January 1, 1900 00:00:00 GMT) and 4 bytes for
                 // the number of three hundredths (1/300) of a second since midnight.
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
+                return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIME, cal, Util.readInt(decryptedValue, 0),
                         ticksSinceMidnight, 0);
 
             case DATETIMEOFFSET:
@@ -3649,7 +3649,7 @@ final class ServerDTVImpl extends DTVImpl {
 
                 int localMinutesOffset = ByteBuffer.wrap(offsetPortion2).order(ByteOrder.LITTLE_ENDIAN).getShort();
 
-                return DDC.convertTemporalToObject(jdbcType, SSType.DATETIMEOFFSET,
+                return DDC.convertTemporalToObject(con, jdbcType, SSType.DATETIMEOFFSET,
                         new GregorianCalendar(new SimpleTimeZone(localMinutesOffset * 60 * 1000, ""), Locale.US),
                         daysIntoCE3, localNanosSinceMidnight3, baseTypeInfo.getScale());
 

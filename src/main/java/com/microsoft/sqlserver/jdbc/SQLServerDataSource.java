@@ -1338,6 +1338,29 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets the 'calcBigDecimalScale' setting.
+     *
+     * @param calcBigDecimalScale
+     *         boolean property to have the driver calculate a big decimal's scale from input
+     */
+    @Override
+    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString(),
+                calcBigDecimalScale);
+    }
+
+    /**
+     * Returns the value for 'calcBigDecimalScale'.
+     *
+     * @return computeBigDecimal boolean value
+     */
+    @Override
+    public boolean getCalcBigDecimalScale() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString(),
+                SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue());
+    }
+
+    /**
      * Sets a property string value.
      *
      * @param props
