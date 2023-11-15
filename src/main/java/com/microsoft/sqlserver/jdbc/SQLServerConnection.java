@@ -1582,6 +1582,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             .getLogger("com.microsoft.sqlserver.jdbc.Connection");
     static final java.util.logging.Logger loggerResiliency = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.Resiliency");
+    static final java.util.logging.Logger loggerRedirection = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.Redirection");
     private static String loggingClassNameBase = "com.microsoft.sqlserver.jdbc.SQLServerConnection";
 
     /** Instance-specific loggingClassName to identity the connection in logs */
@@ -3107,8 +3109,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     currentConnectPlaceHolder = currentFOPlaceHolder;
                 } else {
                     if (routingInfo != null) {
-                        if (loggerResiliency.isLoggable(Level.FINER)) {
-                            loggerResiliency.finer(toString() + " Connection open - redirecting to server and instance: " + routingInfo.getFullServerName());
+                        if (loggerRedirection.isLoggable(Level.FINE)) {
+                            loggerRedirection.finer(toString() + " Connection open - redirecting to server and instance: " + routingInfo.getFullServerName());
                         }
                         currentPrimaryPlaceHolder = routingInfo;
                         routingInfo = null;
@@ -3152,8 +3154,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                     noOfRedirections++;
 
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - redirection count: " + noOfRedirections);
+                    if (loggerRedirection.isLoggable(Level.FINE)) {
+                        loggerRedirection.finer(toString() + " Connection open - redirection count: " + noOfRedirections);
                     }
 
                     if (noOfRedirections > 1) {
