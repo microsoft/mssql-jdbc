@@ -1812,7 +1812,9 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(km, tm, null);
+            sslContext.init(km, tm, null); // CodeQL [SM03853] Potential all-accepting TrustManager is by design
+            // Permissive trust manager allows minimum encryption of credentials even when trusted certificates
+            // aren't provisioned on the server.
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
