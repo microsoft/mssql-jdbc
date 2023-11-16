@@ -509,6 +509,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setMsiTokenCacheTtl");
         verifiedMethodNames.add("getAccessTokenCallbackClass");
         verifiedMethodNames.add("setAccessTokenCallbackClass");
+        verifiedMethodNames.add("getUseFlexibleCallableStatements");
+        verifiedMethodNames.add("setUseFlexibleCallableStatements");
         verifiedMethodNames.add("getCalcBigDecimalScale");
         verifiedMethodNames.add("setCalcBigDecimalScale");
         return verifiedMethodNames;

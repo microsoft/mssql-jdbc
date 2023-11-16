@@ -496,5 +496,5 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @param calcBigDecimalScale
      *        A boolean that indicates if the driver should calculate scale from inputted big decimal values.
      */
-    void setCalcBigDecimalScale(boolean computeBigDecimal);
+    void setCalcBigDecimalScale(boolean calcBigDecimalScale);
 }
