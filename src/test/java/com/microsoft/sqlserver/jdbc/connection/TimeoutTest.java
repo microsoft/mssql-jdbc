@@ -300,7 +300,7 @@ public class TimeoutTest extends AbstractTest {
                 + ";databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;"
                 + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
-        } catch (Exception e) {
+         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
             if (!(e instanceof SQLException)) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
