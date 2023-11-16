@@ -286,19 +286,19 @@ public class TimeoutTest extends AbstractTest {
 
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
     }
-    
+
     /**
-     * Tests that failover is still used with socket timeout by measuring timing during a socket timeout.
-     *  
+     * Tests that failover is correctly used after a socket timeout, by confirming total time includes socketTimeout
+     *  for both primary and failover server.
      */
     @Test
     public void testFailoverInstanceResolutionWithSocketTimeout() {
         long timerEnd;
         long timerStart = System.currentTimeMillis();
-        
-        try (Connection conn = PrepUtil.getConnection(connectionString
-                 + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds)) {
+
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + ";databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;"
+                + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
          } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
@@ -306,7 +306,12 @@ public class TimeoutTest extends AbstractTest {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             }
 
-            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds);
+            // Driver should correctly attempt to connect to db, experience a socketTimeout, attempt to connect to
+            // failover, and then have another socketTimeout. So, expected total time is 2 x socketTimeout.
+            long totalTime = timerEnd - timerStart;
+            long totalExpectedTime = waitForDelaySeconds * 1000L * 2; // We expect 2 * socketTimeout
+            assertTrue( totalTime >= totalExpectedTime, TestResource.getResource("R_executionNotLong")
+                    + "totalTime: " + totalTime + " expectedTime: " + totalExpectedTime);
         }
     }
 
