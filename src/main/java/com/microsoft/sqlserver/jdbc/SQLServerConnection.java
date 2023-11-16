@@ -7842,8 +7842,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
      * @param useFlexibleCallableStatements
-     *        When set to true, sp_sproc_columns is not used for parameter name lookup
-     *        in callable statements.
+     *        When set to false, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements. This eliminates a round trip to the server but imposes limitations
+     *        on how parameters are set. When set to false, applications must either reference
+     *        parameters by name or by index, not both. Parameters must also be set in the same
+     *        order as the stored procedure definition.
      */
     public void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements) {
         this.useFlexibleCallableStatements = useFlexibleCallableStatements;

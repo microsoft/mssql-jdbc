@@ -149,6 +149,12 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     boolean isCloseOnCompletion = false;
 
+    /** Checks if the callable statement's parameters are set by name **/
+    protected boolean isSetByName = false;
+
+    /** Checks if the prepared statement's parameters were set by index **/
+    protected boolean isSetByIndex = false;
+
     /**
      * Currently executing or most recently executed TDSCommand (statement cmd, server cursor cmd, ...) subject to
      * cancellation through Statement.cancel.

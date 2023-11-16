@@ -470,6 +470,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // Check for valid index
         if (index < 1 || index > inOutParam.length) {
+            if (!connection.getUseFlexibleCallableStatements()) {
+                SQLServerException.makeFromDriverError(connection, this,
+                        SQLServerException.getErrString("R_unknownOutputParameter"), SQLSTATE_07009, false);
+            }
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidOutputParameter"));
             Object[] msgArgs = {index};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
@@ -1412,6 +1416,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * @return the index
      */
     private int findColumn(String columnName, CallableStatementGetterSetterMethod method) throws SQLServerException {
+        isSetByName = true;
+        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
+        }
+
         // If inOutParam is null, likely the statement was closed beforehand.
         if (null == inOutParam) {
             SQLServerException.makeFromDriverError(connection, this,
