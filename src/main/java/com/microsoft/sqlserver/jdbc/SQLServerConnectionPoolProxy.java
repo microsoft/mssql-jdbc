@@ -702,5 +702,25 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler)
     {
     	return wrappedConnection.setServerMessageHandler(messageHandler);
+
+    /**
+     * Returns the current value for 'calcBigDecimalScale'.
+     *
+     * @return calcBigDecimalScale
+     *          a boolean
+     */
+    @Override
+    public boolean getCalcBigDecimalScale() {
+        return wrappedConnection.getCalcBigDecimalScale();
+    }
+
+    /**
+     * Sets the current value of 'calculateBigDecimalScale' for the driver.
+     *
+     * @param calcBigDecimalScale
+     */
+    @Override
+    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
+        wrappedConnection.setCalcBigDecimalScale(calcBigDecimalScale);
     }
 }

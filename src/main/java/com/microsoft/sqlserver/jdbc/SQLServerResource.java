@@ -515,6 +515,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unassignableError", "The class specified by the {0} property must be assignable to {1}."},
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
+        {"R_calcBigDecimalScalePropertyDescription", "Indicates whether the driver should calculate scale for big decimal values."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
@@ -540,7 +541,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
         {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."},
         {"R_AmbiguousRowUpdate", "Failed to execute updateRow(). The update is attempting an ambiguous update on tables \"{0}\" and \"{1}\". Ensure all columns being updated prior to the updateRow() call belong to the same table."},
-        {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"}
+        {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
+        {"R_InvalidScale", "Scale of input value is larger than the maximum allowed by SQL Server."}
     };
 }
 // @formatter:on
