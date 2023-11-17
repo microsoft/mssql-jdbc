@@ -49,12 +49,15 @@ public class ActivityIDTest extends AbstractTest {
 
         public void run() {
             id = ActivityCorrelator.getCurrent();
-            assertFalse(usedIds.contains(id.getId()));
-            assertEquals(1L, id.getSequence());
+            UUID uuid = id.getId();
+            assertFalse("UUID should be unique across threads.", usedIds.contains(id.getId()));
+            assertEquals(1L, id.getSequence(), "First sequence should be 1.");
             id = ActivityCorrelator.getNext();
-            assertEquals(2L, id.getSequence());
+            assertEquals(uuid, id.getId(), "UUID should remain the same for the same thread.");
+            assertEquals(2L, id.getSequence(), "Second sequence should be 2.");
             id = ActivityCorrelator.getNext();
-            assertEquals(3L, id.getSequence());
+            assertEquals(3L, id.getSequence(), "Third sequence should be 3.");
+            assertEquals(uuid, id.getId(), "UUID should remain the same for the same thread.");
         }
     }
 }
