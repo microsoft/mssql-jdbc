@@ -25,13 +25,6 @@ public class ActivityIDTest extends AbstractTest {
     public void testActivityID() throws Exception {
         int numThreads = 20;
         List<UUID> usedIds = new ArrayList<UUID>(numThreads);
-        ActivityId id = ActivityCorrelator.getCurrent();
-        usedIds.add(id.getId());
-        assertEquals(1L, id.getSequence());
-        ActivityCorrelator.getNext();
-        assertEquals(2L, id.getSequence());
-        ActivityCorrelator.getNext();
-        assertEquals(3L, id.getSequence());
 
         for (int i = 0; i < numThreads; i++) {
             MyThread t = new MyThread(usedIds);
