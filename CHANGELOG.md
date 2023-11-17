@@ -11,12 +11,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Added Java 21 support [#2229](https://github.com/microsoft/mssql-jdbc/pull/2229)
 - Added connection property, `calcBigDecimalScale`, to allow the driver to calculate scale and percision from Big Decimal inputs [#2248](https://github.com/microsoft/mssql-jdbc/pull/2248)
 - Added a new named logger for connection open retries and idle connection resiliency reconnects [#2250](https://github.com/microsoft/mssql-jdbc/pull/2250)
+
 ### Changed
 - Changed how IBM JDK is checked for to prevent issues with OSGi environments [#2150](https://github.com/microsoft/mssql-jdbc/pull/2150)
 - Updated azure-security-keyvault-keys, bouncycastle, and h2 library versions [#2162](https://github.com/microsoft/mssql-jdbc/pull/2162)[#2182](https://github.com/microsoft/mssql-jdbc/pull/2182)[#2249](https://github.com/microsoft/mssql-jdbc/pull/2249)
 - Changes to bulkcopy to allow for performance improvements when loading a large number of timestamps [#2194](https://github.com/microsoft/mssql-jdbc/pull/2194)
+- Added additional errors that should translate to RMFAIL [#2201](https://github.com/microsoft/mssql-jdbc/pull/2201)
 - Properly synchronize all calls to MSAL, preventing the driver from making extra calls and providing unneccessary dialogues [#2218](https://github.com/microsoft/mssql-jdbc/pull/2218)
 - Changed driver retry behavior to retry the correct number of times based on connectRetryCount [#2247](https://github.com/microsoft/mssql-jdbc/pull/2247)
+
 ### Fixed issues
 - Fix to ignore irrelevant computed columns during bulk insert [#1562](https://github.com/microsoft/mssql-jdbc/pull/1562)
 - Fixed an issue where signature was not properly verfied when using Java Key Store, as well as adding a new API to sign column master key metadata (and return generated signature) for use with Java Key Store and Azure Key Vault [#2160](https://github.com/microsoft/mssql-jdbc/pull/2160)
