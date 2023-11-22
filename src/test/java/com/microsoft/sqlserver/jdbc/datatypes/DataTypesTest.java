@@ -1626,7 +1626,6 @@ public class DataTypesTest extends AbstractTest {
                         fail(TestResource.getResource("R_expectedExceptionNotThrown"));
                     }
 
-
                     exceptionThrown = true;
                     // Verify SQLState 22005 is in exception for conversion errors
                     try {
@@ -1896,10 +1895,10 @@ public class DataTypesTest extends AbstractTest {
                 assertEquals(valueWithOffsetConversion.toLocalDate(), rs.getObject(1, LocalDate.class));
                 assertEquals(valueWithOffsetConversion.toLocalTime(), rs.getObject(1, LocalTime.class));
             }
-            
+
             // change the behavior to be compatible with java.time conversion methods
             conn.setIgnoreOffsetOnDateTimeOffsetConversion(true);
-            
+
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
                 stmt.setObject(1, value);
 

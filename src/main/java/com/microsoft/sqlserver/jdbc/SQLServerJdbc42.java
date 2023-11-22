@@ -24,7 +24,6 @@ final class DriverJDBCVersion {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
-
     static final boolean checkSupportsJDBC43() {
         return false;
     }

@@ -66,7 +66,6 @@ public abstract class AbstractTest {
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
 
-
     protected static String kerberosServer = null;
     protected static String kerberosServerPort = null;
 
@@ -283,9 +282,12 @@ public abstract class AbstractTest {
 
         if (null != kerberosServer && null != kerberosServerPort) {
             connectionStringKerberos = "jdbc:sqlserver://" + kerberosServer + ":" + kerberosServerPort + ";";
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "authenticationScheme", "JavaKerberos");
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "integratedSecurity", "true");
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "trustServerCertificate", "true");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "authenticationScheme",
+                    "JavaKerberos");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "integratedSecurity",
+                    "true");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos,
+                    "trustServerCertificate", "true");
             connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "encrypt", "false");
         }
 

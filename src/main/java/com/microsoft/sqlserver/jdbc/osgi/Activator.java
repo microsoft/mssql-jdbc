@@ -38,12 +38,11 @@ public class Activator implements BundleActivator {
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "Microsoft JDBC Driver for SQL Server");
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
                 driver.getMajorVersion() + "." + driver.getMinorVersion());
-        properties.put(DataSourceFactory.OSGI_JDBC_CAPABILITY, new String[] {
-                DataSourceFactory.OSGI_JDBC_CAPABILITY_DRIVER,
-                DataSourceFactory.OSGI_JDBC_CAPABILITY_DATASOURCE,
-                DataSourceFactory.OSGI_JDBC_CAPABILITY_CONNECTIONPOOLDATASOURCE,
-                DataSourceFactory.OSGI_JDBC_CAPABILITY_XADATASOURCE
-        });
+        properties.put(DataSourceFactory.OSGI_JDBC_CAPABILITY,
+                new String[] {DataSourceFactory.OSGI_JDBC_CAPABILITY_DRIVER,
+                        DataSourceFactory.OSGI_JDBC_CAPABILITY_DATASOURCE,
+                        DataSourceFactory.OSGI_JDBC_CAPABILITY_CONNECTIONPOOLDATASOURCE,
+                        DataSourceFactory.OSGI_JDBC_CAPABILITY_XADATASOURCE});
         service = context.registerService(DataSourceFactory.class, new SQLServerDataSourceFactory(), properties);
         SQLServerDriver.register();
     }

@@ -3763,16 +3763,14 @@ final class TDSWriter {
         int subSecondNanos;
         subSecondNanos = ldt.getNano();
 
-
         // Number of days there have been since the SQL Base Date.
         // These are based on SQL Server algorithms
-        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(),
-                ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
+        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(), ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                // the current
-                // second
+        // the current
+        // second
                 1000 * ldt.getSecond() + // Seconds into the current minute
                 60 * 1000 * ldt.getMinute() + // Minutes into the current hour
                 60 * 60 * 1000 * ldt.getHour(); // Hours into the current day
@@ -5029,8 +5027,8 @@ final class TDSWriter {
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
-            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant)
-                    throws SQLServerException, IllegalArgumentException {
+            Map.Entry<Integer, SQLServerMetaData> columnPair,
+            boolean isSqlVariant) throws SQLServerException, IllegalArgumentException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {
@@ -5104,7 +5102,6 @@ final class TDSWriter {
                      * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
                      * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
-                     *
                      * Additionally, we should check here if the scale is within the bounds of SQLServer as it is
                      * possible for a number with a scale larger than 38 to be passed in.
                      */
@@ -7278,9 +7275,9 @@ final class TDSReader implements Serializable {
 
         // Convert the DATE value to the desired Java type.
         return DDC.convertTemporalToObject(con, jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0, // midnight
-                                                                                                           // local to
-                                                                                                           // app time
-                                                                                                           // zone
+                // local to
+                // app time
+                // zone
                 0); // scale (ignored for DATE)
     }
 

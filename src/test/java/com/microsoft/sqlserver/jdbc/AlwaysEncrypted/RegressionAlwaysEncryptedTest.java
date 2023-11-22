@@ -44,8 +44,8 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @MethodSource("enclaveParams")
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-        try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
+        try (Connection connection = PrepUtil
+                .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
@@ -74,8 +74,8 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     @MethodSource("enclaveParams")
     public void alwaysEncrypted2(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-        try (Connection connection = PrepUtil.getConnection(
-                AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
+        try (Connection connection = PrepUtil
+                .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 

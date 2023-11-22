@@ -1058,7 +1058,7 @@ public class SQLVariantResultSetTest extends AbstractTest {
             assertEquals(object.getClass(), java.sql.Time.class);;
         }
     }
-    
+
     @Test
     public void testCastThenGetNumeric() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement();

@@ -1629,8 +1629,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // Only read the return value from stored procedure if we are expecting one. Also, check that it is
                     // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
                     // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam
-                            && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
+                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
+                            && inOutParam[0].isReturnValue()) {
                         inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
                         return false;
                     }

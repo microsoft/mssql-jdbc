@@ -426,8 +426,8 @@ final class ReconnectThread extends Thread {
         eReceived = null;
         stopRequested = false;
         if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer("Idle connection resiliency - ReconnectThread initialized. Connection retry count = " + connectRetryCount
-                    + "; Command = " + cmd.toString());
+            loggerResiliency.finer("Idle connection resiliency - ReconnectThread initialized. Connection retry count = "
+                    + connectRetryCount + "; Command = " + cmd.toString());
         }
 
     }
@@ -435,7 +435,8 @@ final class ReconnectThread extends Thread {
     @Override
     public void run() {
         if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer("Idle connection resiliency - starting ReconnectThread for command: " + command.toString());
+            loggerResiliency
+                    .finer("Idle connection resiliency - starting ReconnectThread for command: " + command.toString());
         }
         boolean interruptsEnabled = command.getInterruptsEnabled();
         /*
@@ -460,8 +461,8 @@ final class ReconnectThread extends Thread {
 
         while ((connectRetryCount >= 0) && (!stopRequested) && keepRetrying) {
             if (loggerResiliency.isLoggable(Level.FINER)) {
-                loggerResiliency.finer("Idle connection resiliency - running reconnect for command: " + command.toString() + " ; connectRetryCount = "
-                        + connectRetryCount);
+                loggerResiliency.finer("Idle connection resiliency - running reconnect for command: "
+                        + command.toString() + " ; connectRetryCount = " + connectRetryCount);
             }
 
             try {
@@ -470,13 +471,16 @@ final class ReconnectThread extends Thread {
                 keepRetrying = false;
 
                 if (loggerResiliency.isLoggable(Level.FINE)) {
-                    loggerResiliency.fine("Idle connection resiliency - reconnect attempt succeeded ; connectRetryCount = " + connectRetryCount);
+                    loggerResiliency
+                            .fine("Idle connection resiliency - reconnect attempt succeeded ; connectRetryCount = "
+                                    + connectRetryCount);
                 }
 
             } catch (SQLServerException e) {
 
                 if (loggerResiliency.isLoggable(Level.FINE)) {
-                    loggerResiliency.fine("Idle connection resiliency - reconnect attempt failed ; connectRetryCount = " + connectRetryCount);
+                    loggerResiliency.fine("Idle connection resiliency - reconnect attempt failed ; connectRetryCount = "
+                            + connectRetryCount);
                 }
 
                 if (!stopRequested) {
@@ -484,7 +488,9 @@ final class ReconnectThread extends Thread {
                     if (con.isFatalError(e)) {
 
                         if (loggerResiliency.isLoggable(Level.FINER)) {
-                            loggerResiliency.finer("Idle connection resiliency - reconnect for command: " + command.toString() + " encountered fatal error: " + e.getMessage() + " - stopping reconnect attempt.");
+                            loggerResiliency.finer("Idle connection resiliency - reconnect for command: "
+                                    + command.toString() + " encountered fatal error: " + e.getMessage()
+                                    + " - stopping reconnect attempt.");
                         }
 
                         keepRetrying = false;
@@ -495,7 +501,8 @@ final class ReconnectThread extends Thread {
                             }
                         } catch (InterruptedException ie) {
                             if (loggerResiliency.isLoggable(Level.FINER)) {
-                                loggerResiliency.finer("Idle connection resiliency - query timed out for command: " + command.toString() + ". Stopping reconnect attempt.");
+                                loggerResiliency.finer("Idle connection resiliency - query timed out for command: "
+                                        + command.toString() + ". Stopping reconnect attempt.");
                             }
 
                             // re-interrupt thread
@@ -513,7 +520,8 @@ final class ReconnectThread extends Thread {
                     command.checkForInterrupt();
                 } catch (SQLServerException e) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer("Idle connection resiliency - timeout occurred on reconnect: " + command.toString() + ". Stopping reconnect attempt.");
+                        loggerResiliency.finer("Idle connection resiliency - timeout occurred on reconnect: "
+                                + command.toString() + ". Stopping reconnect attempt.");
                     }
                     // Interrupted, timeout occurred. Stop retrying.
                     keepRetrying = false;
@@ -530,7 +538,8 @@ final class ReconnectThread extends Thread {
         command.setInterruptsEnabled(interruptsEnabled);
 
         if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer("Idle connection resiliency - ReconnectThread exiting for command: " + command.toString());
+            loggerResiliency
+                    .finer("Idle connection resiliency - ReconnectThread exiting for command: " + command.toString());
         }
 
         if (timeout != null) {

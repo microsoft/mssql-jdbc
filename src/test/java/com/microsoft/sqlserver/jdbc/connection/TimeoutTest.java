@@ -289,18 +289,18 @@ public class TimeoutTest extends AbstractTest {
 
     /**
      * Tests that failover is correctly used after a socket timeout, by confirming total time includes socketTimeout
-     *  for both primary and failover server.
+     * for both primary and failover server.
      */
     @Test
     public void testFailoverInstanceResolutionWithSocketTimeout() {
         long timerEnd;
         long timerStart = System.currentTimeMillis();
 
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
-                + ";databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;"
-                + ";socketTimeout=" + waitForDelaySeconds)) {
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB;failoverPartner="
+                        + randomServer + "\\foo;user=sa;password=pwd;" + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
-         } catch (Exception e) {
+        } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
             if (!(e instanceof SQLException)) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
@@ -310,8 +310,8 @@ public class TimeoutTest extends AbstractTest {
             // failover, and then have another socketTimeout. So, expected total time is 2 x socketTimeout.
             long totalTime = timerEnd - timerStart;
             long totalExpectedTime = waitForDelaySeconds * 1000L * 2; // We expect 2 * socketTimeout
-            assertTrue( totalTime >= totalExpectedTime, TestResource.getResource("R_executionNotLong")
-                    + "totalTime: " + totalTime + " expectedTime: " + totalExpectedTime);
+            assertTrue(totalTime >= totalExpectedTime, TestResource.getResource("R_executionNotLong") + "totalTime: "
+                    + totalTime + " expectedTime: " + totalExpectedTime);
         }
     }
 

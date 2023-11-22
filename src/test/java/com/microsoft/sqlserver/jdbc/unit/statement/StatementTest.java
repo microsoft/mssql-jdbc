@@ -1437,7 +1437,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testSmallBigDecimalValuesForLossOfPrecision() throws SQLException {
             try (SQLServerConnection con = getConnection();
-                 Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+                    Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
                 con.setCalcBigDecimalScale(true);
                 double bigDecimalLessThanOne = 0.1235;
                 double bigDecimalGreaterThanOne = 1.1235;
@@ -1453,10 +1453,10 @@ public class StatementTest extends AbstractTest {
 
                     // Previously, the leading 0 would be counted as part of the precision. This would lead to the actual
                     // value being stored as 0.123.
-                    assertEquals(0,
-                            cstmt.getObject("col1Value", BigDecimal.class).compareTo(BigDecimal.valueOf(bigDecimalLessThanOne)));
-                    assertEquals(0,
-                            cstmt.getObject("col2Value", BigDecimal.class).compareTo(BigDecimal.valueOf(bigDecimalGreaterThanOne)));
+                    assertEquals(0, cstmt.getObject("col1Value", BigDecimal.class)
+                            .compareTo(BigDecimal.valueOf(bigDecimalLessThanOne)));
+                    assertEquals(0, cstmt.getObject("col2Value", BigDecimal.class)
+                            .compareTo(BigDecimal.valueOf(bigDecimalGreaterThanOne)));
                 }
             }
         }
@@ -1476,7 +1476,8 @@ public class StatementTest extends AbstractTest {
 
                 // col1 has maximum scale (38) with a leading zero, for a precision of 38. col2 has maximum scale (37) when
                 // using a lead integer other than zero, also resulting in a precision of 38.
-                stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(0.98432319763138435186412316842316874322, 1.9843231976313843518641231684231687432)");
+                stmt.executeUpdate("INSERT INTO " + tableName
+                        + " VALUES(0.98432319763138435186412316842316874322, 1.9843231976313843518641231684231687432)");
 
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT * FROM " + tableName)) {
 

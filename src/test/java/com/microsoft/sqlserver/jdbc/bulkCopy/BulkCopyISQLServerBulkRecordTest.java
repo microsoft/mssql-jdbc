@@ -78,7 +78,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             }
         }
     }
-    
+
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
         String dstTable = TestUtils
@@ -255,7 +255,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             counter = 0;
         }
     }
-    
+
     private static class BulkRecordDT implements ISQLServerBulkData {
         boolean anyMoreData = true;
         Object[] data;

@@ -25,6 +25,7 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
+
 /*
  * This test is for testing the replication connection property
  */
@@ -49,11 +50,8 @@ public class ReplicationTest extends AbstractTest {
 
         String sqlCreateTable = "CREATE TABLE " + escapedTableName + " ([TestReplication] [varchar](50) NULL)";
         String sqlCreateTrigger = "CREATE TRIGGER " + escapedTriggerName + " ON " + escapedTableName + " "
-                + "INSTEAD OF INSERT NOT FOR REPLICATION AS "
-                + "BEGIN "
-                + "	INSERT INTO " + escapedTableName + " (TestReplication) "
-                + "	SELECT TestReplication + ' - REPLICATION IS OFF' "
-                + "   FROM INSERTED "
+                + "INSTEAD OF INSERT NOT FOR REPLICATION AS " + "BEGIN " + "	INSERT INTO " + escapedTableName
+                + " (TestReplication) " + "	SELECT TestReplication + ' - REPLICATION IS OFF' " + "   FROM INSERTED "
                 + "END";
         String sqlInsert = "INSERT INTO " + escapedTableName + " (TestReplication) values ('Replication test')";
         String sqlSelect = "SELECT TestReplication FROM " + escapedTableName;
@@ -87,5 +85,5 @@ public class ReplicationTest extends AbstractTest {
             }
             TestUtils.dropTableIfExists(escapedTableName, stmt);
         }
-	}
+    }
 }

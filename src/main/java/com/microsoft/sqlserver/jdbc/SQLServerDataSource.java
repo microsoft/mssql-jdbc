@@ -241,23 +241,26 @@ public class SQLServerDataSource
 
     @Override
     public void setUseDefaultGSSCredential(boolean enable) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(), enable);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
+                enable);
     }
 
     @Override
     public boolean getUseDefaultGSSCredential() {
-       return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
-               SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue());
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
+                SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue());
     }
 
     @Override
     public void setUseFlexibleCallableStatements(boolean enable) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(), enable);
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+                enable);
     }
 
     @Override
     public boolean getUseFlexibleCallableStatements() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
                 SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
     }
 
@@ -1341,7 +1344,7 @@ public class SQLServerDataSource
      * Sets the 'calcBigDecimalScale' setting.
      *
      * @param calcBigDecimalScale
-     *         boolean property to have the driver calculate a big decimal's scale from input
+     *        boolean property to have the driver calculate a big decimal's scale from input
      */
     @Override
     public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {

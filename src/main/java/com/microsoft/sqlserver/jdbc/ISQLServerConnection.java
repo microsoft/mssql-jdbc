@@ -486,7 +486,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * Returns the current flag for calcBigDecimalScale.
      *
      * @return calcBigDecimalScale
-     *        Whether calculating big decimal scale from input values is enabled.
+     *         Whether calculating big decimal scale from input values is enabled.
      */
     boolean getCalcBigDecimalScale();
 

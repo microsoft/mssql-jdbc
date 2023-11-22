@@ -489,7 +489,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong")
                     + " totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
-            assertTrue( totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
+            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
                     + "totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
         }
     }
@@ -526,7 +526,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
-    
+
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
