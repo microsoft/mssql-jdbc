@@ -883,13 +883,14 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultJaasConfig();
 
     /**
-     * Sets whether the default JAAS Configuration will be used.  This means the system-wide JAAS configuration
+     * Sets whether the default JAAS Configuration will be used. This means the system-wide JAAS configuration
      * is ignored to avoid conflicts with libraries that override the JAAS configuration.
      *
      * @param useDefaultJaasConfig
-     *         boolean property to use the default JAAS configuration
+     *        boolean property to use the default JAAS configuration
      */
     void setUseDefaultJaasConfig(boolean useDefaultJaasConfig);
+
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
      * true.
@@ -1337,7 +1338,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'calcBigDecimalScale' from Connection String.
      *
      * @param calcBigDecimalScale
-     *         indicates whether the driver should attempt to calculate scale from inputted big decimal values
+     *        indicates whether the driver should attempt to calculate scale from inputted big decimal values
      */
     void setCalcBigDecimalScale(boolean calcBigDecimalScale);
 

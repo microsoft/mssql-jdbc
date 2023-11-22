@@ -342,13 +342,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setNull(1, microsoft.sql.Types.GUID);
             pstmt.addBatch();
             pstmt.executeBatch();
-            
-            try (ResultSet rs = stmt.executeQuery("select c24 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+
+            try (ResultSet rs = stmt
+                    .executeQuery("select c24 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 Object[] expected = new Object[1];
-                
+
                 expected[0] = null;
                 rs.next();
-                
+
                 assertEquals(expected[0], rs.getObject(1));
             }
         }
@@ -724,8 +725,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
     @Test
     public void testReverseColumnOrder() throws Exception {
-        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c2, c1) values "
-                + "(" + "?, " + "? " + ")";
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c2, c1) values " + "("
+                + "?, " + "? " + ")";
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
@@ -770,8 +771,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 + " values (?, ?)";
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-             SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
-             Statement stmt = (SQLServerStatement) connection.createStatement();) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
             Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
             f1.setAccessible(true);
             f1.set(connection, true);
@@ -782,9 +783,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
             stmt.execute(createTable);
 
-            String jsonValue =
-                    "{\"vcol1\":\"" + UUID.randomUUID().toString() + "\",\"vcol2\":\"" + UUID.randomUUID().toString()
-                            + "\" }";
+            String jsonValue = "{\"vcol1\":\"" + UUID.randomUUID().toString() + "\",\"vcol2\":\""
+                    + UUID.randomUUID().toString() + "\" }";
             String idValue = UUID.randomUUID().toString();
             pstmt.setString(1, idValue);
             pstmt.setString(2, jsonValue);

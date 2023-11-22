@@ -58,7 +58,8 @@ public class DBMetadataTest extends AbstractTest {
             DatabaseMetaData md = con.getMetaData();
             try (ResultSet arguments = md.getProcedureColumns(null, null, functionName, "@TABLE_RETURN_VALUE")) {
                 if (arguments.next()) {
-                    assertTrue(arguments.getString("PROCEDURE_NAME").startsWith(functionName), "Expected Stored Procedure was not retrieved.");
+                    assertTrue(arguments.getString("PROCEDURE_NAME").startsWith(functionName),
+                            "Expected Stored Procedure was not retrieved.");
                 } else {
                     assertTrue(false, "Expected Stored Procedure was not found.");
                 }

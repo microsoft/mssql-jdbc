@@ -73,13 +73,12 @@ final class SQLServerSymmetricKeyCache {
             Boolean[] hasEntry = new Boolean[1];
             List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
                     hasEntry);
-            if (hasEntry[0] &&
-                 ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty())
-                        || (!trustedKeyPaths.contains(keyInfo.keyPath)))) {
+            if (hasEntry[0] && ((null == trustedKeyPaths) || (trustedKeyPaths.isEmpty())
+                    || (!trustedKeyPaths.contains(keyInfo.keyPath)))) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UntrustedKeyPath"));
-                    Object[] msgArgs = {keyInfo.keyPath, serverName};
-                    throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-                }
+                Object[] msgArgs = {keyInfo.keyPath, serverName};
+                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+            }
 
             if (aeLogger.isLoggable(java.util.logging.Level.FINE)) {
                 aeLogger.fine("Checking Symmetric key cache...");

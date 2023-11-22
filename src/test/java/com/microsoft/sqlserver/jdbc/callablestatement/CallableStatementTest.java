@@ -439,7 +439,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testNamedParametersUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false and using all named parameters
         try (Connection conn = DriverManager.getConnection(connectionString)) {
@@ -490,7 +491,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testNamedParametersAcquireOutputParamValuesByIndexUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false
         // Setting parameters by name
@@ -544,7 +546,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testNamedParametersAndOutParamByIndexUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false
         // Setting parameters by name
@@ -598,7 +601,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testNamedParameterOutputParameterErrorFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false
         // Setting parameters by name
@@ -656,7 +660,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testNamedParametersAndByIndexErrorUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false
         // Using majority named parameters and setting parameter by index
@@ -712,7 +717,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testIndexedParametersUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         // useFlexibleCallableStatement=false and using all index parameters
         try (Connection conn = DriverManager.getConnection(connectionString)) {
@@ -763,7 +769,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testIndexedParametersAcquireOutputValueByNameErrorUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {
@@ -816,7 +823,8 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testIndexedParametersRegisterOutputParamByNameUseFlexibleCallableStatementFalse() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(), "useFlexibleCallableStatements", "false");
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {

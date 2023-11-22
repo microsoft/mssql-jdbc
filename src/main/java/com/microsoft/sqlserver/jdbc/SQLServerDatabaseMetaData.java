@@ -1722,7 +1722,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         loggerExternal.finest(toString()
                                 + " Impersonation context is not supported in this version of SQL Server. Re-try getting CURRENT_USER");
                     }
-              
+
                     try (SQLServerResultSet rs = s.executeQueryInternal("SELECT CURRENT_USER")) {
                         boolean next = rs.next();
                         assert next;

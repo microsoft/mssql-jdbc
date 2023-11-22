@@ -122,8 +122,8 @@ public class PreparedStatementTest extends AbstractTest {
     public void testPreparedStatementParamNameSpacingWithMultipleParams() throws SQLException {
         int paramNameCount = 105;
 
-        StringBuilder insertSql = new StringBuilder("insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4)
-                + "values(");
+        StringBuilder insertSql = new StringBuilder(
+                "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4) + "values(");
 
         for (int i = 1; i <= paramNameCount; i++) {
             insertSql.append(i % 10);
@@ -135,7 +135,8 @@ public class PreparedStatementTest extends AbstractTest {
             }
         }
 
-        StringBuilder createTableSql = new StringBuilder("create table " + AbstractSQLGenerator.escapeIdentifier(tableName4) + "(");
+        StringBuilder createTableSql = new StringBuilder(
+                "create table " + AbstractSQLGenerator.escapeIdentifier(tableName4) + "(");
 
         for (int i = 1; i <= paramNameCount; i++) {
             createTableSql.append("c" + i + " char(1)");
@@ -162,8 +163,8 @@ public class PreparedStatementTest extends AbstractTest {
                     + " where c1=?and c2=? and c3=?and c4=? and c5=? and c6=? and c7=? and c8=? and c9=? and c10=? and c11=? and c12=?";
 
             // Testing with more than 100 params
-            StringBuilder sql3 = new StringBuilder("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName4)
-                    + " where c1=?and ");
+            StringBuilder sql3 = new StringBuilder(
+                    "select * from " + AbstractSQLGenerator.escapeIdentifier(tableName4) + " where c1=?and ");
 
             for (int i = 2; i <= paramNameCount; i++) {
                 sql3.append("c" + i + "=?");

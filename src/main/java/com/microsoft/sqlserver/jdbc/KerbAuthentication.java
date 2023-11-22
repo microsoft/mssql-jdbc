@@ -65,7 +65,8 @@ final class KerbAuthentication extends SSPIAuthentication {
             GSSName remotePeerName = manager.createName(spn, null);
 
             if (useDefaultNativeGSSCredential) {
-                peerCredentials = manager.createCredential(null, GSSCredential.DEFAULT_LIFETIME, kerberos, GSSCredential.INITIATE_ONLY);
+                peerCredentials = manager.createCredential(null, GSSCredential.DEFAULT_LIFETIME, kerberos,
+                        GSSCredential.INITIATE_ONLY);
             }
 
             if (null != peerCredentials) {
@@ -82,13 +83,13 @@ final class KerbAuthentication extends SSPIAuthentication {
                         SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.toString(),
                         Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.getDefaultValue())));
 
-                if (!configName.equals(
-                        SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue()) && useDefaultJaas) {
+                if (!configName.equals(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue())
+                        && useDefaultJaas) {
                     // Reset configName to default -- useDefaultJaas setting takes priority over jaasConfigName
                     if (authLogger.isLoggable(Level.WARNING)) {
-                        authLogger.warning(toString() + String.format(
-                                "Using default JAAS configuration, configured %s=%s will not be used.",
-                                SQLServerDriverStringProperty.JAAS_CONFIG_NAME, configName));
+                        authLogger.warning(toString()
+                                + String.format("Using default JAAS configuration, configured %s=%s will not be used.",
+                                        SQLServerDriverStringProperty.JAAS_CONFIG_NAME, configName));
                     }
                     configName = SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue();
                 }

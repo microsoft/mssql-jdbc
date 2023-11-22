@@ -385,7 +385,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
                         assertEquals(catalogName, catalogMsgArgs[0]);
                     }
 
-                    MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
+                    MessageFormat atLeastOneFoundFormat = new MessageFormat(
+                            TestResource.getResource("R_atLeastOneFound"));
                     assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
                 }
             }

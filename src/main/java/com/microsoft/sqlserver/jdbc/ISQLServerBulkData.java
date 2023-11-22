@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.Serializable;
 import java.sql.SQLException;
 
+
 /**
  * Provides an interface used to create classes that read in data from any source (such as a file) and allows a
  * SQLServerBulkCopy class to write the data to SQL Server tables.
