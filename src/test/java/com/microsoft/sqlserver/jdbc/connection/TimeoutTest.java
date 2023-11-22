@@ -288,30 +288,49 @@ public class TimeoutTest extends AbstractTest {
     }
 
     /**
-     * Tests that failover is correctly used after a socket timeout, by confirming total time includes socketTimeout
-     * for both primary and failover server.
+     * Tests that failover is correctly used after a socket timeout, by confirming total time with failover partner set
+     * is longer than total time without failover partner
      */
     @Test
     public void testFailoverInstanceResolutionWithSocketTimeout() {
-        long timerEnd;
-        long timerStart = System.currentTimeMillis();
+        long timerEndWithRetry;
+        long timerEndWithoutRetry;
+        long timerStartWithRetry = System.currentTimeMillis();
+        long timerStartWithoutRetry;
 
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;" + ";socketTimeout=" + waitForDelaySeconds)) {
+        try (Connection conn = PrepUtil.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
+                + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner")
+                + ";connectRetryCount=0"
+                + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
+            timerEndWithRetry = System.currentTimeMillis();
             if (!(e instanceof SQLException)) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
             }
+            long totalTimeWithRetry = timerEndWithRetry - timerStartWithRetry;
+            timerStartWithoutRetry = System.currentTimeMillis();
+            try (Connection conn = PrepUtil.getConnection(
+                    TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
+                            + ";connectRetryCount=0"
+                            + ";socketTimeout=" + waitForDelaySeconds)) {
+                fail(TestResource.getResource("R_shouldNotConnect"));
+            } catch (Exception ex) {
+                timerEndWithoutRetry = System.currentTimeMillis();
+                if (!(ex instanceof SQLException)) {
+                    fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+                }
 
-            // Driver should correctly attempt to connect to db, experience a socketTimeout, attempt to connect to
-            // failover, and then have another socketTimeout. So, expected total time is 2 x socketTimeout.
-            long totalTime = timerEnd - timerStart;
-            long totalExpectedTime = waitForDelaySeconds * 1000L * 2; // We expect 2 * socketTimeout
-            assertTrue(totalTime >= totalExpectedTime, TestResource.getResource("R_executionNotLong") + "totalTime: "
-                    + totalTime + " expectedTime: " + totalExpectedTime);
+                long totalTimeWithoutRetry = timerEndWithoutRetry - timerStartWithoutRetry;
+
+                // If totalTime should be roughly twice the amount as totalTimeInner, because connection attempts are
+                // not always the same speed, we instead check for if totalTime is at least 1.5 times totalTimeInner.
+
+                assertTrue(totalTimeWithRetry >= 1.5 * totalTimeWithoutRetry,
+                        "timeout: " + TimeUnit.SECONDS.toMillis(totalTimeWithRetry)
+                                + " expected time: " + 2 * totalTimeWithoutRetry);
+            }
         }
     }
 
