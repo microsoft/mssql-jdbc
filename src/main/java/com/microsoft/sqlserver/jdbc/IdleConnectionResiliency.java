@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.lang.Thread.State;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -167,10 +166,7 @@ class IdleConnectionResiliency {
 
     void reconnect(TDSCommand cmd) throws InterruptedException {
         reconnectErrorReceived = null;
-        connectRetryCount = this.connection.getRetryCount();
-        if (connectRetryCount > 0) {
-            reconnectThread = new ReconnectThread(this.connection, cmd);
-        }
+        reconnectThread = new ReconnectThread(this.connection, cmd);
         reconnectThread.start();
         reconnectThread.join();
         reconnectErrorReceived = reconnectThread.getException();
@@ -457,9 +453,8 @@ final class ReconnectThread extends Thread {
         }
 
         boolean keepRetrying = true;
-        long connectRetryInterval = TimeUnit.SECONDS.toMillis(con.getRetryInterval());
 
-        while ((connectRetryCount >= 0) && (!stopRequested) && keepRetrying) {
+        while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
             if (loggerResiliency.isLoggable(Level.FINER)) {
                 loggerResiliency.finer("Idle connection resiliency - running reconnect for command: "
                         + command.toString() + " ; connectRetryCount = " + connectRetryCount);
@@ -497,7 +492,7 @@ final class ReconnectThread extends Thread {
                     } else {
                         try {
                             if (connectRetryCount > 1) {
-                                Thread.sleep(connectRetryInterval);
+                                Thread.sleep((long) (con.getRetryInterval()) * 1000);
                             }
                         } catch (InterruptedException ie) {
                             if (loggerResiliency.isLoggable(Level.FINER)) {
@@ -530,7 +525,7 @@ final class ReconnectThread extends Thread {
             }
         }
 
-        if ((connectRetryCount <= 0) && (keepRetrying)) {
+        if ((connectRetryCount == 0) && (keepRetrying)) {
             eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
                     eReceived);
         }

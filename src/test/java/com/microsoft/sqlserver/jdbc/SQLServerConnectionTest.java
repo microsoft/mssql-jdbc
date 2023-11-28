@@ -463,45 +463,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     public void testConnectCountInLoginAndCorrectRetryCount() {
         long timerStart = 0;
 
-        int connectRetryCount = 3;
-        int connectRetryInterval = 1;
-        int longLoginTimeout = loginTimeOutInSeconds * 4;
-
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setURL(connectionString);
-            ds.setLoginTimeout(longLoginTimeout);
-            ds.setConnectRetryCount(connectRetryCount);
-            ds.setConnectRetryInterval(connectRetryInterval);
-            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
-            timerStart = System.currentTimeMillis();
-
-            try (Connection con = ds.getConnection()) {
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-            }
-        } catch (Exception e) {
-            long totalTime = System.currentTimeMillis() - timerStart;
-
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
-            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 3 seconds
-
-            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
-            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
-            assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong")
-                    + " totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
-            assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
-                    + "totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
-        }
-    }
-
-    /**
-     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
-     * that connection is retried the proper number of times. This is for cases with zero retries.
-     */
-    @Test
-    public void testConnectCountInLoginAndCorrectRetryCountWithZeroRetry() {
-        long timerStart = 0;
-
         int connectRetryCount = 0;
         int connectRetryInterval = 60;
         int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
@@ -1016,9 +977,10 @@ public class SQLServerConnectionTest extends AbstractTest {
         Runnable runnable = new Runnable() {
             public void run() {
                 SQLServerDataSource ds = new SQLServerDataSource();
+
                 ds.setURL(connectionString);
-                ds.setDatabaseName("invalidDatabase" + UUID.randomUUID());
-                ds.setLoginTimeout(30);
+                ds.setServerName("invalidServerName" + UUID.randomUUID());
+                ds.setLoginTimeout(5);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
@@ -1033,8 +995,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(8000);
         executor.shutdownNow();
 
-        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet") + " status: "
-                + status + " isCancelled: " + future.isCancelled());
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
     /**
