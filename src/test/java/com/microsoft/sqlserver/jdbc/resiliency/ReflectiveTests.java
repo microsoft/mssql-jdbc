@@ -83,6 +83,8 @@ public class ReflectiveTests extends AbstractTest {
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
+
+        // ensure count is not set to something else as this test assumes exactly just 1 retry
         timeoutVariations(m, 6000, Optional.empty());
     }
 

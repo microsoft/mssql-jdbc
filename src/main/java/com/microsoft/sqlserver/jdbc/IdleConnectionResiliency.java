@@ -454,7 +454,7 @@ final class ReconnectThread extends Thread {
 
         boolean keepRetrying = true;
 
-        while ((connectRetryCount >= 0) && (!stopRequested) && keepRetrying) {
+        while ((connectRetryCount > 0) && (!stopRequested) && keepRetrying) {
             if (loggerResiliency.isLoggable(Level.FINER)) {
                 loggerResiliency.finer("Idle connection resiliency - running reconnect for command: "
                         + command.toString() + " ; connectRetryCount = " + connectRetryCount);
