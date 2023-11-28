@@ -3197,12 +3197,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         long intervalExpireFullTimeout = timerStart + timerTimeout;
 
         if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer(toString() + " Connection open - start time: " + loginStartTime + " time out time: "
+            loggerResiliency.finer(toString() + " Connection open - start time: " + timeout + " time out time: "
                     + timerExpire + " timeout unit interval: " + timeoutUnitInterval);
         }
 
         // Initialize loop variables
         int attemptNumber = 0;
+        SQLServerError sqlServerError = null;
 
         // indicates the no of times the connection was routed to a different server
         int noOfRedirections = 0;
@@ -3241,9 +3242,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
-                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
                     loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: "
-                            + retryAttempt);
+                            + attemptNumber);
                 }
 
                 if (loggerResiliency.isLoggable(Level.FINER)) {
@@ -3252,7 +3253,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + currentConnectPlaceHolder.getPortNumber() + " InstanceName: "
                             + currentConnectPlaceHolder.getInstanceName() + " useParallel: " + useParallel);
                     loggerResiliency.finer(toString() + " Connection open - attempt end time: " + intervalExpire);
-                    loggerResiliency.finer(toString() + " Connection open - attempt number: " + retryAttempt);
+                    loggerResiliency.finer(toString() + " Connection open - attempt number: " + attemptNumber);
                 }
 
                 // Attempt login. Use Place holder to make sure that the failoverdemand is done.
@@ -3325,28 +3326,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         continue;
                     }
                 } else {
-                    if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                    if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
                         loggerResiliency.fine(toString()
-                                + " Connection open - connection retry succeeded on attempt number: " + retryAttempt);
+                                + " Connection open - connection retry succeeded on attempt number: " + attemptNumber);
                     }
 
                     break; // leave the while loop -- we've successfully connected
                 }
             } catch (SQLServerException e) {
 
-                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
+                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
                     loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: "
-                            + retryAttempt);
+                            + attemptNumber);
                 }
 
-                if (loggerResiliency.isLoggable(Level.FINER) && (retryAttempt >= connectRetryCount)) {
+                if (loggerResiliency.isLoggable(Level.FINER) && (attemptNumber >= connectRetryCount)) {
                     loggerResiliency
                             .finer(toString() + " Connection open - connection failed. Maximum connection retry count "
                                     + connectRetryCount + " reached.");
                 }
 
                 int errorCode = e.getErrorCode();
-                driverErrorCode = e.getDriverErrorCode();
+                int driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
                 if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
@@ -3365,7 +3366,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 ) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(
-                                toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
+                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
                         loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
                                 + driverErrorCode);
                         if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
@@ -3377,11 +3378,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                     // close the connection and throw the error back
                     close();
-                    throw sqlex;
+                    throw e;
                 } else {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(
-                                toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
+                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
                         loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
                                 + driverErrorCode);
                         if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
@@ -3408,7 +3409,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         if (loggerResiliency.isLoggable(Level.FINER)) {
                             loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: "
-                                    + retryAttempt + ".");
+                                    + attemptNumber + ".");
                             loggerResiliency.finer(toString()
                                     + " Connection open - connection failure. Driver error code: " + driverErrorCode);
                             if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
@@ -3436,7 +3437,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
                             + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
                             + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
-                            + retryAttempt);
+                            + attemptNumber);
                 }
                 try {
                     Thread.sleep(sleepInterval);
