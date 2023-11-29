@@ -3283,7 +3283,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                                                                  // packetsize, etc)
                         || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
                                 && (!isDBMirroring || attemptNumber > 0) // attempt at least once for mirroring
-                                && (!useTnir || attemptNumber > 0) // need to attempt at least once for TNIR
+                                && (!useTnir || attemptNumber > 0) // attempt at least once for TNIR
                                 && (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
                                 || timerHasExpired(timerExpire)) // no time left
                 ) {
