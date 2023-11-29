@@ -245,8 +245,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** shared timer */
     private SharedTimer sharedTimer;
 
-    /* connect timer */
-
     /** connect retry count */
     private int connectRetryCount = 0;
 
