@@ -995,16 +995,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean calcBigDecimalScale = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue();
+    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue();
 
     @Override
-    public boolean getCalcBigDecimalScale() {
-        return calcBigDecimalScale;
+    public boolean getCalcBigDecimalPrecision() {
+        return calcBigDecimalPrecision;
     }
 
     @Override
-    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
-        this.calcBigDecimalScale = calcBigDecimalScale;
+    public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
+        this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
     /** Session Recovery Object */
@@ -2193,15 +2193,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString();
+                sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
                     sPropValue = Boolean
-                            .toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue());
+                            .toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
 
-                calcBigDecimalScale = isBooleanPropertyOn(sPropKey, sPropValue);
+                calcBigDecimalPrecision = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
