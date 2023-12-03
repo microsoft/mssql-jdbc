@@ -2426,6 +2426,9 @@ final class SocketFinder {
     private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SocketFinder");
     private final String traceID;
 
+    // IP addresses
+    private static InetAddress[] inetAddrs = null;
+
     // maximum number of IP Addresses supported
     private static final int IP_ADDRESS_LIMIT = 64;
 
@@ -2460,13 +2463,34 @@ final class SocketFinder {
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
+        boolean is1stAttempt = false;
+
         try {
-            InetAddress[] inetAddrs = null;
+            // InetAddress[] inetAddrs = null;
+
+            // determine if server has multiple IPs
+            if (useTnir && inetAddrs == null) {
+                inetAddrs = InetAddress.getAllByName(hostName);
+
+                if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
+                    Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
+                    String errorStr = form.format(msgArgs);
+                    // we do not want any retry to happen here. So, terminate the connection
+                    // as the config is unsupported.
+                    conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
+                }
+
+                is1stAttempt = true;
+                conn.setserverHasMultipleIPs(!(inetAddrs != null && inetAddrs.length == 1));
+            }
 
             if (!useParallel) {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
-                if (useTnir && isTnirFirstAttempt) {
+                // if (useTnir && isTnirFirstAttempt) {
+                if (useTnir && is1stAttempt) {
                     return getSocketByIPPreference(hostName, portNumber,
                             SQLServerConnection.TNIR_FIRST_ATTEMPT_TIMEOUT_MS, iPAddressPreference);
                 } else if (!useTnir) {
@@ -2478,8 +2502,6 @@ final class SocketFinder {
             // case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
-                inetAddrs = InetAddress.getAllByName(hostName);
-
                 if ((useTnir) && (inetAddrs.length > IP_ADDRESS_LIMIT)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
@@ -2499,16 +2521,6 @@ final class SocketFinder {
                 }
 
                 logger.finer(loggingString.toString());
-            }
-
-            if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
-                Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
-                String errorStr = form.format(msgArgs);
-                // we do not want any retry to happen here. So, terminate the connection
-                // as the config is unsupported.
-                conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
             if (inetAddrs != null && inetAddrs.length == 1) {

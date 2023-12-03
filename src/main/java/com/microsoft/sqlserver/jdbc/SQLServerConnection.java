@@ -956,6 +956,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsDataClassification;
     }
 
+    byte getServerSupportedDataClassificationVersion() {
+        return serverSupportedDataClassificationVersion;
+    }
+
     /** whether server supports DNS caching */
     private boolean serverSupportsDNSCaching = false;
     private static ConcurrentHashMap<String, InetSocketAddress> dnsCache = null;
@@ -964,8 +968,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (null != dnsCache) ? dnsCache.get(key) : null;
     }
 
-    byte getServerSupportedDataClassificationVersion() {
-        return serverSupportedDataClassificationVersion;
+    private boolean serverHasMultipleIPs = false;
+
+    boolean getserverHasMultipleIPs() {
+        return serverHasMultipleIPs;
+    }
+
+    void setserverHasMultipleIPs(boolean value) {
+        serverHasMultipleIPs = value;
     }
 
     /** Boolean that indicates whether LOB objects created by this connection should be loaded into memory */
@@ -3055,6 +3065,62 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
+     * check if connection should fail and throw
+     */
+    private boolean shouldFailConnection(int errorCode, int driverErrorCode, boolean isDBMirroring, boolean useTnir,
+            int attemptNumber, int connectRetryCount) {
+
+        // should not retry on these type of failures
+        if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
+                || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
+                || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
+                || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
+                || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
+                || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
+                                                                                         // (eg Sphinx, invalid
+        ) {
+            return true;
+        }
+
+        if (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode) {
+            if (!isDBMirroring && !useTnir) {
+                return true;
+            }
+        }
+
+        // MSF or TNIR require at least 1 attempt
+        if (!isDBMirroring) {
+            if (useTnir && serverHasMultipleIPs) {
+                // need at least 1 attempt for TNIR if multiple IP
+                if (connectRetryCount > 0) {
+                    if (attemptNumber > 0 && attemptNumber > connectRetryCount) {
+                        return true;
+                    }
+                } else {
+                    if (attemptNumber >= 1) {
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            // need at least 1 attempt for MSF
+            if (connectRetryCount > 0) {
+                if (attemptNumber > 0 && attemptNumber > connectRetryCount) {
+                    return true; // tried at least once already
+                }
+            } else {
+                if (attemptNumber >= 1) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
      * This function is used by non failover and failover cases. Even when we make a standard connection the server can
      * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
      * returns a failover upon connection, we shall store the FO in our cache.
@@ -3271,19 +3337,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
-                if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
-                        || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
-                        || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
-                        || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
-                        || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
-                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
-                                                                                                 // (eg Sphinx, invalid
-                                                                                                 // packetsize, etc)
-                        || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
-                                && (!isDBMirroring || attemptNumber > 0) // attempt at least once for mirroring
-                                && (!useTnir || attemptNumber > 0) // attempt at least once for TNIR
-                                && (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
-                                || timerHasExpired(timerExpire)) // no time left
+                if (shouldFailConnection(errorCode, driverErrorCode, isDBMirroring, useTnir, attemptNumber,
+                        connectRetryCount) // check if there should be at least 1 attempt
+                        // || (state.equals(State.CONNECTED) && !isDBMirroring) // if not mirroring no retry after TCP socket connection succeeds
+                        || timerHasExpired(timerExpire) // no time left
                 ) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency.finer(
@@ -3358,8 +3415,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + tlsattemptNumber + " of " + INTERMITTENT_TLS_MAX_RETRY);
                 }
             } else {
-                if (attemptNumber++ < connectRetryCount && TransientError.isTransientError(sqlServerError)
+                if (attemptNumber < connectRetryCount && TransientError.isTransientError(sqlServerError)
                         && !timerHasExpired(timerExpire) && (!isDBMirroring || (1 == attemptNumber % 2))) {
+
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         loggerResiliency
                                 .finer(toString() + " Connection open - sleeping milisec: " + connectRetryInterval);
@@ -3370,7 +3428,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
                                 + attemptNumber);
                     }
-                    System.out.println("sleeping");
+
+                    attemptNumber++;
                     sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                 }
             }
@@ -3547,11 +3606,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static boolean timerHasExpired(long timerExpire) {
-        long currentTime = System.currentTimeMillis();
-        System.out.println(
-                "current: " + currentTime + " expiry: " + timerExpire + " diff: " + (currentTime - timerExpire));
-        return currentTime > timerExpire;
-        // return (System.currentTimeMillis() > timerExpire);
+        return (System.currentTimeMillis() > timerExpire);
     }
 
     /**
@@ -5954,8 +6009,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
                                     + millisecondsRemaining + " milliseconds.");
                         }
-
-                        System.out.println("sleeping");
 
                         sleepInterval(sleepInterval);
                         sleepInterval = sleepInterval * 2;
