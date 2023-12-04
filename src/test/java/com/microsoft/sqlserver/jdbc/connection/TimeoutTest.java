@@ -258,7 +258,7 @@ public class TimeoutTest extends AbstractTest {
         // Try a non existing server and see if the default timeout is 15 seconds
         try (Connection con = PrepUtil
                 .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB_abc;failoverPartner="
-                        + randomServer + "\\foo;user=sa;" + RandomUtil.getIdentifier("password"))) {
+                        + randomServer + "\\foo;user=sa;password=" + RandomUtil.getIdentifier("password"))) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
@@ -280,7 +280,7 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
         try (Connection con = PrepUtil
                 .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
-                        + randomServer + "\\foo;user=sa;" + RandomUtil.getIdentifier("password"))) {
+                        + randomServer + "\\foo;user=sa;password=" + RandomUtil.getIdentifier("password"))) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
