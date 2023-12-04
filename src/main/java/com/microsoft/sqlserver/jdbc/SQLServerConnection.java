@@ -1854,9 +1854,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (propsIn != null) {
             activeConnectionProperties = (Properties) propsIn.clone();
+        }int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+        if (propsIn != null) {
+            String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+            try {
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    int sPropValueInt = Integer.parseInt(sPropValue);
+                    if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                        loginTimeoutSeconds = sPropValueInt;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
         }
-
-        int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
         // Interactive auth may involve MFA which require longer timeout
         if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
@@ -3070,6 +3083,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean shouldFailConnection(int errorCode, int driverErrorCode, boolean isDBMirroring, boolean useTnir,
             int attemptNumber, int connectRetryCount) {
 
+        System.out.println("here");
+
         // should not retry on these type of failures
         if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                 || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
@@ -3101,6 +3116,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         return true;
                     }
                 }
+                System.out.println("need at least 1 attempt for tnir");
                 return false;
             } else {
                 return true;
@@ -3116,6 +3132,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     return true;
                 }
             }
+            System.out.println("need at least 1 attempt for msf");
             return false;
         }
     }

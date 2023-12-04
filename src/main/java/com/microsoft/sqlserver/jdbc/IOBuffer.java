@@ -2502,6 +2502,7 @@ final class SocketFinder {
             // case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
+                inetAddrs = InetAddress.getAllByName(hostName);
                 if ((useTnir) && (inetAddrs.length > IP_ADDRESS_LIMIT)) {
                     useTnir = false;
                     timeoutInMilliSeconds = timeoutInMilliSecondsForFullTimeout;
@@ -2521,6 +2522,16 @@ final class SocketFinder {
                 }
 
                 logger.finer(loggingString.toString());
+            }
+
+            if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
+                Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
+                String errorStr = form.format(msgArgs);
+                // we do not want any retry to happen here. So, terminate the connection
+                // as the config is unsupported.
+                conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
             }
 
             if (inetAddrs != null && inetAddrs.length == 1) {
