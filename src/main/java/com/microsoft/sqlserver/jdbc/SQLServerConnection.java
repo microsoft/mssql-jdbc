@@ -1854,7 +1854,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         if (propsIn != null) {
             activeConnectionProperties = (Properties) propsIn.clone();
-        }int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+        }
+        int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         if (propsIn != null) {
             String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
             try {
@@ -3083,8 +3084,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean shouldFailConnection(int errorCode, int driverErrorCode, boolean isDBMirroring, boolean useTnir,
             int attemptNumber, int connectRetryCount) {
 
-        System.out.println("here");
-
         // should not retry on these type of failures
         if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
                 || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
@@ -3105,7 +3104,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // MSF or TNIR require at least 1 attempt
         if (!isDBMirroring) {
-            if (useTnir && serverHasMultipleIPs) {
+            if (useTnir || serverHasMultipleIPs) {
                 // need at least 1 attempt for TNIR if multiple IP
                 if (connectRetryCount > 0) {
                     if (attemptNumber > 0 && attemptNumber > connectRetryCount) {

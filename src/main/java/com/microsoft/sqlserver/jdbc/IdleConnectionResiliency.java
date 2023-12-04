@@ -525,7 +525,7 @@ final class ReconnectThread extends Thread {
             }
         }
 
-        if ((connectRetryCount == 0) && (keepRetrying)) {
+        if ((connectRetryCount <= 0) && (keepRetrying)) {
             eReceived = new SQLServerException(SQLServerException.getErrString("R_crClientAllRecoveryAttemptsFailed"),
                     eReceived);
         }
