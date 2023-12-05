@@ -980,8 +980,13 @@ public class SQLServerConnectionTest extends AbstractTest {
 
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
-                ds.setLoginTimeout(5);
-                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
+                ds.setLoginTimeout(30);
+                ds.setConnectRetryCount(3);
+                try (Connection con = ds.getConnection()) {
+                    System.out.println("should not be here");
+                } catch (SQLException e) {
+                    System.out.println("exception: " + e.getMessage());
+                }
             }
         };
 

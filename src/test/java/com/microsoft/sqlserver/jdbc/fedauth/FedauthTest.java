@@ -50,6 +50,8 @@ public class FedauthTest extends FedauthCommon {
     @BeforeAll
     public static void setupTests() throws Exception {
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "loginTimeout", "60");
+
         accessTokenCallbackConnectionString = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";";
         setConnection();
     }
@@ -111,6 +113,7 @@ public class FedauthTest extends FedauthCommon {
         ds.setUser(azureUserName);
         ds.setPassword(azurePassword);
         ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
+        ds.setLoginTimeout(60);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryPassword);
@@ -128,6 +131,7 @@ public class FedauthTest extends FedauthCommon {
         ds.setServerName(azureServer);
         ds.setDatabaseName(azureDatabase);
         ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
+        ds.setLoginTimeout(60);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
@@ -141,7 +145,7 @@ public class FedauthTest extends FedauthCommon {
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"),
-                "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword;
+                "password") + ";userName=" + azureGroupUserName + ";password=" + azurePassword + ";loginTimeout=60";
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {
@@ -150,7 +154,7 @@ public class FedauthTest extends FedauthCommon {
 
         // connection string with user
         connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"), "password")
-                + ";user=" + azureGroupUserName + ";password=" + azurePassword;
+                + ";user=" + azureGroupUserName + ";password=" + azurePassword + ";loginTimeout=60";
         try (Connection conn = DriverManager.getConnection(connectionUrl)) {
             testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
         } catch (Exception e) {
@@ -166,6 +170,7 @@ public class FedauthTest extends FedauthCommon {
         ds.setUser(azureGroupUserName);
         ds.setPassword(azurePassword);
         ds.setAuthentication(SqlAuthentication.ActiveDirectoryPassword.toString());
+        ds.setLoginTimeout(60);
 
         try (Connection conn = ds.getConnection()) {
             testUserName(conn, azureGroupUserName, SqlAuthentication.ActiveDirectoryPassword);
@@ -459,6 +464,7 @@ public class FedauthTest extends FedauthCommon {
                 ds.setDatabaseName(azureDatabase);
                 ds.setUser(azureUserName);
                 ds.setPassword(azurePassword);
+                ds.setLoginTimeout(60);
             } else {
                 ds.setServerName(azureServer);
                 ds.setDatabaseName(azureDatabase);
