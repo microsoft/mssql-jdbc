@@ -186,10 +186,11 @@ public class FedauthCommon extends AbstractTest {
 
         adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
                 + azureUserName + ";password=" + azurePassword + ";Authentication="
-                + SqlAuthentication.ActiveDirectoryPassword.toString();
+                + SqlAuthentication.ActiveDirectoryPassword.toString() + ";loginTimeout=60" + ";connectRetryCount=2";
 
         adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
-                + ";Authentication=" + SqlAuthentication.ActiveDirectoryIntegrated.toString();
+                + ";Authentication=" + SqlAuthentication.ActiveDirectoryIntegrated.toString() + ";loginTimeout=60"
+                + ";connectRetryCount=2";
 
         fedauthJksPaths = getConfiguredProperty("fedauthJksPaths", "").split(Constants.SEMI_COLON);
         fedauthJavaKeyAliases = getConfiguredProperty("fedauthJavaKeyAliases", "").split(Constants.SEMI_COLON);

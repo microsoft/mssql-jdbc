@@ -50,7 +50,6 @@ public class FedauthTest extends FedauthCommon {
     @BeforeAll
     public static void setupTests() throws Exception {
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "loginTimeout", "60");
 
         accessTokenCallbackConnectionString = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";";
         setConnection();

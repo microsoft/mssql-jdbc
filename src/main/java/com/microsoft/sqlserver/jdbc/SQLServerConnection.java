@@ -3115,7 +3115,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         return true;
                     }
                 }
-                System.out.println("need at least 1 attempt for tnir");
                 return false;
             } else {
                 return true;
@@ -3131,7 +3130,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     return true;
                 }
             }
-            System.out.println("need at least 1 attempt for msf");
             return false;
         }
     }
