@@ -1341,26 +1341,26 @@ public class SQLServerDataSource
     }
 
     /**
-     * Sets the 'calcBigDecimalScale' setting.
+     * Sets the 'calcBigDecimalPrecision' setting.
      *
-     * @param calcBigDecimalScale
-     *        boolean property to have the driver calculate a big decimal's scale from input
+     * @param calcBigDecimalPrecision
+     *        boolean property to have the driver calculate a big decimal's precision from input
      */
     @Override
-    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString(),
-                calcBigDecimalScale);
+    public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString(),
+                calcBigDecimalPrecision);
     }
 
     /**
-     * Returns the value for 'calcBigDecimalScale'.
+     * Returns the value for 'calcBigDecimalPrecision'.
      *
      * @return computeBigDecimal boolean value
      */
     @Override
-    public boolean getCalcBigDecimalScale() {
-        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString(),
-                SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue());
+    public boolean getCalcBigDecimalPrecision() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString(),
+                SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
     }
 
     /**

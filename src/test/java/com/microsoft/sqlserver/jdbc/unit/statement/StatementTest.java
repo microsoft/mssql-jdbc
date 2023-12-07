@@ -1438,7 +1438,7 @@ public class StatementTest extends AbstractTest {
         public void testSmallBigDecimalValuesForLossOfPrecision() throws SQLException {
             try (SQLServerConnection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 double bigDecimalLessThanOne = 0.1235;
                 double bigDecimalGreaterThanOne = 1.1235;
                 String query = "CREATE PROCEDURE " + procName
@@ -1471,7 +1471,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testLongBigDecimalValuesForLossOfPrecision() throws SQLException {
             try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 decimal(38,38), col2 decimal(38,37))");
 
                 // col1 has maximum scale (38) with a leading zero, for a precision of 38. col2 has maximum scale (37) when
@@ -1499,7 +1499,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalSubtraction() throws SQLException {
             try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column - ?), "
@@ -1539,7 +1539,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalAddition() throws SQLException {
             try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column + ?), "
@@ -1579,7 +1579,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalMultiplication() throws SQLException {
             try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("SELECT (test_column * ?), "
@@ -1619,7 +1619,7 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testMathBigDecimalDivision() throws SQLException {
             try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
-                con.setCalcBigDecimalScale(true);
+                con.setCalcBigDecimalPrecision(true);
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (test_column decimal(10,5))");
                 stmt.executeUpdate("INSERT INTO " + tableName + " VALUES(99999.12345)");
                 try (PreparedStatement pstmt = con.prepareStatement("select (test_column / ?), "

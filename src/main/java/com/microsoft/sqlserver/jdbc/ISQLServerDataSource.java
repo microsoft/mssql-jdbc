@@ -1335,17 +1335,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
-     * Returns value of 'calcBigDecimalScale' from Connection String.
+     * Returns value of 'calcBigDecimalPrecision' from Connection String.
      *
-     * @param calcBigDecimalScale
-     *        indicates whether the driver should attempt to calculate scale from inputted big decimal values
+     * @param calcBigDecimalPrecision
+     *        indicates whether the driver should attempt to calculate precision from inputted big decimal values
      */
-    void setCalcBigDecimalScale(boolean calcBigDecimalScale);
+    void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
 
     /**
-     * Sets the value for 'calcBigDecimalScale' property
+     * Sets the value for 'calcBigDecimalPrecision' property
      *
-     * @return calcBigDecimalScale boolean value
+     * @return calcBigDecimalPrecision boolean value
      */
-    boolean getCalcBigDecimalScale();
+    boolean getCalcBigDecimalPrecision();
 }
