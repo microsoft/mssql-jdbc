@@ -523,8 +523,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setAccessTokenCallbackClass");
         verifiedMethodNames.add("getUseFlexibleCallableStatements");
         verifiedMethodNames.add("setUseFlexibleCallableStatements");
-        verifiedMethodNames.add("getCalcBigDecimalScale");
-        verifiedMethodNames.add("setCalcBigDecimalScale");
+        verifiedMethodNames.add("getCalcBigDecimalPrecision");
+        verifiedMethodNames.add("setCalcBigDecimalPrecision");
         return verifiedMethodNames;
     }
 }
