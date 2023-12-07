@@ -45,7 +45,9 @@ import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.aad.msal4j.IntegratedWindowsAuthenticationParameters;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
+import com.microsoft.aad.msal4j.MsalException;
 import com.microsoft.aad.msal4j.MsalInteractionRequiredException;
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
@@ -60,6 +62,11 @@ class SQLServerMSAL4JUtils {
     static final String REDIRECTURI = "http://localhost";
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
+
+    /**
+     * default MSAL interval for MSAL throttling retries (DEFAULT_THROTTLING_TIME_SEC) in ms
+     */
+    static final int MSAL_DEFAULT_THROTTLING_TIME_MS = 5000;
 
     private final static String LOGCONTEXT = "MSAL version "
             + com.microsoft.aad.msal4j.PublicClientApplication.class.getPackage().getImplementationVersion() + ": ";
@@ -419,6 +426,28 @@ class SQLServerMSAL4JUtils {
         return null;
     }
 
+    /**
+     * Get retry interval from MSAL. For throttling exceptions retry interval will be set, otherwise use default from MSAL.
+     * 
+     * @param e
+     *        Exception thrown from MSAL
+     * @return
+     */
+    static long getRetryInterval(Exception e) {
+        if (e != null) {
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                cause = cause.getCause();
+                if (cause != null && cause instanceof MsalThrottlingException) {
+                    // get retry interval from MSAL exception otherwise just use default
+                    return ((MsalThrottlingException) cause).retryInMs();
+                }
+            }
+        }
+        return MSAL_DEFAULT_THROTTLING_TIME_MS;
+
+    }
+
     private static SQLServerException getCorrectedException(Exception e, String user, String authenticationString) {
         Object[] msgArgs = {user, authenticationString};
 
@@ -436,7 +465,9 @@ class SQLServerMSAL4JUtils {
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n")
                     .replaceAll("\\{", "\"").replaceAll("\\}", "\"");
 
-            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
+            // RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
+            MsalException correctedAuthenticationException = new MsalException(correctedErrorMessage, null);
+
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_MSALExecution") + " " + correctedErrorMessage);
 
@@ -445,8 +476,9 @@ class SQLServerMSAL4JUtils {
              * the exception tree before error message correction
              */
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
-
             return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+            // return new SQLServerException(form.format(msgArgs), null, 0, e);
+
         }
     }
 }

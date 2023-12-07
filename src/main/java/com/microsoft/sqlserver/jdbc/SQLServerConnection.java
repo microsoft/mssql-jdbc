@@ -55,6 +55,7 @@ import javax.sql.XAConnection;
 
 import org.ietf.jgss.GSSCredential;
 
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
 
 import mssql.googlecode.cityhash.CityHash;
@@ -130,10 +131,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final boolean DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL = false;
 
     /**
-     * Back off interval in ms for retries
+     * Back off interval in ms for fedauth integrated retries
      */
     static final int BACKOFF_INTERVAL = 100;
-
+   
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
@@ -5896,7 +5897,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
         // No:of milliseconds to sleep for the initial back off.
-        int sleepInterval = BACKOFF_INTERVAL;
+        int fedauthRetryInterval = BACKOFF_INTERVAL;
 
         if (!msalContextExists()
                 && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
@@ -5909,161 +5910,185 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         while (true) {
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        authenticationString);
-
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
-
-                String managedIdentityClientId = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString());
-
-                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId);
-                    break;
-                }
-
-                fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
-
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
-
-                // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
-                if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
-                        && !aadPrincipalSecret.isEmpty()) {
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
-                            aadPrincipalSecret, authenticationString);
-                } else {
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
-                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+            try {
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                             authenticationString);
-                }
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
 
-                // clientCertificate property is used to specify path to certificate file
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
-                        servicePrincipalCertificate,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString);
+                    String managedIdentityClientId = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.USER.toString());
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
-                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (isWindows && AuthenticationJNI.isDllLoaded()) {
-                    try {
-                        FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
-                                fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
-                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
-
-                        // AccessToken should not be null.
-                        assert null != dllInfo.accessTokenBytes;
-                        byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
-                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-                        Date now = new Date();
-                        now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
-                        fedAuthToken = new SqlAuthenticationToken(accessToken, now);
-
-                        // Break out of the retry loop in successful case.
+                    if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                        fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                                managedIdentityClientId);
                         break;
-                    } catch (DLLException adalException) {
+                    }
 
-                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
-                        int errorCategory = adalException.getCategory();
-                        if (-1 == errorCategory) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                            Object[] msgArgs = {Integer.toHexString(adalException.getState())};
-                            throw new SQLServerException(form.format(msgArgs), null);
-                        }
+                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                            activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
-                        int millisecondsRemaining = timerRemaining(timerExpire);
-                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
-                                || timerHasExpired(timerExpire) || (sleepInterval >= millisecondsRemaining)) {
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
 
-                            String errorStatus = Integer.toHexString(adalException.getStatus());
+                    // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
+                    if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
+                            && !aadPrincipalSecret.isEmpty()) {
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
+                                aadPrincipalSecret, authenticationString);
+                    } else {
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
+                                activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                                activeConnectionProperties.getProperty(
+                                        SQLServerDriverStringProperty.PASSWORD.toString()),
+                                authenticationString);
+                    }
 
-                            if (connectionlogger.isLoggable(Level.FINER)) {
-                                connectionlogger.fine(
-                                        toString() + " SQLServerConnection.getFedAuthToken.AdalException category:"
-                                                + errorCategory + " error: " + errorStatus);
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString.equalsIgnoreCase(
+                        SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+
+                    // clientCertificate property is used to specify path to certificate file
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                            servicePrincipalCertificate,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
+                            servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString);
+
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
+                    // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
+                    if (isWindows && AuthenticationJNI.isDllLoaded()) {
+                        try {
+                            FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
+                                    fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
+                                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
+
+                            // AccessToken should not be null.
+                            assert null != dllInfo.accessTokenBytes;
+                            byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
+
+                            String accessToken = new String(accessTokenFromDLL, UTF_16LE);
+                            Date now = new Date();
+                            now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
+                            fedAuthToken = new SqlAuthenticationToken(accessToken, now);
+
+                            // Break out of the retry loop in successful case.
+                            break;
+                        } catch (DLLException adalException) {
+
+                            // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
+                            int errorCategory = adalException.getCategory();
+                            if (-1 == errorCategory) {
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
+                                Object[] msgArgs = {Integer.toHexString(adalException.getState())};
+                                throw new SQLServerException(form.format(msgArgs), null);
                             }
 
+                            int millisecondsRemaining = timerRemaining(timerExpire);
+                            if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
+                                    || timerHasExpired(timerExpire)
+                                    || (fedauthRetryInterval >= millisecondsRemaining)) {
+
+                                String errorStatus = Integer.toHexString(adalException.getStatus());
+
+                                if (connectionlogger.isLoggable(Level.FINER)) {
+                                    connectionlogger.fine(
+                                            toString() + " SQLServerConnection.getFedAuthToken.AdalException category:"
+                                                    + errorCategory + " error: " + errorStatus);
+                                }
+
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
+                                String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
+                                Object[] msgArgs1 = {errorCode, adalException.getState()};
+                                SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
+                                        adalException);
+
+                                form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+                                Object[] msgArgs = {user, authenticationString};
+                                throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                            }
+
+                            if (connectionlogger.isLoggable(Level.FINER)) {
+                                connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
+                                        + fedauthRetryInterval
+                                        + " milliseconds.\n SQLServerConnection.getFedAuthToken remaining: "
+                                        + millisecondsRemaining + " milliseconds.");
+                            }
+
+                            sleepInterval(fedauthRetryInterval);
+                            fedauthRetryInterval = fedauthRetryInterval * 2;
+                        }
+                    }
+                    // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
+                    // so we don't need to check the
+                    // OS version here.
+                    else {
+                        // Check if MSAL4J library is available
+                        if (!msalContextExists()) {
                             MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                            String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
-                            Object[] msgArgs1 = {errorCode, adalException.getState()};
-                            SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
-                                    adalException);
-
-                            form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-                            Object[] msgArgs = {user, authenticationString};
-                            throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                                    SQLServerException.getErrString("R_DLLandMSALMissing"));
+                            Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
+                            throw new SQLServerException(form.format(msgArgs), null, 0, null);
                         }
-
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
-                                    + sleepInterval + " milliseconds.");
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
-                                    + millisecondsRemaining + " milliseconds.");
-                        }
-
-                        sleepInterval(sleepInterval);
-                        sleepInterval = sleepInterval * 2;
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo,
+                                authenticationString);
                     }
-                }
-                // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
-                // so we don't need to check the
-                // OS version here.
-                else {
-                    // Check if MSAL4J library is available
-                    if (!msalContextExists()) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALMissing"));
-                        Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
-                        throw new SQLServerException(form.format(msgArgs), null, 0, null);
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
+                    // interactive flow
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
+                            authenticationString);
+
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
+                    String managedIdentityClientId = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.USER.toString());
+
+                    if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                        fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                                managedIdentityClientId);
+                        break;
                     }
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
-                }
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
-                // interactive flow
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
-                        authenticationString);
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
-                String managedIdentityClientId = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString());
-
-                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId);
+                            activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+
                     break;
                 }
+            } catch (Exception e) {
+                long retryInterval = SQLServerMSAL4JUtils.getRetryInterval(e);               
+                             int millisecondsRemaining = timerRemaining(timerExpire);
 
-                fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                if (timerHasExpired(timerExpire) || (retryInterval >= millisecondsRemaining)) {
+                    throw e;
+                } else {
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
+                                + retryInterval + " milliseconds.\n SQLServerConnection.getFedAuthToken remaining: "
+                                + millisecondsRemaining + " milliseconds.");
+                    }
 
-                break;
+                    sleepInterval(retryInterval);
+                }
             }
         }
 

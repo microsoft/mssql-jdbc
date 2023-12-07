@@ -504,6 +504,8 @@ public class FedauthTest extends FedauthCommon {
             ds.setAuthentication(authentication);
             ds.setEncrypt(encrypt);
             ds.setTrustServerCertificate(trustServerCertificate);
+            ds.setLoginTimeout(5);
+            ds.setConnectRetryCount(0);
 
             try (Connection conn = ds.getConnection()) {}
             if (!authentication.equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
