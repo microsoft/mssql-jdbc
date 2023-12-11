@@ -13,7 +13,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -43,6 +45,13 @@ public class BulkCopyResultSetCursorTest extends AbstractTest {
     static String[] expectedBigDecimalStrings = {"12345.12345", "125.12300", "45.12345"};
 
     static String[] expectedStrings = {"hello", "world", "!!!"};
+
+    //Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+    static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    static Date currentDate = new Date();
+    static String currentDateString = simpleDateFormat.format(currentDate);
+    static long rangeEnd = Timestamp.valueOf(currentDateString).getTime();
+    static Timestamp timestamp = new Timestamp(rangeEnd);
 
     static Timestamp[] expectedTimestamps = {new Timestamp(1433338533461L), new Timestamp(14917485583999L),
             new Timestamp(1491123533000L)};

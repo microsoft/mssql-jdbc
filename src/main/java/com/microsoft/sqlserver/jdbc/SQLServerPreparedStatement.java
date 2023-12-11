@@ -513,7 +513,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         checkClosed();
-
+        connection.unprepareUnreferencedPreparedStatementHandles(true);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
 
         // this shouldn't happen, caller probably meant to call executeLargeUpdate
@@ -534,6 +534,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(true);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
         loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
         return updateCount;
@@ -546,6 +547,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(true);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
         loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
@@ -2199,6 +2201,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(true);
         discardLastExecutionResults();
 
         try {
