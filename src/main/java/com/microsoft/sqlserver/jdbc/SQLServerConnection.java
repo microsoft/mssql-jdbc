@@ -134,7 +134,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Back off interval in ms for fedauth integrated retries
      */
     static final int BACKOFF_INTERVAL = 100;
-   
+
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
@@ -1006,7 +1006,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue();
+    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION
+            .getDefaultValue();
 
     @Override
     public boolean getCalcBigDecimalPrecision() {
@@ -3108,7 +3109,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (useTnir || serverHasMultipleIPs) {
                 // need at least 1 attempt for TNIR if multiple IP
                 if (connectRetryCount > 0) {
-                    if (attemptNumber > 0 && attemptNumber > connectRetryCount) {
+                    if (attemptNumber > 0 && attemptNumber >= connectRetryCount) {
                         return true;
                     }
                 } else {
@@ -3336,7 +3337,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break; // leave the while loop -- we've successfully connected
                 }
             } catch (SQLServerException e) {
-
                 if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
                     loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: "
                             + attemptNumber);
@@ -3430,7 +3430,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + tlsattemptNumber + " of " + INTERMITTENT_TLS_MAX_RETRY);
                 }
             } else {
-                if (attemptNumber < connectRetryCount && TransientError.isTransientError(sqlServerError)
+                if (attemptNumber++ < connectRetryCount && TransientError.isTransientError(sqlServerError)
                         && !timerHasExpired(timerExpire) && (!isDBMirroring || (1 == attemptNumber % 2))) {
 
                     if (loggerResiliency.isLoggable(Level.FINER)) {
@@ -3444,7 +3444,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + attemptNumber);
                     }
 
-                    attemptNumber++;
                     sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                 }
             }
@@ -6075,8 +6074,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     break;
                 }
             } catch (Exception e) {
-                long retryInterval = SQLServerMSAL4JUtils.getRetryInterval(e);               
-                             int millisecondsRemaining = timerRemaining(timerExpire);
+                long retryInterval = SQLServerMSAL4JUtils.getRetryInterval(e);
+                int millisecondsRemaining = timerRemaining(timerExpire);
 
                 if (timerHasExpired(timerExpire) || (retryInterval >= millisecondsRemaining)) {
                     throw e;
