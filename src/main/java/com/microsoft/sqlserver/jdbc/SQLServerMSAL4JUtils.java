@@ -465,7 +465,6 @@ class SQLServerMSAL4JUtils {
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n")
                     .replaceAll("\\{", "\"").replaceAll("\\}", "\"");
 
-            // RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
             MsalException correctedAuthenticationException = new MsalException(correctedErrorMessage, null);
 
             MessageFormat form = new MessageFormat(
@@ -477,8 +476,6 @@ class SQLServerMSAL4JUtils {
              */
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
             return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-            // return new SQLServerException(form.format(msgArgs), null, 0, e);
-
         }
     }
 }

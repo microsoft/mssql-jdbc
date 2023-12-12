@@ -2466,8 +2466,6 @@ final class SocketFinder {
         boolean is1stAttempt = false;
 
         try {
-            // InetAddress[] inetAddrs = null;
-
             // determine if server has multiple IPs
             if (useTnir && inetAddrs == null) {
                 inetAddrs = InetAddress.getAllByName(hostName);

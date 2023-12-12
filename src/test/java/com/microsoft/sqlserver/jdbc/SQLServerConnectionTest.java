@@ -209,7 +209,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseFlexibleCallableStatements(),
                 TestResource.getResource("R_valuesAreDifferent"));
         ds.setCalcBigDecimalPrecision(booleanPropValue);
-        assertEquals(booleanPropValue, ds.getCalcBigDecimalPrecision(), TestResource.getResource("R_valuesAreDifferent"));
+        assertEquals(booleanPropValue, ds.getCalcBigDecimalPrecision(),
+                TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setServerCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -982,11 +983,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(30);
                 ds.setConnectRetryCount(3);
-                try (Connection con = ds.getConnection()) {
-                    System.out.println("should not be here");
-                } catch (SQLException e) {
-                    System.out.println("exception: " + e.getMessage());
-                }
+                try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
 

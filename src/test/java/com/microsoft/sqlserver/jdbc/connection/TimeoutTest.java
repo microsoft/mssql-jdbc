@@ -231,7 +231,7 @@ public class TimeoutTest extends AbstractTest {
         int loginTimeout = 2;
         long timerStart = System.currentTimeMillis();
 
-        // non existent server with very short loginTimeout so there is no time to do all retries
+        // non existent database with very short loginTimeout so there is no time to do all retries
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval="
@@ -248,6 +248,33 @@ public class TimeoutTest extends AbstractTest {
         }
 
         verifyTimeout(timerEnd - timerStart, loginTimeout);
+    }
+
+    // Test connect retry 0
+    @Test
+    public void testConnectRetry0() {
+        long timerEnd = 0;
+        int connectRetryInterval = 30;
+
+        long timerStart = System.currentTimeMillis();
+
+        // non existent database with very long loginTimeout and retry interval
+        try (Connection con = PrepUtil.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
+                        + "connectRetryCount=0;loginTimeout=30" + ";connectRetryInterval=" + connectRetryInterval)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+            assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
+                    || ((isSqlAzure() || isSqlAzureDW())
+                                                         ? e.getMessage().contains(
+                                                                 TestResource.getResource("R_connectTimedOut"))
+                                                         : false),
+                    e.getMessage());
+        }
+
+        // if there was any retires at all it would take at least 1 retry interval
+        verifyTimeout(timerEnd - timerStart, connectRetryInterval);
     }
 
     @Test
