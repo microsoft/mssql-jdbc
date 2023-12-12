@@ -980,7 +980,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                 SQLServerDataSource ds = new SQLServerDataSource();
 
                 ds.setURL(connectionString);
-                ds.setServerName("invalidServerName" + UUID.randomUUID());
+                ds.setDatabaseName("invalidDatabase" + UUID.randomUUID());
                 ds.setLoginTimeout(30);
                 ds.setConnectRetryCount(3);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
@@ -997,7 +997,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(8000);
         executor.shutdownNow();
 
-        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet") + " status: "
+                + status + " isCancelled: " + future.isCancelled());
     }
 
     /**
