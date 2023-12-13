@@ -971,11 +971,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private boolean serverHasMultipleIPs = false;
 
-    boolean getserverHasMultipleIPs() {
-        return serverHasMultipleIPs;
-    }
-
-    void setserverHasMultipleIPs(boolean value) {
+    void setServerHasMultipleIPs(boolean value) {
         serverHasMultipleIPs = value;
     }
 
@@ -1852,36 +1848,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-
-        if (propsIn != null) {
-            activeConnectionProperties = (Properties) propsIn.clone();
-        }
-        int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-        if (propsIn != null) {
-            String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-            try {
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    int sPropValueInt = Integer.parseInt(sPropValue);
-                    if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
-                        loginTimeoutSeconds = sPropValueInt;
-                    }
-                }
-            } catch (NumberFormatException e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-            }
-        }
-
-        // Interactive auth may involve MFA which require longer timeout
-        if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
-            loginTimeoutSeconds *= 10;
-        }
-
-        return connectInternal(propsIn, pooledConnection);
-    }
-
     private void registerKeyStoreProviderOnConnection(String keyStoreAuth, String keyStoreSecret,
             String keyStoreLocation) throws SQLServerException {
         if (null == keyStoreAuth) {
@@ -1990,10 +1956,36 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @throws SQLServerException
      * @return the database connection
      */
-    Connection connectInternal(Properties propsIn,
-            SQLServerPooledConnection pooledConnection) throws SQLServerException {
+    Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
+
         try {
             if (propsIn != null) {
+                activeConnectionProperties = (Properties) propsIn.clone();
+
+                String sPropKey;
+                String sPropValue;
+
+                int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+                loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+                sPropValue = activeConnectionProperties
+                        .getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+                try {
+                    if (null != sPropValue && sPropValue.length() > 0) {
+                        int sPropValueInt = Integer.parseInt(sPropValue);
+                        if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                            loginTimeoutSeconds = sPropValueInt;
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                // Interactive auth may involve MFA which require longer timeout
+                if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
+                    loginTimeoutSeconds *= 10;
+                }
 
                 pooledConnectionParent = pooledConnection;
 
@@ -2028,9 +2020,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             originalHostNameInCertificate);
                 }
 
-                String sPropKey;
-                String sPropValue;
-
                 sPropKey = SQLServerDriverStringProperty.USER.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -2050,8 +2039,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverStringProperty.DATABASE_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 validateMaxSQLLoginName(sPropKey, sPropValue);
-
-                int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
                 // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
                 // operation of RFC 3490.

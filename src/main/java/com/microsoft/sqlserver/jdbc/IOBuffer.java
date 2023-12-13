@@ -2427,7 +2427,7 @@ final class SocketFinder {
     private final String traceID;
 
     // IP addresses
-    private static InetAddress[] inetAddrs = null;
+    // private static InetAddress[] inetAddrs = null;
 
     // maximum number of IP Addresses supported
     private static final int IP_ADDRESS_LIMIT = 64;
@@ -2463,11 +2463,11 @@ final class SocketFinder {
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
-        boolean is1stAttempt = false;
-
         try {
+            InetAddress[] inetAddrs = null;
+
             // determine if server has multiple IPs
-            if (useTnir && inetAddrs == null) {
+            if (useTnir) {
                 inetAddrs = InetAddress.getAllByName(hostName);
 
                 if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
@@ -2480,15 +2480,13 @@ final class SocketFinder {
                     conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
                 }
 
-                is1stAttempt = true;
-                conn.setserverHasMultipleIPs(!(inetAddrs != null && inetAddrs.length == 1));
+                conn.setServerHasMultipleIPs(!(inetAddrs != null && inetAddrs.length == 1));
             }
 
             if (!useParallel) {
                 // MSF is false. TNIR could be true or false. DBMirroring could be true or false.
                 // For TNIR first attempt, we should do existing behavior including how host name is resolved.
-                // if (useTnir && isTnirFirstAttempt) {
-                if (useTnir && is1stAttempt) {
+                if (useTnir && isTnirFirstAttempt) {
                     return getSocketByIPPreference(hostName, portNumber,
                             SQLServerConnection.TNIR_FIRST_ATTEMPT_TIMEOUT_MS, iPAddressPreference);
                 } else if (!useTnir) {
