@@ -230,6 +230,52 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Engine Edition 11 = Azure Synapse serverless SQL pool */
     private static final int ENGINE_EDITION_SQL_AZURE_SYNAPSE_SERVERLESS_SQL_POOL = 11;
 
+    /**
+     * Azure SQL server endpoints
+     */
+    enum AzureSQLServerEndpoints {
+        AZURE_GENERIC_ENDPOINT(".database.windows.net"),
+        AZURE_GERMAN_ENDPOINT(".database.cloudapi.de"),
+        AZURE_USGOV_ENDPOINT(".database.usgovcloudapi.net"),
+        AZURE_CHINA_ENDPOINT(".database.china.cloudapi.cn");
+
+        private static final String ON_DEMAND_PREFIX = "-ondemand";
+        private static final String AZURE_SYNAPSE = "-ondemand.sql.azuresynapse.";
+
+        private final String endpoint;
+
+        private AzureSQLServerEndpoints(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        static boolean isAzureSqlServerEndpoint(String endpoint) {
+            for (AzureSQLServerEndpoints e : AzureSQLServerEndpoints.values()) {
+                if (endpoint.endsWith(e.toString())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static boolean isAzureSynapseOnDemandEndpoint(String endpoint) {
+            if (endpoint.contains(AZURE_SYNAPSE)) {
+                return true;
+            }
+
+            for (AzureSQLServerEndpoints e : AzureSQLServerEndpoints.values()) {
+                if (endpoint.endsWith(ON_DEMAND_PREFIX + e.toString())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return endpoint;
+        }
+    }
+
     /** flag indicating whether server is Azure */
     private Boolean isAzure = null;
 
@@ -665,6 +711,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private final static int INTERMITTENT_TLS_MAX_RETRY = 5;
 
+    /**
+     * Defaults for Azure SQL Server retry counts
+     * 
+     */
+    private final static int AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT = 2;
+    private final static int AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT = 5;
+
     /** Indicates if we received a routing ENVCHANGE in the current connection attempt */
     private boolean isRoutedInCurrentAttempt = false;
 
@@ -995,7 +1048,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue();
+    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION
+            .getDefaultValue();
 
     @Override
     public boolean getCalcBigDecimalPrecision() {
@@ -1836,6 +1890,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    /**
+     * sleep for ms interval
+     * 
+     * @param interval
+     *        in ms
+     */
+    private void sleepInterval(long interval) {
+        try {
+            Thread.sleep(interval);
+        } catch (InterruptedException e) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
+        }
+    }
+
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         if (propsIn != null) {
@@ -1934,12 +2003,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
                                     + connectRetryInterval + ")s before retry.");
                         }
-                        try {
-                            Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
-                        } catch (InterruptedException ex) {
-                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                            Thread.currentThread().interrupt();
-                        }
+
+                        sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                     }
                 }
             }
@@ -2041,6 +2106,63 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
         return timeout;
+    }
+
+    // Helper to validate connection retry properties
+    void validateConnectionRetry() throws SQLServerException {
+        // validate retry count
+        connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
+        String sPropValue = activeConnectionProperties
+                .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            try {
+                connectRetryCount = Integer.parseInt(sPropValue);
+                if (!SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.isValidValue(connectRetryCount)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
+        } else {
+            // if property was not set, detect and increase for Azure endpoints
+            if (connectRetryCount == 1) {
+
+                // Set to larger default value for Azure connections to greatly improve recovery
+                if (isAzureSynapseOnDemandEndpoint()) {
+                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                } else if (isAzureSqlServerEndpoint()) {
+                    connectRetryCount = AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                }
+            }
+        }
+
+        // validate retry interval
+        connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+        sPropValue = activeConnectionProperties
+                .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            try {
+                connectRetryInterval = Integer.parseInt(sPropValue);
+                if (!SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.isValidValue(connectRetryInterval)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
+        }
     }
 
     /**
@@ -3043,46 +3165,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 String mirror = (null == fo) ? failOverPartnerPropertyValue : null;
 
-                connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
-                sPropValue = activeConnectionProperties
-                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    try {
-                        connectRetryCount = Integer.parseInt(sPropValue);
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                    if (connectRetryCount < 0 || connectRetryCount > 255) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                }
-
-                connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
-                sPropValue = activeConnectionProperties
-                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    try {
-                        connectRetryInterval = Integer.parseInt(sPropValue);
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-
-                    if (connectRetryInterval < 1 || connectRetryInterval > 60) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                }
+                validateConnectionRetry();
 
                 long startTime = System.currentTimeMillis();
                 sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
@@ -3146,7 +3229,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         final boolean isDBMirroring = null != mirror || null != foActual;
 
-        int sleepInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
+        int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
 
@@ -3405,7 +3488,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // Check sleep interval to make sure we won't exceed the timeout
                     // Do this in the catch block so we can re-throw the current exception
                     long remainingMilliseconds = timerRemaining(timerExpire);
-                    if (remainingMilliseconds <= sleepInterval) {
+                    if (remainingMilliseconds <= fedauthRetryInterval) {
 
                         if (loggerResiliency.isLoggable(Level.FINER)) {
                             loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: "
@@ -3439,13 +3522,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
                             + attemptNumber);
                 }
-                try {
-                    Thread.sleep(sleepInterval);
-                } catch (InterruptedException e) {
-                    // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                    Thread.currentThread().interrupt();
-                }
-                sleepInterval = (sleepInterval < 500) ? sleepInterval * 2 : 1000;
+
+                sleepInterval(fedauthRetryInterval);
+                fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
             }
 
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
@@ -6023,12 +6102,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + millisecondsRemaining + " milliseconds.");
                         }
 
-                        try {
-                            Thread.sleep(sleepInterval);
-                        } catch (InterruptedException e1) {
-                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                            Thread.currentThread().interrupt();
-                        }
+                        sleepInterval(sleepInterval);
                         sleepInterval = sleepInterval * 2;
                     }
                 }
@@ -8282,6 +8356,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;
+    }
+
+    boolean isAzureSqlServerEndpoint() {
+        String serverName = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null != serverName && serverName.length() > 0) {
+            // serverName without named instance
+            int px = serverName.indexOf('\\');
+            String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
+
+            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+        }
+
+        return false;
+    }
+
+    boolean isAzureSynapseOnDemandEndpoint() {
+        String serverName = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null != serverName && serverName.length() > 0) {
+            // serverName without named instance
+            int px = serverName.indexOf('\\');
+            String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
+
+            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+        }
+
+        return false;
     }
 
     /**

@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -55,13 +57,14 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + "connectRetryCount=0")) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, defaultTimeout);
@@ -77,13 +80,14 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, timeout);
@@ -100,13 +104,14 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, timeout);
@@ -124,6 +129,8 @@ public class TimeoutTest extends AbstractTest {
                     .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
                 fail(TestResource.getResource("R_shouldNotConnect"));
             } catch (Exception e) {
+                timerEnd = System.currentTimeMillis();
+
                 assertTrue(
                         (e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                                 || ((isSqlAzure() || isSqlAzureDW())
@@ -132,7 +139,6 @@ public class TimeoutTest extends AbstractTest {
                                                                                      .getResource("R_connectTimedOut"))
                                                                      : false),
                         e.getMessage());
-                timerEnd = System.currentTimeMillis();
             }
             verifyTimeout(timerEnd - timerStart, timeout);
         } finally {
@@ -152,13 +158,14 @@ public class TimeoutTest extends AbstractTest {
                 .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + loginTimeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, loginTimeout);
@@ -179,13 +186,14 @@ public class TimeoutTest extends AbstractTest {
                         + ";connectRetryInterval=" + connectRetryInterval)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         // connect + all retries should always be <= loginTimeout
@@ -231,23 +239,48 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
         int loginTimeout = 2;
 
-        // non existent server with very short loginTimeout so there is no time to do all retries
+        // non existent database with very short loginTimeout so there is no time to do all retries
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval="
                         + (new Random().nextInt(defaultTimeout - 1) + 1) + ";loginTimeout=" + loginTimeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, loginTimeout);
+    }
+
+    // Test for detecting Azure server for connection retries
+    @Test
+    public void testAzureEndpointRetry() {
+
+        try (Connection con = PrepUtil.getConnection(connectionString)) {
+            Field fields[] = con.getClass().getSuperclass().getDeclaredFields();
+            for (Field f : fields) {
+                if (f.getName() == "connectRetryCount") {
+                    f.setAccessible(true);
+                    int retryCount = f.getInt(con);
+                    if (TestUtils.isAzure(con)) {
+                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
+                    } else if (TestUtils.isAzureDW(con)) {
+                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT
+                    } else {
+                        assertTrue(retryCount == 1); // default connectRetryCount
+                    }
+                }
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     @Test
@@ -256,17 +289,19 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
 
         // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
-                + ";databaseName=FailoverDB_abc;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB_abc;failoverPartner="
+                        + randomServer + "\\foo;user=sa;password=" + RandomUtil.getIdentifier("password"))) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
+            timerEnd = System.currentTimeMillis();
+
             assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
                     || ((isSqlAzure() || isSqlAzureDW())
                                                          ? e.getMessage().contains(
                                                                  TestResource.getResource("R_connectTimedOut"))
                                                          : false),
                     e.getMessage());
-            timerEnd = System.currentTimeMillis();
         }
 
         verifyTimeout(timerEnd - timerStart, defaultTimeout * 2);
@@ -277,8 +312,9 @@ public class TimeoutTest extends AbstractTest {
         long timerEnd = 0;
 
         long timerStart = System.currentTimeMillis();
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
-                + "\\fooggg;databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
+        try (Connection con = PrepUtil
+                .getConnection("jdbc:sqlserver://" + randomServer + "\\fooggg;databaseName=FailoverDB;failoverPartner="
+                        + randomServer + "\\foo;user=sa;password=" + RandomUtil.getIdentifier("password"))) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
@@ -296,9 +332,9 @@ public class TimeoutTest extends AbstractTest {
         long timerEnd;
         long timerStart = System.currentTimeMillis();
 
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB;failoverPartner="
-                        + randomServer + "\\foo;user=sa;password=pwd;" + ";socketTimeout=" + waitForDelaySeconds)) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
+                + ";databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password="
+                + RandomUtil.getIdentifier("password") + ";socketTimeout=" + waitForDelaySeconds)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             timerEnd = System.currentTimeMillis();
@@ -487,6 +523,16 @@ public class TimeoutTest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
+    }
+
+    static Field[] getConnectionFields(Connection c) {
+        Class<? extends Connection> cls = c.getClass();
+        // SQLServerConnection43 is returned for Java >=9 so need to get super class
+        if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {
+            return cls.getSuperclass().getDeclaredFields();
+        }
+
+        return cls.getDeclaredFields();
     }
 
     @AfterAll
