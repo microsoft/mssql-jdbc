@@ -1896,7 +1896,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param interval
      *        in ms
      */
-    private void sleepInterval(long interval) {
+    private void sleepForInterval(long interval) {
         try {
             Thread.sleep(interval);
         } catch (InterruptedException e) {
@@ -2004,7 +2004,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + connectRetryInterval + ")s before retry.");
                         }
 
-                        sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                     }
                 }
             }
@@ -3523,7 +3523,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + attemptNumber);
                 }
 
-                sleepInterval(fedauthRetryInterval);
+                sleepForInterval(fedauthRetryInterval);
                 fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
             }
 
@@ -5973,7 +5973,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
-        // No:of milliseconds to sleep for the initial back off.
+        // No of milliseconds to sleep for the initial back off.
         int sleepInterval = BACKOFF_INTERVAL;
 
         if (!msalContextExists()
@@ -6102,7 +6102,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + millisecondsRemaining + " milliseconds.");
                         }
 
-                        sleepInterval(sleepInterval);
+                        sleepForInterval(sleepInterval);
                         sleepInterval = sleepInterval * 2;
                     }
                 }
