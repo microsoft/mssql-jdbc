@@ -2469,17 +2469,6 @@ final class SocketFinder {
             // determine if server has multiple IPs
             if (useTnir) {
                 inetAddrs = InetAddress.getAllByName(hostName);
-
-                if (inetAddrs != null && inetAddrs.length > IP_ADDRESS_LIMIT) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_ipAddressLimitWithMultiSubnetFailover"));
-                    Object[] msgArgs = {Integer.toString(IP_ADDRESS_LIMIT)};
-                    String errorStr = form.format(msgArgs);
-                    // we do not want any retry to happen here. So, terminate the connection
-                    // as the config is unsupported.
-                    conn.terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, errorStr);
-                }
-
                 conn.setServerHasMultipleIPs(!(inetAddrs != null && inetAddrs.length == 1));
             }
 
