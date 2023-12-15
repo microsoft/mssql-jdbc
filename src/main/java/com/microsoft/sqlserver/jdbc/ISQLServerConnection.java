@@ -497,4 +497,9 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A boolean that indicates if the driver should calculate precision from inputted big decimal values.
      */
     void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
+    
+    void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) ;
+    
+    boolean getUseBulkCopyForBatchInsert();
+   
 }
