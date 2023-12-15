@@ -788,6 +788,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 
      * @return flag for using Bulk Copy API for batch insert operations.
      */
+    @Override
     public boolean getUseBulkCopyForBatchInsert() {
         return useBulkCopyForBatchInsert;
     }
@@ -798,6 +799,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param useBulkCopyForBatchInsert
      *        boolean value for useBulkCopyForBatchInsert.
      */
+    @Override
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
