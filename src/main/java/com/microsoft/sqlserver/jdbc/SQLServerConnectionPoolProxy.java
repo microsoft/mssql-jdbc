@@ -712,4 +712,22 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
         wrappedConnection.setCalcBigDecimalPrecision(calcBigDecimalPrecision);
     }
+    
+    /**
+     * Returns the useBulkCopyForBatchInsert value.
+     * 
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    public boolean getUseBulkCopyForBatchInsert() {
+    		return wrappedConnection.getUseBulkCopyForBatchInsert();
+    }
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * 
+     * @param useBulkCopyForBatchInsert
+     *        boolean value for useBulkCopyForBatchInsert.
+     */
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+    		wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
+    }
 }
