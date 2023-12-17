@@ -505,6 +505,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for useBulkCopyForBatchInsert.
      */
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) ;
+    
     /**
      * Returns the useBulkCopyForBatchInsert value.
      * 
