@@ -1689,7 +1689,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectRetryCount;
     }
 
-    final boolean attachConnId() {
+    final boolean isConnected() {
         return state.equals(State.CONNECTED);
     }
 
@@ -3440,6 +3440,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + attemptNumber);
                 }
                 try {
+                    System.out.println("sleeping for: "+sleepInterval);
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException e) {
                     // re-interrupt the current thread, in order to restore the thread's interrupt status.
