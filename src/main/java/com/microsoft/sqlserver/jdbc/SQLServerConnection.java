@@ -995,7 +995,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue();
+    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION
+            .getDefaultValue();
 
     @Override
     public boolean getCalcBigDecimalPrecision() {
@@ -3440,7 +3441,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             + attemptNumber);
                 }
                 try {
-                    System.out.println("sleeping for: "+sleepInterval);
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException e) {
                     // re-interrupt the current thread, in order to restore the thread's interrupt status.
