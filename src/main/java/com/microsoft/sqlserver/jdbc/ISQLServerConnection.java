@@ -497,4 +497,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A boolean that indicates if the driver should calculate precision from inputted big decimal values.
      */
     void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
+
+     /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * 
+     * @param useBulkCopyForBatchInsert
+     *        boolean value for useBulkCopyForBatchInsert.
+     */
+    void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) ;
+    
+    /**
+     * Returns the useBulkCopyForBatchInsert value.
+     * 
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    boolean getUseBulkCopyForBatchInsert();
 }
