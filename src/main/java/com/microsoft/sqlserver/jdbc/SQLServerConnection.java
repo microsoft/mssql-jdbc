@@ -715,7 +715,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Defaults for Azure SQL Server retry counts
      * 
      */
-    private final static int AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT = 2;
+    private final static int AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT = 2;
     private final static int AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT = 5;
 
     /** Indicates if we received a routing ENVCHANGE in the current connection attempt */
@@ -2135,7 +2135,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Set to larger default value for Azure connections to greatly improve recovery
                 if (isAzureSynapseOnDemandEndpoint()) {
-                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
                 } else if (isAzureSqlServerEndpoint()) {
                     connectRetryCount = AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT;
                 }
