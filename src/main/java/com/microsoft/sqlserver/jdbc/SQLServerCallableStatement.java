@@ -191,14 +191,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
-    private void setByIndex() throws SQLServerException {
-        isSetByIndex = true;
-        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
-        }
-    }
-
     /**
      * Locate any output parameter values returned from the procedure call
      */
