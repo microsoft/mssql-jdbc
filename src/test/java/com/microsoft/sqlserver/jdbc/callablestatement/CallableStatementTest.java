@@ -399,7 +399,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testNonOrderedRegisteringAndSettingOfParams() throws SQLException {
+    public void testNonOrderedRegisteringAndSettingOfIndexedAndNamedParams() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -410,12 +410,14 @@ public class CallableStatementTest extends AbstractTest {
             Float obj4 = 2015.04f;
             Integer obj5 = 3;
             String obj6 = "foo";
-            String obj7 = "bar";
+            String obj7 = "b";
             Long obj8 = 2015L;
 
+            // Set & register parameters using a mix of index and named parameters in a random
+            // non-consecutive order. When useFlexibleCallableStatements=true (the default), this should pass.
             cstmt.setObject("i5", obj5, Types.CHAR);
             cstmt.setObject("i6", obj6, Types.VARCHAR);
-            cstmt.setObject("i7", obj7, Types.CHAR);
+            cstmt.setObject(7, obj7, Types.CHAR);
             cstmt.setObject("i8", obj8, Types.SMALLINT);
 
             cstmt.setObject(1, obj1, Types.NUMERIC);
@@ -423,26 +425,327 @@ public class CallableStatementTest extends AbstractTest {
             cstmt.setObject(3, obj3, Types.INTEGER);
             cstmt.setObject(4, obj4, Types.FLOAT);
 
-            cstmt.registerOutParameter(9, Types.NUMERIC);
-            cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
-            cstmt.registerOutParameter("o3", Types.INTEGER);
-            cstmt.registerOutParameter("o4", Types.FLOAT);
-
             cstmt.registerOutParameter(13, Types.CHAR);
-            cstmt.registerOutParameter(14, Types.VARCHAR);
+            cstmt.registerOutParameter("o6", Types.VARCHAR);
             cstmt.registerOutParameter(15, Types.CHAR);
             cstmt.registerOutParameter(16, Types.SMALLINT);
+
+            cstmt.registerOutParameter(9, Types.NUMERIC);
+            cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
+            cstmt.registerOutParameter(11, Types.INTEGER);
+            cstmt.registerOutParameter("o4", Types.FLOAT);
+
             cstmt.execute();
+
+            // When useFlexibleCallableStatements=true (the default), getting the output parameters by either
+            // index or named should succeed.
+            assertEquals(obj1, cstmt.getDouble("o1"));
+            assertEquals(obj2, cstmt.getDouble("o2"));
+            assertEquals(obj3, cstmt.getInt("o3"));
+            assertEquals(obj4, cstmt.getFloat("o4"));
+            assertEquals(obj5, cstmt.getInt("o5"));
+            assertEquals(obj6, cstmt.getString("o6"));
+            assertEquals(obj7, cstmt.getString("o7"));
+            assertEquals(obj8, cstmt.getLong("o8"));
+
+            assertEquals(obj1, cstmt.getDouble(9));
+            assertEquals(obj2, cstmt.getDouble(10));
+            assertEquals(obj3, cstmt.getInt(11));
+            assertEquals(obj4, cstmt.getFloat(12));
+            assertEquals(obj5, cstmt.getInt(13));
+            assertEquals(obj6, cstmt.getString(14));
+            assertEquals(obj7, cstmt.getString(15));
+            assertEquals(obj8, cstmt.getLong(16));
         }
     }
 
     @Test
-    public void testNamedParametersUseFlexibleCallableStatementFalse() throws SQLException {
+    public void useFlexibleCallableStatementFalseIndexedParameters() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
         String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
                 "useFlexibleCallableStatements", "false");
 
-        // useFlexibleCallableStatement=false and using all named parameters
+        // When useFlexibleCallableStatement=false and when using only indexed parameters, cstmt should succeed.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject(1, obj1, Types.NUMERIC);
+                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+                cstmt.setObject(3, obj3, Types.INTEGER);
+                cstmt.setObject(4, obj4, Types.FLOAT);
+
+                cstmt.setObject(5, obj5, Types.CHAR);
+                cstmt.setObject(6, obj6, Types.VARCHAR);
+                cstmt.setObject(7, obj7, Types.CHAR);
+                cstmt.setObject(8, obj8, Types.SMALLINT);
+
+                cstmt.registerOutParameter(9, Types.NUMERIC);
+                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
+                cstmt.registerOutParameter(11, Types.INTEGER);
+                cstmt.registerOutParameter(12, Types.FLOAT);
+
+                cstmt.registerOutParameter(13, Types.CHAR);
+                cstmt.registerOutParameter(14, Types.VARCHAR);
+                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter(16, Types.SMALLINT);
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble(9));
+                assertEquals(obj2, cstmt.getDouble(10));
+                assertEquals(obj3, cstmt.getInt(11));
+                assertEquals(obj4, cstmt.getFloat(12));
+                assertEquals(obj5, cstmt.getInt(13));
+                assertEquals(obj6, cstmt.getString(14));
+                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj8, cstmt.getLong(16));
+            }
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseIndexedParametersRandomOrder() throws SQLException {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when using only indexed parameters in a random order,
+        // cstmt should succeed.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject(5, obj5, Types.CHAR);
+                cstmt.setObject(6, obj6, Types.VARCHAR);
+                cstmt.setObject(7, obj7, Types.CHAR);
+                cstmt.setObject(8, obj8, Types.SMALLINT);
+
+                cstmt.setObject(1, obj1, Types.NUMERIC);
+                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+                cstmt.setObject(3, obj3, Types.INTEGER);
+                cstmt.setObject(4, obj4, Types.FLOAT);
+
+                cstmt.registerOutParameter(13, Types.CHAR);
+                cstmt.registerOutParameter(14, Types.VARCHAR);
+                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter(16, Types.SMALLINT);
+
+                cstmt.registerOutParameter(9, Types.NUMERIC);
+                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
+                cstmt.registerOutParameter(11, Types.INTEGER);
+                cstmt.registerOutParameter(12, Types.FLOAT);
+
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble(9));
+                assertEquals(obj2, cstmt.getDouble(10));
+                assertEquals(obj3, cstmt.getInt(11));
+                assertEquals(obj4, cstmt.getFloat(12));
+                assertEquals(obj5, cstmt.getInt(13));
+                assertEquals(obj6, cstmt.getString(14));
+                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj8, cstmt.getLong(16));
+            }
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseMainlyIndexedParametersWithSettingSingleNamedParam() {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when mainly using only indexed parameters, setting
+        // an input parameter by name will cause the cstmt to fail.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject(1, obj1, Types.NUMERIC);
+                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+                cstmt.setObject(3, obj3, Types.INTEGER);
+                cstmt.setObject(4, obj4, Types.FLOAT);
+
+                cstmt.setObject(5, obj5, Types.CHAR);
+                cstmt.setObject(6, obj6, Types.VARCHAR);
+                cstmt.setObject(7, obj7, Types.CHAR);
+                cstmt.setObject("i8", obj8, Types.SMALLINT);
+
+                cstmt.registerOutParameter(9, Types.NUMERIC);
+                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
+                cstmt.registerOutParameter(11, Types.INTEGER);
+                cstmt.registerOutParameter(12, Types.FLOAT);
+
+                cstmt.registerOutParameter(13, Types.CHAR);
+                cstmt.registerOutParameter(14, Types.VARCHAR);
+                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter(16, Types.SMALLINT);
+
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble(9));
+                assertEquals(obj2, cstmt.getDouble(10));
+                assertEquals(obj3, cstmt.getInt(11));
+                assertEquals(obj4, cstmt.getFloat(12));
+                assertEquals(obj5, cstmt.getInt(13));
+                assertEquals(obj6, cstmt.getString(14));
+                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj8, cstmt.getLong(16));
+
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseMainlyIndexedParametersWithRegisteringSingleNamedOutputParam() {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when mainly using only indexed parameters, registering
+        // an output parameter by name will cause the cstmt to fail.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject(1, obj1, Types.NUMERIC);
+                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+                cstmt.setObject(3, obj3, Types.INTEGER);
+                cstmt.setObject(4, obj4, Types.FLOAT);
+
+                cstmt.setObject(5, obj5, Types.CHAR);
+                cstmt.setObject(6, obj6, Types.VARCHAR);
+                cstmt.setObject(7, obj7, Types.CHAR);
+                cstmt.setObject(8, obj8, Types.SMALLINT);
+
+                cstmt.registerOutParameter(9, Types.NUMERIC);
+                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
+                cstmt.registerOutParameter(11, Types.INTEGER);
+                cstmt.registerOutParameter(12, Types.FLOAT);
+
+                cstmt.registerOutParameter(13, Types.CHAR);
+                cstmt.registerOutParameter(14, Types.VARCHAR);
+                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter("o8", Types.SMALLINT);
+
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble(9));
+                assertEquals(obj2, cstmt.getDouble(10));
+                assertEquals(obj3, cstmt.getInt(11));
+                assertEquals(obj4, cstmt.getFloat(12));
+                assertEquals(obj5, cstmt.getInt(13));
+                assertEquals(obj6, cstmt.getString(14));
+                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj8, cstmt.getLong(16));
+
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseMainlyIndexedParametersWithGettingOutputParamByName() {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when mainly using only indexed parameters, getting
+        // an output parameter by name will cause the cstmt to fail.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject(1, obj1, Types.NUMERIC);
+                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
+                cstmt.setObject(3, obj3, Types.INTEGER);
+                cstmt.setObject(4, obj4, Types.FLOAT);
+
+                cstmt.setObject(5, obj5, Types.CHAR);
+                cstmt.setObject(6, obj6, Types.VARCHAR);
+                cstmt.setObject(7, obj7, Types.CHAR);
+                cstmt.setObject(8, obj8, Types.SMALLINT);
+
+                cstmt.registerOutParameter(9, Types.NUMERIC);
+                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
+                cstmt.registerOutParameter(11, Types.INTEGER);
+                cstmt.registerOutParameter(12, Types.FLOAT);
+
+                cstmt.registerOutParameter(13, Types.CHAR);
+                cstmt.registerOutParameter(14, Types.VARCHAR);
+                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter(16, Types.SMALLINT);
+
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble(9));
+                assertEquals(obj2, cstmt.getDouble(10));
+                assertEquals(obj3, cstmt.getInt(11));
+                assertEquals(obj4, cstmt.getFloat(12));
+                assertEquals(obj5, cstmt.getInt(13));
+                assertEquals(obj6, cstmt.getString(14));
+                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj8, cstmt.getLong("o8"));
+
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseNamedParameters() throws SQLException {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when using only named parameters, cstmt should succeed.
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {
                 int scale = 6;
@@ -489,15 +792,13 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testNamedParametersAcquireOutputParamValuesByIndexUseFlexibleCallableStatementFalse() throws SQLException {
+    public void useFlexibleCallableStatementFalseNamedParametersRandomOrder() throws SQLException {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
         String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
                 "useFlexibleCallableStatements", "false");
 
-        // useFlexibleCallableStatement=false
-        // Setting parameters by name
-        // Registering output parameters by name
-        // Acquiring output parameter values by index
+        // When useFlexibleCallableStatement=false and when using only named parameters in a random order,
+        // cstmt should succeed.
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {
                 int scale = 6;
@@ -510,161 +811,48 @@ public class CallableStatementTest extends AbstractTest {
                 String obj7 = "b";
                 long obj8 = 2015L;
 
+                cstmt.setObject("i5", obj5, Types.CHAR);
+                cstmt.setObject("i6", obj6, Types.VARCHAR);
+                cstmt.setObject("i7", obj7, Types.CHAR);
+                cstmt.setObject("i8", obj8, Types.SMALLINT);
+
                 cstmt.setObject("i1", obj1, Types.NUMERIC);
                 cstmt.setObject("i2", obj2, Types.NUMERIC, scale);
                 cstmt.setObject("i3", obj3, Types.INTEGER);
                 cstmt.setObject("i4", obj4, Types.FLOAT);
 
-                cstmt.setObject("i5", obj5, Types.CHAR);
-                cstmt.setObject("i6", obj6, Types.VARCHAR);
-                cstmt.setObject("i7", obj7, Types.CHAR);
-                cstmt.setObject("i8", obj8, Types.SMALLINT);
+                cstmt.registerOutParameter("o5", Types.CHAR);
+                cstmt.registerOutParameter("o6", Types.VARCHAR);
+                cstmt.registerOutParameter("o7", Types.CHAR);
+                cstmt.registerOutParameter("o8", Types.SMALLINT);
 
                 cstmt.registerOutParameter("o1", Types.NUMERIC);
                 cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
                 cstmt.registerOutParameter("o3", Types.INTEGER);
                 cstmt.registerOutParameter("o4", Types.FLOAT);
 
-                cstmt.registerOutParameter("o5", Types.CHAR);
-                cstmt.registerOutParameter("o6", Types.VARCHAR);
-                cstmt.registerOutParameter("o7", Types.CHAR);
-                cstmt.registerOutParameter("o8", Types.SMALLINT);
-                cstmt.execute();
-
-                assertEquals(obj1, cstmt.getDouble(9));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
-                assertEquals(obj8, cstmt.getLong(16));
-            }
-        }
-    }
-
-    @Test
-    public void testNamedParametersAndOutParamByIndexUseFlexibleCallableStatementFalse() throws SQLException {
-        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
-                "useFlexibleCallableStatements", "false");
-
-        // useFlexibleCallableStatement=false
-        // Setting parameters by name
-        // Registering output params by index
-        // Acquiring output param values by index
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (CallableStatement cstmt = conn.prepareCall(call)) {
-                int scale = 6;
-                double obj1 = 2015.0123;
-                double obj2 = 2015.012345;
-                int obj3 = -3;
-                float obj4 = 2015.04f;
-                int obj5 = 3;
-                String obj6 = "foo";
-                String obj7 = "b";
-                long obj8 = 2015L;
-
-                cstmt.setObject("i1", obj1, Types.NUMERIC);
-                cstmt.setObject("i2", obj2, Types.NUMERIC, scale);
-                cstmt.setObject("i3", obj3, Types.INTEGER);
-                cstmt.setObject("i4", obj4, Types.FLOAT);
-
-                cstmt.setObject("i5", obj5, Types.CHAR);
-                cstmt.setObject("i6", obj6, Types.VARCHAR);
-                cstmt.setObject("i7", obj7, Types.CHAR);
-                cstmt.setObject("i8", obj8, Types.SMALLINT);
-
-                cstmt.registerOutParameter(9, Types.NUMERIC);
-                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
-                cstmt.registerOutParameter(11, Types.INTEGER);
-                cstmt.registerOutParameter(12, Types.FLOAT);
-
-                cstmt.registerOutParameter(13, Types.CHAR);
-                cstmt.registerOutParameter(14, Types.VARCHAR);
-                cstmt.registerOutParameter(15, Types.CHAR);
-                cstmt.registerOutParameter(16, Types.SMALLINT);
-                cstmt.execute();
-
-                assertEquals(obj1, cstmt.getDouble(9));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
-                assertEquals(obj8, cstmt.getLong(16));
-            }
-        }
-    }
-
-    @Test
-    public void testNamedParameterOutputParameterErrorFlexibleCallableStatementFalse() throws SQLException {
-        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
-                "useFlexibleCallableStatements", "false");
-
-        // useFlexibleCallableStatement=false
-        // Setting parameters by name
-        // Registering output params by index
-        // Acquiring output param value 'o1' by name
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (CallableStatement cstmt = conn.prepareCall(call)) {
-                int scale = 6;
-                double obj1 = 2015.0123;
-                double obj2 = 2015.012345;
-                int obj3 = -3;
-                float obj4 = 2015.04f;
-                int obj5 = 3;
-                String obj6 = "foo";
-                String obj7 = "b";
-                long obj8 = 2015L;
-
-                cstmt.setObject("i1", obj1, Types.NUMERIC);
-                cstmt.setObject("i2", obj2, Types.NUMERIC, scale);
-                cstmt.setObject("i3", obj3, Types.INTEGER);
-                cstmt.setObject("i4", obj4, Types.FLOAT);
-
-                cstmt.setObject("i5", obj5, Types.CHAR);
-                cstmt.setObject("i6", obj6, Types.VARCHAR);
-                cstmt.setObject("i7", obj7, Types.CHAR);
-                cstmt.setObject("i8", obj8, Types.SMALLINT);
-
-                cstmt.registerOutParameter(9, Types.NUMERIC);
-                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
-                cstmt.registerOutParameter(11, Types.INTEGER);
-                cstmt.registerOutParameter(12, Types.FLOAT);
-
-                cstmt.registerOutParameter(13, Types.CHAR);
-                cstmt.registerOutParameter(14, Types.VARCHAR);
-                cstmt.registerOutParameter(15, Types.CHAR);
-                cstmt.registerOutParameter(16, Types.SMALLINT);
                 cstmt.execute();
 
                 assertEquals(obj1, cstmt.getDouble("o1"));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
-                assertEquals(obj8, cstmt.getLong(16));
-
-                fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                assertEquals(TestResource.getResource("R_unknownOutputParameter"), e.getMessage());
+                assertEquals(obj2, cstmt.getDouble("o2"));
+                assertEquals(obj3, cstmt.getInt("o3"));
+                assertEquals(obj4, cstmt.getFloat("o4"));
+                assertEquals(obj5, cstmt.getInt("o5"));
+                assertEquals(obj6, cstmt.getString("o6"));
+                assertEquals(obj7, cstmt.getString("o7"));
+                assertEquals(obj8, cstmt.getLong("o8"));
             }
         }
     }
 
     @Test
-    public void testNamedParametersAndByIndexErrorUseFlexibleCallableStatementFalse() throws SQLException {
+    public void useFlexibleCallableStatementFalseMainlyNamedParametersWithSettingSingleIndexedParam() {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
         String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
                 "useFlexibleCallableStatements", "false");
 
-        // useFlexibleCallableStatement=false
-        // Using majority named parameters and setting parameter by index
+        // When useFlexibleCallableStatement=false and when mainly using only named parameters, setting
+        // an input parameter by index will cause the cstmt to fail.
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {
                 int scale = 6;
@@ -708,19 +896,20 @@ public class CallableStatementTest extends AbstractTest {
                 assertEquals(obj8, cstmt.getLong("o8"));
 
                 fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
             }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
         }
     }
 
     @Test
-    public void testIndexedParametersUseFlexibleCallableStatementFalse() throws SQLException {
+    public void useFlexibleCallableStatementFalseMainlyNamedParametersWithRegisteringSingleIndexedOutputParam() {
         String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
         String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
                 "useFlexibleCallableStatements", "false");
 
-        // useFlexibleCallableStatement=false and using all index parameters
+        // When useFlexibleCallableStatement=false and when mainly using only named parameters, registering
+        // an output parameter by index will cause the cstmt to fail.
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (CallableStatement cstmt = conn.prepareCall(call)) {
                 int scale = 6;
@@ -733,145 +922,97 @@ public class CallableStatementTest extends AbstractTest {
                 String obj7 = "b";
                 long obj8 = 2015L;
 
-                cstmt.setObject(1, obj1, Types.NUMERIC);
-                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
-                cstmt.setObject(3, obj3, Types.INTEGER);
-                cstmt.setObject(4, obj4, Types.FLOAT);
+                cstmt.setObject("i1", obj1, Types.NUMERIC);
+                cstmt.setObject("i2", obj2, Types.NUMERIC, scale);
+                cstmt.setObject("i3", obj3, Types.INTEGER);
+                cstmt.setObject("i4", obj4, Types.FLOAT);
 
-                cstmt.setObject(5, obj5, Types.CHAR);
-                cstmt.setObject(6, obj6, Types.VARCHAR);
-                cstmt.setObject(7, obj7, Types.CHAR);
-                cstmt.setObject(8, obj8, Types.SMALLINT);
-
-                cstmt.registerOutParameter(9, Types.NUMERIC);
-                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
-                cstmt.registerOutParameter(11, Types.INTEGER);
-                cstmt.registerOutParameter(12, Types.FLOAT);
-
-                cstmt.registerOutParameter(13, Types.CHAR);
-                cstmt.registerOutParameter(14, Types.VARCHAR);
-                cstmt.registerOutParameter(15, Types.CHAR);
-                cstmt.registerOutParameter(16, Types.SMALLINT);
-                cstmt.execute();
-
-                assertEquals(obj1, cstmt.getDouble(9));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
-                assertEquals(obj8, cstmt.getLong(16));
-            }
-        }
-    }
-
-    @Test
-    public void testIndexedParametersAcquireOutputValueByNameErrorUseFlexibleCallableStatementFalse() throws SQLException {
-        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
-                "useFlexibleCallableStatements", "false");
-
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (CallableStatement cstmt = conn.prepareCall(call)) {
-                int scale = 6;
-                double obj1 = 2015.0123;
-                double obj2 = 2015.012345;
-                int obj3 = -3;
-                float obj4 = 2015.04f;
-                int obj5 = 3;
-                String obj6 = "foo";
-                String obj7 = "b";
-                long obj8 = 2015L;
-
-                cstmt.setObject(1, obj1, Types.NUMERIC);
-                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
-                cstmt.setObject(3, obj3, Types.INTEGER);
-                cstmt.setObject(4, obj4, Types.FLOAT);
-
-                cstmt.setObject(5, obj5, Types.CHAR);
-                cstmt.setObject(6, obj6, Types.VARCHAR);
-                cstmt.setObject(7, obj7, Types.CHAR);
-                cstmt.setObject(8, obj8, Types.SMALLINT);
-
-                cstmt.registerOutParameter(9, Types.NUMERIC);
-                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
-                cstmt.registerOutParameter(11, Types.INTEGER);
-                cstmt.registerOutParameter(12, Types.FLOAT);
-
-                cstmt.registerOutParameter(13, Types.CHAR);
-                cstmt.registerOutParameter(14, Types.VARCHAR);
-                cstmt.registerOutParameter(15, Types.CHAR);
-                cstmt.registerOutParameter(16, Types.SMALLINT);
-                cstmt.execute();
-
-                assertEquals(obj1, cstmt.getDouble(9));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
-                assertEquals(obj8, cstmt.getLong("o8"));
-                fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
-            }
-        }
-    }
-
-    @Test
-    public void testIndexedParametersRegisterOutputParamByNameUseFlexibleCallableStatementFalse() throws SQLException {
-        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
-        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
-                "useFlexibleCallableStatements", "false");
-
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (CallableStatement cstmt = conn.prepareCall(call)) {
-                int scale = 6;
-                double obj1 = 2015.0123;
-                double obj2 = 2015.012345;
-                int obj3 = -3;
-                float obj4 = 2015.04f;
-                int obj5 = 3;
-                String obj6 = "foo";
-                String obj7 = "b";
-                long obj8 = 2015L;
-
-                cstmt.setObject(1, obj1, Types.NUMERIC);
-                cstmt.setObject(2, obj2, Types.NUMERIC, scale);
-                cstmt.setObject(3, obj3, Types.INTEGER);
-                cstmt.setObject(4, obj4, Types.FLOAT);
-
-                cstmt.setObject(5, obj5, Types.CHAR);
-                cstmt.setObject(6, obj6, Types.VARCHAR);
-                cstmt.setObject(7, obj7, Types.CHAR);
-                cstmt.setObject(8, obj8, Types.SMALLINT);
+                cstmt.setObject("i5", obj5, Types.CHAR);
+                cstmt.setObject("i6", obj6, Types.VARCHAR);
+                cstmt.setObject("i7", obj7, Types.CHAR);
+                cstmt.setObject("i8", obj8, Types.SMALLINT);
 
                 cstmt.registerOutParameter("o1", Types.NUMERIC);
-                cstmt.registerOutParameter(10, Types.NUMERIC, scale);
-                cstmt.registerOutParameter(11, Types.INTEGER);
-                cstmt.registerOutParameter(12, Types.FLOAT);
+                cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
+                cstmt.registerOutParameter("o3", Types.INTEGER);
+                cstmt.registerOutParameter("o4", Types.FLOAT);
 
-                cstmt.registerOutParameter(13, Types.CHAR);
-                cstmt.registerOutParameter(14, Types.VARCHAR);
-                cstmt.registerOutParameter(15, Types.CHAR);
+                cstmt.registerOutParameter("o5", Types.CHAR);
+                cstmt.registerOutParameter("o6", Types.VARCHAR);
+                cstmt.registerOutParameter("o7", Types.CHAR);
                 cstmt.registerOutParameter(16, Types.SMALLINT);
                 cstmt.execute();
 
-                assertEquals(obj1, cstmt.getDouble(9));
-                assertEquals(obj2, cstmt.getDouble(10));
-                assertEquals(obj3, cstmt.getInt(11));
-                assertEquals(obj4, cstmt.getFloat(12));
-                assertEquals(obj5, cstmt.getInt(13));
-                assertEquals(obj6, cstmt.getString(14));
-                assertEquals(obj7, cstmt.getString(15));
+                assertEquals(obj1, cstmt.getDouble("o1"));
+                assertEquals(obj2, cstmt.getDouble("o2"));
+                assertEquals(obj3, cstmt.getInt("o3"));
+                assertEquals(obj4, cstmt.getFloat("o4"));
+                assertEquals(obj5, cstmt.getInt("o5"));
+                assertEquals(obj6, cstmt.getString("o6"));
+                assertEquals(obj7, cstmt.getString("o7"));
+                assertEquals(obj8, cstmt.getLong("o8"));
+
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
+        }
+    }
+
+    @Test
+    public void useFlexibleCallableStatementFalseMainlyNamedParametersWithGettingOutputParamByIndex() {
+        String call = "{CALL " + outOfOrderSproc + " (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}";
+        String connectionString = TestUtils.addOrOverrideProperty(getConnectionString(),
+                "useFlexibleCallableStatements", "false");
+
+        // When useFlexibleCallableStatement=false and when mainly using only named parameters, getting
+        // an output parameter by index will cause the cstmt to fail.
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (CallableStatement cstmt = conn.prepareCall(call)) {
+                int scale = 6;
+                double obj1 = 2015.0123;
+                double obj2 = 2015.012345;
+                int obj3 = -3;
+                float obj4 = 2015.04f;
+                int obj5 = 3;
+                String obj6 = "foo";
+                String obj7 = "b";
+                long obj8 = 2015L;
+
+                cstmt.setObject("i1", obj1, Types.NUMERIC);
+                cstmt.setObject("i2", obj2, Types.NUMERIC, scale);
+                cstmt.setObject("i3", obj3, Types.INTEGER);
+                cstmt.setObject("i4", obj4, Types.FLOAT);
+
+                cstmt.setObject("i5", obj5, Types.CHAR);
+                cstmt.setObject("i6", obj6, Types.VARCHAR);
+                cstmt.setObject("i7", obj7, Types.CHAR);
+                cstmt.setObject("i8", obj8, Types.SMALLINT);
+
+                cstmt.registerOutParameter("o1", Types.NUMERIC);
+                cstmt.registerOutParameter("o2", Types.NUMERIC, scale);
+                cstmt.registerOutParameter("o3", Types.INTEGER);
+                cstmt.registerOutParameter("o4", Types.FLOAT);
+
+                cstmt.registerOutParameter("o5", Types.CHAR);
+                cstmt.registerOutParameter("o6", Types.VARCHAR);
+                cstmt.registerOutParameter("o7", Types.CHAR);
+                cstmt.registerOutParameter("o8", Types.SMALLINT);
+                cstmt.execute();
+
+                assertEquals(obj1, cstmt.getDouble("o1"));
+                assertEquals(obj2, cstmt.getDouble("o2"));
+                assertEquals(obj3, cstmt.getInt("o3"));
+                assertEquals(obj4, cstmt.getFloat("o4"));
+                assertEquals(obj5, cstmt.getInt("o5"));
+                assertEquals(obj6, cstmt.getString("o6"));
+                assertEquals(obj7, cstmt.getString("o7"));
                 assertEquals(obj8, cstmt.getLong(16));
 
                 fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
             }
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_noNamedAndIndexedParameters"), e.getMessage());
         }
     }
 

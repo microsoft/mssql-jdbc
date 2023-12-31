@@ -1352,7 +1352,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1362,7 +1362,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setAsciiStream(int n, java.io.InputStream x, int length) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {n, x, length});
         checkClosed();
@@ -1372,7 +1372,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setAsciiStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1382,7 +1382,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1393,7 +1393,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision,
             int scale) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
                     new Object[] {parameterIndex, x, precision, scale});
@@ -1405,7 +1405,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setBigDecimal(int parameterIndex, BigDecimal x, int precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBigDecimal",
                     new Object[] {parameterIndex, x, precision, scale, forceEncrypt});
@@ -1416,7 +1416,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setMoney(int n, BigDecimal x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x});
         checkClosed();
@@ -1426,7 +1426,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1436,7 +1436,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setSmallMoney(int n, BigDecimal x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x});
         checkClosed();
@@ -1446,7 +1446,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setSmallMoney(int n, BigDecimal x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallMoney", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1456,7 +1456,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStreaml", new Object[] {parameterIndex, x});
         checkClosed();
@@ -1466,7 +1466,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBinaryStream(int n, java.io.InputStream x, int length) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {n, x, length});
         checkClosed();
@@ -1476,7 +1476,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterIndex, x, length});
         checkClosed();
@@ -1486,7 +1486,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBoolean(int n, boolean x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x});
         checkClosed();
@@ -1496,7 +1496,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBoolean(int n, boolean x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBoolean", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1506,7 +1506,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setByte(int n, byte x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x});
         checkClosed();
@@ -1516,7 +1516,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setByte(int n, byte x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setByte", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1526,7 +1526,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBytes(int n, byte[] x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x});
         checkClosed();
@@ -1536,7 +1536,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBytes(int n, byte[] x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBytes", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1546,7 +1546,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setUniqueIdentifier(int index, String guid) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier", new Object[] {index, guid});
         checkClosed();
@@ -1556,7 +1556,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setUniqueIdentifier(int index, String guid, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setUniqueIdentifier",
                     new Object[] {index, guid, forceEncrypt});
@@ -1567,7 +1567,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDouble(int n, double x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x});
         checkClosed();
@@ -1577,7 +1577,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDouble(int n, double x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDouble", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1587,7 +1587,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setFloat(int n, float x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x});
         checkClosed();
@@ -1597,7 +1597,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setFloat(int n, float x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setFloat", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1607,7 +1607,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setGeometry(int n, Geometry x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeometry", new Object[] {n, x});
         checkClosed();
@@ -1617,7 +1617,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setGeography(int n, Geography x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setGeography", new Object[] {n, x});
         checkClosed();
@@ -1627,7 +1627,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setInt(int n, int value) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value});
         checkClosed();
@@ -1637,7 +1637,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setInt(int n, int value, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setInt", new Object[] {n, value, forceEncrypt});
         checkClosed();
@@ -1647,7 +1647,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setLong(int n, long x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x});
         checkClosed();
@@ -1657,7 +1657,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setLong(int n, long x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setLong", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -1667,7 +1667,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNull(int index, int jdbcType) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {index, jdbcType});
         checkClosed();
@@ -1713,7 +1713,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setObject(int index, Object obj) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {index, obj});
         checkClosed();
@@ -1723,7 +1723,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setObject(int n, Object obj, int jdbcType) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         String tvpName = null;
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject", new Object[] {n, obj, jdbcType});
@@ -1738,7 +1738,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType,
             int scaleOrLength) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterIndex, x, targetSqlType, scaleOrLength});
@@ -1762,7 +1762,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision,
             int scale) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale});
@@ -1784,7 +1784,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale, forceEncrypt});
@@ -1882,7 +1882,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setShort(int index, short x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x});
         checkClosed();
@@ -1892,7 +1892,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setShort(int index, short x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setShort", new Object[] {index, x, forceEncrypt});
         checkClosed();
@@ -1902,7 +1902,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setString(int index, String str) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str});
         checkClosed();
@@ -1912,7 +1912,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setString(int index, String str, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setString", new Object[] {index, str, forceEncrypt});
         checkClosed();
@@ -1922,7 +1922,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNString(int parameterIndex, String value) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString", new Object[] {parameterIndex, value});
         checkClosed();
@@ -1932,7 +1932,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNString(int parameterIndex, String value, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNString",
                     new Object[] {parameterIndex, value, forceEncrypt});
@@ -1943,7 +1943,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTime(int n, java.sql.Time x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x});
         checkClosed();
@@ -1953,7 +1953,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTime(int n, java.sql.Time x, int scale) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale});
         checkClosed();
@@ -1963,7 +1963,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTime(int n, java.sql.Time x, int scale, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
@@ -1973,7 +1973,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTimestamp(int n, java.sql.Timestamp x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x});
         checkClosed();
@@ -1983,7 +1983,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTimestamp(int n, java.sql.Timestamp x, int scale) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale});
         checkClosed();
@@ -1994,7 +1994,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setTimestamp(int n, java.sql.Timestamp x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
@@ -2004,7 +2004,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x});
         checkClosed();
@@ -2014,7 +2014,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale});
         checkClosed();
@@ -2025,7 +2025,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
                     new Object[] {n, x, scale, forceEncrypt});
@@ -2036,7 +2036,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDate(int n, java.sql.Date x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x});
         checkClosed();
@@ -2046,7 +2046,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x});
         checkClosed();
@@ -2056,7 +2056,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -2066,7 +2066,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setSmallDateTime(int n, java.sql.Timestamp x) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x});
         checkClosed();
@@ -2076,7 +2076,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setSmallDateTime(int n, java.sql.Timestamp x, boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSmallDateTime", new Object[] {n, x, forceEncrypt});
         checkClosed();
@@ -2086,7 +2086,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setStructured(int n, String tvpName, SQLServerDataTable tvpDataTable) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpDataTable});
@@ -2097,7 +2097,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setStructured(int n, String tvpName, ResultSet tvpResultSet) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpResultSet});
@@ -2109,7 +2109,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setStructured(int n, String tvpName,
             ISQLServerDataRecord tvpBulkRecord) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         tvpName = getTVPNameIfNull(n, tvpName);
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setStructured", new Object[] {n, tvpName, tvpBulkRecord});
@@ -2938,6 +2938,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return true;
     }
 
+    private void setByIndex() throws SQLServerException {
+        isSetByIndex = true;
+        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
+        }
+    }
+
     /**
      * Prepare statement batch execute command
      */
@@ -3216,7 +3224,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -3226,7 +3234,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setCharacterStream(int n, java.io.Reader reader, int length) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream", new Object[] {n, reader, length});
         checkClosed();
@@ -3236,7 +3244,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setCharacterStream",
                     new Object[] {parameterIndex, reader, length});
@@ -3247,7 +3255,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream", new Object[] {parameterIndex, value});
         checkClosed();
@@ -3257,7 +3265,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNCharacterStream",
                     new Object[] {parameterIndex, value, length});
@@ -3273,7 +3281,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBlob(int i, java.sql.Blob x) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {i, x});
         checkClosed();
@@ -3283,7 +3291,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob", new Object[] {parameterIndex, inputStream});
         checkClosed();
@@ -3294,7 +3302,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setBlob",
                     new Object[] {parameterIndex, inputStream, length});
@@ -3305,7 +3313,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setClob(int parameterIndex, java.sql.Clob clobValue) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, clobValue});
         checkClosed();
@@ -3315,7 +3323,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setClob(int parameterIndex, Reader reader) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -3325,7 +3333,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -3335,7 +3343,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNClob(int parameterIndex, NClob value) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, value});
         checkClosed();
@@ -3345,7 +3353,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNClob(int parameterIndex, Reader reader) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader});
         checkClosed();
@@ -3355,7 +3363,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNClob", new Object[] {parameterIndex, reader, length});
         checkClosed();
@@ -3370,7 +3378,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setDate(int n, java.sql.Date x, java.util.Calendar cal) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal});
         checkClosed();
@@ -3381,7 +3389,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setDate(int n, java.sql.Date x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setDate", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
@@ -3391,7 +3399,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTime(int n, java.sql.Time x, java.util.Calendar cal) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal});
         checkClosed();
@@ -3402,7 +3410,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setTime(int n, java.sql.Time x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTime", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
@@ -3412,7 +3420,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
@@ -3423,7 +3431,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setTimestamp(int n, java.sql.Timestamp x, java.util.Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
@@ -3433,7 +3441,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setNull(int paramIndex, int sqlType, String typeName) throws SQLServerException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setNull", new Object[] {paramIndex, sqlType, typeName});
         checkClosed();
@@ -3483,7 +3491,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public final void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-        isSetByIndex = true;
+        setByIndex();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setSQLXML", new Object[] {parameterIndex, xmlObject});
         checkClosed();
