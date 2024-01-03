@@ -1745,7 +1745,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectRetryCount;
     }
 
-    final boolean attachConnId() {
+    final boolean isConnected() {
         return state.equals(State.CONNECTED);
     }
 
