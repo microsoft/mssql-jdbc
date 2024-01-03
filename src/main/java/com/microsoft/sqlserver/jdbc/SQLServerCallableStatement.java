@@ -2550,8 +2550,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
                     new Object[] {index, sqlType, typeName});
 
-        checkClosed();
-
         registerOutParameterByName(index, sqlType);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
@@ -2569,8 +2567,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
                     new Object[] {index, sqlType, scale});
-
-        checkClosed();
 
         registerOutParameterByName(index, sqlType);
         inOutParam[index - 1].setOutScale(scale);
@@ -2591,8 +2587,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
                     new Object[] {index, sqlType, scale, precision});
-
-        checkClosed();
 
         registerOutParameterByName(index, sqlType);
         inOutParam[index - 1].setValueLength(precision);
