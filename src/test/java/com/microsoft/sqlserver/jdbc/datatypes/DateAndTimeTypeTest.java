@@ -345,7 +345,6 @@ public class DateAndTimeTypeTest extends AbstractTest {
             stmt.execute();
 
             actual = stmt.getString(1);
-            System.out.println(actual);
         }
 
         assertEquals(expected, actual.toString());
