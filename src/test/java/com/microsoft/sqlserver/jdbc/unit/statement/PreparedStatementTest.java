@@ -299,8 +299,6 @@ public class PreparedStatementTest extends AbstractTest {
                 if (prevDiscardActionCount > con.getServerPreparedStatementDiscardThreshold()) {
                     prevDiscardActionCount = 0;
                 }
-
-                //assertSame(prevDiscardActionCount, con.getDiscardedServerPreparedStatementCount());
             }
 
             // Skipped for now due to unexpected failures. Not functional so not critical.
