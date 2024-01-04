@@ -2546,10 +2546,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         int index = findColumn(parameterName, CallableStatementGetterSetterMethod.IS_SETTER_METHOD);
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {index, sqlType, typeName});
-
         registerOutParameterByName(index, sqlType);
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
@@ -2564,10 +2560,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         int index = findColumn(parameterName, CallableStatementGetterSetterMethod.IS_SETTER_METHOD);
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {index, sqlType, scale});
-
         registerOutParameterByName(index, sqlType);
         inOutParam[index - 1].setOutScale(scale);
 
@@ -2579,14 +2571,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {parameterName, sqlType, scale});
+                    new Object[] {parameterName, sqlType, scale, precision});
         checkClosed();
 
         int index = findColumn(parameterName, CallableStatementGetterSetterMethod.IS_SETTER_METHOD);
-
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
-                    new Object[] {index, sqlType, scale, precision});
 
         registerOutParameterByName(index, sqlType);
         inOutParam[index - 1].setValueLength(precision);
