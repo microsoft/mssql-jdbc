@@ -415,7 +415,7 @@ final class Parameter {
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
         if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType
-                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType) && jdbcType != JDBCType.VARCHAR) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
@@ -423,8 +423,12 @@ final class Parameter {
         newDTV.setValue(con.getDatabaseCollation(), jdbcType, value, javaType, streamSetterArgs, calendar, scale, con,
                 forceEncrypt);
 
-        if (!con.sendStringParametersAsUnicode()) {
+        if (!con.sendStringParametersAsUnicode() || (con.sendStringParametersAsUnicode() && jdbcType == JDBCType.VARCHAR)) {
             newDTV.sendStringParametersAsUnicode = false;
+        }
+
+        if (con.sendStringParametersAsUnicode() && jdbcType == JDBCType.VARCHAR && (!con.getDatabaseCollation().isUtf8Encoding() || con.getServerMajorVersion() < 15)) {
+            throw new SQLServerException(SQLServerException.getErrString("R_possibleColumnDataCorruption"), null);
         }
 
         inputDTV = setterDTV = newDTV;
