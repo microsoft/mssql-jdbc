@@ -541,6 +541,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastStatementID = new AtomicInteger(0);
 
+    /*
+     * T-SQL TOP syntax regex
+     */
+    private final static Pattern TOP_SYNTAX = Pattern.compile("\\bTOP\\s*\\(\\s*\\?\\s*\\)", Pattern.CASE_INSENSITIVE);
+
     private static int nextStatementID() {
         return lastStatementID.incrementAndGet();
     }
@@ -1098,6 +1103,11 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @return the result
      */
     static String replaceMarkerWithNull(String sql) {
+        // replace all top(?) to top(1) as null is not valid
+        if (TOP_SYNTAX.matcher(sql).find()) {
+            sql = TOP_SYNTAX.matcher(sql).replaceAll("TOP(1)");
+        }
+
         if (!sql.contains("'")) {
             return replaceParameterWithString(sql, '?', "null");
         } else {

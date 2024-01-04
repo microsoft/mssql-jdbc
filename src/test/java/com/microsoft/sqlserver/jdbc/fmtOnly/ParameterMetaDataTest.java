@@ -4,9 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -101,7 +103,7 @@ public class ParameterMetaDataTest extends AbstractTest {
     }
 
     @Test
-    public void tempTableTest() throws SQLException {
+    public void getParameterMetaDataTest() throws SQLException {
         String tempTableName = "[#jdbc_temp" + UUID.randomUUID() + "]";
         try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
                 Statement s = c.createStatement()) {
@@ -111,6 +113,29 @@ public class ParameterMetaDataTest extends AbstractTest {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(pmd.getParameterCount() == 1);
             }
+        } finally {
+            try (Statement s = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tempTableName, s);
+            }
+        }
+    }
+
+    /**
+     * Tests sql containing TOP
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void getMetaDataTest() throws SQLException {
+        String tempTableName = "[#jdbc_temp" + UUID.randomUUID() + "]";
+        try (Connection c = PrepUtil.getConnection(AbstractTest.connectionString + ";useFmtOnly=true;");
+                Statement s = c.createStatement(); PreparedStatement p = c
+                        .prepareStatement("SELECT TOP(?) [c1] FROM " + tempTableName + " WHERE c1 = ?")) {
+            TestUtils.dropTableIfExists(tempTableName, s);
+            s.execute("CREATE TABLE " + tempTableName + " (c1 int)");
+
+            ResultSetMetaData rmd = p.getMetaData();
+            assertTrue(rmd.getColumnCount() == 1);
         } finally {
             try (Statement s = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTableName, s);
