@@ -402,7 +402,7 @@ public class PreparedStatementTest extends AbstractTest {
                 // If we use it, now discard queue should be "full".
                 // At any point, con.getDiscardedPreparedStatementCount will always be 1 (i.e. the last eviction).
                 if (0 == testNo)
-                    assertSame(1, con.getDiscardedServerPreparedStatementCount());
+                    assertSame(discardedStatementCount, con.getDiscardedServerPreparedStatementCount());
                 else
                     assertSame(0, con.getDiscardedServerPreparedStatementCount());
 
