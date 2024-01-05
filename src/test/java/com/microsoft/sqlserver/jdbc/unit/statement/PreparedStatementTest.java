@@ -299,6 +299,8 @@ public class PreparedStatementTest extends AbstractTest {
                 if (prevDiscardActionCount > con.getServerPreparedStatementDiscardThreshold()) {
                     prevDiscardActionCount = 0;
                 }
+
+                assertSame(1, con.getDiscardedServerPreparedStatementCount());
             }
 
             // Skipped for now due to unexpected failures. Not functional so not critical.
@@ -398,7 +400,10 @@ public class PreparedStatementTest extends AbstractTest {
                 }
 
                 // If we use it, now discard queue should be "full".
-                if (0 != testNo)
+                // At any point, con.getDiscardedPreparedStatementCount will always be 1 (i.e. the last eviction).
+                if (0 == testNo)
+                    assertSame(1, con.getDiscardedServerPreparedStatementCount());
+                else
                     assertSame(0, con.getDiscardedServerPreparedStatementCount());
 
                 // Adding one more statement should cause one more pooled statement to be invalidated and

@@ -592,6 +592,11 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
+                        if (inScale == null) {
+                            // If inscale is null, null has been passed to a bigDecimal column. This will corrupt the
+                            // destination, so we block it.
+                            param.typeDefinition = null;
+                        }
                         if (con.getCalcBigDecimalPrecision() && dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != dtv.getSetterValue()) {
                             String[] plainValueArray = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString()
