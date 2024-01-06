@@ -415,7 +415,7 @@ final class Parameter {
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
         if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType
-                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType) && jdbcType != JDBCType.VARCHAR) {
+                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType) && !((jdbcType == JDBCType.VARCHAR || jdbcType == JDBCType.CHAR) && con.isColumnEncryptionSettingEnabled())) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
@@ -423,11 +423,13 @@ final class Parameter {
         newDTV.setValue(con.getDatabaseCollation(), jdbcType, value, javaType, streamSetterArgs, calendar, scale, con,
                 forceEncrypt);
 
-        if (!con.sendStringParametersAsUnicode() || (con.sendStringParametersAsUnicode() && jdbcType == JDBCType.VARCHAR)) {
+        if (!con.sendStringParametersAsUnicode() || (con.sendStringParametersAsUnicode()
+                && con.isColumnEncryptionSettingEnabled() && (jdbcType == JDBCType.VARCHAR || jdbcType == JDBCType.CHAR))) {
             newDTV.sendStringParametersAsUnicode = false;
         }
 
-        if (con.sendStringParametersAsUnicode() && jdbcType == JDBCType.VARCHAR && (!con.getDatabaseCollation().isUtf8Encoding() || con.getServerMajorVersion() < 15)) {
+        if (con.sendStringParametersAsUnicode() && (jdbcType == JDBCType.VARCHAR || jdbcType == JDBCType.CHAR) && con.isColumnEncryptionSettingEnabled()
+                && (!con.getDatabaseCollation().isUtf8Encoding() || con.getServerMajorVersion() < 15)) {
             throw new SQLServerException(SQLServerException.getErrString("R_possibleColumnDataCorruption"), null);
         }
 
@@ -812,7 +814,7 @@ final class Parameter {
                         } else {
                             param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
-                            if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
+                            if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }

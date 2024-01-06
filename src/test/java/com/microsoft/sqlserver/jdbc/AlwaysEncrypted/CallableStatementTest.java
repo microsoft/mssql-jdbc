@@ -149,7 +149,7 @@ public class CallableStatementTest extends AESetup {
         createTable(BINARY_TABLE_AE, cekJks, binaryTable);
 
         createDateTableCallableStatement(cekJks);
-        populateCharNormalCase(charValues);
+        populateCharNormalCase(charValues, false);
         populateNumericSetObject(numericValues);
         populateBinaryNormalCase(byteValues);
         populateDateNormalCase();
