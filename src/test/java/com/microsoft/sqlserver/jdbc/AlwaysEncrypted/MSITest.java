@@ -419,7 +419,7 @@ public class MSITest extends AESetup {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             String[] values = createCharValues(false);
-            populateCharNormalCase(values);
+            populateCharNormalCase(values, false);
 
             try (ResultSet rs = (stmt == null) ? pstmt.executeQuery() : stmt.executeQuery(sql)) {
                 int numberOfColumns = rs.getMetaData().getColumnCount();
