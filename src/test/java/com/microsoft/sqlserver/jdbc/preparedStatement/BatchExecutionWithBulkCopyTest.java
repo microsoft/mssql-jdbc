@@ -802,10 +802,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
-     * Test insert table with no space after table name
+     * Test bulk insert with no space after table name
      * 
-     * @throws SQLException
-     * @throws ClassNotFoundException
+     * @throws Exception
      */
     @Test
     public void testNoSpaceInsert() throws Exception {
