@@ -144,7 +144,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_stringNotInHex", "The string is not in a valid hex format."},
         {"R_unknownType", "The Java type {0} is not a supported type."},
         {"R_physicalConnectionIsClosed", "The physical connection is closed for this pooled connection."},
-        {"R_noNamedAndIndexedParameters", "Detected uncompliant use of both named and indexed parameters while 'useFlexibleCallableStatements=false'. It is suggested to either exclusively use named parameters or indexed parameters."},
+        {"R_noNamedAndIndexedParameters", "Cannot specify both named and indexed parameters when 'useFlexibleCallableStatements=false'"},
         {"R_unknownOutputParameter", "Cannot acquire output parameter value by name. No parameter index was associated with the output parameter name. If acquiring output parameter by name, verify that the output parameter was initially registered by name."},
         {"R_invalidDataSourceReference", "Invalid DataSource reference."},
         {"R_cantGetColumnValueFromDeletedRow", "Cannot get a value from a deleted row."},

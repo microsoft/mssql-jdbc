@@ -57,7 +57,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_grantFailed", "grant table with preparedStatement failed!"},
             {"R_connectionIsClosed", "The connection is closed."},
             {"R_noNamedAndIndexedParameters",
-                    "Detected uncompliant use of both named and indexed parameters while 'useFlexibleCallableStatements=false'. It is suggested to either exclusively use named parameters or indexed parameters."},
+                    "Cannot specify both named and indexed parameters when 'useFlexibleCallableStatements=false'"},
             {"R_unknownOutputParameter",
                     "Cannot acquire output parameter value by name. No parameter index was associated with the output parameter name. If acquiring output parameter by name, verify that the output parameter was initially registered by name."},
             {"R_ConnectionURLNull", "The connection URL is null."},
