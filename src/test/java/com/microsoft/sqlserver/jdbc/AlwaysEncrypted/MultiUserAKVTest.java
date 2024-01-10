@@ -526,7 +526,7 @@ public class MultiUserAKVTest extends AESetup {
     private void insertData(String tableName, int customId, String customName) {
         String sqlQuery = "INSERT INTO " + tableName + " VALUES ( ?, ? )";
 
-        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sqlQuery,
                         SQLServerStatementColumnEncryptionSetting.ENABLED)) {
             pstmt.setInt(1, customId);
