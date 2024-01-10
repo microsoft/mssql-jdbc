@@ -37,7 +37,8 @@ public class SSLCertificateValidationTest {
         Constructor<?> constructor = hsoClass.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
         Object hsoObject = constructor.newInstance(tdsc, null, serverName);
-        Method method = SQLServerCertificateUtils.class.getDeclaredMethod("validateServerName", String.class, String.class);
+        Method method = SQLServerCertificateUtils.class.getDeclaredMethod("validateServerName", String.class,
+                String.class);
         method.setAccessible(true);
 
         /*

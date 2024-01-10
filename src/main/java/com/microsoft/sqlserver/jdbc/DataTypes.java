@@ -1115,7 +1115,8 @@ final class DataTypes {
     static final void throwConversionError(String fromType, String toType) throws SQLServerException {
         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedConversionFromTo"));
         Object[] msgArgs = {fromType, toType};
-        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), SQLState.ERROR_IN_ASSIGNMENT.getSQLStateCode(), true);
+        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs),
+                SQLState.ERROR_IN_ASSIGNMENT.getSQLStateCode(), true);
     }
 
     /**

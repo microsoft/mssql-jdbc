@@ -28,27 +28,27 @@ public class SensitivityClassification {
          * rank not defined
          */
         NOT_DEFINED(-1),
-        
+
         /**
          * rank NONE
          */
         NONE(0),
-        
+
         /**
          * rank LOW
          */
         LOW(10),
-        
+
         /**
          * rank MEDIUM
          */
         MEDIUM(20),
-        
+
         /**
          * rank HIGH
          */
         HIGH(30),
-        
+
         /**
          * rank CRITICAL
          */

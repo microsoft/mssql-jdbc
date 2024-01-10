@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @Tag(Constants.kerberos)
 @RunWith(JUnitPlatform.class)
 public class KerberosTest extends AbstractTest {
@@ -59,8 +60,8 @@ public class KerberosTest extends AbstractTest {
             createKerberosConnection(connectionStringKerberos);
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            Assertions.assertTrue(e.getMessage()
-                    .contains(TestResource.getResource("R_noLoginModulesConfiguredForJdbcDriver")));
+            Assertions.assertTrue(
+                    e.getMessage().contains(TestResource.getResource("R_noLoginModulesConfiguredForJdbcDriver")));
         }
     }
 
@@ -96,12 +97,10 @@ public class KerberosTest extends AbstractTest {
      */
     private static void overwriteJaasConfig() {
         AppConfigurationEntry kafkaClientConfigurationEntry = new AppConfigurationEntry(
-                "com.sun.security.auth.module.Krb5LoginModule",
-                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                "com.sun.security.auth.module.Krb5LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                 new HashMap<>());
         Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("CLIENT_CONTEXT_NAME",
-                new AppConfigurationEntry[] { kafkaClientConfigurationEntry });
+        configurationEntries.put("CLIENT_CONTEXT_NAME", new AppConfigurationEntry[] {kafkaClientConfigurationEntry});
         Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
     }
 

@@ -103,7 +103,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private static final byte[] netAddress = getRandomNetAddress();
 
-    /** timer expiry in ms */
+    /** timer expiry */
     long timerExpire;
 
     /** flag to indicate if attempt refresh token is locked */
@@ -165,7 +165,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
     /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
-    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue();
+    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS
+            .getDefaultValue();
 
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
@@ -229,6 +230,52 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Engine Edition 11 = Azure Synapse serverless SQL pool */
     private static final int ENGINE_EDITION_SQL_AZURE_SYNAPSE_SERVERLESS_SQL_POOL = 11;
 
+    /**
+     * Azure SQL server endpoints
+     */
+    enum AzureSQLServerEndpoints {
+        AZURE_GENERIC_ENDPOINT(".database.windows.net"),
+        AZURE_GERMAN_ENDPOINT(".database.cloudapi.de"),
+        AZURE_USGOV_ENDPOINT(".database.usgovcloudapi.net"),
+        AZURE_CHINA_ENDPOINT(".database.china.cloudapi.cn");
+
+        private static final String ON_DEMAND_PREFIX = "-ondemand";
+        private static final String AZURE_SYNAPSE = "-ondemand.sql.azuresynapse.";
+
+        private final String endpoint;
+
+        private AzureSQLServerEndpoints(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        static boolean isAzureSqlServerEndpoint(String endpoint) {
+            for (AzureSQLServerEndpoints e : AzureSQLServerEndpoints.values()) {
+                if (endpoint.endsWith(e.toString())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static boolean isAzureSynapseOnDemandEndpoint(String endpoint) {
+            if (endpoint.contains(AZURE_SYNAPSE)) {
+                return true;
+            }
+
+            for (AzureSQLServerEndpoints e : AzureSQLServerEndpoints.values()) {
+                if (endpoint.endsWith(ON_DEMAND_PREFIX + e.toString())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return endpoint;
+        }
+    }
+
     /** flag indicating whether server is Azure */
     private Boolean isAzure = null;
 
@@ -243,8 +290,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** shared timer */
     private SharedTimer sharedTimer;
-
-    /* connect timer */
 
     /** connect retry count */
     private int connectRetryCount = 0;
@@ -666,6 +711,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private final static int INTERMITTENT_TLS_MAX_RETRY = 5;
 
+    /**
+     * Defaults for Azure SQL Server retry counts
+     * 
+     */
+    private final static int AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT = 2;
+    private final static int AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT = 5;
+
     /** Indicates if we received a routing ENVCHANGE in the current connection attempt */
     private boolean isRoutedInCurrentAttempt = false;
 
@@ -789,6 +841,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * 
      * @return flag for using Bulk Copy API for batch insert operations.
      */
+    @Override
     public boolean getUseBulkCopyForBatchInsert() {
         return useBulkCopyForBatchInsert;
     }
@@ -799,6 +852,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param useBulkCopyForBatchInsert
      *        boolean value for useBulkCopyForBatchInsert.
      */
+    @Override
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
@@ -983,7 +1037,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** Boolean that indicates whether datetime types are converted to java.time objects using java.time rules */
-    private boolean ignoreOffsetOnDateTimeOffsetConversion = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue();
+    private boolean ignoreOffsetOnDateTimeOffsetConversion = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION
+            .getDefaultValue();
 
     @Override
     public boolean getIgnoreOffsetOnDateTimeOffsetConversion() {
@@ -995,16 +1050,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
-    private boolean calcBigDecimalScale = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue();
+    private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION
+            .getDefaultValue();
 
     @Override
-    public boolean getCalcBigDecimalScale() {
-        return calcBigDecimalScale;
+    public boolean getCalcBigDecimalPrecision() {
+        return calcBigDecimalPrecision;
     }
 
     @Override
-    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
-        this.calcBigDecimalScale = calcBigDecimalScale;
+    public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
+        this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
     /** Session Recovery Object */
@@ -1689,10 +1745,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectRetryCount;
     }
 
-    final boolean isOpened() {
-        return state.equals(State.OPENED);
-    }
-
     final boolean isConnected() {
         return state.equals(State.CONNECTED);
     }
@@ -1840,20 +1892,125 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-
-        if (propsIn != null) {
-            activeConnectionProperties = (Properties) propsIn.clone();
+    /**
+     * sleep for ms interval
+     * 
+     * @param interval
+     *        in ms
+     */
+    private void sleepForInterval(long interval) {
+        try {
+            Thread.sleep(interval);
+        } catch (InterruptedException e) {
+            // re-interrupt the current thread, in order to restore the thread's interrupt status.
+            Thread.currentThread().interrupt();
         }
+    }
 
-        int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+    Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
+        int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+        if (propsIn != null) {
+            String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+            try {
+                if (null != sPropValue && sPropValue.length() > 0) {
+                    int sPropValueInt = Integer.parseInt(sPropValue);
+                    if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                        loginTimeoutSeconds = sPropValueInt;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
+        }
 
         // Interactive auth may involve MFA which require longer timeout
         if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
             loginTimeoutSeconds *= 10;
         }
 
-        return connectInternal(propsIn, pooledConnection);
+        long elapsedSeconds = 0;
+        long start = System.currentTimeMillis();
+        for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
+            try {
+                if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
+                    if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY
+                                    + " elapsed time " + elapsedSeconds + " secs");
+                        }
+                    } else if (0 < connectRetryAttempt) {
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
+                                    + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
+                        }
+                    }
+
+                    return connectInternal(propsIn, pooledConnection);
+                }
+            } catch (SQLServerException e) {
+                elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
+
+                // special case for TLS intermittent failures: no wait retries
+                if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
+                        && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(
+                                "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
+                                        + tlsRetryAttempt + ".");
+                    }
+                    tlsRetryAttempt++;
+                } else {
+                    // TLS max retry exceeded
+                    if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
+                                    + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
+                        }
+                    }
+
+                    if (0 == connectRetryCount) {
+                        // connection retry disabled
+                        throw e;
+                    } else if (connectRetryAttempt++ > connectRetryCount) {
+                        // maximum connection retry count reached
+                        if (connectionlogger.isLoggable(Level.FINE)) {
+                            connectionlogger.fine("Connection failed. Maximum connection retry count "
+                                    + connectRetryCount + " reached.");
+                        }
+                        throw e;
+                    } else {
+                        // only retry if transient error
+                        SQLServerError sqlServerError = e.getSQLServerError();
+                        if (!TransientError.isTransientError(sqlServerError)) {
+                            throw e;
+                        }
+
+                        // check if there's time to retry, no point to wait if no time left
+                        if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
+                            if (connectionlogger.isLoggable(Level.FINEST)) {
+                                connectionlogger
+                                        .finest("Connection failed. No time left to retry timeout will be exceeded:"
+                                                + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
+                                                + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
+                                                + ")s");
+                            }
+                            throw e;
+                        }
+
+                        // wait for connectRetryInterval before retry
+                        if (connectionlogger.isLoggable(Level.FINEST)) {
+                            connectionlogger.finest(toString() + "Connection failed on transient error "
+                                    + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
+                                    + connectRetryInterval + ")s before retry.");
+                        }
+
+                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                    }
+                }
+            }
+        }
     }
 
     private void registerKeyStoreProviderOnConnection(String keyStoreAuth, String keyStoreSecret,
@@ -1953,6 +2110,63 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return timeout;
     }
 
+    // Helper to validate connection retry properties
+    void validateConnectionRetry() throws SQLServerException {
+        // validate retry count
+        connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
+        String sPropValue = activeConnectionProperties
+                .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            try {
+                connectRetryCount = Integer.parseInt(sPropValue);
+                if (!SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.isValidValue(connectRetryCount)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidConnectRetryCount"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
+        } else {
+            // if property was not set, detect and increase for Azure endpoints
+            if (connectRetryCount == 1) {
+
+                // Set to larger default value for Azure connections to greatly improve recovery
+                if (isAzureSynapseOnDemandEndpoint()) {
+                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
+                } else if (isAzureSqlServerEndpoint()) {
+                    connectRetryCount = AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                }
+            }
+        }
+
+        // validate retry interval
+        connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
+        sPropValue = activeConnectionProperties
+                .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
+        if (null != sPropValue && sPropValue.length() > 0) {
+            try {
+                connectRetryInterval = Integer.parseInt(sPropValue);
+                if (!SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.isValidValue(connectRetryInterval)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+            } catch (NumberFormatException e) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_invalidConnectRetryInterval"));
+                Object[] msgArgs = {sPropValue};
+                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+            }
+        }
+    }
+
     /**
      * Establish a physical database connection based on the user specified connection properties. Logon to the
      * database.
@@ -1968,6 +2182,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try {
             if (propsIn != null) {
+
+                activeConnectionProperties = (Properties) propsIn.clone();
 
                 pooledConnectionParent = pooledConnection;
 
@@ -2025,6 +2241,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 validateMaxSQLLoginName(sPropKey, sPropValue);
 
+                // if the user does not specify a default timeout, default is 15 per spec
                 int loginTimeoutSeconds = validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
 
                 // Translates the serverName from Unicode to ASCII Compatible Encoding (ACE), as defined by the ToASCII
@@ -2100,14 +2317,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.toString();
+                sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_SCALE.getDefaultValue());
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
 
-                calcBigDecimalScale = isBooleanPropertyOn(sPropKey, sPropValue);
+                calcBigDecimalPrecision = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2264,8 +2482,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean
-                            .toString(SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
+                    sPropValue = Boolean.toString(
+                            SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 useFlexibleCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);
@@ -2901,7 +3119,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
-                    sPropValue = Boolean.toString(SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION.getDefaultValue());
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION
+                                    .getDefaultValue());
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 ignoreOffsetOnDateTimeOffsetConversion = isBooleanPropertyOn(sPropKey, sPropValue);
@@ -2947,59 +3167,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 String mirror = (null == fo) ? failOverPartnerPropertyValue : null;
 
-                connectRetryCount = SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue();
-                sPropValue = activeConnectionProperties
-                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString());
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    try {
-                        connectRetryCount = Integer.parseInt(sPropValue);
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                    if (connectRetryCount < 0 || connectRetryCount > 255) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryCount"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                }
+                validateConnectionRetry();
 
-                connectRetryInterval = SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue();
-                sPropValue = activeConnectionProperties
-                        .getProperty(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString());
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    try {
-                        connectRetryInterval = Integer.parseInt(sPropValue);
-                    } catch (NumberFormatException e) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-
-                    if (connectRetryInterval < 1 || connectRetryInterval > 60) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_invalidConnectRetryInterval"));
-                        Object[] msgArgs = {sPropValue};
-                        SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
-                    }
-                }
-
+                long startTime = System.currentTimeMillis();
                 sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
                         ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds
                                                                                                  : loginTimeoutSeconds);
                 login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
-                        loginTimeoutSeconds, System.currentTimeMillis());
+                        loginTimeoutSeconds, startTime);
             } else {
+                long startTime = System.currentTimeMillis();
                 login(activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()),
                         sessionRecovery.getInstanceValue(), sessionRecovery.getNPort(),
                         activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString()),
-                        sessionRecovery.getFailoverInfo(), sessionRecovery.getLoginTimeoutSeconds(),
-                        System.currentTimeMillis());
+                        sessionRecovery.getFailoverInfo(), sessionRecovery.getLoginTimeoutSeconds(), startTime);
             }
 
             // If SSL is to be used for the duration of the connection, then make sure
@@ -3021,6 +3203,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             state = State.OPENED;
+
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
@@ -3037,31 +3220,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * sleep for ms interval
-     * 
-     * @param interval
-     *        in ms
-     */
-    private void sleepInterval(long interval) {
-        try {
-            Thread.sleep(interval);
-        } catch (InterruptedException e) {
-            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
      * This function is used by non failover and failover cases. Even when we make a standard connection the server can
      * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
      * returns a failover upon connection, we shall store the FO in our cache.
      */
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
-            FailoverInfo foActual, int loginTimeoutSeconds, long loginStartTime) throws SQLServerException {
+            FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
 
         final boolean isDBMirroring = null != mirror || null != foActual;
+
+        int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
 
@@ -3090,37 +3260,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long intervalExpire;
 
-        if (0 == loginTimeoutSeconds) {
-            loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+        if (0 == timeout) {
+            timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
         }
-
-        long loginTimeoutMs = loginTimeoutSeconds * 1000L; // ConnectTimeout is in seconds, we need timer millis
-        timerExpire = loginStartTime + loginTimeoutMs;
+        long timerTimeout = timeout * 1000L; // ConnectTimeout is in seconds, we need timer millis
+        timerExpire = timerStart + timerTimeout;
 
         // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time
         // slice.
         if (isDBMirroring || useParallel) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP * loginTimeoutMs);
+            timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
         } else if (useTnir) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * loginTimeoutMs);
+            timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
         } else {
-            timeoutUnitInterval = loginTimeoutMs;
+            timeoutUnitInterval = timerTimeout;
         }
-        intervalExpire = loginStartTime + timeoutUnitInterval;
+        intervalExpire = timerStart + timeoutUnitInterval;
 
         // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
         // and the original timeout is used instead of the timeout slice.
-        long intervalExpireFullTimeout = loginStartTime + loginTimeoutMs;
+        long intervalExpireFullTimeout = timerStart + timerTimeout;
 
         if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer(toString() + " Connection open - start time: " + loginStartTime + " time out time: " + timerExpire
-                    + " timeout unit interval: " + timeoutUnitInterval);
+            loggerResiliency.finer(toString() + " Connection open - start time: " + timeout + " time out time: "
+                    + timerExpire + " timeout unit interval: " + timeoutUnitInterval);
         }
 
         // Initialize loop variables
-        int retryAttempt = 0;
-        int tlsRetryAttempt = 0;
-        int driverErrorCode = SQLServerException.DRIVER_ERROR_NONE;
+        int attemptNumber = 0;
         SQLServerError sqlServerError = null;
 
         // indicates the no of times the connection was routed to a different server
@@ -3147,7 +3314,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else {
                     if (routingInfo != null) {
                         if (loggerRedirection.isLoggable(Level.FINE)) {
-                            loggerRedirection.fine(toString() + " Connection open - redirecting to server and instance: " + routingInfo.getFullServerName());
+                            loggerRedirection
+                                    .fine(toString() + " Connection open - redirecting to server and instance: "
+                                            + routingInfo.getFullServerName());
                         }
                         currentPrimaryPlaceHolder = routingInfo;
                         routingInfo = null;
@@ -3158,25 +3327,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                 }
 
-                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
-                    loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: " + retryAttempt);
+                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
+                    loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: "
+                            + attemptNumber);
                 }
 
                 if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency
-                            .finer(toString() + " Connection open - attempt server name: " + currentConnectPlaceHolder.getServerName()
-                                    + " port: " + currentConnectPlaceHolder.getPortNumber() + " InstanceName: "
-                                    + currentConnectPlaceHolder.getInstanceName() + " useParallel: " + useParallel);
+                    loggerResiliency.finer(toString() + " Connection open - attempt server name: "
+                            + currentConnectPlaceHolder.getServerName() + " port: "
+                            + currentConnectPlaceHolder.getPortNumber() + " InstanceName: "
+                            + currentConnectPlaceHolder.getInstanceName() + " useParallel: " + useParallel);
                     loggerResiliency.finer(toString() + " Connection open - attempt end time: " + intervalExpire);
-                    loggerResiliency.finer(toString() + " Connection open - attempt number: " + retryAttempt);
+                    loggerResiliency.finer(toString() + " Connection open - attempt number: " + attemptNumber);
                 }
 
                 // Attempt login. Use Place holder to make sure that the failoverdemand is done.
                 InetSocketAddress inetSocketAddress = connectHelper(currentConnectPlaceHolder,
-                        timerRemaining(intervalExpire), loginTimeoutSeconds, useParallel, useTnir,
-                        (0 == retryAttempt), /* TNIR 1st attempt */
-                        timerRemaining(intervalExpireFullTimeout)); /* Only used when host resolves to >64 IPs */
-
+                        timerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // TNIR
+                                                                                                             // first
+                                                                                                             // attempt
+                        timerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
                 // Successful connection, cache the IP address and port if server supports DNS Cache.
                 if (serverSupportsDNSCaching) {
                     dnsCache.put(currentConnectPlaceHolder.getServerName(), inetSocketAddress);
@@ -3192,7 +3362,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     noOfRedirections++;
 
                     if (loggerRedirection.isLoggable(Level.FINE)) {
-                        loggerRedirection.fine(toString() + " Connection open - redirection count: " + noOfRedirections);
+                        loggerRedirection
+                                .fine(toString() + " Connection open - redirection count: " + noOfRedirections);
                     }
 
                     if (noOfRedirections > 1) {
@@ -3214,7 +3385,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     // (in fact it does not matter whether we increase it or not) as
                     // we do not use any timeslicing for multisubnetfailover. However, this
                     // is done just to be consistent with the rest of the logic.
-                    retryAttempt++;
+                    attemptNumber++;
 
                     // useParallel and useTnir should be set to false once we get routed
                     useParallel = false;
@@ -3240,24 +3411,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         continue;
                     }
                 } else {
-                    if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
-                        loggerResiliency.fine(toString() + " Connection open - connection retry succeeded on attempt number: " + retryAttempt);
+                    if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
+                        loggerResiliency.fine(toString()
+                                + " Connection open - connection retry succeeded on attempt number: " + attemptNumber);
                     }
 
                     break; // leave the while loop -- we've successfully connected
                 }
             } catch (SQLServerException e) {
 
-                if (loggerResiliency.isLoggable(Level.FINE) && retryAttempt > 0) {
-                    loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: " + retryAttempt);
+                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
+                    loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: "
+                            + attemptNumber);
                 }
 
-                if (loggerResiliency.isLoggable(Level.FINER) && (retryAttempt >= connectRetryCount)) {
-                    loggerResiliency.finer(toString() + " Connection open - connection failed. Maximum connection retry count " + connectRetryCount + " reached.");
+                if (loggerResiliency.isLoggable(Level.FINER) && (attemptNumber >= connectRetryCount)) {
+                    loggerResiliency
+                            .finer(toString() + " Connection open - connection failed. Maximum connection retry count "
+                                    + connectRetryCount + " reached.");
                 }
 
                 int errorCode = e.getErrorCode();
-                driverErrorCode = e.getDriverErrorCode();
+                int driverErrorCode = e.getDriverErrorCode();
                 sqlServerError = e.getSQLServerError();
 
                 if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
@@ -3265,19 +3440,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
                         || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
                         || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
+                        || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
                         || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
                                                                                                  // (eg Sphinx, invalid
                                                                                                  // packetsize, etc)
                         || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
-                                && (!isDBMirroring || retryAttempt > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
+                                && (!isDBMirroring || attemptNumber > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
                         || timerHasExpired(timerExpire)
                 // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
                 ) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
-                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
+                        loggerResiliency.finer(
+                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
+                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
+                                + driverErrorCode);
                         if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
+                            loggerResiliency
+                                    .finer(toString() + " Connection open - connection failure. SQL Server error : "
+                                            + sqlServerError.getErrorMessage());
                         }
                     }
 
@@ -3286,10 +3466,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw e;
                 } else {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
-                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
+                        loggerResiliency.finer(
+                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
+                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
+                                + driverErrorCode);
                         if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
+                            loggerResiliency
+                                    .finer(toString() + " Connection open - connection failure. SQL Server error : "
+                                            + sqlServerError.getErrorMessage());
                         }
                     }
 
@@ -3302,20 +3486,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
                 // attempt.
                 // For DB Mirroring, we only sleep after every other attempt.
-                // Also check sleep interval to make sure we won't exceed the timeout
-                long remainingTime = timerRemaining(timerExpire);
-                if ((!isDBMirroring || 1 == retryAttempt % 2
-                        || TimeUnit.SECONDS.toMillis(connectRetryInterval) >= remainingTime)
-                        && (remainingTime <= TimeUnit.SECONDS.toMillis(connectRetryInterval))) {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + retryAttempt + ".");
-                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: " + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : " + sqlServerError.getErrorMessage());
-                        }
-                    }
+                if (!isDBMirroring || 1 == attemptNumber % 2) {
+                    // Check sleep interval to make sure we won't exceed the timeout
+                    // Do this in the catch block so we can re-throw the current exception
+                    long remainingMilliseconds = timerRemaining(timerExpire);
+                    if (remainingMilliseconds <= fedauthRetryInterval) {
 
-                    throw e;
+                        if (loggerResiliency.isLoggable(Level.FINER)) {
+                            loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: "
+                                    + attemptNumber + ".");
+                            loggerResiliency.finer(toString()
+                                    + " Connection open - connection failure. Driver error code: " + driverErrorCode);
+                            if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
+                                loggerResiliency
+                                        .finer(toString() + " Connection open - connection failure. SQL Server error : "
+                                                + sqlServerError.getErrorMessage());
+                            }
+                        }
+
+                        throw e;
+                    }
                 }
             }
 
@@ -3324,48 +3514,39 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // the network with requests, then update sleep interval for next iteration (max 1 second interval)
             // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
-            if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode
-                    && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && !timerHasExpired(timerExpire)) {
-                // special case for TLS intermittent failures: no wait retries
-                tlsRetryAttempt++;
+            if (!isDBMirroring || (1 == attemptNumber % 2)) {
                 if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency.finer(toString() +
-                            " Connection open - connection failed during SSL handshake. Retry due to an intermittent TLS 1.2 failure issue. Retry attempt = "
-                                    + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY);
+                    loggerResiliency.finer(toString() + " Connection open - sleeping milisec: " + connectRetryInterval);
                 }
-            } else {
-                if (retryAttempt++ >= connectRetryCount && TransientError.isTransientError(sqlServerError)
-                        && !timerHasExpired(timerExpire) && (!isDBMirroring || (1 == retryAttempt % 2))) {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - sleeping milisec: " + connectRetryInterval);
-                    }
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
-                                + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
-                                + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
-                                + retryAttempt);
-                    }
-                    sleepInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                if (loggerResiliency.isLoggable(Level.FINER)) {
+                    loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
+                            + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
+                            + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
+                            + attemptNumber);
                 }
+
+                sleepForInterval(fedauthRetryInterval);
+                fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
             }
 
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
+            attemptNumber++;
+
             if (useParallel) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (retryAttempt + 1));
+                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
             } else if (isDBMirroring) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((retryAttempt / 2) + 1));
+                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
             } else if (useTnir) {
-                long timeSlice = timeoutUnitInterval * (1 << retryAttempt);
+                long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
 
                 // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
-                if ((1 == retryAttempt) && (500 > timeSlice)) {
+                if ((1 == attemptNumber) && (500 > timeSlice)) {
                     timeSlice = 500;
                 }
 
                 intervalExpire = System.currentTimeMillis() + timeSlice;
             } else
                 intervalExpire = timerExpire;
-
             // Due to the below condition and the timerHasExpired check in catch block,
             // the multiSubnetFailover case or any other standardLogin case where timeOutInterval is full timeout would
             // also be handled correctly.
@@ -3381,9 +3562,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // If we get here, connection/login succeeded! Just a few more checks & record-keeping
         // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
-        if (useFailoverHost && null == failoverPartnerServerProvided)
-
-        {
+        if (useFailoverHost && null == failoverPartnerServerProvided) {
             String curserverinfo = currentConnectPlaceHolder.getServerName();
             if (null != currentFOPlaceHolder.getInstanceName()) {
                 curserverinfo = curserverinfo + "\\";
@@ -4166,7 +4345,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 }
 
                                 if (loggerResiliency.isLoggable(Level.FINE)) {
-                                    loggerResiliency.fine(toString() + " Idle connection resiliency - starting idle connection resiliency reconnect.");
+                                    loggerResiliency.fine(toString()
+                                            + " Idle connection resiliency - starting idle connection resiliency reconnect.");
                                 }
 
                                 sessionRecovery.reconnect(newCommand);
@@ -4182,8 +4362,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                             if (sessionRecovery.getReconnectException() != null) {
                                 if (loggerResiliency.isLoggable(Level.FINER)) {
-                                    loggerResiliency.finer(
-                                            this.toString() + " Idle connection resiliency - connection is broken and recovery is not possible.");
+                                    loggerResiliency.finer(this.toString()
+                                            + " Idle connection resiliency - connection is broken and recovery is not possible.");
                                 }
                                 throw sessionRecovery.getReconnectException();
                             }
@@ -5795,7 +5975,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
-        // No:of milliseconds to sleep for the initial back off.
+        // No of milliseconds to sleep for the initial back off.
         int sleepInterval = BACKOFF_INTERVAL;
 
         if (!msalContextExists()
@@ -5924,7 +6104,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + millisecondsRemaining + " milliseconds.");
                         }
 
-                        sleepInterval(sleepInterval);
+                        sleepForInterval(sleepInterval);
                         sleepInterval = sleepInterval * 2;
                     }
                 }
@@ -7338,7 +7518,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original delayLoadingLobs */
     private boolean originalDelayLoadingLobs;
-    
+
     /** original ignoreOffsetOnDateTimeOffsetConversion */
     private boolean originalIgnoreOffsetOnDateTimeOffsetConversion;
 
@@ -8178,6 +8358,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;
+    }
+
+    boolean isAzureSqlServerEndpoint() {
+        String serverName = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null != serverName && serverName.length() > 0) {
+            // serverName without named instance
+            int px = serverName.indexOf('\\');
+            String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
+
+            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+        }
+
+        return false;
+    }
+
+    boolean isAzureSynapseOnDemandEndpoint() {
+        String serverName = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString());
+        if (null != serverName && serverName.length() > 0) {
+            // serverName without named instance
+            int px = serverName.indexOf('\\');
+            String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
+
+            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+        }
+
+        return false;
     }
 
     /**

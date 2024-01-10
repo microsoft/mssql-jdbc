@@ -6,8 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.util.UUID;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -15,32 +13,21 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 final class ActivityCorrelator {
 
-    private static ActivityId activityId;
-    private static Lock lockObject = new ReentrantLock();
-
-    // Get the current ActivityId in TLS
-    static ActivityId getCurrent() {
-        if (activityId == null) {
-            lockObject.lock();
-            if (activityId == null) {
-                activityId = new ActivityId();
-            }
-            lockObject.unlock();
+    private static ThreadLocal<ActivityId> t_ActivityId = new ThreadLocal<ActivityId>() {
+        @Override
+        protected ActivityId initialValue() {
+            return new ActivityId();
         }
+    };
 
-        return activityId;
+    static ActivityId getCurrent() {
+        return t_ActivityId.get();
     }
 
     // Increment the Sequence number of the ActivityId in TLS
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
-        // Get the current ActivityId in TLS
-        ActivityId activityId = getCurrent();
-
-        // Increment the Sequence number
-        activityId.increment();
-
-        return activityId;
+        return getCurrent().getIncrement();
     }
 
     /*
@@ -53,10 +40,14 @@ final class ActivityCorrelator {
 class ActivityId {
     private final UUID id;
     private long sequence;
+    // Cache the string since it gets frequently referenced.
+    private String cachedToString;
 
     ActivityId() {
         id = UUID.randomUUID();
-        sequence = 1;
+        // getNext() is called during prelogin and will be the logical "first call" after
+        // instantiation, incrementing this to >= 1 before any activity logs are written.
+        sequence = 0;
     }
 
     UUID getId() {
@@ -64,24 +55,36 @@ class ActivityId {
     }
 
     long getSequence() {
+        // Edge case: A new thread re-uses an existing connection. Ensure sequence > 0.
+        if (sequence == 0L) {
+            ++sequence;
+        }
+
         return sequence;
     }
 
-    void increment() {
+    ActivityId getIncrement() {
+        cachedToString = null;
         if (sequence < 0xffffffffl) // to get to 32-bit unsigned
         {
             ++sequence;
         } else {
             sequence = 0;
         }
+
+        return this;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(id.toString());
-        sb.append("-");
-        sb.append(sequence);
-        return sb.toString();
+        if (cachedToString == null) {
+            StringBuilder sb = new StringBuilder(38);
+            sb.append(id.toString());
+            sb.append("-");
+            sb.append(getSequence());
+            cachedToString = sb.toString();
+        }
+
+        return cachedToString.toString();
     }
 }

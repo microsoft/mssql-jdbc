@@ -1729,17 +1729,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != destinationTableMetadata) {
                     rs = (SQLServerResultSet) destinationTableMetadata;
                 } else {
-                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                            ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                     // Get destination metadata
-                    rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
+                    rs = stmt.executeQueryInternal(
+                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
                 }
 
                 int destColumnMetadataCount = rs.getMetaData().getColumnCount();
                 destColumnMetadata = new HashMap<>();
                 destCekTable = rs.getCekTable();
 
-                metaDataQuery = "select * from sys.columns where " + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+                metaDataQuery = "select * from sys.columns where " + "object_id=OBJECT_ID('"
+                        + escapedDestinationTableName + "') " + "order by column_id ASC";
 
                 try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
                         SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
@@ -1751,8 +1754,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             }
                             // Skip computed columns
                             if (!rsMoreMetaData.getBoolean("is_computed")) {
-                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
-                                        bulkCopyEncryptionType));
+                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                        rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
                             }
                         } else {
                             destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));

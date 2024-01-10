@@ -89,8 +89,7 @@ public class DataFactoryTest extends AbstractTest {
         boolean correctClass = false;
         boolean correctName = false;
         boolean correctVersion = false;
-        String[] required_capabilities=new String[] {
-                DataSourceFactory.OSGI_JDBC_CAPABILITY_DRIVER,
+        String[] required_capabilities = new String[] {DataSourceFactory.OSGI_JDBC_CAPABILITY_DRIVER,
                 DataSourceFactory.OSGI_JDBC_CAPABILITY_DATASOURCE,
                 DataSourceFactory.OSGI_JDBC_CAPABILITY_CONNECTIONPOOLDATASOURCE,
                 DataSourceFactory.OSGI_JDBC_CAPABILITY_XADATASOURCE};
@@ -118,15 +117,15 @@ public class DataFactoryTest extends AbstractTest {
                         "Driver version mismatch. Expected: " + bundleDriverVer + ", Actual: " + actualDriverVer + ".",
                         bundleDriverVer.equals(actualDriverVer));
                 correctVersion = true;
-            }else if (key.equals(DataSourceFactory.OSGI_JDBC_CAPABILITY)) {
+            } else if (key.equals(DataSourceFactory.OSGI_JDBC_CAPABILITY)) {
                 Object property = sr.getProperty(key);
                 if (property instanceof String[]) {
-                    Set<String> set = new HashSet<>(Arrays.asList( (String[]) property));
+                    Set<String> set = new HashSet<>(Arrays.asList((String[]) property));
                     for (String cap : required_capabilities) {
-                        assertTrue("Capability "+cap+" is missing!", set.contains(cap));
+                        assertTrue("Capability " + cap + " is missing!", set.contains(cap));
                     }
                 }
-                driverCap=true;
+                driverCap = true;
             }
         }
         assertTrue("Not all properties were checked.", correctClass && correctName && correctVersion && driverCap);

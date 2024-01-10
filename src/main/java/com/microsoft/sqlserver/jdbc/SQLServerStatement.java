@@ -541,6 +541,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** Generate the statement's logging ID */
     private static final AtomicInteger lastStatementID = new AtomicInteger(0);
 
+    /*
+     * T-SQL TOP syntax regex
+     */
+    private final static Pattern TOP_SYNTAX = Pattern.compile("\\bTOP\\s*\\(\\s*\\?\\s*\\)", Pattern.CASE_INSENSITIVE);
+
     private static int nextStatementID() {
         return lastStatementID.incrementAndGet();
     }
@@ -1098,6 +1103,11 @@ public class SQLServerStatement implements ISQLServerStatement {
      * @return the result
      */
     static String replaceMarkerWithNull(String sql) {
+        // replace all top(?) to top(1) as null is not valid
+        if (TOP_SYNTAX.matcher(sql).find()) {
+            sql = TOP_SYNTAX.matcher(sql).replaceAll("TOP(1)");
+        }
+
         if (!sql.contains("'")) {
             return replaceParameterWithString(sql, '?', "null");
         } else {
@@ -1133,6 +1143,14 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (bIsClosed) {
             SQLServerException.makeFromDriverError(connection, this,
                     SQLServerException.getErrString("R_statementIsClosed"), null, false);
+        }
+    }
+
+    void setByIndex() throws SQLServerException {
+        isSetByIndex = true;
+        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
         }
     }
 
@@ -1629,8 +1647,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // Only read the return value from stored procedure if we are expecting one. Also, check that it is
                     // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
                     // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam
-                            && inOutParam.length > 0 && inOutParam[0].isReturnValue()) {
+                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
+                            && inOutParam[0].isReturnValue()) {
                         inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
                         return false;
                     }

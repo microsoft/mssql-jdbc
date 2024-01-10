@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
 
+
 /**
  * Provides an interface to the {@link SQLServerStatement} class.
  */

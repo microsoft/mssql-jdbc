@@ -280,11 +280,12 @@ class TDSTokenHandler {
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
         /*
-         * SHOWPLAN or something else that produces extra metadata might be ON. instead of throwing an exception, warn
-         * and discard the column meta data
+         * SHOWPLAN or something else that produces extra metadata might be ON. Log info instead of throwing an exception, warn
+         * and discard the extra column meta data
          */
-        if (logger.isLoggable(Level.WARNING))
-            logger.warning(tdsReader.toString() + ": " + logContext + ": Discarding unexpected "
+        if (logger.isLoggable(Level.INFO))
+            logger.info(tdsReader.toString() + ": " + logContext
+                    + ": Discarding extra metadata which can be a result of SHOWPLAN settings:  "
                     + TDS.getTokenName(tdsReader.peekTokenType()));
         (new StreamColumns(false)).setFromTDS(tdsReader);
         return false;

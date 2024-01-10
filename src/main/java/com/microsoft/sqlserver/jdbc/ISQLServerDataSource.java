@@ -883,13 +883,14 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultJaasConfig();
 
     /**
-     * Sets whether the default JAAS Configuration will be used.  This means the system-wide JAAS configuration
+     * Sets whether the default JAAS Configuration will be used. This means the system-wide JAAS configuration
      * is ignored to avoid conflicts with libraries that override the JAAS configuration.
      *
      * @param useDefaultJaasConfig
-     *         boolean property to use the default JAAS configuration
+     *        boolean property to use the default JAAS configuration
      */
     void setUseDefaultJaasConfig(boolean useDefaultJaasConfig);
+
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
      * true.
@@ -1334,17 +1335,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
-     * Returns value of 'calcBigDecimalScale' from Connection String.
+     * Returns value of 'calcBigDecimalPrecision' from Connection String.
      *
-     * @param calcBigDecimalScale
-     *         indicates whether the driver should attempt to calculate scale from inputted big decimal values
+     * @param calcBigDecimalPrecision
+     *        indicates whether the driver should attempt to calculate precision from inputted big decimal values
      */
-    void setCalcBigDecimalScale(boolean calcBigDecimalScale);
+    void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
 
     /**
-     * Sets the value for 'calcBigDecimalScale' property
+     * Sets the value for 'calcBigDecimalPrecision' property
      *
-     * @return calcBigDecimalScale boolean value
+     * @return calcBigDecimalPrecision boolean value
      */
-    boolean getCalcBigDecimalScale();
+    boolean getCalcBigDecimalPrecision();
 }

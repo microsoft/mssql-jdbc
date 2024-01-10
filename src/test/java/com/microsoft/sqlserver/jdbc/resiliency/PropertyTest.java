@@ -43,7 +43,8 @@ public class PropertyTest extends AbstractTest {
                 fail(TestResource.getResource("R_expectedExceptionNotThrown") + prop + "=" + val);
             }
         } catch (SQLException e) {
-            assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(), e.getMessage().matches(expectedErrMsg));
+            assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(),
+                    e.getMessage().matches(expectedErrMsg));
         }
     }
 

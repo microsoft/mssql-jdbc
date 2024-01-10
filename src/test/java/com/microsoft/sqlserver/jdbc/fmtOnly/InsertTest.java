@@ -215,8 +215,9 @@ public class InsertTest extends AbstractTest {
                 "HumanResources . Department,OPENROWSET(BULK 'C:SQLFilesDepartmentData.txt' , FORMATFILE = 'C:SQLFilesBulkloadFormatFile.xml' , ROWS_PER_BATCH = 15000 ) AS b");
 
         // S. Using the TABLOCK hint to specify a locking method
-        ParserUtils.compareTableName("INSERT INTO Production.Location WITH (XLOCK)  \r\n" + "(Name, CostRate, Availability)  \r\n"
-                        + "VALUES ( N'Final Inventory', 15.00, 80.00);  ", "Production . Location");
+        ParserUtils.compareTableName("INSERT INTO Production.Location WITH (XLOCK)  \r\n"
+                + "(Name, CostRate, Availability)  \r\n" + "VALUES ( N'Final Inventory', 15.00, 80.00);  ",
+                "Production . Location");
 
         // T. Using OUTPUT with an INSERT statement TODO: FIX
         ParserUtils.compareTableName(

@@ -831,7 +831,7 @@ public class PQImpsTest extends AbstractTest {
     @DisplayName("Merge Queries")
     public void testMerge() throws SQLException {
         // FMTOnly currently only supports SELECT/INSERT/DELETE/UPDATE
-        if (version >= SQL_SERVER_2012_VERSION && !((SQLServerConnection)connection).getUseFmtOnly()) {
+        if (version >= SQL_SERVER_2012_VERSION && !((SQLServerConnection) connection).getUseFmtOnly()) {
             String sql = "merge " + AbstractSQLGenerator.escapeIdentifier(mergeNameDesTable) + " as T" + " using "
                     + AbstractSQLGenerator.escapeIdentifier(nameTable) + " as S" + " on T.PlainID=S.PlainID"
                     + " when matched" + " then update set T.firstName = ?, T.lastName = ?;";

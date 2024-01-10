@@ -851,18 +851,17 @@ final class DTV {
                                 tdsWriter.writeEncryptedRPCDateTime(name,
                                         timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                         subSecondNanos, isOutParam, jdbcType, statement);
-                                } else {
-                                    if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
-                                        tdsWriter.writeRPCDateTime2(name,
-                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                                subSecondNanos, TDS.DEFAULT_FRACTIONAL_SECONDS_SCALE, isOutParam);
-                                    } else if (conn.getDatetimeParameterType()
-                                            .equals(DatetimeType.DATETIME.toString())) {
-                                        tdsWriter.writeRPCDateTime(name,
-                                                timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                                subSecondNanos, isOutParam);
-                                    }
+                            } else {
+                                if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
+                                    tdsWriter.writeRPCDateTime2(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, TDS.DEFAULT_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                } else if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME.toString())) {
+                                    tdsWriter.writeRPCDateTime(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, isOutParam);
                                 }
+                            }
 
                             break;
 

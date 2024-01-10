@@ -168,12 +168,11 @@ final class Parameter {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         if (con.sendStringParametersAsUnicode()) {
-
-            if (shouldHonorAEForParameter) {
-                setJdbcTypeSetByUser(jdbcType);
-            }
-
             jdbcType = getSSPAUJDBCType(jdbcType);
+        }
+
+        if (shouldHonorAEForParameter) {
+            setJdbcTypeSetByUser(jdbcType);
         }
 
         registeredOutDTV = new DTV();
@@ -598,10 +597,10 @@ final class Parameter {
                             param.typeDefinition = SSType.DECIMAL.toString() + "(" + valueLength + "," + scale + ")";
                         }
                     } else {
-                        if (con.getCalcBigDecimalScale() && dtv.getJavaType() == JavaType.BIGDECIMAL
+                        if (con.getCalcBigDecimalPrecision() && dtv.getJavaType() == JavaType.BIGDECIMAL
                                 && null != dtv.getSetterValue()) {
-                            String[] plainValueArray
-                                    = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString().split("\\.");
+                            String[] plainValueArray = ((BigDecimal) dtv.getSetterValue()).abs().toPlainString()
+                                    .split("\\.");
 
                             // Precision is computed as opposed to using BigDecimal.precision(). This is because the
                             // BigDecimal method can lead to inaccurate results.
@@ -617,12 +616,12 @@ final class Parameter {
                                 } else {
                                     calculatedPrecision = plainValueArray[0].length() + plainValueArray[1].length();
                                 }
-                            } else  {
+                            } else {
                                 calculatedPrecision = plainValueArray[0].length();
                             }
 
-                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + calculatedPrecision + "," +
-                                    (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
+                            param.typeDefinition = SSType.DECIMAL.toString() + "(" + calculatedPrecision + ","
+                                    + (plainValueArray.length == 2 ? plainValueArray[1].length() : 0) + ")";
                         } else {
                             param.typeDefinition = SSType.DECIMAL.toString() + "("
                                     + SQLServerConnection.MAX_DECIMAL_PRECISION + "," + scale + ")";

@@ -124,15 +124,15 @@ public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static final int DATETIME_COL_COUNT = 2;
     private static final int DATETIME_ROW_COUNT = 1;
-    private static final String dateTimeTestTable =
-            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bulkCopyTimestampTest"));
+    private static final String dateTimeTestTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyTimestampTest"));
 
     @Test
     public void testBulkCopyTimestamp() throws SQLException {
         List<Timestamp> timeStamps = new ArrayList<>();
         try (Connection con = getConnection(); Statement stmt = connection.createStatement()) {
-            String colSpec = IntStream.range(1, DATETIME_COL_COUNT + 1).mapToObj(x -> String.format("c%d datetime", x)).collect(
-                    Collectors.joining(","));
+            String colSpec = IntStream.range(1, DATETIME_COL_COUNT + 1).mapToObj(x -> String.format("c%d datetime", x))
+                    .collect(Collectors.joining(","));
             String sql1 = String.format("create table %s (%s)", dateTimeTestTable, colSpec);
             stmt.execute(sql1);
 
@@ -155,7 +155,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
                 crs.moveToInsertRow();
 
                 for (int i = 1; i <= DATETIME_COL_COUNT; i++) {
-                        crs.updateTimestamp(i, timeStamps.get(i - 1));
+                    crs.updateTimestamp(i, timeStamps.get(i - 1));
                 }
                 crs.insertRow();
             }

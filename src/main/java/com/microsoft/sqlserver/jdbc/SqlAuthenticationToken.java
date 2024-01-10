@@ -23,7 +23,6 @@ public class SqlAuthenticationToken implements Serializable {
     /** The access token string. **/
     private final String accessToken;
 
-
     /**
      * Contructs a SqlAuthentication token.
      *
