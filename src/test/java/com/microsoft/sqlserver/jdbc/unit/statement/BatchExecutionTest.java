@@ -120,12 +120,12 @@ public class BatchExecutionTest extends AbstractTest {
         String todayString = simpleDateFormat.format(today);
         long ms = Timestamp.valueOf(todayString).getTime();
 
-        try (Connection con = DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement();
-                PreparedStatement pstmt = con.prepareStatement(
-                        "INSERT INTO " + timestampTable + " VALUES(?)")) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable + " VALUES(?)")) {
 
-            String dropSql = "IF EXISTS (SELECT * FROM dbo.sysobjects WHERE id = object_id(N'" + TestUtils.escapeSingleQuotes(timestampTable) + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) DROP TABLE " + timestampTable;
+            String dropSql = "IF EXISTS (SELECT * FROM dbo.sysobjects WHERE id = object_id(N'"
+                    + TestUtils.escapeSingleQuotes(timestampTable)
+                    + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) DROP TABLE " + timestampTable;
             stmt.execute(dropSql);
 
             String createSql = "CREATE TABLE" + timestampTable + " (c1 DATETIME2(3))";
@@ -138,9 +138,9 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.executeBatch();
         }
 
-        try (Connection con = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
-                PreparedStatement pstmt = con.prepareStatement(
-                        "INSERT INTO " + timestampTable + " VALUES(?)")) {
+        try (Connection con = DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable + " VALUES(?)")) {
 
             Timestamp timestamp = new Timestamp(ms);
 
@@ -149,8 +149,7 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.executeBatch();
         }
 
-        try (Connection con = DriverManager.getConnection(connectionString);
-                Statement stmt = con.createStatement()) {
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable);
 
             Timestamp ts0; // Timestamp batch inserted without bulkcopy

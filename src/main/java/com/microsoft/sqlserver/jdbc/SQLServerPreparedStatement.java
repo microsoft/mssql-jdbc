@@ -2952,7 +2952,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         StringBuilder pattern = new StringBuilder("yyyy-MM-dd HH:mm:ss");
         String[] figure = Integer.toString(nanos).split("(^0+|0+$)");
 
-        for(String digit: figure) {
+        for (String digit : figure) {
             sum += digit.length();
         }
 
