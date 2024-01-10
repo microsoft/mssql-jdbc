@@ -21,6 +21,7 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -28,7 +29,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
+import java.util.Date;
 import java.util.logging.Level;
+import java.text.SimpleDateFormat;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
@@ -2944,6 +2947,44 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return true;
     }
 
+    private String getDateFormatPattern(int nanos) {
+        int sum = 0;
+        StringBuilder pattern = new StringBuilder("yyyy-MM-dd HH:mm:ss");
+        String[] figure = Integer.toString(nanos).split("(^0+|0+$)");
+
+        for(String digit: figure) {
+            sum += digit.length();
+        }
+
+        if (sum == 0) {
+            return pattern.toString();
+        }
+
+        if (sum > 7) {
+            sum = 7;
+        }
+
+        for (int i = 0; i < sum; i++) {
+            if (i == 0) {
+                pattern.append(".S");
+            }
+            pattern.append("S");
+        }
+
+        return pattern.toString();
+    }
+
+    private java.sql.Timestamp applyTimezoneTo(java.sql.Timestamp ts, Calendar cal) {
+        Date date = new Date(cal.getTimeInMillis());
+        int nanos = ts.getNanos();
+        DateFormat df = new SimpleDateFormat(getDateFormatPattern(nanos));
+        df.setTimeZone(cal.getTimeZone());
+        java.sql.Timestamp newTs = java.sql.Timestamp.valueOf(df.format(date));
+        newTs.setNanos(nanos);
+
+        return newTs;
+    }
+
     /**
      * Prepare statement batch execute command
      */
@@ -3422,6 +3463,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
+
+        if (this.useBulkCopyForBatchInsert && null != cal) {
+            x = applyTimezoneTo(x, cal);
+        }
+
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
@@ -3433,6 +3479,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
+
+        if (this.useBulkCopyForBatchInsert && null != cal) {
+            x = applyTimezoneTo(x, cal);
+        }
+
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }

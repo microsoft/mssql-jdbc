@@ -13,11 +13,17 @@ import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import org.junit.jupiter.api.AfterAll;
@@ -54,6 +60,8 @@ public class BatchExecutionTest extends AbstractTest {
     private static String ctstable3;
     private static String ctstable4;
     private static String ctstable3Procedure1;
+    private static String timestampTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("timestampTableBatchInsert"));
 
     /**
      * This tests the updateCount when the error query does cause a SQL state HY008.
@@ -97,6 +105,64 @@ public class BatchExecutionTest extends AbstractTest {
     public void testBatchUpdateCountTrueOnFirstPstmtSpPrepare() throws Exception {
         long[] expectedUpdateCount = {1, 1, -3, -3, -3};
         testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
+    }
+
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date today = new Date();
+        String todayString = simpleDateFormat.format(today);
+        long ms = Timestamp.valueOf(todayString).getTime();
+
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement();
+                PreparedStatement pstmt = con.prepareStatement(
+                        "INSERT INTO " + timestampTable + " VALUES(?)")) {
+
+            String dropSql = "IF EXISTS (SELECT * FROM dbo.sysobjects WHERE id = object_id(N'" + TestUtils.escapeSingleQuotes(timestampTable) + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) DROP TABLE " + timestampTable;
+            stmt.execute(dropSql);
+
+            String createSql = "CREATE TABLE" + timestampTable + " (c1 DATETIME2(3))";
+            stmt.execute(createSql);
+
+            Timestamp timestamp = new Timestamp(ms);
+
+            pstmt.setTimestamp(1, timestamp, gmtCal);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+        }
+
+        try (Connection con = DriverManager.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                PreparedStatement pstmt = con.prepareStatement(
+                        "INSERT INTO " + timestampTable + " VALUES(?)")) {
+
+            Timestamp timestamp = new Timestamp(ms);
+
+            pstmt.setTimestamp(1, timestamp, gmtCal);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+        }
+
+        try (Connection con = DriverManager.getConnection(connectionString);
+                Statement stmt = con.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable);
+
+            Timestamp ts0; // Timestamp batch inserted without bulkcopy
+            Timestamp ts1; // Timestamp batch inserted with bulkcopy
+
+            rs.next();
+            ts0 = rs.getTimestamp(1);
+            rs.next();
+            ts1 = rs.getTimestamp(1);
+
+            assertEquals(ts0, ts1);
+        }
     }
 
     /**
