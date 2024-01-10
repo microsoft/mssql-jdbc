@@ -119,9 +119,9 @@ public class ParameterMetaDataCacheTest extends AESetup {
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             createTable(NUMERIC_TABLE_AE, cekAkv, numericTable);
 
-            populateCharNormalCase(charValues, false);
+            populateCharNormalCase(charValues);
             populateNumeric(numericValues);
-            populateCharNormalCase(charValues, false);
+            populateCharNormalCase(charValues);
         }
     }
 
@@ -144,17 +144,17 @@ public class ParameterMetaDataCacheTest extends AESetup {
             String[] values = createCharValues(false);
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
-            populateCharNormalCase(values, false);
+            populateCharNormalCase(values);
             if (TestUtils.doesServerSupportEnclaveRetry(con)) {
                 testAlterColumnEncryption((SQLServerStatement) stmt, CHAR_TABLE_AE, charTable, cekAkv);
             }
-            populateCharNormalCase(values, false);
+            populateCharNormalCase(values);
         }
     }
 
     private long timedCharUpdate(String[] values) throws SQLException {
         long timer = System.currentTimeMillis();
-        populateCharNormalCase(values, false);
+        populateCharNormalCase(values);
         return System.currentTimeMillis() - timer;
     }
 

@@ -2273,7 +2273,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         switch (testCase) {
             case NORMAL:
-                populateCharNormalCase(values, false);
+                populateCharNormalCase(values);
                 break;
             case SETOBJECT:
                 populateCharSetObject(values);

@@ -870,11 +870,11 @@ public class AESetup extends AbstractTest {
      * @param charValues
      * @throws SQLException
      */
-    protected static void populateCharNormalCase(String[] charValues, boolean sendStringParametersAsUnicode) throws SQLException {
+    protected static void populateCharNormalCase(String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "sendStringParametersAsUnicode", Boolean.toString(sendStringParametersAsUnicode));
+        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "sendStringParametersAsUnicode", Boolean.toString(false));
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
