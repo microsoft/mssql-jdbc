@@ -801,6 +801,44 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test bulk insert with no space after table name
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testNoSpaceInsert() throws Exception {
+        // table name with valid alphanumeric chars that don't need to be escaped, since escaping the table name would not test the space issue
+        String testNoSpaceInsertTableName = "testNoSpaceInsertTable" + RandomData.generateInt(false);
+        String valid = "insert into " + testNoSpaceInsertTableName + "(id, json)" + " values(?, ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+                Statement stmt = (SQLServerStatement) connection.createStatement();) {
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(connection, true);
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
+            String createTable = "create table " + testNoSpaceInsertTableName
+                    + " (id nvarchar(100) not null, json nvarchar(max) not null,"
+                    + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
+            stmt.execute(createTable);
+
+            String jsonValue = "{\"vcol1\":\"" + UUID.randomUUID().toString() + "\",\"vcol2\":\""
+                    + UUID.randomUUID().toString() + "\" }";
+            String idValue = UUID.randomUUID().toString();
+            pstmt.setString(1, idValue);
+            pstmt.setString(2, jsonValue);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
