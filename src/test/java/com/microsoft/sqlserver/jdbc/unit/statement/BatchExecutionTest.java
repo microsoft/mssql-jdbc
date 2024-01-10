@@ -107,11 +107,6 @@ public class BatchExecutionTest extends AbstractTest {
         testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
     }
 
-    /**
-     * This tests the updateCount when the error query does cause a SQL state HY008.
-     *
-     * @throws Exception
-     */
     @Test
     public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
