@@ -168,12 +168,11 @@ final class Parameter {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         if (con.sendStringParametersAsUnicode()) {
-
-            if (shouldHonorAEForParameter) {
-                setJdbcTypeSetByUser(jdbcType);
-            }
-
             jdbcType = getSSPAUJDBCType(jdbcType);
+        }
+
+        if (shouldHonorAEForParameter) {
+            setJdbcTypeSetByUser(jdbcType);
         }
 
         registeredOutDTV = new DTV();
