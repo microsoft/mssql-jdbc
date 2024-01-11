@@ -8385,7 +8385,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             int px = serverName.indexOf('\\');
             String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
 
-            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+            return AzureSQLServerEndpoints.isAzureSynapseOnDemandEndpoint(parsedServerName);
         }
 
         return false;
