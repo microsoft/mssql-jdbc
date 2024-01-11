@@ -672,7 +672,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    private final transient Lock lock = new ReentrantLock();
+    private final transient Lock TDSChannelLock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -773,7 +773,7 @@ final class TDSChannel implements Serializable {
             logger.finer(toString() + " Disabling SSL...");
         }
 
-        lock.lock();
+        TDSChannelLock.lock();
         try {
             // Guard in case of disableSSL being called before enableSSL
             if (proxySocket == null) {
@@ -839,7 +839,7 @@ final class TDSChannel implements Serializable {
             channelSocket = tcpSocket;
             sslSocket = null;
         } finally {
-            lock.unlock();
+            TDSChannelLock.unlock();
         }
 
         if (logger.isLoggable(Level.FINER))
@@ -1056,6 +1056,8 @@ final class TDSChannel implements Serializable {
     private final class ProxyInputStream extends InputStream {
         private InputStream filteredStream;
 
+        private final transient Lock proxyInputStreamLock = new ReentrantLock();
+
         /**
          * Bytes that have been read by a poll(s).
          */
@@ -1082,7 +1084,7 @@ final class TDSChannel implements Serializable {
          *         If an I/O exception occurs.
          */
         public boolean poll() {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 int b;
                 try {
@@ -1117,7 +1119,7 @@ final class TDSChannel implements Serializable {
 
                 return true;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1133,7 +1135,7 @@ final class TDSChannel implements Serializable {
 
         @Override
         public long skip(long n) throws IOException {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 long bytesSkipped = 0;
 
@@ -1154,7 +1156,7 @@ final class TDSChannel implements Serializable {
 
                 return bytesSkipped;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1191,7 +1193,7 @@ final class TDSChannel implements Serializable {
         }
 
         private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 int bytesRead;
 
@@ -1240,7 +1242,7 @@ final class TDSChannel implements Serializable {
 
                 return bytesRead;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1259,11 +1261,11 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(super.toString() + " Marking next " + readLimit + " bytes");
 
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 filteredStream.mark(readLimit);
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1272,12 +1274,12 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(super.toString() + " Resetting to previous mark");
 
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
 
                 filteredStream.reset();
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
