@@ -6690,7 +6690,7 @@ final class TDSReader implements Serializable {
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
-    private final transient Lock lock = new ReentrantLock();
+    private final transient Lock tdsReaderLock = new ReentrantLock();
 
     private final byte[] valueBytes = new byte[256];
 
@@ -6810,7 +6810,7 @@ final class TDSReader implements Serializable {
      * the response and another thread that is trying to buffer it with TDSCommand.detach().
      */
     final boolean readPacket() throws SQLServerException {
-        lock.lock();
+        tdsReaderLock.lock();
         try {
             if (null != command && !command.readingResponse())
                 return false;
@@ -6923,7 +6923,7 @@ final class TDSReader implements Serializable {
 
             return true;
         } finally {
-            lock.unlock();
+            tdsReaderLock.unlock();
         }
     }
 
