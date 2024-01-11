@@ -9,7 +9,7 @@ Welcome to the Microsoft JDBC Driver for SQL Server project!
 
 The Microsoft JDBC Driver for SQL Server is a Type 4 JDBC driver that provides database connectivity through the standard JDBC application program interfaces (APIs) available in the Java Platform, Enterprise Editions. The Driver provides access to Microsoft SQL Server and Azure SQL Database from any Java application, application server, or Java-enabled applet.
 
-Releases can be found on the [GitHub Releases](https://github.com/microsoft/mssql-jdbc/releases) page, through the Microsoft Download center via [Microsoft Documentation](https://learn.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-ver16), or via Maven. Starting from preview release 12.1.0, each release contains two versions of the driver. One for use with Java 8 (jre8), and one for use with version Java 11 and above (jre11).
+Releases can be found on the [GitHub Releases](https://github.com/microsoft/mssql-jdbc/releases) page, in the [Microsoft JDBC Documentation](https://learn.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-ver16), or via Maven. Starting from preview release 12.1.0, each release contains two versions of the driver. One for use with Java 8 (jre8), and one for use with version Java 11 and above (jre11).
 
 We hope you enjoy using the Microsoft JDBC Driver for SQL Server.
 
