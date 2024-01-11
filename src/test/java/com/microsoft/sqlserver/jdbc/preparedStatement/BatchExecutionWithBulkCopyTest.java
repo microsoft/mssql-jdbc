@@ -819,7 +819,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
+            TestUtils.dropTableIfExists(testNoSpaceInsertTableName, stmt);
             String createTable = "create table " + testNoSpaceInsertTableName
                     + " (id nvarchar(100) not null, json nvarchar(max) not null,"
                     + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
