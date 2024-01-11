@@ -672,7 +672,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    private final transient Lock TDSChannelLock = new ReentrantLock();
+    private final transient Lock tdsChannelLock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -773,7 +773,7 @@ final class TDSChannel implements Serializable {
             logger.finer(toString() + " Disabling SSL...");
         }
 
-        TDSChannelLock.lock();
+        tdsChannelLock.lock();
         try {
             // Guard in case of disableSSL being called before enableSSL
             if (proxySocket == null) {
@@ -839,7 +839,7 @@ final class TDSChannel implements Serializable {
             channelSocket = tcpSocket;
             sslSocket = null;
         } finally {
-            TDSChannelLock.unlock();
+            tdsChannelLock.unlock();
         }
 
         if (logger.isLoggable(Level.FINER))
