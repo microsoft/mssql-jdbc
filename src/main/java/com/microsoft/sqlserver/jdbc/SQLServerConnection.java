@@ -315,6 +315,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Generate a 6 byte random array for netAddress
+     * As per TDS spec this is a unique clientID (MAC address) used to identify the client.
+     * A random number is used instead of the actual MAC address to avoid PII issues.
+     * As per spec this is informational only server does not process this so there is no need to use SecureRandom.
      * 
      * @return byte[]
      */
