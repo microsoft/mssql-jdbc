@@ -2140,9 +2140,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Set to larger default value for Azure connections to greatly improve recovery
                 if (isAzureSynapseOnDemandEndpoint()) {
-                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
-                } else if (isAzureSqlServerEndpoint()) {
                     connectRetryCount = AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                } else if (isAzureSqlServerEndpoint()) {
+                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
                 }
             }
         }

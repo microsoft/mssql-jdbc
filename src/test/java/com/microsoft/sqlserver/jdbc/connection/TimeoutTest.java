@@ -269,10 +269,11 @@ public class TimeoutTest extends AbstractTest {
                 if (f.getName() == "connectRetryCount") {
                     f.setAccessible(true);
                     int retryCount = f.getInt(con);
-                    if (TestUtils.isAzure(con)) {
-                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
-                    } else if (TestUtils.isAzureDW(con)) {
+
+                    if (TestUtils.isAzureDW(con)) {
                         assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT
+                    } else if (TestUtils.isAzure(con)) {
+                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
                     } else {
                         assertTrue(retryCount == 1); // default connectRetryCount
                     }
