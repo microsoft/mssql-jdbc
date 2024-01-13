@@ -315,6 +315,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Generate a 6 byte random array for netAddress
+     * As per TDS spec this is a unique clientID (MAC address) used to identify the client.
+     * A random number is used instead of the actual MAC address to avoid PII issues.
+     * As per spec this is informational only server does not process this so there is no need to use SecureRandom.
      * 
      * @return byte[]
      */
@@ -2137,9 +2140,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // Set to larger default value for Azure connections to greatly improve recovery
                 if (isAzureSynapseOnDemandEndpoint()) {
-                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
-                } else if (isAzureSqlServerEndpoint()) {
                     connectRetryCount = AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT;
+                } else if (isAzureSqlServerEndpoint()) {
+                    connectRetryCount = AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT;
                 }
             }
         }
@@ -8382,7 +8385,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             int px = serverName.indexOf('\\');
             String parsedServerName = (px >= 0) ? serverName.substring(0, px) : serverName;
 
-            return AzureSQLServerEndpoints.isAzureSqlServerEndpoint(parsedServerName);
+            return AzureSQLServerEndpoints.isAzureSynapseOnDemandEndpoint(parsedServerName);
         }
 
         return false;

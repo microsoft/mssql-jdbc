@@ -819,8 +819,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             f1.setAccessible(true);
             f1.set(connection, true);
 
-            TestUtils.dropTableIfExists(testNoSpaceInsertTableName, stmt);
-            String createTable = "create table " + testNoSpaceInsertTableName
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName)
                     + " (id nvarchar(100) not null, json nvarchar(max) not null,"
                     + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
             stmt.execute(createTable);
@@ -832,6 +832,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setString(2, jsonValue);
             pstmt.addBatch();
             pstmt.executeBatch();
+        } catch (Exception e) {
+            fail(testNoSpaceInsertTableName + ": " + e.getMessage());
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
