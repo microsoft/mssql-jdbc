@@ -74,6 +74,9 @@ import microsoft.sql.DateTimeOffset;
 public class JDBCEncryptionDecryptionTest extends AESetup {
     private boolean nullable = false;
     private static final String UTF8_COLLATE_DB = "JDBC_UTF8_COLLATE_DB_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_LOGIN = "UTF8_LOGIN_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_USER = "UTF8_USER_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_PWD = UUID.randomUUID().toString();
 
     enum TestCase {
         NORMAL,
@@ -89,6 +92,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
             dropDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
             createDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            createUtf8CollationDbCredentials(con, UTF8_COLLATE_DB, UTF8_COLLATE_LOGIN, UTF8_COLLATE_USER, UTF8_COLLATE_PWD);
 
             String utf8CollatedDbConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
             createCMK(utf8CollatedDbConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
@@ -100,7 +104,8 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-            //dropDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            dropDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            dropUtf8CollationDbCredentials(con, UTF8_COLLATE_LOGIN, UTF8_COLLATE_USER);
         }
     }
 
@@ -430,8 +435,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testCharNonUnicodeColumnSSPAUIsTrueUTF8Collate(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-
         String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "user", UTF8_COLLATE_LOGIN);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "password", UTF8_COLLATE_PWD);
+
         try (SQLServerConnection con = PrepUtil.getConnection(connectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -461,7 +468,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     assertEquals(values[2], rs.getString(i));
                 }
 
-                // varchar8000
+                // varchar(8000)
                 for (int i = 10; i <= 12; i++) {
                     assertEquals(values[3], rs.getString(i));
                 }
@@ -475,8 +482,10 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @Tag(Constants.reqExternalSetup)
     public void testCharSetObjectNonUnicodeColumnSSPAUIsTrueUTF8Collate(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-
         String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "user", UTF8_COLLATE_LOGIN);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "password", UTF8_COLLATE_PWD);
+
         try (SQLServerConnection con = PrepUtil.getConnection(connectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
 
@@ -506,7 +515,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                     assertEquals(values[2], rs.getString(i));
                 }
 
-                // varchar8000
+                // varchar(8000)
                 for (int i = 10; i <= 12; i++) {
                     assertEquals(values[3], rs.getString(i));
                 }

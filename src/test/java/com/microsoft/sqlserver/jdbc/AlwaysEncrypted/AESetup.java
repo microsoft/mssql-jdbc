@@ -431,7 +431,7 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected  static void createDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
+    protected static void createDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             String dropDB = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'"+ dbName + "') DROP DATABASE " + dbName + ";";
             String createDB = "CREATE DATABASE " + dbName + " COLLATE Latin1_General_100_CS_AS_WS_SC_UTF8";
@@ -440,10 +440,36 @@ public class AESetup extends AbstractTest {
         }
     }
 
-    protected  static void dropDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
+    protected static void dropDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
             String dropDB = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'"+ dbName + "') DROP DATABASE " + dbName + ";";
             stmt.execute(dropDB);
+        }
+    }
+
+    protected static void createUtf8CollationDbCredentials(Connection conn, String dbName, String login, String user, String password) throws SQLException {
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = '" + login + "') DROP LOGIN " + login;
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = '" + user + "') DROP USER " + user;
+        String createLogin = "CREATE LOGIN " + login + " WITH PASSWORD=N'" + password + "'";
+        String createUser = "USE " + dbName + ";CREATE USER " + user + " FOR LOGIN " + login;
+        String grantRole = "USE " + dbName + ";ALTER ROLE db_owner ADD MEMBER " + user;
+        String grantAlterServerState = "USE MASTER;GRANT ALTER SERVER STATE TO " + login;
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            stmt.execute(dropLogin);
+            stmt.execute(dropUser);
+            stmt.execute(createLogin);
+            stmt.execute(createUser);
+            stmt.execute(grantRole);
+            stmt.execute(grantAlterServerState);
+        }
+    }
+
+    protected static void dropUtf8CollationDbCredentials(Connection conn, String login, String user) throws SQLException {
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = '" + login + "') DROP LOGIN " + login;
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = '" + user + "') DROP USER " + user;
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            stmt.execute(dropLogin);
+            stmt.execute(dropUser);
         }
     }
 
