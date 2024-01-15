@@ -110,10 +110,7 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        java.util.Date today = new Date();
-        String todayString = simpleDateFormat.format(today);
-        long ms = Timestamp.valueOf(todayString).getTime();
+        long ms = 1578743412000L;
 
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable + " VALUES(?)")) {

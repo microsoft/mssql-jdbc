@@ -2239,6 +2239,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
                                         null);
                             }
+
+                            // Apply timezone conversion for Timestamp types
+                            if (paramValue.getJdbcType() == JDBCType.TIMESTAMP) {
+                                java.sql.Timestamp ts = applyTimezoneTo((java.sql.Timestamp) paramValue.getSetterValue(), paramValue.getInputDTV().getCalendar());
+                                paramValue.getInputDTV().setValue(ts, JavaType.TIMESTAMP);
+                            }
                         }
                     }
 
@@ -2975,7 +2981,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private java.sql.Timestamp applyTimezoneTo(java.sql.Timestamp ts, Calendar cal) {
-        Date date = new Date(cal.getTimeInMillis());
+        Date date = new Date(ts.getTime());
         int nanos = ts.getNanos();
         DateFormat df = new SimpleDateFormat(getDateFormatPattern(nanos));
         df.setTimeZone(cal.getTimeZone());
@@ -3464,10 +3470,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
 
-        if (this.useBulkCopyForBatchInsert && null != cal) {
-            x = applyTimezoneTo(x, cal);
-        }
-
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
@@ -3479,10 +3481,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
-
-        if (this.useBulkCopyForBatchInsert && null != cal) {
-            x = applyTimezoneTo(x, cal);
-        }
 
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
