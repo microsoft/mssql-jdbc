@@ -241,11 +241,11 @@ public final class TestUtils {
      * Checks if connection is established to Azure Synapse OnDemand server
      * 
      */
-    public static boolean isAzureSynapseOndemand(Connection con) {
+    public static boolean isAzureSynapseOnDemand(Connection con) {
         isAzure(con);
         return ((SQLServerConnection) con).isAzureSynapseOnDemandEndpoint();
     }
-    
+
     /**
      * Checks if connection is established to server that supports AEv2.
      * 

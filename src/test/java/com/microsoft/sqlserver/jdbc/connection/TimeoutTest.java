@@ -270,8 +270,8 @@ public class TimeoutTest extends AbstractTest {
                     f.setAccessible(true);
                     int retryCount = f.getInt(con);
 
-                    if (TestUtils.isAzureSynapseOndemand(con)) {
-                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAFULT
+                    if (TestUtils.isAzureSynapseOnDemand(con)) {
+                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAULT
                     } else if (TestUtils.isAzure(con)) {
                         assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
                     } else {
