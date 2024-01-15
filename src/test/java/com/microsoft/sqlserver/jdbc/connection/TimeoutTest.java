@@ -266,7 +266,7 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection(connectionString)) {
             Field fields[] = con.getClass().getSuperclass().getDeclaredFields();
             for (Field f : fields) {
-                if (f.getName() == "connectRetryCount") {
+                if (f.getName().equals("connectRetryCount")) {
                     f.setAccessible(true);
                     int retryCount = f.getInt(con);
 
