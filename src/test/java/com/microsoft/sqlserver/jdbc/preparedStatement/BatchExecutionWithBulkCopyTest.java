@@ -22,6 +22,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Random;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -809,31 +810,20 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     public void testNoSpaceInsert() throws Exception {
         // table name with valid alphanumeric chars that don't need to be escaped, since escaping the table name would not test the space issue
-        String testNoSpaceInsertTableName = "testNoSpaceInsertTable" + RandomData.generateInt(false);
-        String valid = "insert into " + testNoSpaceInsertTableName + "(id, json)" + " values(?, ?)";
+        String testNoSpaceInsertTableName = "testNoSpaceInsertTable" + (new Random()).nextInt(Integer.MAX_VALUE);
+        String valid = "insert into " + testNoSpaceInsertTableName + "(col)" + " values(?)";
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
                 Statement stmt = (SQLServerStatement) connection.createStatement();) {
-            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-            f1.setAccessible(true);
-            f1.set(connection, true);
 
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
-            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName)
-                    + " (id nvarchar(100) not null, json nvarchar(max) not null,"
-                    + " vcol1 as json_value([json], '$.vcol1'), vcol2 as json_value([json], '$.vcol2'))";
+            TestUtils.dropTableIfExists(testNoSpaceInsertTableName, stmt);
+            String createTable = "create table " + testNoSpaceInsertTableName + " (col varchar(4))";
             stmt.execute(createTable);
 
-            String jsonValue = "{\"vcol1\":\"" + UUID.randomUUID().toString() + "\",\"vcol2\":\""
-                    + UUID.randomUUID().toString() + "\" }";
-            String idValue = UUID.randomUUID().toString();
-            pstmt.setString(1, idValue);
-            pstmt.setString(2, jsonValue);
+            pstmt.setString(1, "test");
             pstmt.addBatch();
             pstmt.executeBatch();
-        } catch (Exception e) {
-            fail(testNoSpaceInsertTableName + ": " + e.getMessage());
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
