@@ -262,10 +262,14 @@ public class SQLServerStatement implements ISQLServerStatement {
             // (Re)execute this Statement with the new command
             executeCommand(newStmtCmd);
         } catch (SQLServerException e) {
-            if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT)
+            if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
+                if (e.getCause() == null) {
+                    throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+                }
                 throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
-            else
+            } else {
                 throw e;
+            }
         } finally {
             if (newStmtCmd.wasExecuted())
                 lastStmtExecCmd = newStmtCmd;
