@@ -21,18 +21,14 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Statement;
-import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TimeZone;
 import java.util.Vector;
-import java.util.Date;
 import java.util.logging.Level;
-import java.text.SimpleDateFormat;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
