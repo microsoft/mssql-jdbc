@@ -2481,9 +2481,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 else
                                     tdsWriter.writeByte((byte) 0x08);
                                 Timestamp ts = java.sql.Timestamp.valueOf(colValue.toString());
-                                tdsWriter.writeTimeBulkcopy(ts, bulkScale, cal);
+                                tdsWriter.writeTime(ts, bulkScale, cal);
                                 // Send only the date part
-                                tdsWriter.writeDateBulkCopy(ts.getTime(), cal);
+                                tdsWriter.writeDate(ts.getTime(), cal);
                                 //tdsWriter.writeRPCDateTime2(name,
                                 //        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                 //        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
@@ -3663,11 +3663,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
 
                 for (ColumnMapping columnMapping : columnMappings) {
+
                     Object rowObject = rowObjects[columnMapping.sourceColumnOrdinal - 1];
                     Calendar cal = null;
-                    if (params != null && rowObject instanceof Timestamp) {
+
+                    if (rowObject instanceof Timestamp && params != null) {
                         cal = params[columnMapping.sourceColumnOrdinal - 1].getInputDTV().getCalendar();
                     }
+
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the
                     // object array.
                     // COnvert the strings using destination table types.

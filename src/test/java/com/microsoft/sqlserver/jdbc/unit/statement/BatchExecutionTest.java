@@ -13,16 +13,16 @@ import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -60,7 +60,8 @@ public class BatchExecutionTest extends AbstractTest {
     private static String ctstable3;
     private static String ctstable4;
     private static String ctstable3Procedure1;
-    private static String timestampTable1 = "timestamptable1";
+    private static String timestampTable1 = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("timestamptable1"));
     private static String timestampTable2 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("timestampTableBatchInsert2"));
 
@@ -111,20 +112,75 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        for (String id: TimeZone.getAvailableIDs()) {
-            System.out.println(id);
-            TimeZone.setDefault(TimeZone.getTimeZone(id));
+        long ms = 1578743412000L;
 
-            long ms = 1696127400000L;
+        // Insert Timestamp using batch insert
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            String createSql = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            stmt.execute(createSql);
+
+            Timestamp timestamp = new Timestamp(ms);
+
+            pstmt.setTimestamp(1, timestamp, gmtCal);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+        }
+
+        // Insert Timestamp using bulkcopy for batch insert
+        try (Connection con = DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
+
+            Timestamp timestamp = new Timestamp(ms);
+
+            pstmt.setTimestamp(1, timestamp, gmtCal);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+        }
+
+        // Compare Timestamp values inserted, should be the same
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
+                Timestamp ts0;
+                Timestamp ts1;
+                Time t0;
+                Time t1;
+                Date d0;
+                Date d1;
+
+                rs.next();
+                ts0 = rs.getTimestamp(1);
+                t0 = rs.getTime(1);
+                d0 = rs.getDate(1);
+                rs.next();
+                ts1 = rs.getTimestamp(1);
+                t1 = rs.getTime(1);
+                d1 = rs.getDate(1);
+
+                assertEquals(ts0, ts1);
+                assertEquals(t0, t1);
+                assertEquals(d0, d1);
+            }
+        }
+    }
+
+    @Test
+    public void testValidTimezonesDstTimestampBatchInsertWithBulkCopy() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+        for (String tzId: TimeZone.getAvailableIDs()) {
+            TimeZone.setDefault(TimeZone.getTimeZone(tzId));
+
+            long ms = 1696127400000L; // DST
+
+            // Insert Timestamp using batch insert
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
-                String dropSql = "IF EXISTS (SELECT * FROM dbo.sysobjects WHERE id = object_id(N'"
-                        + TestUtils.escapeSingleQuotes(timestampTable1)
-                        + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) DROP TABLE " + timestampTable1;
-                stmt.execute(dropSql);
-
+                TestUtils.dropTableIfExists(timestampTable1, stmt);
                 String createSql = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
                 stmt.execute(createSql);
 
@@ -135,6 +191,7 @@ public class BatchExecutionTest extends AbstractTest {
                 pstmt.executeBatch();
             }
 
+            // Insert Timestamp using bulkcopy for batch insert
             try (Connection con = DriverManager.getConnection(
                     connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
@@ -146,21 +203,32 @@ public class BatchExecutionTest extends AbstractTest {
                 pstmt.executeBatch();
             }
 
+            // Compare Timestamp values inserted, should be the same
             try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1);
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
+                    Timestamp ts0;
+                    Timestamp ts1;
+                    Time t0;
+                    Time t1;
+                    Date d0;
+                    Date d1;
 
-                Timestamp ts0; // Timestamp batch inserted without bulkcopy
-                Timestamp ts1; // Timestamp batch inserted with bulkcopy
+                    rs.next();
+                    ts0 = rs.getTimestamp(1);
+                    t0 = rs.getTime(1);
+                    d0 = rs.getDate(1);
+                    rs.next();
+                    ts1 = rs.getTimestamp(1);
+                    t1 = rs.getTime(1);
+                    d1 = rs.getDate(1);
 
-                rs.next();
-                ts0 = rs.getTimestamp(1);
-                rs.next();
-                ts1 = rs.getTimestamp(1);
-
-                assertEquals(ts0, ts1);
+                    String failureMsg = "Failed for time zone: " + tzId;
+                    assertEquals(ts0, ts1, failureMsg);
+                    assertEquals(t0, t1, failureMsg);
+                    assertEquals(d0, d1, failureMsg);
+                }
             }
         }
-
     }
 
     @Test
@@ -168,15 +236,12 @@ public class BatchExecutionTest extends AbstractTest {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
+        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
         try (Connection con = DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;"); Statement stmt = con.createStatement();
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)")) {
 
-            String dropSql = "IF EXISTS (SELECT * FROM dbo.sysobjects WHERE id = object_id(N'"
-                    + TestUtils.escapeSingleQuotes(timestampTable2)
-                    + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1) DROP TABLE " + timestampTable2;
-            stmt.execute(dropSql);
-
+            TestUtils.dropTableIfExists(timestampTable2, stmt);
             String createSql = "CREATE TABLE" + timestampTable2 + " (c1 DATETIME2(3))";
             stmt.execute(createSql);
 
@@ -186,6 +251,7 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.execute();
         }
 
+        // Insert Timestamp using bulkcopy for batch insert
         try (Connection con = DriverManager.getConnection(
                 connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)")) {
@@ -197,18 +263,29 @@ public class BatchExecutionTest extends AbstractTest {
             pstmt.executeBatch();
         }
 
+        // Compare Timestamp values inserted, should be the same
         try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable2);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable2)) {
+                Timestamp ts0;
+                Timestamp ts1;
+                Time t0;
+                Time t1;
+                Date d0;
+                Date d1;
 
-            Timestamp ts0; // Timestamp inserted with prepared statement
-            Timestamp ts1; // Timestamp batch inserted with bulkcopy
+                rs.next();
+                ts0 = rs.getTimestamp(1);
+                t0 = rs.getTime(1);
+                d0 = rs.getDate(1);
+                rs.next();
+                ts1 = rs.getTimestamp(1);
+                t1 = rs.getTime(1);
+                d1 = rs.getDate(1);
 
-            rs.next();
-            ts0 = rs.getTimestamp(1);
-            rs.next();
-            ts1 = rs.getTimestamp(1);
-
-            assertEquals(ts0, ts1);
+                assertEquals(ts0, ts1);
+                assertEquals(t0, t1);
+                assertEquals(d0, d1);
+            }
         }
     }
 
@@ -579,6 +656,9 @@ public class BatchExecutionTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable1), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable4), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable4), stmt);
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            TestUtils.dropTableIfExists(timestampTable2, stmt);
         }
     }
 

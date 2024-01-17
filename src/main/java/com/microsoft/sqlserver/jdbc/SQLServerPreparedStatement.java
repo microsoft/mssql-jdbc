@@ -2240,12 +2240,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         SQLServerException.getErrString("R_outParamsNotPermittedinBatch"), null, 0,
                                         null);
                             }
-
-                            // Apply timezone conversion for Timestamp types
-                            if (paramValue.getJdbcType() == JDBCType.TIMESTAMP) {
-                                //java.sql.Timestamp ts = applyTimezoneTo((java.sql.Timestamp) paramValue.getSetterValue(), paramValue.getInputDTV().getCalendar());
-                                //paramValue.getInputDTV().setValue(ts, JavaType.TIMESTAMP);
-                            }
                         }
                     }
 
@@ -2952,44 +2946,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             throw new IllegalArgumentException(form.format(msgArgs));
         }
         return true;
-    }
-
-    private String getDateFormatPattern(int nanos) {
-        int sum = 0;
-        StringBuilder pattern = new StringBuilder("yyyy-MM-dd HH:mm:ss");
-        String[] figure = Integer.toString(nanos).split("(^0+|0+$)");
-
-        for (String digit : figure) {
-            sum += digit.length();
-        }
-
-        if (sum == 0) {
-            return pattern.toString();
-        }
-
-        if (sum > 7) {
-            sum = 7;
-        }
-
-        for (int i = 0; i < sum; i++) {
-            if (i == 0) {
-                pattern.append(".S");
-            }
-            pattern.append("S");
-        }
-
-        return pattern.toString();
-    }
-
-    private java.sql.Timestamp applyTimezoneTo(java.sql.Timestamp ts, Calendar cal) {
-        Date date = new Date(ts.getTime());
-        int nanos = ts.getNanos();
-        DateFormat df = new SimpleDateFormat(getDateFormatPattern(nanos));
-        df.setTimeZone(cal.getTimeZone());
-        java.sql.Timestamp newTs = java.sql.Timestamp.valueOf(df.format(date));
-        newTs.setNanos(nanos);
-
-        return newTs;
     }
 
     /**
