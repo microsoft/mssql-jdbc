@@ -28,6 +28,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.Date;
 import java.util.logging.Level;
@@ -2242,8 +2243,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // Apply timezone conversion for Timestamp types
                             if (paramValue.getJdbcType() == JDBCType.TIMESTAMP) {
-                                java.sql.Timestamp ts = applyTimezoneTo((java.sql.Timestamp) paramValue.getSetterValue(), paramValue.getInputDTV().getCalendar());
-                                paramValue.getInputDTV().setValue(ts, JavaType.TIMESTAMP);
+                                //java.sql.Timestamp ts = applyTimezoneTo((java.sql.Timestamp) paramValue.getSetterValue(), paramValue.getInputDTV().getCalendar());
+                                //paramValue.getInputDTV().setValue(ts, JavaType.TIMESTAMP);
                             }
                         }
                     }

@@ -3825,6 +3825,20 @@ final class TDSWriter {
                 SSType.DATE);
     }
 
+    void writeDateBulkCopy(long utcMillis, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
+
+        writeScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
+                0, // scale (dates are not scaled)
+                SSType.DATE);
+    }
+
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
@@ -3835,6 +3849,23 @@ final class TDSWriter {
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
 
+        writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
+    }
+
+    void writeTimeBulkcopy(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos;
+        utcMillis = value.getTime();
+        subSecondNanos = value.getNanos();
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
+
+        calendar.getTime();
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
     }
 
