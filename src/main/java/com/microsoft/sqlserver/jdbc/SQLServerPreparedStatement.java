@@ -487,6 +487,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY));
         loggerExternal.exiting(getClassNameLogging(), "executeQuery");
         return resultSet;
@@ -501,6 +502,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     final java.sql.ResultSet executeQueryInternal() throws SQLServerException, SQLTimeoutException {
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_QUERY_INTERNAL));
         return resultSet;
     }
@@ -513,7 +515,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         checkClosed();
-
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
 
         // this shouldn't happen, caller probably meant to call executeLargeUpdate
@@ -534,6 +536,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE_UPDATE));
         loggerExternal.exiting(getClassNameLogging(), "executeLargeUpdate", updateCount);
         return updateCount;
@@ -546,6 +549,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         executeStatement(new PrepStmtExecCmd(this, EXECUTE));
         loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
@@ -2199,6 +2203,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         discardLastExecutionResults();
 
         try {
@@ -2382,6 +2387,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        connection.unprepareUnreferencedPreparedStatementHandles(false);
         discardLastExecutionResults();
 
         try {
