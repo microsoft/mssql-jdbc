@@ -63,7 +63,7 @@ public class BatchExecutionTest extends AbstractTest {
     private static String timestampTable1 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("timestamptable1"));
     private static String timestampTable2 = AbstractSQLGenerator
-            .escapeIdentifier(RandomUtil.getIdentifier("timestampTableBatchInsert2"));
+            .escapeIdentifier(RandomUtil.getIdentifier("timestamptable2"));
 
     /**
      * This tests the updateCount when the error query does cause a SQL state HY008.
@@ -142,28 +142,27 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Compare Timestamp values inserted, should be the same
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
-                Timestamp ts0;
-                Timestamp ts1;
-                Time t0;
-                Time t1;
-                Date d0;
-                Date d1;
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
+            Timestamp ts0;
+            Timestamp ts1;
+            Time t0;
+            Time t1;
+            Date d0;
+            Date d1;
 
-                rs.next();
-                ts0 = rs.getTimestamp(1);
-                t0 = rs.getTime(1);
-                d0 = rs.getDate(1);
-                rs.next();
-                ts1 = rs.getTimestamp(1);
-                t1 = rs.getTime(1);
-                d1 = rs.getDate(1);
+            rs.next();
+            ts0 = rs.getTimestamp(1);
+            t0 = rs.getTime(1);
+            d0 = rs.getDate(1);
+            rs.next();
+            ts1 = rs.getTimestamp(1);
+            t1 = rs.getTime(1);
+            d1 = rs.getDate(1);
 
-                assertEquals(ts0, ts1);
-                assertEquals(t0, t1);
-                assertEquals(d0, d1);
-            }
+            assertEquals(ts0, ts1);
+            assertEquals(t0, t1);
+            assertEquals(d0, d1);
         }
     }
 
@@ -204,29 +203,28 @@ public class BatchExecutionTest extends AbstractTest {
             }
 
             // Compare Timestamp values inserted, should be the same
-            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
-                    Timestamp ts0;
-                    Timestamp ts1;
-                    Time t0;
-                    Time t1;
-                    Date d0;
-                    Date d1;
+            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
+                Timestamp ts0;
+                Timestamp ts1;
+                Time t0;
+                Time t1;
+                Date d0;
+                Date d1;
 
-                    rs.next();
-                    ts0 = rs.getTimestamp(1);
-                    t0 = rs.getTime(1);
-                    d0 = rs.getDate(1);
-                    rs.next();
-                    ts1 = rs.getTimestamp(1);
-                    t1 = rs.getTime(1);
-                    d1 = rs.getDate(1);
+                rs.next();
+                ts0 = rs.getTimestamp(1);
+                t0 = rs.getTime(1);
+                d0 = rs.getDate(1);
+                rs.next();
+                ts1 = rs.getTimestamp(1);
+                t1 = rs.getTime(1);
+                d1 = rs.getDate(1);
 
-                    String failureMsg = "Failed for time zone: " + tzId;
-                    assertEquals(ts0, ts1, failureMsg);
-                    assertEquals(t0, t1, failureMsg);
-                    assertEquals(d0, d1, failureMsg);
-                }
+                String failureMsg = "Failed for time zone: " + tzId;
+                assertEquals(ts0, ts1, failureMsg);
+                assertEquals(t0, t1, failureMsg);
+                assertEquals(d0, d1, failureMsg);
             }
         }
     }
@@ -264,28 +262,27 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Compare Timestamp values inserted, should be the same
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable2)) {
-                Timestamp ts0;
-                Timestamp ts1;
-                Time t0;
-                Time t1;
-                Date d0;
-                Date d1;
+        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable2)) {
+            Timestamp ts0;
+            Timestamp ts1;
+            Time t0;
+            Time t1;
+            Date d0;
+            Date d1;
 
-                rs.next();
-                ts0 = rs.getTimestamp(1);
-                t0 = rs.getTime(1);
-                d0 = rs.getDate(1);
-                rs.next();
-                ts1 = rs.getTimestamp(1);
-                t1 = rs.getTime(1);
-                d1 = rs.getDate(1);
+            rs.next();
+            ts0 = rs.getTimestamp(1);
+            t0 = rs.getTime(1);
+            d0 = rs.getDate(1);
+            rs.next();
+            ts1 = rs.getTimestamp(1);
+            t1 = rs.getTime(1);
+            d1 = rs.getDate(1);
 
-                assertEquals(ts0, ts1);
-                assertEquals(t0, t1);
-                assertEquals(d0, d1);
-            }
+            assertEquals(ts0, ts1);
+            assertEquals(t0, t1);
+            assertEquals(d0, d1);
         }
     }
 

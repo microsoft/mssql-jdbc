@@ -2480,13 +2480,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                     tdsWriter.writeByte((byte) 0x07);
                                 else
                                     tdsWriter.writeByte((byte) 0x08);
-                                Timestamp ts = java.sql.Timestamp.valueOf(colValue.toString());
+                                Timestamp ts = (Timestamp) colValue;
                                 tdsWriter.writeTime(ts, bulkScale, cal);
                                 // Send only the date part
                                 tdsWriter.writeDate(ts.getTime(), cal);
-                                //tdsWriter.writeRPCDateTime2(name,
-                                //        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                //        subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
                         }
                     }
                     break;

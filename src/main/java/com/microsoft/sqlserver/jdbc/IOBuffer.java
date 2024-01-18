@@ -1056,7 +1056,7 @@ final class TDSChannel implements Serializable {
     private final class ProxyInputStream extends InputStream {
         private InputStream filteredStream;
 
-        private final transient Lock proxyInputStreamLock = new ReentrantLock();
+        private final Lock proxyInputStreamLock = new ReentrantLock();
 
         /**
          * Bytes that have been read by a poll(s).
@@ -3854,10 +3854,8 @@ final class TDSWriter {
 
     void writeTime(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos;
-        utcMillis = value.getTime();
-        subSecondNanos = value.getNanos();
+        long utcMillis = value.getTime(); // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = value.getNanos();
 
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
