@@ -2050,14 +2050,17 @@ final class AppDTVImpl extends DTVImpl {
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
             else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
-                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type) && dtv.basicType != SSType.VARCHAR && dtv.basicType != SSType.CHAR) {
-                byte[] nativeEncoding = null;
+                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
 
-                if (null != strValue) {
-                    nativeEncoding = strValue.getBytes(collation.getCharset());
+                if (con.sendStringParametersAsUnicode() && (dtv.basicType != SSType.CHAR && dtv.basicType != SSType.VARCHAR)) {
+                    byte[] nativeEncoding = null;
+
+                    if (null != strValue) {
+                        nativeEncoding = strValue.getBytes(collation.getCharset());
+                    }
+
+                    dtv.setValue(nativeEncoding, JavaType.BYTEARRAY);
                 }
-
-                dtv.setValue(nativeEncoding, JavaType.BYTEARRAY);
             }
         }
 
