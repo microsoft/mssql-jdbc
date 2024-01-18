@@ -134,6 +134,8 @@ final class DTV {
 
     boolean isNonPLP = false;
 
+    SSType basicType;
+
     /**
      * Sets a DTV value from a Java object.
      *
@@ -2048,7 +2050,7 @@ final class AppDTVImpl extends DTVImpl {
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
             else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
-                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
+                    || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type) && dtv.basicType != SSType.VARCHAR && dtv.basicType != SSType.CHAR) {
                 byte[] nativeEncoding = null;
 
                 if (null != strValue) {

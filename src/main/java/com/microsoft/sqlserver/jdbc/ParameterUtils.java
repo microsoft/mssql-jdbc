@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.SQLException;
+
+
 /**
  * ParameterUtils provides utility a set of methods to manipulate parameter values.
  */
@@ -43,6 +46,28 @@ final class ParameterUtils {
                     null, false);
         }
         return ret;
+    }
+
+    static boolean isHex(String hexV) {
+        int len = hexV.length();
+
+        if ((hexV.length()% 2) != 0) {
+            return false;
+        }
+
+        char[] arr = hexV.toCharArray();
+
+        for (int i = 0; i < len / 2; i++) {
+            try {
+                charToHex(arr[2 * i]);
+            } catch (SQLException se) {
+                if (se.getMessage().equals(SQLServerException.getErrString("R_stringNotInHex"))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /**

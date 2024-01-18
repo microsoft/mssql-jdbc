@@ -348,7 +348,21 @@ final class Column {
                 || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
+
             jdbcType = JDBCType.VARBINARY;
+
+            // Updating an encrypted varchar/char column, JDBC type should remain a VARCHAR
+            SSType basicSSType = cryptoMetadata.baseTypeInfo.getSSType();
+            if (con.isColumnEncryptionSettingEnabled() && !con.sendStringParametersAsUnicode()
+                    && basicSSType != SSType.VARBINARY && basicSSType != SSType.BINARY
+                    && value instanceof String && !ParameterUtils.isHex((String) value)) {
+                jdbcType = JDBCType.VARCHAR;
+
+                if (null == updaterDTV) {
+                    updaterDTV = new DTV();
+                }
+                updaterDTV.basicType = basicSSType;
+            }
         }
 
         // Update of textual SSType from temporal JDBCType requires
