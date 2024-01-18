@@ -808,7 +808,7 @@ final class Parameter {
                         } else {
                             param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
 
-                            if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
+                            if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }
