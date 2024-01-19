@@ -712,6 +712,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
         wrappedConnection.setCalcBigDecimalPrecision(calcBigDecimalPrecision);
     }
+
     /**
      * Returns the useBulkCopyForBatchInsert value.
      * 
@@ -719,7 +720,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      */
     @Override
     public boolean getUseBulkCopyForBatchInsert() {
-    		return wrappedConnection.getUseBulkCopyForBatchInsert();
+        return wrappedConnection.getUseBulkCopyForBatchInsert();
     }
 
     /**
@@ -730,6 +731,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      */
     @Override
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
-    		wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
+        wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
 }

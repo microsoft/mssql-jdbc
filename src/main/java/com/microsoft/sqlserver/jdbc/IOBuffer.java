@@ -1056,7 +1056,7 @@ final class TDSChannel implements Serializable {
     private final class ProxyInputStream extends InputStream {
         private InputStream filteredStream;
 
-        private final transient Lock proxyInputStreamLock = new ReentrantLock();
+        private final Lock proxyInputStreamLock = new ReentrantLock();
 
         /**
          * Bytes that have been read by a poll(s).
@@ -3825,6 +3825,20 @@ final class TDSWriter {
                 SSType.DATE);
     }
 
+    void writeDate(long utcMillis, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
+
+        writeScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
+                0, // scale (dates are not scaled)
+                SSType.DATE);
+    }
+
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
@@ -3834,6 +3848,20 @@ final class TDSWriter {
 
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
+
+        writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
+    }
+
+    void writeTime(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        long utcMillis = value.getTime(); // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = value.getNanos();
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
     }

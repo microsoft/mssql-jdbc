@@ -2589,7 +2589,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "registerOutParameter",
                     new Object[] {parameterName, sqlType});
         checkClosed();
-        registerOutParameterByName(findColumn(parameterName, CallableStatementGetterSetterMethod.IS_SETTER_METHOD), sqlType);
+        registerOutParameterByName(findColumn(parameterName, CallableStatementGetterSetterMethod.IS_SETTER_METHOD),
+                sqlType);
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 

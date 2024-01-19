@@ -3422,6 +3422,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal});
         checkClosed();
+
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, false);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
@@ -3433,6 +3434,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setTimestamp", new Object[] {n, x, cal, forceEncrypt});
         checkClosed();
+
         setValue(n, JDBCType.TIMESTAMP, x, JavaType.TIMESTAMP, cal, forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
