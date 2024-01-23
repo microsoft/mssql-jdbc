@@ -225,6 +225,18 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<repositories>
+		<repository>
+			<id>Microsoft.Data.SqlClient</id>
+			<url>https://sqlclientdrivers.pkgs.visualstudio.com/_packaging/Microsoft.Data.SqlClient/maven/v1</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 	<profiles>
 		<profile>
 			<id>jre8</id>
