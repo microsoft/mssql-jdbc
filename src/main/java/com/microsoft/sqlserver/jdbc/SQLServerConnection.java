@@ -8060,6 +8060,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
+     *        access token callback class
      */
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
         this.accessTokenCallbackClass = accessTokenCallbackClass;
