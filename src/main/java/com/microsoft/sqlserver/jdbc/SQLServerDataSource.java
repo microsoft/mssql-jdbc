@@ -1322,6 +1322,7 @@ public class SQLServerDataSource
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
+     *        access token callback class
      */
     @Override
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {

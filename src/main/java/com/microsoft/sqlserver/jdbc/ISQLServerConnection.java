@@ -479,6 +479,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
+     *        access token callback class
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
