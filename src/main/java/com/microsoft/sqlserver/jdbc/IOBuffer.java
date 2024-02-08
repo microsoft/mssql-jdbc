@@ -57,6 +57,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -4782,6 +4783,31 @@ final class TDSWriter {
 
         byte[] val = DDC.convertBigDecimalToBytes(bdValue, nScale);
         writeBytes(val, 0, val.length);
+    }
+
+    /**
+     * Append a UUID in RPC transmission format.
+     *
+     * @param sName
+     *        the optional parameter name
+     * @param uuidValue
+     *        the data value
+     * @param bOut
+     *        boolean true if the data value is being registered as an output parameter
+     */
+    void writeRPCUUID(String sName, UUID uuidValue, boolean bOut) throws SQLServerException {
+        writeRPCNameValType(sName, bOut, TDSType.GUID);
+
+        if (uuidValue == null) {
+            writeByte((byte) 0);
+
+        } else {
+            writeByte((byte) 0x10);  // maximum length = 16
+            writeByte((byte) 0x10);  // length = 16
+
+            byte[] val = Util.asGuidByteArray(uuidValue);
+            writeBytes(val, 0, val.length);
+        }
     }
 
     /**
