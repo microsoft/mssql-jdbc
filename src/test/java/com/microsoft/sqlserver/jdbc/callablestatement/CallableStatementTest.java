@@ -81,7 +81,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Setup before test
-     * 
+     *
      * @throws SQLException
      */
     @BeforeAll
@@ -201,7 +201,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Tests CallableStatement.getString() with uniqueidentifier parameter
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -226,7 +226,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * test for setNull(index, varchar) to behave as setNull(index, nvarchar) when SendStringParametersAsUnicode is true
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -302,7 +302,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -332,7 +332,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * recognize parameter names with and without leading '@'
-     * 
+     *
      * @throws SQLException
      */
     @Test
@@ -1067,9 +1067,36 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testExecuteSystemStoredProcedureNamedParametersNoResultset() throws SQLException {
+        // Uppercase 'EXEC' command test
+        String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='60', @LockMode='Exclusive', @LockOwner='Session'";
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setString(1, "resource");
+            cstmt.execute();
+        }
+    }
+
+    @Test
+    public void testExecuteSystemStoredProcedureNamedParametersResultSet() throws SQLException {
+        // Lowercase 'exec' command test
+        String call = "exec sp_sproc_columns_100 ?, @ODBCVer=3, @fUsePattern=0";
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.setString(1, "sp_getapplock");
+
+            try (ResultSet rs = cstmt.executeQuery()) {
+                while (rs.next()) {
+                    assertTrue("Failed -- ResultSet was not returned.", !rs.getString(4).isEmpty());
+                }
+            }
+        }
+    }
+
     /**
      * Cleanup after test
-     * 
+     *
      * @throws SQLException
      */
     @AfterAll

@@ -70,6 +70,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
+    /** Unprocessed SQL statement text, should tbe same as what user initially passed. */
+    final String userSQLUnprocessed;
+
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
 
@@ -253,6 +256,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
+        userSQLUnprocessed = sql;
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
@@ -1210,7 +1214,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
-        return (null != procedureName && paramCount != 0 && !isTVPType(params));
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isExecCommand());
     }
 
     /**
@@ -1228,6 +1232,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         return false;
+    }
+
+    private boolean isExecCommand() {
+        String command = userSQLUnprocessed.split(" ")[0].toLowerCase();
+        return command.equals("exec") || command.equals("execute");
     }
 
     /**
