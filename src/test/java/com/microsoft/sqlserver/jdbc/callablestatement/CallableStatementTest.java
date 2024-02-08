@@ -1069,7 +1069,6 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testExecuteSystemStoredProcedureNamedParametersNoResultset() throws SQLException {
-        // Uppercase 'EXEC' command test
         String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='60', @LockMode='Exclusive', @LockOwner='Session'";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -1080,11 +1079,24 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testExecuteSystemStoredProcedureNamedParametersResultSet() throws SQLException {
-        // Lowercase 'exec' command test
         String call = "exec sp_sproc_columns_100 ?, @ODBCVer=3, @fUsePattern=0";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
             cstmt.setString(1, "sp_getapplock");
+
+            try (ResultSet rs = cstmt.executeQuery()) {
+                while (rs.next()) {
+                    assertTrue("Failed -- ResultSet was not returned.", !rs.getString(4).isEmpty());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testExecuteSystemStoredProcedureNoNamedParametersResultSet() throws SQLException {
+        String call = "execute sp_sproc_columns_100 sp_getapplock, @ODBCVer=3, @fUsePattern=0";
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
 
             try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
