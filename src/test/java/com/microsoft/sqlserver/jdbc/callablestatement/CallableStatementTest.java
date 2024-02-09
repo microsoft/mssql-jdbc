@@ -1068,7 +1068,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testExecuteSystemStoredProcedureNamedParametersNoResultset() throws SQLException {
+    public void testExecuteSystemStoredProcedureNamedParametersAndIndexedParameterNoResultset() throws SQLException {
         String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='60', @LockMode='Exclusive', @LockOwner='Session'";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -1078,7 +1078,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testExecuteSystemStoredProcedureNamedParametersResultSet() throws SQLException {
+    public void testExecSystemStoredProcedureNamedParametersAndIndexedParameterResultSet() throws SQLException {
         String call = "exec sp_sproc_columns_100 ?, @ODBCVer=3, @fUsePattern=0";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -1093,7 +1093,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    public void testExecuteSystemStoredProcedureNoNamedParametersResultSet() throws SQLException {
+    public void testExecSystemStoredProcedureNoIndexedParametersResultSet() throws SQLException {
         String call = "execute sp_sproc_columns_100 sp_getapplock, @ODBCVer=3, @fUsePattern=0";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
@@ -1102,6 +1102,38 @@ public class CallableStatementTest extends AbstractTest {
                 while (rs.next()) {
                     assertTrue("Failed -- ResultSet was not returned.", !rs.getString(4).isEmpty());
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testExecDocumentedSystemStoredProceduresIndexedParameters() throws SQLException {
+        String serverName;
+        String testTableName = "testTable";
+        Integer integer = new Integer(1);
+
+        try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery("SELECT @@SERVERNAME")) {
+            rs.next();
+            serverName = rs.getString(1);
+        }
+
+        String[] sprocs = {"EXEC sp_column_privileges ?", "EXECUTE sp_serveroption @@SERVERNAME, ?, TRUE", "exec sp_catalogs ?",
+                "execute sp_column_privileges ?", "EXEC sp_column_privileges_ex ?", "EXECUTE sp_columns ?", "exec sp_columns_ex ?",
+                "execute sp_datatype_info ?", "EXEC sp_sproc_columns ?", "EXECUTE sp_server_info ?", "exec sp_special_columns ?",
+                "execute sp_statistics ?", "EXEC sp_table_privileges ?", "EXECUTE sp_table_privileges_ex ?", "exec sp_tables ?", "execute sp_tables_ex ?"};
+
+        Object[] params = {testTableName, "DATA ACCESS", serverName, testTableName, serverName,
+                testTableName, serverName, integer, "sp_column_privileges", integer, testTableName, testTableName, testTableName, serverName, testTableName, serverName};
+
+        int paramIndex = 0;
+
+        for (String sproc : sprocs) {
+            try (CallableStatement cstmt = connection.prepareCall(sproc)) {
+                cstmt.setObject(1, params[paramIndex]);
+                cstmt.execute();
+                paramIndex++;
+            } catch (Exception e) {
+                fail("Failed executing '" + sproc + "' with indexed parameter '" + params[paramIndex]);
             }
         }
     }
