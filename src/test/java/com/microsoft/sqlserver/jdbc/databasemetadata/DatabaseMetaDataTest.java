@@ -924,47 +924,47 @@ public class DatabaseMetaDataTest extends AbstractTest {
     public void testValidateColumnMetadata() throws SQLException {
     	
     	if (getColumnMetaDataType == null) {
-	    	getColumnMetaDataType = new LinkedHashMap<>();
-	    	getColumnMetaDataType.put(TABLE_CAT, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(TABLE_SCHEM, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(TABLE_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(COLUMN_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(DATA_TYPE, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(TYPE_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(COLUMN_SIZE, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(BUFFER_LENGTH, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(DECIMAL_DIGITS, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(NUM_PREC_RADIX, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(NULLABLE, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(REMARKS, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(COLUMN_DEF, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SQL_DATA_TYPE, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(SQL_DATETIME_SUB, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(CHAR_OCTET_LENGTH, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(ORDINAL_POSITION, java.sql.Types.INTEGER);
-	    	getColumnMetaDataType.put(IS_NULLABLE, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(SCOPE_CATALOG, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(SCOPE_SCHEMA, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(SCOPE_TABLE, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(SOURCE_DATA_TYPE, java.sql.Types.SMALLINT);
-	    	getColumnMetaDataType.put(IS_AUTOINCREMENT, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(IS_GENERATEDCOLUMN, java.sql.Types.VARCHAR);
-	    	getColumnMetaDataType.put(SS_IS_SPARSE, java.sql.Types.SMALLINT);
-	    	getColumnMetaDataType.put(SS_IS_COLUMN_SET, java.sql.Types.SMALLINT);
-	    	getColumnMetaDataType.put(SS_UDT_CATALOG_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SS_UDT_SCHEMA_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SS_UDT_ASSEMBLY_TYPE_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, java.sql.Types.NVARCHAR);
-	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType = new LinkedHashMap<>();
+            getColumnMetaDataType.put(TABLE_CAT, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(TABLE_SCHEM, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(TABLE_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(COLUMN_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(DATA_TYPE, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(TYPE_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(COLUMN_SIZE, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(BUFFER_LENGTH, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(DECIMAL_DIGITS, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(NUM_PREC_RADIX, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(NULLABLE, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(REMARKS, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(COLUMN_DEF, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SQL_DATA_TYPE, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(SQL_DATETIME_SUB, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(CHAR_OCTET_LENGTH, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(ORDINAL_POSITION, java.sql.Types.INTEGER);
+            getColumnMetaDataType.put(IS_NULLABLE, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(SCOPE_CATALOG, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(SCOPE_SCHEMA, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(SCOPE_TABLE, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(SOURCE_DATA_TYPE, java.sql.Types.SMALLINT);
+            getColumnMetaDataType.put(IS_AUTOINCREMENT, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(IS_GENERATEDCOLUMN, java.sql.Types.VARCHAR);
+            getColumnMetaDataType.put(SS_IS_SPARSE, java.sql.Types.SMALLINT);
+            getColumnMetaDataType.put(SS_IS_COLUMN_SET, java.sql.Types.SMALLINT);
+            getColumnMetaDataType.put(SS_UDT_CATALOG_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SS_UDT_SCHEMA_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SS_UDT_ASSEMBLY_TYPE_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, java.sql.Types.NVARCHAR);
+            getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_NAME, java.sql.Types.NVARCHAR);
     	}
     	
         try (Connection conn = getConnection();) {
-        	ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
+            ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
 
-        	// Ensure that there is a data type for every metadata column
-        	assert(metadata.getColumnCount() == getColumnMetaDataType.size());
-			
+            // Ensure that there is a data type for every metadata column
+            assert(metadata.getColumnCount() == getColumnMetaDataType.size());
+
             for (int i = 1; i < metadata.getColumnCount(); i++) {
                 assertEquals(getColumnMetaDataType.get(i), metadata.getColumnType(i));
             }
