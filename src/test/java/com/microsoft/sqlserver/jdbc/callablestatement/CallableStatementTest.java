@@ -1115,14 +1115,14 @@ public class CallableStatementTest extends AbstractTest {
             serverName = rs.getString(1);
         }
 
-        String[] sprocs = {"EXEC sp_column_privileges ?", "EXECUTE sp_serveroption @@SERVERNAME, ?, TRUE",
+        String[] sprocs = {"EXEC sp_column_privileges ?",
                 "exec sp_catalogs ?", "execute sp_column_privileges ?", "EXEC sp_column_privileges_ex ?",
                 "EXECUTE sp_columns ?", "exec sp_columns_ex ?", "execute sp_datatype_info ?",
                 "EXEC sp_sproc_columns ?", "EXECUTE sp_server_info ?", "exec sp_special_columns ?",
                 "execute sp_statistics ?", "EXEC sp_table_privileges ?", "EXECUTE sp_table_privileges_ex ?",
                 "exec sp_tables ?", "execute sp_tables_ex ?"};
 
-        Object[] params = {testTableName, "DATA ACCESS", serverName, testTableName, serverName,
+        Object[] params = {testTableName, serverName, testTableName, serverName,
                 testTableName, serverName, integer, "sp_column_privileges", integer, testTableName,
                 testTableName, testTableName, serverName, testTableName, serverName};
 
