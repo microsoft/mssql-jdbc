@@ -351,18 +351,38 @@ final class Column {
 
             jdbcType = JDBCType.VARBINARY;
 
-            // Updating an encrypted varchar/char column, JDBC type should remain a VARCHAR
-            SSType basicSSType = cryptoMetadata.baseTypeInfo.getSSType();
-            if (con.isColumnEncryptionSettingEnabled() && !con.sendStringParametersAsUnicode()
-                    && basicSSType != SSType.VARBINARY && basicSSType != SSType.BINARY
-                    && value instanceof String && !ParameterUtils.isHex((String) value)) {
-                jdbcType = JDBCType.VARCHAR;
+            // If it is VARBINARY then data type of column is either a VARBINARY type
+            // or an encrypted column. And, if cryptoMetaData exists eg. AE is on, it is likely an encrypted column.
+            if (SSType.VARBINARY.toString().equals(ssType.toString()) && null != cryptoMetadata) {
 
-                if (null == updaterDTV) {
-                    updaterDTV = new DTV();
+                SSType basicSSType = cryptoMetadata.baseTypeInfo.getSSType(); // Column type
+
+                // If column type is VARBINARY then it is an encrypted VARBINARY column,
+                // so leave as VARBINARY. Otherwise, if it's not VARBINARY and the update value is not a hexadecimal
+                // string, then switch to VARCHAR.
+                if (basicSSType != SSType.VARBINARY && value instanceof String && !ParameterUtils.isHex((String) value)) {
+                    jdbcType = JDBCType.VARCHAR;
+
+                    if (null == updaterDTV) {
+                        updaterDTV = new DTV();
+                    }
+                    updaterDTV.basicType = basicSSType;
                 }
-                updaterDTV.basicType = basicSSType;
             }
+
+            //jdbcType = JDBCType.VARBINARY;
+
+            //SSType basicSSType = cryptoMetadata.baseTypeInfo.getSSType();
+            //if (con.isColumnEncryptionSettingEnabled() && !con.sendStringParametersAsUnicode()
+            //        && basicSSType != SSType.VARBINARY && basicSSType != SSType.BINARY
+            //        && value instanceof String && !ParameterUtils.isHex((String) value)) {
+            //    jdbcType = JDBCType.VARCHAR;
+
+            //    if (null == updaterDTV) {
+            //        updaterDTV = new DTV();
+            //    }
+            //    updaterDTV.basicType = basicSSType;
+            //}
         }
 
         // Update of textual SSType from temporal JDBCType requires
