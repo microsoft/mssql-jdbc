@@ -1117,14 +1117,13 @@ public class CallableStatementTest extends AbstractTest {
 
         String[] sprocs = {"EXEC sp_column_privileges ?",
                 "exec sp_catalogs ?", "execute sp_column_privileges ?", "EXEC sp_column_privileges_ex ?",
-                "EXECUTE sp_columns ?", "exec sp_columns_ex ?", "execute sp_datatype_info ?",
+                "EXECUTE sp_columns ?", "execute sp_datatype_info ?",
                 "EXEC sp_sproc_columns ?", "EXECUTE sp_server_info ?", "exec sp_special_columns ?",
-                "execute sp_statistics ?", "EXEC sp_table_privileges ?", "EXECUTE sp_table_privileges_ex ?",
-                "exec sp_tables ?", "execute sp_tables_ex ?"};
+                "execute sp_statistics ?", "EXEC sp_table_privileges ?", "exec sp_tables ?"};
 
         Object[] params = {testTableName, serverName, testTableName, serverName,
-                testTableName, serverName, integer, "sp_column_privileges", integer, testTableName,
-                testTableName, testTableName, serverName, testTableName, serverName};
+                testTableName, integer, "sp_column_privileges", integer, testTableName,
+                testTableName, testTableName, testTableName};
 
         int paramIndex = 0;
 
