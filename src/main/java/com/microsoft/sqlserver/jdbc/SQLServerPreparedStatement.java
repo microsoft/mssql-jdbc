@@ -70,8 +70,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
-    /** Unprocessed SQL statement text, should tbe same as what user initially passed. */
-    final String userSQLUnprocessed;
+    private boolean isExecCommand;
 
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
@@ -256,7 +255,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        userSQLUnprocessed = sql;
+        isExecCommand = isExecCommand(sql);
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
@@ -1214,7 +1213,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
-        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isExecCommand());
+
+        // In order to execute sprocs directly the following must be true:
+        // 1. There must be a sproc name
+        // 2. There must be parameters
+        // 3. Parameters must not be a TVP typ
+        // Note: isExecCommand check is a workaround to allow prior behaviour of doing EXEC calls
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isExecCommand);
     }
 
     /**
@@ -1234,9 +1239,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean isExecCommand() {
-        String command = userSQLUnprocessed.split(" ")[0].toLowerCase();
-        return command.equals("exec") || command.equals("execute");
+    private boolean isExecCommand(String sql) {
+        String command = sql.split(" ")[0];
+        return command.equalsIgnoreCase("exec") || command.equalsIgnoreCase("execute");
     }
 
     /**

@@ -1069,10 +1069,10 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testExecuteSystemStoredProcedureNamedParametersAndIndexedParameterNoResultset() throws SQLException {
-        String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='60', @LockMode='Exclusive', @LockOwner='Session'";
+        String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
 
         try (CallableStatement cstmt = connection.prepareCall(call)) {
-            cstmt.setString(1, "resource");
+            cstmt.setString(1, "Resource-" + UUID.randomUUID());
             cstmt.execute();
         }
     }
@@ -1096,12 +1096,10 @@ public class CallableStatementTest extends AbstractTest {
     public void testExecSystemStoredProcedureNoIndexedParametersResultSet() throws SQLException {
         String call = "execute sp_sproc_columns_100 sp_getapplock, @ODBCVer=3, @fUsePattern=0";
 
-        try (CallableStatement cstmt = connection.prepareCall(call)) {
-
-            try (ResultSet rs = cstmt.executeQuery()) {
-                while (rs.next()) {
-                    assertTrue(TestResource.getResource("R_resultSetEmpty"), !rs.getString(4).isEmpty());
-                }
+        try (CallableStatement cstmt = connection.prepareCall(call);
+                ResultSet rs = cstmt.executeQuery()) {
+            while (rs.next()) {
+                assertTrue(TestResource.getResource("R_resultSetEmpty"), !rs.getString(4).isEmpty());
             }
         }
     }
