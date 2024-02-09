@@ -1069,11 +1069,26 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testExecuteSystemStoredProcedureNamedParametersAndIndexedParameterNoResultset() throws SQLException {
-        String call = "EXEC sp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
+        String call0 = "EXEC sp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
+        String call1 = "\rEXEC\r\rsp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
+        String call2 = "  EXEC   sp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
+        String call3 = "\tEXEC\t\t\tsp_getapplock @Resource=?, @LockTimeout='0', @LockMode='Exclusive', @LockOwner='Session'";
 
-        try (CallableStatement cstmt = connection.prepareCall(call)) {
-            cstmt.setString(1, "Resource-" + UUID.randomUUID());
-            cstmt.execute();
+        try (CallableStatement cstmt0 = connection.prepareCall(call0);
+                CallableStatement cstmt1 = connection.prepareCall(call1);
+                CallableStatement cstmt2 = connection.prepareCall(call2);
+                CallableStatement cstmt3 = connection.prepareCall(call3);) {
+            cstmt0.setString(1, "Resource-" + UUID.randomUUID());
+            cstmt0.execute();
+
+            cstmt1.setString(1, "Resource-" + UUID.randomUUID());
+            cstmt1.execute();
+
+            cstmt2.setString(1, "Resource-" + UUID.randomUUID());
+            cstmt2.execute();
+
+            cstmt3.setString(1, "Resource-" + UUID.randomUUID());
+            cstmt3.execute();
         }
     }
 

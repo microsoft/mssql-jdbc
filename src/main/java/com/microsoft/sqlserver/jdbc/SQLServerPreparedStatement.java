@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
@@ -70,7 +71,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
-    private boolean isExecCommand;
+    private boolean isExecEscapeSyntax;
+
+    private boolean isCallEscapeSyntax;
 
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
@@ -255,7 +258,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        isExecCommand = isExecCommand(sql);
+        isExecEscapeSyntax = isExecEscapeSyntax(sql);
+        isCallEscapeSyntax = isCallEscapeSyntax(sql);
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
@@ -1217,9 +1221,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // In order to execute sprocs directly the following must be true:
         // 1. There must be a sproc name
         // 2. There must be parameters
-        // 3. Parameters must not be a TVP typ
-        // Note: isExecCommand check is a workaround to allow prior behaviour of doing EXEC calls
-        return (null != procedureName && paramCount != 0 && !isTVPType(params) && !isExecCommand);
+        // 3. Parameters must not be a TVP type
+        // 4. Compliant CALL escape syntax
+        // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour to
+        // execute the procedure
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax && !isExecEscapeSyntax);
     }
 
     /**
@@ -1239,9 +1245,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private boolean isExecCommand(String sql) {
-        String command = sql.split(" ")[0];
-        return command.equalsIgnoreCase("exec") || command.equalsIgnoreCase("execute");
+    private boolean isExecEscapeSyntax(String sql) {
+        Pattern pattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
+        return pattern.matcher(sql).find();
+    }
+
+    private boolean isCallEscapeSyntax(String sql) {
+        Pattern pattern = Pattern.compile("^\\s*(?i)\\{call (.+)\\s*\\(?\\?+,?\\)?\\s*}\\s*$");
+        return pattern.matcher(sql).find();
     }
 
     /**
