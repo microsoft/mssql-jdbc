@@ -4800,6 +4800,7 @@ final class TDSWriter {
 
         if (uuidValue == null) {
             writeByte((byte) 0);
+            writeByte((byte) 0);
 
         } else {
             writeByte((byte) 0x10);  // maximum length = 16

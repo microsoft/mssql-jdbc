@@ -295,8 +295,9 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else {
+                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
             }
-            tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
         }
 
         void execute(DTV dtv, Clob clobValue) throws SQLServerException {
