@@ -1086,7 +1086,7 @@ public class CallableStatementTest extends AbstractTest {
 
             try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    assertTrue("Failed -- ResultSet was not returned.", !rs.getString(4).isEmpty());
+                    assertTrue(TestResource.getResource("R_resultSetEmpty"), !rs.getString(4).isEmpty());
                 }
             }
         }
@@ -1100,7 +1100,7 @@ public class CallableStatementTest extends AbstractTest {
 
             try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    assertTrue("Failed -- ResultSet was not returned.", !rs.getString(4).isEmpty());
+                    assertTrue(TestResource.getResource("R_resultSetEmpty"), !rs.getString(4).isEmpty());
                 }
             }
         }
