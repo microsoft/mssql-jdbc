@@ -63,6 +63,39 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
     private static Map<Integer, String> getColumnsDWColumns = null;
     private static Map<Integer, String> getImportedKeysDWColumns = null;
+    private static Map<Integer, Integer> getColumnMetaDataType = null;
+    private static final int TABLE_CAT = 1;
+    private static final int TABLE_SCHEM = 2;
+    private static final int TABLE_NAME = 3;
+    private static final int COLUMN_NAME = 4;
+    private static final int DATA_TYPE = 5;
+    private static final int TYPE_NAME = 6;
+    private static final int COLUMN_SIZE = 7;
+    private static final int BUFFER_LENGTH = 8;
+    private static final int DECIMAL_DIGITS = 9;
+    private static final int NUM_PREC_RADIX = 10;
+    private static final int NULLABLE = 11;
+    private static final int REMARKS = 12;
+    private static final int COLUMN_DEF = 13;
+    private static final int SQL_DATA_TYPE = 14;
+    private static final int SQL_DATETIME_SUB = 15;
+    private static final int CHAR_OCTET_LENGTH = 16;
+    private static final int ORDINAL_POSITION = 17;
+    private static final int IS_NULLABLE = 18;
+    private static final int SCOPE_CATALOG = 19;
+    private static final int SCOPE_SCHEMA = 20;
+    private static final int SCOPE_TABLE = 21;
+    private static final int SOURCE_DATA_TYPE = 22;
+    private static final int IS_AUTOINCREMENT = 23;
+    private static final int IS_GENERATEDCOLUMN = 24;
+    private static final int SS_IS_SPARSE = 25;
+    private static final int SS_IS_COLUMN_SET = 26;
+    private static final int SS_UDT_CATALOG_NAME = 27;
+    private static final int SS_UDT_SCHEMA_NAME = 28;
+    private static final int SS_UDT_ASSEMBLY_TYPE_NAME = 29;
+    private static final int SS_XML_SCHEMACOLLECTION_CATALOG_NAME = 30;
+    private static final int SS_XML_SCHEMACOLLECTION_SCHEMA_NAME = 31;
+    private static final int SS_XML_SCHEMACOLLECTION_NAME = 32;
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -887,6 +920,57 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testValidateColumnMetadata() throws SQLException {
+    	
+    	if (getColumnMetaDataType == null) {
+	    	getColumnMetaDataType = new LinkedHashMap<>();
+	    	getColumnMetaDataType.put(TABLE_CAT, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(TABLE_SCHEM, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(TABLE_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(COLUMN_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(DATA_TYPE, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(TYPE_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(COLUMN_SIZE, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(BUFFER_LENGTH, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(DECIMAL_DIGITS, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(NUM_PREC_RADIX, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(NULLABLE, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(REMARKS, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(COLUMN_DEF, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SQL_DATA_TYPE, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(SQL_DATETIME_SUB, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(CHAR_OCTET_LENGTH, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(ORDINAL_POSITION, java.sql.Types.INTEGER);
+	    	getColumnMetaDataType.put(IS_NULLABLE, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(SCOPE_CATALOG, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(SCOPE_SCHEMA, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(SCOPE_TABLE, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(SOURCE_DATA_TYPE, java.sql.Types.SMALLINT);
+	    	getColumnMetaDataType.put(IS_AUTOINCREMENT, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(IS_GENERATEDCOLUMN, java.sql.Types.VARCHAR);
+	    	getColumnMetaDataType.put(SS_IS_SPARSE, java.sql.Types.SMALLINT);
+	    	getColumnMetaDataType.put(SS_IS_COLUMN_SET, java.sql.Types.SMALLINT);
+	    	getColumnMetaDataType.put(SS_UDT_CATALOG_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SS_UDT_SCHEMA_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SS_UDT_ASSEMBLY_TYPE_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, java.sql.Types.NVARCHAR);
+	    	getColumnMetaDataType.put(SS_XML_SCHEMACOLLECTION_NAME, java.sql.Types.NVARCHAR);
+    	}
+    	
+        try (Connection conn = getConnection();) {
+        	ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
+
+        	// Ensure that there is a data type for every metadata column
+        	assert(metadata.getColumnCount() == getColumnMetaDataType.size());
+			
+            for (int i = 1; i < metadata.getColumnCount(); i++) {
+                assertEquals(getColumnMetaDataType.get(i), metadata.getColumnType(i));
+            }
+        }
+    }
+    
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();
