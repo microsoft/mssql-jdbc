@@ -1251,7 +1251,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private boolean isCallEscapeSyntax(String sql) {
-        Pattern pattern = Pattern.compile("^\\s*(?i)\\{call (.+)\\s*\\(?\\?+,?\\)?\\s*}\\s*$");
+        Pattern pattern = Pattern.compile("^\\s*(?i)\\{(\\s*\\?\\s*=\\s*)call (.+)?\\s*\\(?\\?+,?\\)?\\s*}\\s*$");
         return pattern.matcher(sql).find();
     }
 
