@@ -133,6 +133,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean useBulkCopyForBatchInsert;
 
+    /**
+     * Regex for JDBC 'call' escape syntax
+     */
+    private static final Pattern callEscapePattern = Pattern.compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call (.+)\\s*\\(?\\?*,?\\)?\\s*}\\s*$");
+
+    /**
+     * Regex for 'exec' escape syntax
+     */
+    private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
+
     /** Returns the prepared statement SQL */
     @Override
     public String toString() {
@@ -1246,13 +1256,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private boolean isExecEscapeSyntax(String sql) {
-        Pattern pattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
-        return pattern.matcher(sql).find();
+        return execEscapePattern.matcher(sql).find();
     }
 
     private boolean isCallEscapeSyntax(String sql) {
-        Pattern pattern = Pattern.compile("^\\s*(?i)\\{(\\s*\\?\\s*=\\s*)call (.+)?\\s*\\(?\\?+,?\\)?\\s*}\\s*$");
-        return pattern.matcher(sql).find();
+        return callEscapePattern.matcher(sql).find();
     }
 
     /**
