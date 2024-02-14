@@ -1111,8 +1111,7 @@ public class CallableStatementTest extends AbstractTest {
     public void testExecSystemStoredProcedureNoIndexedParametersResultSet() throws SQLException {
         String call = "execute sp_sproc_columns_100 sp_getapplock, @ODBCVer=3, @fUsePattern=0";
 
-        try (CallableStatement cstmt = connection.prepareCall(call);
-                ResultSet rs = cstmt.executeQuery()) {
+        try (CallableStatement cstmt = connection.prepareCall(call); ResultSet rs = cstmt.executeQuery()) {
             while (rs.next()) {
                 assertTrue(TestResource.getResource("R_resultSetEmpty"), !rs.getString(4).isEmpty());
             }
@@ -1130,15 +1129,13 @@ public class CallableStatementTest extends AbstractTest {
             serverName = rs.getString(1);
         }
 
-        String[] sprocs = {"EXEC sp_column_privileges ?",
-                "exec sp_catalogs ?", "execute sp_column_privileges ?", "EXEC sp_column_privileges_ex ?",
-                "EXECUTE sp_columns ?", "execute sp_datatype_info ?",
+        String[] sprocs = {"EXEC sp_column_privileges ?", "exec sp_catalogs ?", "execute sp_column_privileges ?",
+                "EXEC sp_column_privileges_ex ?", "EXECUTE sp_columns ?", "execute sp_datatype_info ?",
                 "EXEC sp_sproc_columns ?", "EXECUTE sp_server_info ?", "exec sp_special_columns ?",
                 "execute sp_statistics ?", "EXEC sp_table_privileges ?", "exec sp_tables ?"};
 
-        Object[] params = {testTableName, serverName, testTableName, serverName,
-                testTableName, integer, "sp_column_privileges", integer, testTableName,
-                testTableName, testTableName, testTableName};
+        Object[] params = {testTableName, serverName, testTableName, serverName, testTableName, integer,
+                "sp_column_privileges", integer, testTableName, testTableName, testTableName, testTableName};
 
         int paramIndex = 0;
 

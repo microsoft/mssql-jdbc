@@ -136,7 +136,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Regex for JDBC 'call' escape syntax
      */
-    private static final Pattern callEscapePattern = Pattern.compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call (.+)\\s*\\(?\\?*,?\\)?\\s*}\\s*$");
+    private static final Pattern callEscapePattern = Pattern
+            .compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call (.+)\\s*\\(?\\?*,?\\)?\\s*}\\s*$");
 
     /**
      * Regex for 'exec' escape syntax
@@ -1235,7 +1236,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // 4. Compliant CALL escape syntax
         // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour to
         // execute the procedure
-        return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax && !isExecEscapeSyntax);
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax
+                && !isExecEscapeSyntax);
     }
 
     /**
