@@ -34,7 +34,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  pull-requests: read # allows SonarQube to decorate PRs with analysis results
+  actions: read
+  contents: read
+  security-events: write
 
 jobs:
   Analysis:
