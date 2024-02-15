@@ -1440,8 +1440,13 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getReceiveBufferSize() throws SocketException {
-            return tdsChannel.tcpSocket.getReceiveBufferSize();
+        public int getReceiveBufferSize() throws SocketException {
+            try {
+                tdsChannelLock.lock();
+                return tdsChannel.tcpSocket.getReceiveBufferSize();
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
@@ -1455,8 +1460,13 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSendBufferSize() throws SocketException {
-            return tdsChannel.tcpSocket.getSendBufferSize();
+        public int getSendBufferSize() throws SocketException {
+            try {
+                tdsChannelLock.lock();
+                return tdsChannel.tcpSocket.getSendBufferSize();
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
@@ -1465,8 +1475,13 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSoTimeout() throws SocketException {
-            return tdsChannel.tcpSocket.getSoTimeout();
+        public int getSoTimeout() throws SocketException {
+            try {
+                tdsChannelLock.lock();
+                return tdsChannel.tcpSocket.getSoTimeout();
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
@@ -1536,21 +1551,36 @@ final class TDSChannel implements Serializable {
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
         @Override
-        public synchronized void close() throws IOException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(logContext + " Ignoring close");
+        public void close() throws IOException {
+            try {
+                tdsChannelLock.lock();
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(logContext + " Ignoring close");
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
-        public synchronized void setReceiveBufferSize(int size) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
+        public void setReceiveBufferSize(int size) throws SocketException {
+            try {
+                tdsChannelLock.lock();
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
-        public synchronized void setSendBufferSize(int size) throws SocketException {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
+        public void setSendBufferSize(int size) throws SocketException {
+            try {
+                tdsChannelLock.unlock();
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
@@ -1566,8 +1596,13 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized void setSoTimeout(int timeout) throws SocketException {
-            tdsChannel.tcpSocket.setSoTimeout(timeout);
+        public void setSoTimeout(int timeout) throws SocketException {
+            try {
+                tdsChannelLock.lock();
+                tdsChannel.tcpSocket.setSoTimeout(timeout);
+            } finally {
+                tdsChannelLock.unlock();
+            }
         }
 
         @Override
