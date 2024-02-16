@@ -1441,8 +1441,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public int getReceiveBufferSize() throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 return tdsChannel.tcpSocket.getReceiveBufferSize();
             } finally {
                 tdsChannelLock.unlock();
@@ -1461,8 +1461,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public int getSendBufferSize() throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 return tdsChannel.tcpSocket.getSendBufferSize();
             } finally {
                 tdsChannelLock.unlock();
@@ -1476,8 +1476,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public int getSoTimeout() throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 return tdsChannel.tcpSocket.getSoTimeout();
             } finally {
                 tdsChannelLock.unlock();
@@ -1552,8 +1552,8 @@ final class TDSChannel implements Serializable {
         // to directly manipulate the underlying TCP socket
         @Override
         public void close() throws IOException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(logContext + " Ignoring close");
             } finally {
@@ -1563,8 +1563,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public void setReceiveBufferSize(int size) throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
             } finally {
@@ -1574,8 +1574,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public void setSendBufferSize(int size) throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.unlock();
                 if (logger.isLoggable(Level.FINER))
                     logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
             } finally {
@@ -1597,8 +1597,8 @@ final class TDSChannel implements Serializable {
 
         @Override
         public void setSoTimeout(int timeout) throws SocketException {
+            tdsChannelLock.lock();
             try {
-                tdsChannelLock.lock();
                 tdsChannel.tcpSocket.setSoTimeout(timeout);
             } finally {
                 tdsChannelLock.unlock();
