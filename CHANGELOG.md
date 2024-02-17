@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.6.1] Hotfix & Stable Release
+### Fixed issues
+- Fixed 'EXEC' escape syntax for CallableStatements. 'EXEC' keyword can be used to execute stored procedures. [#2329](https://github.com/microsoft/mssql-jdbc/pull/2329)
+
 ## [12.6.0] Stable Release
 ### Changed
 - Adjusted PreparedStatement cache, so it's cleared before every execute [#2272](https://github.com/microsoft/mssql-jdbc/pull/2272)

@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.0</version>
+	<version>12.6.1</version>
 	<packaging>jar</packaging>
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
