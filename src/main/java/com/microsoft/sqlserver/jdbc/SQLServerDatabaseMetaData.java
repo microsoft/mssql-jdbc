@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+import com.microsoft.sqlserver.jdbc.JDBCType;
 
 
 /**
@@ -258,10 +259,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
     private static final String ACTIVITY_ID = " ActivityId: ";
     
-    private static final String NVARCHAR = "NVARCHAR";
-    private static final String VARCHAR = "VARCHAR";
-    private static final String INTEGER = "INT";
-    private static final String SMALLINT = "SMALLINT";
+    private static final String NVARCHAR = JDBCType.NVARCHAR.name();
+    private static final String VARCHAR = JDBCType.VARCHAR.name();
+    private static final String INTEGER = JDBCType.INTEGER.name();
+    private static final String SMALLINT = JDBCType.SMALLINT.name();
 
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
@@ -771,7 +772,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 }
                 
                 // Ensure there is a data type for every metadata column
-                assert(getColumnsDWColumns.size() == getTypesDWColumns.size());
+                if (getColumnsDWColumns.size() != getTypesDWColumns.size()) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_colCountNotMatchColTypeCount"));
+                    Object[] msgArgs = {getColumnsDWColumns.size(), getTypesDWColumns.size()};
+                    throw new IllegalArgumentException(form.format(msgArgs));
+                }
             } finally {
                 LOCK.unlock();
             }
