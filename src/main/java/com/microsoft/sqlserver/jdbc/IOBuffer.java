@@ -1440,7 +1440,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getReceiveBufferSize() throws SocketException {
+        public int getReceiveBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getReceiveBufferSize();
         }
 
@@ -1455,7 +1455,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSendBufferSize() throws SocketException {
+        public int getSendBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getSendBufferSize();
         }
 
@@ -1465,7 +1465,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSoTimeout() throws SocketException {
+        public int getSoTimeout() throws SocketException {
             return tdsChannel.tcpSocket.getSoTimeout();
         }
 
@@ -1536,19 +1536,19 @@ final class TDSChannel implements Serializable {
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
         @Override
-        public synchronized void close() throws IOException {
+        public void close() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(logContext + " Ignoring close");
         }
 
         @Override
-        public synchronized void setReceiveBufferSize(int size) throws SocketException {
+        public void setReceiveBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
         }
 
         @Override
-        public synchronized void setSendBufferSize(int size) throws SocketException {
+        public void setSendBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
         }
@@ -1566,7 +1566,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized void setSoTimeout(int timeout) throws SocketException {
+        public void setSoTimeout(int timeout) throws SocketException {
             tdsChannel.tcpSocket.setSoTimeout(timeout);
         }
 
