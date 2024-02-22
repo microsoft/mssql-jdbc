@@ -153,7 +153,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         /*
          * The list below is the copy of inputFileDelimiterEsc ape with quotes removed.
          */
-        String[][] expectedEscaped = new String[11][4];
+        String[][] expectedEscaped = new String[12][4];
         expectedEscaped[0] = new String[] {"test", " test\"", "no@split", " testNoQuote", ""};
         expectedEscaped[1] = new String[] {null, null, null, null, ""};
         expectedEscaped[2] = new String[] {"\"", "test\"test", "test@\"  test", null, ""};
@@ -166,6 +166,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck", ""};
         expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63", ""};
         expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck ", ""};
+        expectedEscaped[11] = new String[] {"1997", "F\r\no\r\nr\r\nd", "E350", "\"Super\" \"luxurious\" \"truck\"", ""};
 
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
