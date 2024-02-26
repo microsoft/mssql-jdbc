@@ -78,11 +78,11 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      * @param offsetDateTime A java.time.OffsetDateTime value
      * @apiNote DateTimeOffset represents values to 100ns precision. If the java.time.OffsetDateTime instance represents
      * a value that is more precise, values in excess of the 100ns precision are rounded to the nearest
-     * multiple of 100ns.
+     * multiple of 100ns. Values within 50 nanoseconds of the next second are rounded up to the next second.
      */
     private DateTimeOffset(java.time.OffsetDateTime offsetDateTime) {
         int hundredNanos = ((offsetDateTime.getNano() + 50) / 100);
-        this.utcMillis = offsetDateTime.toEpochSecond() * 1000;
+        this.utcMillis = (offsetDateTime.toEpochSecond() * 1000) + (hundredNanos / HUNDRED_NANOS_PER_SECOND * 1000);
         this.nanos = 100 * (hundredNanos % HUNDRED_NANOS_PER_SECOND);
         this.minutesOffset = offsetDateTime.getOffset().getTotalSeconds() / 60;
     }
@@ -127,7 +127,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      * @return The DateTimeOffset value of the input java.time.OffsetDateTime
      * @apiNote DateTimeOffset represents values to 100ns precision. If the java.time.OffsetDateTime instance represents
      * a value that is more precise, values in excess of the 100ns precision are rounded to the nearest
-     * multiple of 100ns.
+     * multiple of 100ns. Values within 50 nanoseconds of the next second are rounded up to the next second.
      */
     public static DateTimeOffset valueOf(java.time.OffsetDateTime offsetDateTime) {
         return new DateTimeOffset(offsetDateTime);

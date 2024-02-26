@@ -36,4 +36,16 @@ public class DateTimeOffsetTest {
                 );
     }
 
+    @Test
+    @DisplayName("DateTimeOffset.valueOf(offsetDateTime) correctly rounds up values within 50 nanoseconds of the next second.")
+    void valueOfOffsetDateTimeRounding() {
+        OffsetDateTime offsetDateTime = OffsetDateTime.now().withNano(999999950);
+        Assertions
+                .assertEquals(
+                        offsetDateTime
+                                .withSecond(offsetDateTime.getSecond() + 1)
+                                .withNano(0),
+                        DateTimeOffset.valueOf(offsetDateTime).getOffsetDateTime()
+                );
+    }
 }
