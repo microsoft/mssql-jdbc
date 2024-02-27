@@ -1935,6 +1935,17 @@ public class DataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testDateTimeOffsetValueOfOffsetDateTime() throws Exception {
+        OffsetDateTime expected = OffsetDateTime.now().withSecond(58).withNano(0);
+        OffsetDateTime roundUp = expected.withSecond(57).withNano(999999950);
+        OffsetDateTime roundDown = expected.withSecond(58).withNano(49);
+
+        assertEquals(expected, DateTimeOffset.valueOf(expected).getOffsetDateTime());
+        assertEquals(expected, DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
+        assertEquals(expected, DateTimeOffset.valueOf(roundDown).getOffsetDateTime());
+    }
+
     static LocalDateTime getUnstorableValue() throws Exception {
         ZoneId systemTimezone = ZoneId.systemDefault();
         Instant now = Instant.now();
