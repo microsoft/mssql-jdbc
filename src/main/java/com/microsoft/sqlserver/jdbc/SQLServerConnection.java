@@ -3222,6 +3222,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return this;
     }
 
+    // log open connection failures
+    private void logConnectFailure(int attemptNumber, SQLServerException e, SQLServerError sqlServerError) {
+        loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
+
+        if (e != null) {
+            loggerResiliency.finer(
+                    toString() + " Connection open - connection failure. Driver error code: " + e.getDriverErrorCode());
+        }
+
+        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
+            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : "
+                    + sqlServerError.getErrorMessage());
+        }
+    }
+
     /**
      * This function is used by non failover and failover cases. Even when we make a standard connection the server can
      * provide us with its FO partner. If no FO information is available a standard connection is made. If the server
@@ -3237,6 +3252,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
+        long time1stTry = 0; // time it took to do 1st try
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -3434,34 +3450,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + connectRetryCount + " reached.");
                 }
 
-                int errorCode = e.getErrorCode();
-                int driverErrorCode = e.getDriverErrorCode();
+                // estimate time it took to do 1 try
+                if (attemptNumber == 0) {
+                    time1stTry = (System.currentTimeMillis() - timerStart);
+                }
+
                 sqlServerError = e.getSQLServerError();
 
-                if (SQLServerException.LOGON_FAILED == errorCode // logon failed, ie bad password
-                        || SQLServerException.PASSWORD_EXPIRED == errorCode // password expired
-                        || SQLServerException.USER_ACCOUNT_LOCKED == errorCode // user account locked
-                        || SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode // invalid TDS
-                        || SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode // SSL failure
-                        || SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode // TLS1.2 failure
-                        || SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode // unsupported config
-                                                                                                 // (eg Sphinx, invalid
-                                                                                                 // packetsize, etc)
-                        || (SQLServerException.ERROR_SOCKET_TIMEOUT == driverErrorCode // socket timeout
-                                && (!isDBMirroring || attemptNumber > 0)) // If mirroring, only close after failover has been tried (attempt >= 1)
-                        || timerHasExpired(timerExpire)
-                // for non-dbmirroring cases, do not retry after tcp socket connection succeeds
+                if (isFatalError(e) // do not retry on fatal errors
+                        || timerHasExpired(timerExpire) // no time left
+                        || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
+                                + 2 * time1stTry) // not enough time for another retry
+                        || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
+                        // retry at least once for TNIR and failover
+                        || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
+                        || (connectRetryCount != 0 && attemptNumber > connectRetryCount) // no retries left
                 ) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(
-                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
-                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
-                                + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                            loggerResiliency
-                                    .finer(toString() + " Connection open - connection failure. SQL Server error : "
-                                            + sqlServerError.getErrorMessage());
-                        }
+                        logConnectFailure(attemptNumber, e, sqlServerError);
                     }
 
                     // close the connection and throw the error back
@@ -3469,15 +3475,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw e;
                 } else {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(
-                                toString() + " Connection open - connection failed on attempt: " + attemptNumber + ".");
-                        loggerResiliency.finer(toString() + " Connection open - connection failure. Driver error code: "
-                                + driverErrorCode);
-                        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                            loggerResiliency
-                                    .finer(toString() + " Connection open - connection failure. SQL Server error : "
-                                            + sqlServerError.getErrorMessage());
-                        }
+                        logConnectFailure(attemptNumber, e, sqlServerError);
                     }
 
                     // Close the TDS channel from the failed connection attempt so that we don't
@@ -3496,15 +3494,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (remainingMilliseconds <= fedauthRetryInterval) {
 
                         if (loggerResiliency.isLoggable(Level.FINER)) {
-                            loggerResiliency.finer(toString() + " Connection open - connection failed on attempt: "
-                                    + attemptNumber + ".");
-                            loggerResiliency.finer(toString()
-                                    + " Connection open - connection failure. Driver error code: " + driverErrorCode);
-                            if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-                                loggerResiliency
-                                        .finer(toString() + " Connection open - connection failure. SQL Server error : "
-                                                + sqlServerError.getErrorMessage());
-                            }
+                            logConnectFailure(attemptNumber, e, sqlServerError);
                         }
 
                         throw e;
@@ -3515,21 +3505,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // We only get here when we failed to connect, but are going to re-try
             // After trying to connect to both servers fails, sleep for a bit to prevent clogging
             // the network with requests, then update sleep interval for next iteration (max 1 second interval)
-            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
+            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multi subnetfailover),
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
-            if (!isDBMirroring || (1 == attemptNumber % 2)) {
-                if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency.finer(toString() + " Connection open - sleeping milisec: " + connectRetryInterval);
-                }
-                if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
-                            + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
-                            + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
-                            + attemptNumber);
-                }
+            // Make sure there's enough time to do another retry
+            if (!isDBMirroring && (0 == attemptNumber % 2) || (isDBMirroring && attemptNumber < 1)
+                    || (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
+                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * time1stTry))
 
-                sleepForInterval(fedauthRetryInterval);
-                fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
+            {
+                // don't wait for TNIR
+                if (!(useTnir && attemptNumber == 0)) {
+                    if (loggerResiliency.isLoggable(Level.FINER)) {
+                        loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
+                                + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
+                                + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
+                                + attemptNumber);
+                    }
+
+                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                }
             }
 
             // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
@@ -3622,31 +3616,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    // non recoverable or retryable fatal errors
     boolean isFatalError(SQLServerException e) {
         /*
          * NOTE: If these conditions are modified, consider modification to conditions in SQLServerConnection::login()
          * and Reconnect::run()
          */
+        int errorCode = e.getErrorCode();
+        int driverErrorCode = e.getDriverErrorCode();
 
-        // actual logon failed (e.g. bad password)
-        if ((SQLServerException.LOGON_FAILED == e.getErrorCode())
-                // actual logon failed (e.g. password expired)
-                || (SQLServerException.PASSWORD_EXPIRED == e.getErrorCode())
-                // actual logon failed (e.g. user account locked)
-                || (SQLServerException.USER_ACCOUNT_LOCKED == e.getErrorCode())
-                // invalid TDS received from server
-                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == e.getDriverErrorCode())
-                // failure negotiating SSL
-                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == e.getDriverErrorCode())
-                // failure TLS1.2
-                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode())
-                // unsupported configuration (e.g. Sphinx, invalid packet size, etc.)
-                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == e.getDriverErrorCode())
-                // no more time to try again
-                || (SQLServerException.ERROR_SOCKET_TIMEOUT == e.getDriverErrorCode()))
-            return true;
-        else
-            return false;
+        return ((SQLServerException.LOGON_FAILED == errorCode) // logon failed (eg bad password)
+                || (SQLServerException.PASSWORD_EXPIRED == errorCode) // password expired
+                || (SQLServerException.USER_ACCOUNT_LOCKED == errorCode) // user account locked
+                || (SQLServerException.DRIVER_ERROR_INVALID_TDS == driverErrorCode) // invalid TDS from server
+                || (SQLServerException.DRIVER_ERROR_SSL_FAILED == driverErrorCode) // SSL failure
+                || (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == driverErrorCode) // TLS1.2 failure
+                || (SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG == driverErrorCode)); // unsupported config (eg Sphinx, invalid packet size ,etc)
     }
 
     // reset all params that could have been changed due to ENVCHANGE tokens to defaults,
@@ -3707,7 +3692,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Get time remaining to timer expiry
+     * Get time remaining to timer expiry (in ms)
      * 
      * @param timerExpire
      * @return remaining time to expiry
@@ -5979,7 +5964,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
         // No of milliseconds to sleep for the initial back off.
-        int sleepInterval = BACKOFF_INTERVAL;
+        int fedauthSleepInterval = BACKOFF_INTERVAL;
 
         if (!msalContextExists()
                 && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
@@ -6078,7 +6063,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         int millisecondsRemaining = timerRemaining(timerExpire);
                         if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
-                                || timerHasExpired(timerExpire) || (sleepInterval >= millisecondsRemaining)) {
+                                || timerHasExpired(timerExpire) || (fedauthSleepInterval >= millisecondsRemaining)) {
 
                             String errorStatus = Integer.toHexString(adalException.getStatus());
 
@@ -6102,13 +6087,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         if (connectionlogger.isLoggable(Level.FINER)) {
                             connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
-                                    + sleepInterval + " milliseconds.");
+                                    + fedauthSleepInterval + " milliseconds.");
                             connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
                                     + millisecondsRemaining + " milliseconds.");
                         }
 
-                        sleepForInterval(sleepInterval);
-                        sleepInterval = sleepInterval * 2;
+                        sleepForInterval(fedauthSleepInterval);
+                        fedauthSleepInterval = (fedauthSleepInterval < 500) ? fedauthSleepInterval * 2 : 1000;
+
                     }
                 }
                 // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,

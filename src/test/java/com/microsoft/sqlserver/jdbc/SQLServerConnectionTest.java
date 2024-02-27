@@ -53,6 +53,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
+    static String tnirHost = getConfiguredProperty("tnirHost");
 
     String randomServer = RandomUtil.getIdentifier("Server");
 
@@ -486,6 +487,44 @@ public class SQLServerConnectionTest extends AbstractTest {
 
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
+        }
+    }
+
+    // Test connect retry 0 but should still connect to TNIR
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectTnir() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries but should connect to TNIR (this assumes host is defined in host file
+        try (Connection con = PrepUtil
+                .getConnection(connectionString + ";transparentNetworkIPResolution=true;conneectRetry=0;serverName="
+                        + tnirHost);) {} catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    // Test connect retry 0 and TNIR disabled
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectNoTnir() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries no TNIR should fail even tho host is defined in host file
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";transparentNetworkIPResolution=false;conneectRetry=0;serverName=" + tnirHost);) {
+            assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))
+                    || ((isSqlAzure() || isSqlAzureDW())
+                                                         ? e.getMessage().contains(
+                                                                 TestResource.getResource("R_connectTimedOut"))
+                                                         : false),
+                    e.getMessage());
         }
     }
 
@@ -981,7 +1020,9 @@ public class SQLServerConnectionTest extends AbstractTest {
 
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
-                ds.setLoginTimeout(5);
+                ds.setLoginTimeout(30);
+                ds.setConnectRetryCount(3);
+                ds.setConnectRetryInterval(10);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
