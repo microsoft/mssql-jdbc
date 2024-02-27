@@ -924,7 +924,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     // Validates the metadata data types defined by JDBC spec
     // https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getColumns-java.lang.String-java.lang.String-java.lang.String-java.lang.String-
     public void testValidateColumnMetadata() throws SQLException {
-    	
+
         if (getColumnMetaDataClass == null) {
             getColumnMetaDataClass = new LinkedHashMap<>();
             getColumnMetaDataClass.put(TABLE_CAT, String.class);
@@ -934,7 +934,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             getColumnMetaDataClass.put(DATA_TYPE, Integer.class);
             getColumnMetaDataClass.put(TYPE_NAME, String.class);
             getColumnMetaDataClass.put(COLUMN_SIZE, Integer.class);
-            getColumnMetaDataClass.put(BUFFER_LENGTH, Object.class);        // Not used
+            getColumnMetaDataClass.put(BUFFER_LENGTH, Integer.class); // Not used
             getColumnMetaDataClass.put(DECIMAL_DIGITS, Integer.class);
             getColumnMetaDataClass.put(NUM_PREC_RADIX, Integer.class);
             getColumnMetaDataClass.put(NULLABLE, Integer.class);
@@ -959,45 +959,28 @@ public class DatabaseMetaDataTest extends AbstractTest {
             getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, String.class);
             getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, String.class);
             getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_NAME, String.class);
-    	}
-    	
+        }
+
         try (Connection conn = getConnection()) {
             ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
 
+            // Ensure that there is an expected class for every column in the metadata result set
+            assertEquals(metadata.getColumnCount(), getColumnMetaDataClass.size());
+
             for (int i = 1; i < metadata.getColumnCount(); i++) {
-                // Ensure that there is a data type for every metadata column
                 String columnLabel = metadata.getColumnLabel(i);
                 String columnClassName = metadata.getColumnClassName(i);
-                Class<?> columnClass = null;
-                
-                try 
-                {
-                    columnClass = Class.forName(columnClassName);
-                }
-                catch (ClassNotFoundException ex)
-                {
-                    MessageFormat form = new MessageFormat(
-                                TestResource.getResource("R_classLoaderNotFoundForColumnType"));
-                    Object[] msgArgs = {columnClassName, columnLabel};
-                    fail(form.format(msgArgs));
-                }
-                
                 Class<?> expectedClass = getColumnMetaDataClass.get(columnLabel);
-                                
-                assert(expectedClass != null);
-    
-                if (!expectedClass.isAssignableFrom(columnClass)) {
-                    MessageFormat form = new MessageFormat(
-                                TestResource.getResource("R_classNotAssignable"));
-                    Object[] msgArgs = {expectedClass.getName(), columnClassName, columnLabel};
-                    fail(form.format(msgArgs));
-                }
+
+                // Ensure the metadata column is in the metadata column class map
+                assertNotNull(expectedClass);
+
+                // Ensure the actual and expected column metadata types match
+                assertEquals(columnClassName, expectedClass.getName());
             }
-        } catch (SQLException e) {
-            fail(e.getMessage());
         }
     }
-    
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();

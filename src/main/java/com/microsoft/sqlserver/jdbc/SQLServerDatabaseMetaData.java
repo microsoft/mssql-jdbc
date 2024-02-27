@@ -258,7 +258,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
     private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
     private static final String ACTIVITY_ID = " ActivityId: ";
-    
+
     private static final String NVARCHAR = JDBCType.NVARCHAR.name();
     private static final String VARCHAR = JDBCType.VARCHAR.name();
     private static final String INTEGER = JDBCType.INTEGER.name();
@@ -733,44 +733,44 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 }
                 if (null == getTypesDWColumns) {
                     getTypesDWColumns = new LinkedHashMap<>();
-                    getTypesDWColumns.put(1, NVARCHAR);         // TABLE_CAT
-                    getTypesDWColumns.put(2, NVARCHAR);         // TABLE_SCHEM
-                    getTypesDWColumns.put(3, NVARCHAR);         // TABLE_NAME
-                    getTypesDWColumns.put(4, NVARCHAR);         // COLUMN_NAME
-                    getTypesDWColumns.put(5, INTEGER);          // DATA_TYPE
-                    getTypesDWColumns.put(6, NVARCHAR);         // TYPE_NAME
-                    getTypesDWColumns.put(7, INTEGER);          // COLUMN_SIZE
-                    getTypesDWColumns.put(8, INTEGER);          // BUFFER_LENGTH
-                    getTypesDWColumns.put(9, INTEGER);          // DECIMAL_DIGITS
-                    getTypesDWColumns.put(10, INTEGER);         // NUM_PREC_RADIX
-                    getTypesDWColumns.put(11, INTEGER);         // NULLABLE
-                    getTypesDWColumns.put(12, VARCHAR);         // REMARKS
-                    getTypesDWColumns.put(13, NVARCHAR);        // COLUMN_DEF
-                    getTypesDWColumns.put(14, INTEGER);         // SQL_DATA_TYPE
-                    getTypesDWColumns.put(15, INTEGER);         // SQL_DATETIME_SUB
-                    getTypesDWColumns.put(16, INTEGER);         // CHAR_OCTET_LENGTH
-                    getTypesDWColumns.put(17, INTEGER);         // ORDINAL_POSITION
-                    getTypesDWColumns.put(18, VARCHAR);         // IS_NULLABLE
+                    getTypesDWColumns.put(1, NVARCHAR); // TABLE_CAT
+                    getTypesDWColumns.put(2, NVARCHAR); // TABLE_SCHEM
+                    getTypesDWColumns.put(3, NVARCHAR); // TABLE_NAME
+                    getTypesDWColumns.put(4, NVARCHAR); // COLUMN_NAME
+                    getTypesDWColumns.put(5, INTEGER); // DATA_TYPE
+                    getTypesDWColumns.put(6, NVARCHAR); // TYPE_NAME
+                    getTypesDWColumns.put(7, INTEGER); // COLUMN_SIZE
+                    getTypesDWColumns.put(8, INTEGER); // BUFFER_LENGTH
+                    getTypesDWColumns.put(9, INTEGER); // DECIMAL_DIGITS
+                    getTypesDWColumns.put(10, INTEGER); // NUM_PREC_RADIX
+                    getTypesDWColumns.put(11, INTEGER); // NULLABLE
+                    getTypesDWColumns.put(12, VARCHAR); // REMARKS
+                    getTypesDWColumns.put(13, NVARCHAR); // COLUMN_DEF
+                    getTypesDWColumns.put(14, INTEGER); // SQL_DATA_TYPE
+                    getTypesDWColumns.put(15, INTEGER); // SQL_DATETIME_SUB
+                    getTypesDWColumns.put(16, INTEGER); // CHAR_OCTET_LENGTH
+                    getTypesDWColumns.put(17, INTEGER); // ORDINAL_POSITION
+                    getTypesDWColumns.put(18, VARCHAR); // IS_NULLABLE
                     /*
                      * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
                      * be queried as 'NULL'
                      */
-                     getTypesDWColumns.put(-1, VARCHAR);        // SCOPE_CATALOG
-                     getTypesDWColumns.put(-2, VARCHAR);        // SCOPE_SCHEMA
-                     getTypesDWColumns.put(-3, VARCHAR);        // SCOPE_TABLE
-                     getTypesDWColumns.put(29, SMALLINT);       // SOURCE_DATA_TYPE
-                     getTypesDWColumns.put(22, VARCHAR);        // IS_AUTOINCREMENT
-                     getTypesDWColumns.put(21, VARCHAR);        // IS_GENERATEDCOLUMN
-                     getTypesDWColumns.put(19, SMALLINT);       // SS_IS_SPARSE
-                     getTypesDWColumns.put(20, SMALLINT);       // SS_IS_COLUMN_SET
-                     getTypesDWColumns.put(23, NVARCHAR);       // SS_UDT_CATALOG_NAME
-                     getTypesDWColumns.put(24, NVARCHAR);       // SS_UDT_SCHEMA_NAME
-                     getTypesDWColumns.put(25, NVARCHAR);       // SS_UDT_ASSEMBLY_TYPE_NAME
-                     getTypesDWColumns.put(26, NVARCHAR);       // SS_XML_SCHEMACOLLECTION_CATALOG_NAME
-                     getTypesDWColumns.put(27, NVARCHAR);       // SS_XML_SCHEMACOLLECTION_SCHEMA_NAME
-                     getTypesDWColumns.put(28, NVARCHAR);       // SS_XML_SCHEMACOLLECTION_NAME
+                    getTypesDWColumns.put(-1, VARCHAR); // SCOPE_CATALOG
+                    getTypesDWColumns.put(-2, VARCHAR); // SCOPE_SCHEMA
+                    getTypesDWColumns.put(-3, VARCHAR); // SCOPE_TABLE
+                    getTypesDWColumns.put(29, SMALLINT); // SOURCE_DATA_TYPE
+                    getTypesDWColumns.put(22, VARCHAR); // IS_AUTOINCREMENT
+                    getTypesDWColumns.put(21, VARCHAR); // IS_GENERATEDCOLUMN
+                    getTypesDWColumns.put(19, SMALLINT); // SS_IS_SPARSE
+                    getTypesDWColumns.put(20, SMALLINT); // SS_IS_COLUMN_SET
+                    getTypesDWColumns.put(23, NVARCHAR); // SS_UDT_CATALOG_NAME
+                    getTypesDWColumns.put(24, NVARCHAR); // SS_UDT_SCHEMA_NAME
+                    getTypesDWColumns.put(25, NVARCHAR); // SS_UDT_ASSEMBLY_TYPE_NAME
+                    getTypesDWColumns.put(26, NVARCHAR); // SS_XML_SCHEMACOLLECTION_CATALOG_NAME
+                    getTypesDWColumns.put(27, NVARCHAR); // SS_XML_SCHEMACOLLECTION_SCHEMA_NAME
+                    getTypesDWColumns.put(28, NVARCHAR); // SS_XML_SCHEMACOLLECTION_NAME
                 }
-                
+
                 // Ensure there is a data type for every metadata column
                 if (getColumnsDWColumns.size() != getTypesDWColumns.size()) {
                     MessageFormat form = new MessageFormat(
@@ -837,26 +837,38 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns, Map<Integer, String> types) throws SQLException {
+    private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns,
+            Map<Integer, String> types) throws SQLException {
         StringBuilder sb = new StringBuilder("SELECT ");
+
         for (Entry<Integer, String> p : columns.entrySet()) {
+            String dataType = types.get(p.getKey());
+
+            // Verify there is a valid column entry in the Data Type lookup map
+            if (dataType == null) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
+                Object[] msgArgs = {p.getKey()};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+            }
+
             sb.append("CAST(");
             if (p.getKey() < 0) {
-            	sb.append("NULL AS " + types.get(p.getKey()));
+                sb.append("NULL AS " + dataType);
             } else {
                 Object o = rs.getObject(p.getKey());
                 if (null == o) {
-                    sb.append("NULL AS " + types.get(p.getKey()));
+                    sb.append("NULL AS " + dataType);
                 } else if (o instanceof Number) {
                     if (IS_AUTOINCREMENT.equalsIgnoreCase(p.getValue())
                             || IS_GENERATEDCOLUMN.equalsIgnoreCase(p.getValue())) {
                         sb.append("'").append(Util.escapeSingleQuotes(Util.zeroOneToYesNo(((Number) o).intValue())))
-                        .append("' AS ").append(types.get(p.getKey()));
+                                .append("' AS ").append(dataType);
                     } else {
-                    	sb.append(o.toString()).append(" AS ").append(types.get(p.getKey()));
+                        sb.append(o.toString()).append(" AS ").append(dataType);
                     }
                 } else {
-                    sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("' AS ").append(types.get(p.getKey())).append("(").append(Integer.toString(o.toString().length())).append(")");
+                    sb.append("'").append(Util.escapeSingleQuotes(o.toString())).append("' AS ").append(dataType)
+                            .append("(").append(Integer.toString(o.toString().length())).append(")");
                 }
             }
             sb.append(") AS ").append(p.getValue()).append(",");
@@ -864,7 +876,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
-    
+
     private String generateAzureDWEmptyRS(Map<Integer, String> columns) {
         StringBuilder sb = new StringBuilder("SELECT TOP 0 ");
         for (Entry<Integer, String> p : columns.entrySet()) {
