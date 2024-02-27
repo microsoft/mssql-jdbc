@@ -976,7 +976,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertNotNull(expectedClass);
 
                 // Ensure the actual and expected column metadata types match
-                assertEquals(columnClassName, expectedClass.getName());
+                if (columnClassName != expectedClass.getName()) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_expectedClassDoesNotMatchActualClass"));
+                    Object[] msgArgs1 = {expectedClass.getName(), columnClassName, columnLabel};
+                    fail(form1.format(msgArgs1));
+                    
+                }
             }
         }
     }
