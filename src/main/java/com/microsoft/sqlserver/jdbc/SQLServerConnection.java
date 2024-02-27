@@ -3252,7 +3252,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
-        long time1stTry = 0; // time it took to do 1st try
+        long timeForFirstTry = 0; // time it took to do 1st try
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -3452,7 +3452,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // estimate time it took to do 1 try
                 if (attemptNumber == 0) {
-                    time1stTry = (System.currentTimeMillis() - timerStart);
+                    timeForFirstTry = (System.currentTimeMillis() - timerStart);
                 }
 
                 sqlServerError = e.getSQLServerError();
@@ -3460,7 +3460,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (isFatalError(e) // do not retry on fatal errors
                         || timerHasExpired(timerExpire) // no time left
                         || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
-                                + 2 * time1stTry) // not enough time for another retry
+                                + 2 * timeForFirstTry) // not enough time for another retry
                         || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
                         // retry at least once for TNIR and failover
                         || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
@@ -3510,7 +3510,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Make sure there's enough time to do another retry
             if (!isDBMirroring && (0 == attemptNumber % 2) || (isDBMirroring && attemptNumber < 1)
                     || (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
-                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * time1stTry))
+                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry))
 
             {
                 // don't wait for TNIR
