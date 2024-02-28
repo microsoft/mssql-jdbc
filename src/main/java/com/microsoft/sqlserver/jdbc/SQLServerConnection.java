@@ -3252,7 +3252,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
         long timeoutUnitInterval;
-        long timeForFirstTry = 0; // time it took to do 1st try
+        long timeForFirstTry = 0; // time it took to do 1st try in ms
 
         boolean useFailoverHost = false;
         FailoverInfo tempFailover = null;
@@ -3464,7 +3464,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
                         // retry at least once for TNIR and failover
                         || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
-                        || (connectRetryCount != 0 && attemptNumber > connectRetryCount) // no retries left
+                        || (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
                 ) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {
                         logConnectFailure(attemptNumber, e, sqlServerError);
@@ -3505,14 +3505,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // We only get here when we failed to connect, but are going to re-try
             // After trying to connect to both servers fails, sleep for a bit to prevent clogging
             // the network with requests, then update sleep interval for next iteration (max 1 second interval)
-            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multi subnetfailover),
+            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
             // Make sure there's enough time to do another retry
-            if (!isDBMirroring && (0 == attemptNumber % 2) || (isDBMirroring && attemptNumber < 1)
-                    || (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
-                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry))
+            if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
+                    && (attemptNumber < connectRetryCount && connectRetryCount != 0) 
+                    && timerRemaining(
+                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry)) {
 
-            {
                 // don't wait for TNIR
                 if (!(useTnir && attemptNumber == 0)) {
                     if (loggerResiliency.isLoggable(Level.FINER)) {

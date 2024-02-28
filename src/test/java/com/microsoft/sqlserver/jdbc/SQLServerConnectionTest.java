@@ -500,7 +500,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         // no retries but should connect to TNIR (this assumes host is defined in host file
         try (Connection con = PrepUtil
-                .getConnection(connectionString + ";transparentNetworkIPResolution=true;conneectRetry=0;serverName="
+                .getConnection(connectionString + ";transparentNetworkIPResolution=true;connectRetryCount=0;serverName="
                         + tnirHost);) {} catch (Exception e) {
             fail(e.getMessage());
         }
@@ -516,7 +516,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         // no retries no TNIR should fail even tho host is defined in host file
         try (Connection con = PrepUtil.getConnection(
-                connectionString + ";transparentNetworkIPResolution=false;conneectRetry=0;serverName=" + tnirHost);) {
+                connectionString + ";transparentNetworkIPResolution=false;connectRetryCount=0;serverName=" + tnirHost);) {
             assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))

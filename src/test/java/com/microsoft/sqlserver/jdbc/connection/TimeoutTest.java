@@ -35,7 +35,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("slow")
 public class TimeoutTest extends AbstractTest {
     static String randomServer = RandomUtil.getIdentifier("Server");
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
@@ -46,6 +45,13 @@ public class TimeoutTest extends AbstractTest {
     public static void setupTests() throws Exception {
         setConnection();
     }
+
+    /*
+     * TODO:
+     * The tests below uses a simple interval counting logic to determine whether there was at least 1 retry.
+     * Given the interval is long enough, then 1 retry should take at least 1 interval long, so if it took < 1 interval, then it assumes there were no retry. However, this only works if TNIR or failover is not enabled since those cases should retry but no wait interval in between. So this interval counting can not detect these cases.
+     * Note a better and more reliable way would be to check attemptNumber using reflection to determine the number of retries.
+     */
 
     // test default loginTimeout used if not specified in connection string
     @Test
@@ -335,36 +341,6 @@ public class TimeoutTest extends AbstractTest {
         } catch (Exception e) {
             fail(e.getMessage());
         }
-    }
-
-    // test failover retries once even if connectRetry is 0
-    @Test
-    public void testFailoverInstanceResolution() throws SQLException {
-        long totalTime = 0;
-        long timerStart = System.currentTimeMillis();
-        int interval = defaultTimeout / 2; // interval long enough to tell if there was a retry
-        long loginTimeout = defaultTimeout; // long enough loginTimeout to accommodate the interval
-
-        // non-existent server, retry 0 but failover enabled so there should be 1 retry
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";databaseName=FailoverDB_abc;failoverPartner="
-                        + randomServer + ";user=sa;password=" + RandomUtil.getIdentifier("password") + ";loginTimeout="
-                        + loginTimeout + ";connectRetryCount=0;connectRetryInterval=" + interval)) {
-            fail(TestResource.getResource("R_shouldNotConnect"));
-        } catch (Exception e) {
-            totalTime = System.currentTimeMillis() - timerStart;
-
-            assertTrue(
-                    (e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
-                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
-                    e.getMessage());
-        }
-
-        // if there was a retry then it would be at least 1 interval long
-        assertTrue(TimeUnit.SECONDS.toMillis(interval) < totalTime,
-                "interval: " + TimeUnit.SECONDS.toMillis(interval) + " total time: " + totalTime);
     }
 
     /**
