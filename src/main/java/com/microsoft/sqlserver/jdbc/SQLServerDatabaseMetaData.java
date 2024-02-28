@@ -638,7 +638,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
 
                     + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, "
-                    + "CAST(DATA_TYPE AS INT) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
+                    + "CONVERT(INT, DATA_TYPE) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
                     + "CAST(SCALE AS INT) AS DECIMAL_DIGITS, CAST(RADIX AS INT) AS NUM_PREC_RADIX,CAST(NULLABLE AS INT) AS NULLABLE, "
                     + "CAST(REMARKS AS VARCHAR) AS REMARKS, COLUMN_DEF, CAST(SQL_DATA_TYPE AS INT) AS SQL_DATA_TYPE, "
                     + "CAST(SQL_DATETIME_SUB AS INT) AS SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
@@ -649,6 +649,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
                     + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
                     + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
+System.out.println("Query: " + spColumnsSql);            
             SQLServerResultSet rs = null;
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
@@ -810,6 +811,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     } else {
                         azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                     }
+System.out.println("Query: " + azureDwSelectBuilder.toString());                    
 
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(azureDwSelectBuilder.toString());
