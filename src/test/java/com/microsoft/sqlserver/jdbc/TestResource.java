@@ -63,6 +63,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_ConnectionURLNull", "The connection URL is null."},
             {"R_connectionIsNotClosed", "The connection is not closed."},
             {"R_invalidExceptionMessage", "Invalid exception message"},
+            {"R_invalidClientSecret", "AADSTS7000215: Invalid client secret provided"},
             {"R_failedValidate", "failed to validate values in $0} "}, {"R_tableNotDropped", "table not dropped. "},
             {"R_connectionReset", "Connection reset"}, {"R_unknownException", "Unknown exception"},
             {"R_deadConnection", "Dead connection should be invalid"},

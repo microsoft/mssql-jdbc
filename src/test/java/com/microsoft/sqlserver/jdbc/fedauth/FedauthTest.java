@@ -16,6 +16,7 @@ import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
@@ -320,6 +321,59 @@ public class FedauthTest extends FedauthCommon {
             assertNotNull(conn3);
         } catch (Exception e) {
             fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testAADServicePrincipalAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidSecret() throws Exception {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
+                + applicationKey;
+
+        String invalidSecretUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
+                + "invalidSecret";
+
+        // Should succeed on valid secret
+        try (Connection connection = DriverManager.getConnection(url)) {}
+
+        // Should fail on invalid secret
+        try (Connection connection = DriverManager.getConnection(invalidSecretUrl)) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidClientSecret")), "Connection Succeeded with invalid client secret");
+        }
+    }
+
+    @Test
+    public void testActiveDirectoryPasswordFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
+        }
+
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr + ";password=invalidPassword;")) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
+        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
+                + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
+
+        String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
+                + ";password=invalidPassword;clientCertificate=" + clientCertificate;
+
+        try (Connection conn = DriverManager.getConnection(url)) {
+        }
+
+        try (Connection conn = DriverManager.getConnection(invalidPasswordUrl)) {
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 
