@@ -395,16 +395,17 @@ public final class SQLServerException extends java.sql.SQLException {
     static String checkAndAppendClientConnId(String errMsg, SQLServerConnection conn) {
         if (null != conn && conn.isConnected()) {
             UUID clientConnId = conn.getClientConIdInternal();
-            assert null != clientConnId;
-            StringBuilder sb = new StringBuilder(errMsg);
-            // This syntax of adding connection id is matched in a retry logic. If anything changes here, make
-            // necessary changes to enableSSL() function's exception handling mechanism.
-            sb.append(LOG_CLIENT_CONNECTION_ID_PREFIX);
-            sb.append(clientConnId.toString());
-            return sb.toString();
-        } else {
-            return errMsg;
+            if (null != clientConnId) {
+                StringBuilder sb = (errMsg != null) ? new StringBuilder(errMsg) : new StringBuilder();
+                // This syntax of adding connection id is matched in a retry logic. If anything changes here, make
+                // necessary changes to enableSSL() function's exception handling mechanism.
+                sb.append(LOG_CLIENT_CONNECTION_ID_PREFIX);
+                sb.append(clientConnId.toString());
+                return sb.toString();
+            }
         }
+        return (errMsg != null) ? errMsg : "";
+
     }
 
     static void throwNotSupportedException(SQLServerConnection con, Object obj) throws SQLServerException {
