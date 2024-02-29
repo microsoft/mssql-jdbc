@@ -649,7 +649,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
                     + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
                     + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
-System.out.println("Query: " + spColumnsSql);            
             SQLServerResultSet rs = null;
             PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
             pstmt.closeOnCompletion();
@@ -811,7 +810,6 @@ System.out.println("Query: " + spColumnsSql);
                     } else {
                         azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
                     }
-System.out.println("Query: " + azureDwSelectBuilder.toString());                    
 
                     resultPstmt = (SQLServerPreparedStatement) this.connection
                             .prepareStatement(azureDwSelectBuilder.toString());
