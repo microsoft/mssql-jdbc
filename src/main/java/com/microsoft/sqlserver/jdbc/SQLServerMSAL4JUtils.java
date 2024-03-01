@@ -512,7 +512,7 @@ class SQLServerMSAL4JUtils {
                 }
             }
 
-            return tokenCacheMap.get(key);
+            return persistentTokenCacheAccessAspect;
         }
 
         void addEntry(String key, PersistentTokenCacheAccessAspect value) {
