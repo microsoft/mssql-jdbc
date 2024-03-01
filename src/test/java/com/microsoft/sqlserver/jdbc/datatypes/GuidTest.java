@@ -2,6 +2,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -66,7 +67,7 @@ public class GuidTest extends AbstractTest {
                     assertEquals(uuid, UUID.fromString(rs.getUniqueIdentifier(1)));
                 }
 
-                // Test NULL GUFID
+                // Test NULL GUID
                 pstmt.setObject(1, null, Types.GUID);
                 pstmt.setObject(2, id++);
                 pstmt.execute();
@@ -78,10 +79,10 @@ public class GuidTest extends AbstractTest {
                     assertTrue(rs.wasNull());
                 }
 
-                // Test Illegal GUFID
+                // Test Illegal GUID
                 try {
                     pstmt.setObject(1, "garbage", Types.GUID);
-                    fail("Must throw an IllegalArgumentException for this illegal UUID");
+                    fail(TestResource.getResource("R_expectedFailPassed"));
                 } catch (IllegalArgumentException e) {
                     assertEquals("Invalid UUID string: garbage", e.getMessage());
                 }
