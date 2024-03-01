@@ -483,7 +483,9 @@ class SQLServerMSAL4JUtils {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             for (String secret : secrets) {
-                md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+                if (null != secret) {
+                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+                }
             }
             return new String(md.digest());
         } catch (NoSuchAlgorithmException e) {
