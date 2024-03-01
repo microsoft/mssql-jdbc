@@ -348,9 +348,12 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testActiveDirectoryPasswordFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
+
+        // Should succeed on valid password
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
         }
 
+        // Should fail on invalid password
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr + ";password=invalidPassword;")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
@@ -362,10 +365,12 @@ public class FedauthTest extends FedauthCommon {
 
     @Test
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
+        // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
                 + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
 
+        // Should fail on invalid cert field values
         String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
                 + ";password=invalidPassword;clientCertificate=" + clientCertificate;
