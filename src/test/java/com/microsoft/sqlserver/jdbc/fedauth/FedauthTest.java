@@ -19,6 +19,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -341,7 +342,7 @@ public class FedauthTest extends FedauthCommon {
         try (Connection connection = DriverManager.getConnection(invalidSecretUrl)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidClientSecret")), "Connection Succeeded with invalid client secret");
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidClientSecret")), "Expected R_invalidClientSecret error.");
         }
     }
 
@@ -353,7 +354,9 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr + ";password=invalidPassword;")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidAADPasswordAuth"));
+            Object[] msgArgs = {azureUserName};
+            assertTrue(e.getMessage().contains(form.format(msgArgs)), "Expected R_invalidAADPasswordAuth error.");
         }
     }
 
@@ -373,7 +376,7 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(invalidPasswordUrl)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidCertFields")), "Expected R_invalidCertFields error.");
         }
     }
 
