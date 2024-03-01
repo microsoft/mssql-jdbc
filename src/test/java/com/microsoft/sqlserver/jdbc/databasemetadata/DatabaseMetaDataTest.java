@@ -63,7 +63,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
     private static Map<Integer, String> getColumnsDWColumns = null;
     private static Map<Integer, String> getImportedKeysDWColumns = null;
-    private static Map<String, Class<?>> getColumnMetaDataClass = null;
     private static final String TABLE_CAT = "TABLE_CAT";
     private static final String TABLE_SCHEM = "TABLE_SCHEM";
     private static final String TABLE_NAME = "TABLE_NAME";
@@ -920,46 +919,48 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates the metadata data types defined by JDBC spec.
+     * Refer to <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getColumns-java.lang.String-java.lang.String-java.lang.String-java.lang.String-">DatabaseMetadata getColumns() specs</a>
+     * 
+     * @throws SQLException
+     */
     @Test
-    // Validates the metadata data types defined by JDBC spec
-    // https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getColumns-java.lang.String-java.lang.String-java.lang.String-java.lang.String-
     public void testValidateColumnMetadata() throws SQLException {
+        Map<String, Class<?>> getColumnMetaDataClass = new LinkedHashMap<>();
 
-        if (getColumnMetaDataClass == null) {
-            getColumnMetaDataClass = new LinkedHashMap<>();
-            getColumnMetaDataClass.put(TABLE_CAT, String.class);
-            getColumnMetaDataClass.put(TABLE_SCHEM, String.class);
-            getColumnMetaDataClass.put(TABLE_NAME, String.class);
-            getColumnMetaDataClass.put(COLUMN_NAME, String.class);
-            getColumnMetaDataClass.put(DATA_TYPE, Integer.class);
-            getColumnMetaDataClass.put(TYPE_NAME, String.class);
-            getColumnMetaDataClass.put(COLUMN_SIZE, Integer.class);
-            getColumnMetaDataClass.put(BUFFER_LENGTH, Integer.class); // Not used
-            getColumnMetaDataClass.put(DECIMAL_DIGITS, Integer.class);
-            getColumnMetaDataClass.put(NUM_PREC_RADIX, Integer.class);
-            getColumnMetaDataClass.put(NULLABLE, Integer.class);
-            getColumnMetaDataClass.put(REMARKS, String.class);
-            getColumnMetaDataClass.put(COLUMN_DEF, String.class);
-            getColumnMetaDataClass.put(SQL_DATA_TYPE, Integer.class);
-            getColumnMetaDataClass.put(SQL_DATETIME_SUB, Integer.class);
-            getColumnMetaDataClass.put(CHAR_OCTET_LENGTH, Integer.class);
-            getColumnMetaDataClass.put(ORDINAL_POSITION, Integer.class);
-            getColumnMetaDataClass.put(IS_NULLABLE, String.class);
-            getColumnMetaDataClass.put(SCOPE_CATALOG, String.class);
-            getColumnMetaDataClass.put(SCOPE_SCHEMA, String.class);
-            getColumnMetaDataClass.put(SCOPE_TABLE, String.class);
-            getColumnMetaDataClass.put(SOURCE_DATA_TYPE, Short.class);
-            getColumnMetaDataClass.put(IS_AUTOINCREMENT, String.class);
-            getColumnMetaDataClass.put(IS_GENERATEDCOLUMN, String.class);
-            getColumnMetaDataClass.put(SS_IS_SPARSE, Short.class);
-            getColumnMetaDataClass.put(SS_IS_COLUMN_SET, Short.class);
-            getColumnMetaDataClass.put(SS_UDT_CATALOG_NAME, String.class);
-            getColumnMetaDataClass.put(SS_UDT_SCHEMA_NAME, String.class);
-            getColumnMetaDataClass.put(SS_UDT_ASSEMBLY_TYPE_NAME, String.class);
-            getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, String.class);
-            getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, String.class);
-            getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_NAME, String.class);
-        }
+        getColumnMetaDataClass.put(TABLE_CAT, String.class);
+        getColumnMetaDataClass.put(TABLE_SCHEM, String.class);
+        getColumnMetaDataClass.put(TABLE_NAME, String.class);
+        getColumnMetaDataClass.put(COLUMN_NAME, String.class);
+        getColumnMetaDataClass.put(DATA_TYPE, Integer.class);
+        getColumnMetaDataClass.put(TYPE_NAME, String.class);
+        getColumnMetaDataClass.put(COLUMN_SIZE, Integer.class);
+        getColumnMetaDataClass.put(BUFFER_LENGTH, Integer.class); // Not used
+        getColumnMetaDataClass.put(DECIMAL_DIGITS, Integer.class);
+        getColumnMetaDataClass.put(NUM_PREC_RADIX, Integer.class);
+        getColumnMetaDataClass.put(NULLABLE, Integer.class);
+        getColumnMetaDataClass.put(REMARKS, String.class);
+        getColumnMetaDataClass.put(COLUMN_DEF, String.class);
+        getColumnMetaDataClass.put(SQL_DATA_TYPE, Integer.class);
+        getColumnMetaDataClass.put(SQL_DATETIME_SUB, Integer.class);
+        getColumnMetaDataClass.put(CHAR_OCTET_LENGTH, Integer.class);
+        getColumnMetaDataClass.put(ORDINAL_POSITION, Integer.class);
+        getColumnMetaDataClass.put(IS_NULLABLE, String.class);
+        getColumnMetaDataClass.put(SCOPE_CATALOG, String.class);
+        getColumnMetaDataClass.put(SCOPE_SCHEMA, String.class);
+        getColumnMetaDataClass.put(SCOPE_TABLE, String.class);
+        getColumnMetaDataClass.put(SOURCE_DATA_TYPE, Short.class);
+        getColumnMetaDataClass.put(IS_AUTOINCREMENT, String.class);
+        getColumnMetaDataClass.put(IS_GENERATEDCOLUMN, String.class);
+        getColumnMetaDataClass.put(SS_IS_SPARSE, Short.class);
+        getColumnMetaDataClass.put(SS_IS_COLUMN_SET, Short.class);
+        getColumnMetaDataClass.put(SS_UDT_CATALOG_NAME, String.class);
+        getColumnMetaDataClass.put(SS_UDT_SCHEMA_NAME, String.class);
+        getColumnMetaDataClass.put(SS_UDT_ASSEMBLY_TYPE_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_NAME, String.class);
 
         try (Connection conn = getConnection()) {
             ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
@@ -973,14 +974,18 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 Class<?> expectedClass = getColumnMetaDataClass.get(columnLabel);
 
                 // Ensure the metadata column is in the metadata column class map
-                assertNotNull(expectedClass);
+                if (expectedClass == null) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"));
+                    Object[] msgArgs1 = {"expected metadata column class for column " + columnLabel};
+                    fail(form1.format(msgArgs1));
+                }
 
                 // Ensure the actual and expected column metadata types match
                 if (!columnClassName.equals(expectedClass.getName())) {
-                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_expectedClassDoesNotMatchActualClass"));
+                    MessageFormat form1 = new MessageFormat(
+                            TestResource.getResource("R_expectedClassDoesNotMatchActualClass"));
                     Object[] msgArgs1 = {expectedClass.getName(), columnClassName, columnLabel};
                     fail(form1.format(msgArgs1));
-                    
                 }
             }
         }
