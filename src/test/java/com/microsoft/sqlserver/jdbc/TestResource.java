@@ -212,5 +212,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_failedFedauth", "Failed to acquire fedauth token: "},
             {"R_noLoginModulesConfiguredForJdbcDriver",
                     "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
-            {"R_unexpectedThreadCount", "Thread count is higher than expected."}};
+            {"R_unexpectedThreadCount", "Thread count is higher than expected."},
+            {"R_expectedClassDoesNotMatchActualClass", "Expected column class {0} does not match actual column class {1} for column {2}."}};
 }
