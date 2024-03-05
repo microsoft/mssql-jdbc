@@ -342,7 +342,8 @@ public class FedauthTest extends FedauthCommon {
         try (Connection connection = DriverManager.getConnection(invalidSecretUrl)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidClientSecret")), "Expected R_invalidClientSecret error.");
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidClientSecret")),
+                    "Expected R_invalidClientSecret error.");
         }
     }
 
@@ -350,8 +351,7 @@ public class FedauthTest extends FedauthCommon {
     public void testActiveDirectoryPasswordFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
 
         // Should succeed on valid password
-        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {
-        }
+        try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr)) {}
 
         // Should fail on invalid password
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr + ";password=invalidPassword;")) {
@@ -371,17 +371,17 @@ public class FedauthTest extends FedauthCommon {
                 + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
 
         // Should fail on invalid cert field values
-        String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";password=invalidPassword;clientCertificate=" + clientCertificate;
+        String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
+                + ";authentication=" + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + applicationClientID + ";password=invalidPassword;clientCertificate=" + clientCertificate;
 
-        try (Connection conn = DriverManager.getConnection(url)) {
-        }
+        try (Connection conn = DriverManager.getConnection(url)) {}
 
         try (Connection conn = DriverManager.getConnection(invalidPasswordUrl)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidCertFields")), "Expected R_invalidCertFields error.");
+            assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidCertFields")),
+                    "Expected R_invalidCertFields error.");
         }
     }
 

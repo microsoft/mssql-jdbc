@@ -99,8 +99,7 @@ class SQLServerMSAL4JUtils {
 
             final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
-                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
-                    .authority(fedAuthInfo.stsurl).build();
+                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect).authority(fedAuthInfo.stsurl).build();
 
             final CompletableFuture<IAuthenticationResult> future = pca.acquireToken(UserNamePasswordParameters
                     .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
@@ -145,7 +144,8 @@ class SQLServerMSAL4JUtils {
         lock.lock();
 
         try {
-            String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
+            String hashedSecret = getHashedSecret(
+                    new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect;
 
             if (null == (persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret))) {
@@ -156,8 +156,7 @@ class SQLServerMSAL4JUtils {
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                     .builder(aadPrincipalID, credential).executorService(executorService)
-                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
-                    .authority(fedAuthInfo.stsurl).build();
+                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect).authority(fedAuthInfo.stsurl).build();
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
@@ -202,7 +201,8 @@ class SQLServerMSAL4JUtils {
         lock.lock();
 
         try {
-            String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile, certPassword, certKey, certKeyPassword});
+            String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
+                    certPassword, certKey, certKeyPassword});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect;
 
             if (null == (persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret))) {
@@ -231,8 +231,7 @@ class SQLServerMSAL4JUtils {
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(is, certPassword);
                 clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
-                        .executorService(executorService)
-                        .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
+                        .executorService(executorService).setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
                         .authority(fedAuthInfo.stsurl).build();
             } catch (FileNotFoundException e) {
                 // re-throw if file not there no point to try another format
@@ -261,8 +260,7 @@ class SQLServerMSAL4JUtils {
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(privateKey, cert);
                 clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
-                        .executorService(executorService)
-                        .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
+                        .executorService(executorService).setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
                         .authority(fedAuthInfo.stsurl).build();
             }
 
@@ -504,7 +502,8 @@ class SQLServerMSAL4JUtils {
                     tokenCacheMap.remove(key);
 
                     persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
-                    persistentTokenCacheAccessAspect.setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
+                    persistentTokenCacheAccessAspect
+                            .setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
 
                     tokenCacheMap.put(key, persistentTokenCacheAccessAspect);
 
