@@ -25,7 +25,7 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
     private static PersistentTokenCacheAccessAspect instance;
     private final Lock lock = new ReentrantLock();
 
-    static final long TIME_TO_LIVE = 7200000; // Token cache time to live (2 hrs).
+    static final long TIME_TO_LIVE = 86400000L; // Token cache time to live (24 hrs).
     private long expiryTime;
 
     static PersistentTokenCacheAccessAspect getInstance() {
