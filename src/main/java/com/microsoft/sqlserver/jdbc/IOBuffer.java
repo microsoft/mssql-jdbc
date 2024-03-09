@@ -40,6 +40,7 @@ import java.security.Security;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
@@ -725,8 +726,7 @@ final class TDSChannel implements Serializable {
             setSocketOptions(tcpSocket, this);
 
             // set SO_TIMEOUT
-            int socketTimeout = con.getSocketTimeoutMilliseconds();
-            tcpSocket.setSoTimeout(socketTimeout);
+            tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
 
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
@@ -3755,29 +3755,24 @@ final class TDSWriter {
         writeShort((short) minutesSinceMidnight);
     }
 
-    void writeDatetime(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+    void writeDatetime(java.sql.Timestamp dateValue) throws SQLServerException {
+        LocalDateTime ldt = dateValue.toLocalDateTime();
         int subSecondNanos;
-        java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
-        utcMillis = timestampValue.getTime();
-        subSecondNanos = timestampValue.getNanos();
+        subSecondNanos = ldt.getNano();
 
-        // Load the calendar with the desired value
-        calendar.setTimeInMillis(utcMillis);
 
         // Number of days there have been since the SQL Base Date.
         // These are based on SQL Server algorithms
-        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.DAY_OF_YEAR), TDS.BASE_YEAR_1900);
+        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(),
+                ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                                                                                                         // the current
-                                                                                                         // second
-                1000 * calendar.get(Calendar.SECOND) + // Seconds into the current minute
-                60 * 1000 * calendar.get(Calendar.MINUTE) + // Minutes into the current hour
-                60 * 60 * 1000 * calendar.get(Calendar.HOUR_OF_DAY); // Hours into the current day
+                // the current
+                // second
+                1000 * ldt.getSecond() + // Seconds into the current minute
+                60 * 1000 * ldt.getMinute() + // Minutes into the current hour
+                60 * 60 * 1000 * ldt.getHour(); // Hours into the current day
 
         // The last millisecond of the current day is always rounded to the first millisecond
         // of the next day because DATETIME is only accurate to 1/300th of a second.
@@ -5032,7 +5027,8 @@ final class TDSWriter {
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
-            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant) throws SQLServerException {
+            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant)
+                    throws SQLServerException, IllegalArgumentException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {
@@ -5104,9 +5100,18 @@ final class TDSWriter {
 
                     /*
                      * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
-                     * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metdadata is 0,
+                     * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
+                     *
+                     * Additionally, we should check here if the scale is within the bounds of SQLServer as it is
+                     * possible for a number with a scale larger than 38 to be passed in.
                      */
+                    if (columnPair.getValue().scale > SQLServerConnection.MAX_DECIMAL_PRECISION) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidScale"));
+                        Object[] msgArgs = {columnPair.getValue().scale};
+                        throw new IllegalArgumentException(form.format(msgArgs));
+                    }
+
                     bdValue = bdValue.setScale(columnPair.getValue().scale, RoundingMode.HALF_UP);
 
                     byte[] val = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());

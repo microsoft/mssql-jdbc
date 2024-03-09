@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -570,6 +571,33 @@ public class TVPTypesTest extends AbstractTest {
                 rs.next();
                 assertEquals(true, rs.getObject(1));
             }
+        }
+    }
+
+    /**
+     * Numeric (bigdecimal) with StoredProcedure
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPNumericStoredProcedure() throws SQLException {
+        createTables("numeric(10,2)");
+        createTVPS("numeric(38,10)");
+        createProcedure();
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", java.sql.Types.NUMERIC);
+        tvp.addRow(new BigDecimal(0.222));
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
+
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidScale")), e.getMessage());
         }
     }
 
