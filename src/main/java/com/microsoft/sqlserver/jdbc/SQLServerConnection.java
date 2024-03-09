@@ -4728,6 +4728,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Any changes to SQLWarnings should be synchronized.
+    /** Used to add plain SQLWarning messages (if they do not hold extended information, like: ErrorSeverity, ServerName, ProcName etc */
     void addWarning(SQLWarning sqlWarning) {
         warningSynchronization.lock();
         try {
@@ -4742,6 +4743,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Any changes to SQLWarnings should be synchronized.
+    /** Used to add messages that holds extended information, like: ErrorSeverity, ServerName, ProcName etc */
     void addWarning(ISQLServerMessage sqlServerMessage) {
         addWarning(new SQLServerWarning(sqlServerMessage.getSQLServerMessage()));
     }

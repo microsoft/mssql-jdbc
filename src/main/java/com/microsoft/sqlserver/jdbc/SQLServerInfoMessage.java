@@ -7,6 +7,17 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
 
+/**
+ * Holds information about SQL Server messages that is considered as Informational Messages (normally if SQL Server Severity is at 10)
+ * <p>
+ * Instead of just holding the SQL Server message (like a normal SQLWarning, it also holds all the 
+ * SQL Servers extended information, like: ErrorSeverity, ServerName, ProcName etc
+ * <p>
+ * This enables client to print out extra information about the message.<br>
+ * Like: In what procedure was the message produced.
+ * <p>
+ * A SQLServerInfoMessage is produced when reading the TDS Stream and added to the Connection as a SQLServerWarning
+ */
 public final class SQLServerInfoMessage extends StreamPacket implements ISQLServerMessage {
     SQLServerError msg = new SQLServerError();
 
@@ -19,6 +30,7 @@ public final class SQLServerInfoMessage extends StreamPacket implements ISQLServ
         this.msg = msg;
     }
 
+    @Override
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
         if (TDS.TDS_MSG != tdsReader.readUnsignedByte())
             assert false;

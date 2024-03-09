@@ -2,7 +2,7 @@
  * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
-package com.microsoft.sqlserver.jdbc.msghandler;
+package com.microsoft.sqlserver.jdbc.messageHandler;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +32,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-public class MsgHandlerTest extends AbstractTest {
+public class MessageHandlerTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
