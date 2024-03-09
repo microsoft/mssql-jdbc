@@ -99,8 +99,8 @@ final class FailoverInfo {
         try {
             if (useFailoverPartner != actualUseFailoverPartner) {
                 if (connection.getConnectionLogger().isLoggable(Level.FINE))
-                    connection.getConnectionLogger()
-                            .fine(connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
+                    connection.getConnectionLogger().fine(
+                            connection.toString() + " Failover detected. failover partner=" + actualFailoverPartner);
                 useFailoverPartner = actualUseFailoverPartner;
             }
             // The checking for actualUseFailoverPartner may look weird but this is required

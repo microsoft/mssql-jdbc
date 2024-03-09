@@ -466,6 +466,7 @@ final class TDS {
     final static int COLINFO_STATUS_DIFFERENT_NAME = 0x20;
 
     final static int MAX_FRACTIONAL_SECONDS_SCALE = 7;
+    final static int DEFAULT_FRACTIONAL_SECONDS_SCALE = 3;
 
     final static Timestamp MAX_TIMESTAMP = Timestamp.valueOf("2079-06-06 23:59:59");
     final static Timestamp MIN_TIMESTAMP = Timestamp.valueOf("1900-01-01 00:00:00");
@@ -671,7 +672,7 @@ final class TDSChannel implements Serializable {
     int numMsgsSent = 0;
     int numMsgsRcvd = 0;
 
-    private final transient Lock lock = new ReentrantLock();
+    private final transient Lock tdsChannelLock = new ReentrantLock();
 
     // Last SPID received from the server. Used for logging and to tag subsequent outgoing
     // packets to facilitate diagnosing problems from the server side.
@@ -725,8 +726,14 @@ final class TDSChannel implements Serializable {
             tcpSocket.setKeepAlive(true);
             setSocketOptions(tcpSocket, this);
 
-            // set SO_TIMEOUT
-            tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
+            int socketTimeout = con.getSocketTimeoutMilliseconds();
+
+            // socket timeout should be bounded by loginTimeout before connected
+            if (!con.isConnected()) {
+                socketTimeout = Math.min(con.timerRemaining(con.timerExpire), socketTimeout);
+            }
+
+            tcpSocket.setSoTimeout(socketTimeout);
 
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
@@ -766,7 +773,7 @@ final class TDSChannel implements Serializable {
             logger.finer(toString() + " Disabling SSL...");
         }
 
-        lock.lock();
+        tdsChannelLock.lock();
         try {
             // Guard in case of disableSSL being called before enableSSL
             if (proxySocket == null) {
@@ -832,7 +839,7 @@ final class TDSChannel implements Serializable {
             channelSocket = tcpSocket;
             sslSocket = null;
         } finally {
-            lock.unlock();
+            tdsChannelLock.unlock();
         }
 
         if (logger.isLoggable(Level.FINER))
@@ -1049,6 +1056,8 @@ final class TDSChannel implements Serializable {
     private final class ProxyInputStream extends InputStream {
         private InputStream filteredStream;
 
+        private final Lock proxyInputStreamLock = new ReentrantLock();
+
         /**
          * Bytes that have been read by a poll(s).
          */
@@ -1075,7 +1084,7 @@ final class TDSChannel implements Serializable {
          *         If an I/O exception occurs.
          */
         public boolean poll() {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 int b;
                 try {
@@ -1110,7 +1119,7 @@ final class TDSChannel implements Serializable {
 
                 return true;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1126,7 +1135,7 @@ final class TDSChannel implements Serializable {
 
         @Override
         public long skip(long n) throws IOException {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 long bytesSkipped = 0;
 
@@ -1147,7 +1156,7 @@ final class TDSChannel implements Serializable {
 
                 return bytesSkipped;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1184,7 +1193,7 @@ final class TDSChannel implements Serializable {
         }
 
         private int readInternal(byte[] b, int offset, int maxBytes) throws IOException {
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 int bytesRead;
 
@@ -1233,7 +1242,7 @@ final class TDSChannel implements Serializable {
 
                 return bytesRead;
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1252,11 +1261,11 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(super.toString() + " Marking next " + readLimit + " bytes");
 
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
                 filteredStream.mark(readLimit);
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1265,12 +1274,12 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(super.toString() + " Resetting to previous mark");
 
-            lock.lock();
+            proxyInputStreamLock.lock();
             try {
 
                 filteredStream.reset();
             } finally {
-                lock.unlock();
+                proxyInputStreamLock.unlock();
             }
         }
 
@@ -1431,7 +1440,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getReceiveBufferSize() throws SocketException {
+        public int getReceiveBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getReceiveBufferSize();
         }
 
@@ -1446,7 +1455,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSendBufferSize() throws SocketException {
+        public int getSendBufferSize() throws SocketException {
             return tdsChannel.tcpSocket.getSendBufferSize();
         }
 
@@ -1456,7 +1465,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized int getSoTimeout() throws SocketException {
+        public int getSoTimeout() throws SocketException {
             return tdsChannel.tcpSocket.getSoTimeout();
         }
 
@@ -1527,19 +1536,19 @@ final class TDSChannel implements Serializable {
         // Ignore calls to methods that would otherwise allow the SSL socket
         // to directly manipulate the underlying TCP socket
         @Override
-        public synchronized void close() throws IOException {
+        public void close() throws IOException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(logContext + " Ignoring close");
         }
 
         @Override
-        public synchronized void setReceiveBufferSize(int size) throws SocketException {
+        public void setReceiveBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setReceiveBufferSize size:" + size);
         }
 
         @Override
-        public synchronized void setSendBufferSize(int size) throws SocketException {
+        public void setSendBufferSize(int size) throws SocketException {
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Ignoring setSendBufferSize size:" + size);
         }
@@ -1557,7 +1566,7 @@ final class TDSChannel implements Serializable {
         }
 
         @Override
-        public synchronized void setSoTimeout(int timeout) throws SocketException {
+        public void setSoTimeout(int timeout) throws SocketException {
             tdsChannel.tcpSocket.setSoTimeout(timeout);
         }
 
@@ -1812,7 +1821,9 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Initializing SSL context");
 
-            sslContext.init(km, tm, null);
+            sslContext.init(km, tm, null); // CodeQL [SM03853] Potential all-accepting TrustManager is by design
+            // Permissive trust manager allows minimum encryption of credentials even when trusted certificates
+            // aren't provisioned on the server.
 
             // Got the SSL context. Now create an SSL socket over our own proxy socket
             // which we can toggle between TDS-encapsulated and raw communications.
@@ -3760,16 +3771,14 @@ final class TDSWriter {
         int subSecondNanos;
         subSecondNanos = ldt.getNano();
 
-
         // Number of days there have been since the SQL Base Date.
         // These are based on SQL Server algorithms
-        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(),
-                ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
+        int daysSinceSQLBaseDate = DDC.daysSinceBaseDate(ldt.getYear(), ldt.getDayOfYear(), TDS.BASE_YEAR_1900);
 
         // Number of milliseconds since midnight of the current day.
         int millisSinceMidnight = (subSecondNanos + Nanos.PER_MILLISECOND / 2) / Nanos.PER_MILLISECOND + // Millis into
-                // the current
-                // second
+        // the current
+        // second
                 1000 * ldt.getSecond() + // Seconds into the current minute
                 60 * 1000 * ldt.getMinute() + // Minutes into the current hour
                 60 * 60 * 1000 * ldt.getHour(); // Hours into the current day
@@ -3816,6 +3825,20 @@ final class TDSWriter {
                 SSType.DATE);
     }
 
+    void writeDate(long utcMillis, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
+
+        writeScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
+                0, // scale (dates are not scaled)
+                SSType.DATE);
+    }
+
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
@@ -3825,6 +3848,20 @@ final class TDSWriter {
 
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
+
+        writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
+    }
+
+    void writeTime(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
+        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        long utcMillis = value.getTime(); // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+        int subSecondNanos = value.getNanos();
+
+        // Load the calendar with the desired value
+        calendar.setTimeInMillis(utcMillis);
+        if (cal != null) {
+            calendar.setTimeZone(cal.getTimeZone());
+        }
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
     }
@@ -4786,7 +4823,7 @@ final class TDSWriter {
      * Utility for internal writeRPCString calls
      */
     void writeRPCStringUnicode(String sValue) throws SQLServerException {
-        writeRPCStringUnicode(null, sValue, false, null);
+        writeRPCStringUnicode(null, sValue, false, null, false);
     }
 
     /**
@@ -4801,8 +4838,8 @@ final class TDSWriter {
      * @param collation
      *        the collation of the data value
      */
-    void writeRPCStringUnicode(String sName, String sValue, boolean bOut,
-            SQLCollation collation) throws SQLServerException {
+    void writeRPCStringUnicode(String sName, String sValue, boolean bOut, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
         // Textual RPC requires a collation. If none is provided, as is the case when
@@ -4814,10 +4851,9 @@ final class TDSWriter {
          * Use PLP encoding if either OUT params were specified or if the user query exceeds
          * DataTypes.SHORT_VARTYPE_MAX_BYTES
          */
-        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
+        if ((nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) && !isNonPLP) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(nValueLen, // Length
                     bValueNull, // Is null?
                     collation);
@@ -5027,8 +5063,8 @@ final class TDSWriter {
     }
 
     private void writeInternalTVPRowValues(JDBCType jdbcType, String currentColumnStringValue, Object currentObject,
-            Map.Entry<Integer, SQLServerMetaData> columnPair, boolean isSqlVariant)
-                    throws SQLServerException, IllegalArgumentException {
+            Map.Entry<Integer, SQLServerMetaData> columnPair,
+            boolean isSqlVariant) throws SQLServerException, IllegalArgumentException {
         boolean isShortValue, isNull;
         int dataLength;
         switch (jdbcType) {
@@ -5102,7 +5138,6 @@ final class TDSWriter {
                      * setScale of all BigDecimal value based on metadata as scale is not sent separately for individual
                      * value. Use the rounding used in Server. Say, for BigDecimal("0.1"), if scale in metadata is 0,
                      * then ArithmeticException would be thrown if RoundingMode is not set
-                     *
                      * Additionally, we should check here if the scale is within the bounds of SQLServer as it is
                      * possible for a number with a scale larger than 38 to be passed in.
                      */
@@ -5416,7 +5451,6 @@ final class TDSWriter {
                     // Use PLP encoding on Yukon and later with long values
                     if (!isShortValue) // PLP
                     {
-                        // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                         con.getDatabaseCollation().writeCollation(this);
                     } else // non PLP
@@ -5434,7 +5468,6 @@ final class TDSWriter {
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
                     if (!isShortValue) // PLP
-                        // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                     else // non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5569,8 +5602,8 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
-            SQLCollation collation) throws SQLServerException {
+    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5616,8 +5649,7 @@ final class TDSWriter {
 
         writeRPCNameValType(sName, bOut, tdsType);
 
-        if (usePLP) {
-            // Handle Yukon v*max type header here.
+        if (usePLP && !isNonPLP) {
             writeVMaxHeader(nValueLen, bValueNull, collation);
 
             // Send the data.
@@ -6398,7 +6430,6 @@ final class TDSWriter {
 
             writeRPCNameValType(sName, bOut, jdbcType.isTextual() ? TDSType.BIGVARCHAR : TDSType.BIGVARBINARY);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(streamLength, false, jdbcType.isTextual() ? collation : null);
         }
 
@@ -6538,7 +6569,6 @@ final class TDSWriter {
 
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(
                     (DataTypes.UNKNOWN_STREAM_LENGTH == reLength) ? DataTypes.UNKNOWN_STREAM_LENGTH : 2 * reLength, // Length
                                                                                                                     // (in
@@ -6688,7 +6718,7 @@ final class TDSReader implements Serializable {
     private boolean serverSupportsColumnEncryption = false;
     private boolean serverSupportsDataClassification = false;
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
-    private final transient Lock lock = new ReentrantLock();
+    private final transient Lock tdsReaderLock = new ReentrantLock();
 
     private final byte[] valueBytes = new byte[256];
 
@@ -6808,7 +6838,7 @@ final class TDSReader implements Serializable {
      * the response and another thread that is trying to buffer it with TDSCommand.detach().
      */
     final boolean readPacket() throws SQLServerException {
-        lock.lock();
+        tdsReaderLock.lock();
         try {
             if (null != command && !command.readingResponse())
                 return false;
@@ -6921,7 +6951,7 @@ final class TDSReader implements Serializable {
 
             return true;
         } finally {
-            lock.unlock();
+            tdsReaderLock.unlock();
         }
     }
 
@@ -6991,6 +7021,35 @@ final class TDSReader implements Serializable {
         }
 
         return 0;
+    }
+
+    final int peekReturnValueStatus() throws SQLServerException {
+        // Ensure that we have a packet to read from.
+        if (!ensurePayload()) {
+            throwInvalidTDS();
+        }
+
+        // In order to parse the 'status' value, we need to skip over the following properties in the TDS packet
+        // payload: TDS token type (1 byte value), ordinal/length (2 byte value), parameter name length value (1 byte value) and
+        // the number of bytes that make the parameter name (need to be calculated).
+        //
+        // 'offset' starts at 4 because tdsTokenType + ordinal/length + parameter name length value is 4 bytes. So, we
+        // skip 4 bytes immediateley.
+        int offset = 4;
+        int paramNameLength = currentPacket.payload[payloadOffset + 3];
+
+        // Check if parameter name is set. If it's set, it should be > 0. In which case, we add the
+        // additional bytes to skip.
+        if (paramNameLength > 0) {
+            // Each character in unicode is 2 bytes
+            offset += 2 * paramNameLength;
+        }
+
+        if (payloadOffset + offset <= currentPacket.payloadLength) {
+            return currentPacket.payload[payloadOffset + offset] & 0xFF;
+        }
+
+        return -1;
     }
 
     final int readUnsignedByte() throws SQLServerException {
@@ -7252,9 +7311,9 @@ final class TDSReader implements Serializable {
 
         // Convert the DATE value to the desired Java type.
         return DDC.convertTemporalToObject(con, jdbcType, SSType.DATE, appTimeZoneCalendar, localDaysIntoCE, 0, // midnight
-                                                                                                           // local to
-                                                                                                           // app time
-                                                                                                           // zone
+                // local to
+                // app time
+                // zone
                 0); // scale (ignored for DATE)
     }
 

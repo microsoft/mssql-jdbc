@@ -127,6 +127,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_HAS_CLOSED = TestResource.getResource("R_hasClosed");
     static final String ERR_MSG_HAS_BEEN_CLOSED = TestResource.getResource("R_hasBeenClosed");
     static final String ERR_MSG_SIGNIN_TOO_MANY = TestResource.getResource("R_signinTooManyTimes");
+    static final String ERR_FAULT_ID3342 = "FaultMessage: ID3242";
     static final String ERR_MSG_NOT_AUTH_AND_IS = TestUtils.R_BUNDLE
             .getString("R_SetAuthenticationWhenIntegratedSecurityTrue");
     static final String ERR_MSG_NOT_AUTH_AND_USER_PASSWORD = TestUtils.R_BUNDLE

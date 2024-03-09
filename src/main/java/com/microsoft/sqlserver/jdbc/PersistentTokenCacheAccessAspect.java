@@ -53,7 +53,8 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
     public void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
         lock.lock();
         try {
-            if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged() && null != iTokenCacheAccessContext.tokenCache())
+            if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged()
+                    && null != iTokenCacheAccessContext.tokenCache())
                 cache = iTokenCacheAccessContext.tokenCache().serialize();
         } finally {
             lock.unlock();

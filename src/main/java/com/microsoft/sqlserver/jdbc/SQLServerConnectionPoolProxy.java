@@ -703,23 +703,44 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the current value for 'calcBigDecimalScale'.
+     * Returns the current value for 'calcBigDecimalPrecision'.
      *
-     * @return calcBigDecimalScale
-     *          a boolean
+     * @return calcBigDecimalPrecision
+     *         a boolean
      */
     @Override
-    public boolean getCalcBigDecimalScale() {
-        return wrappedConnection.getCalcBigDecimalScale();
+    public boolean getCalcBigDecimalPrecision() {
+        return wrappedConnection.getCalcBigDecimalPrecision();
     }
 
     /**
-     * Sets the current value of 'calculateBigDecimalScale' for the driver.
+     * Sets the current value of 'calculateBigDecimalPrecision' for the driver.
      *
-     * @param calcBigDecimalScale
+     * @param calcBigDecimalPrecision
      */
     @Override
-    public void setCalcBigDecimalScale(boolean calcBigDecimalScale) {
-        wrappedConnection.setCalcBigDecimalScale(calcBigDecimalScale);
+    public void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision) {
+        wrappedConnection.setCalcBigDecimalPrecision(calcBigDecimalPrecision);
+    }
+
+    /**
+     * Returns the useBulkCopyForBatchInsert value.
+     * 
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    @Override
+    public boolean getUseBulkCopyForBatchInsert() {
+        return wrappedConnection.getUseBulkCopyForBatchInsert();
+    }
+
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * 
+     * @param useBulkCopyForBatchInsert
+     *        boolean value for useBulkCopyForBatchInsert.
+     */
+    @Override
+    public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
+        wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
 }

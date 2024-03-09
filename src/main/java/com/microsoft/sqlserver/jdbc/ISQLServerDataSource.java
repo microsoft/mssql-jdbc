@@ -610,6 +610,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultGSSCredential();
 
     /**
+     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
+     *
+     * @param useFlexibleCallableStatements
+     *        When set to false, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements. This eliminates a round trip to the server but imposes limitations
+     *        on how parameters are set. When set to false, applications must either reference
+     *        parameters by name or by index, not both. Parameters must also be set in the same
+     *        order as the stored procedure definition.
+     */
+    void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
+
+    /**
+     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
+     *
+     * @return useFlexibleCallableStatements
+     */
+    boolean getUseFlexibleCallableStatements();
+
+    /**
      * Sets the GSSCredential.
      *
      * @param userCredential
@@ -864,13 +883,14 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultJaasConfig();
 
     /**
-     * Sets whether the default JAAS Configuration will be used.  This means the system-wide JAAS configuration
+     * Sets whether the default JAAS Configuration will be used. This means the system-wide JAAS configuration
      * is ignored to avoid conflicts with libraries that override the JAAS configuration.
      *
      * @param useDefaultJaasConfig
-     *         boolean property to use the default JAAS configuration
+     *        boolean property to use the default JAAS configuration
      */
     void setUseDefaultJaasConfig(boolean useDefaultJaasConfig);
+
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
      * true.
@@ -1311,21 +1331,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
+     *        access token callback class
+     * 
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
-     * Returns value of 'calcBigDecimalScale' from Connection String.
+     * Returns value of 'calcBigDecimalPrecision' from Connection String.
      *
-     * @param calcBigDecimalScale
-     *         indicates whether the driver should attempt to calculate scale from inputted big decimal values
+     * @param calcBigDecimalPrecision
+     *        indicates whether the driver should attempt to calculate precision from inputted big decimal values
      */
-    void setCalcBigDecimalScale(boolean calcBigDecimalScale);
+    void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
 
     /**
-     * Sets the value for 'calcBigDecimalScale' property
+     * Sets the value for 'calcBigDecimalPrecision' property
      *
-     * @return calcBigDecimalScale boolean value
+     * @return calcBigDecimalPrecision boolean value
      */
-    boolean getCalcBigDecimalScale();
+    boolean getCalcBigDecimalPrecision();
 }

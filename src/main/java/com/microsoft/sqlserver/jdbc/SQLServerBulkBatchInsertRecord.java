@@ -30,7 +30,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
      */
     private static final long serialVersionUID = -955998113956445541L;
 
-    private transient List<Parameter[]> batchParam;
+    transient List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
     private List<String> columnList;
     private List<String> valueList;

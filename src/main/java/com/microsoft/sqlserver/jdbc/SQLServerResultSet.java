@@ -4918,8 +4918,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         for (Column column : columns) {
             if (column.hasUpdates() && columnTableName.isEmpty()) {
                 columnTableName = column.getTableName().asEscapedString();
-            } else if (column.hasUpdates()
-                    && !columnTableName.equals(column.getTableName().asEscapedString())) {
+            } else if (column.hasUpdates() && !columnTableName.equals(column.getTableName().asEscapedString())) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AmbiguousRowUpdate"));
                 Object[] msgArgs = {columnTableName, column.getTableName().asEscapedString()};
                 SQLServerException.makeFromDriverError(stmt.connection, stmt, form.format(msgArgs), null, false);

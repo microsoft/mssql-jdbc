@@ -1729,17 +1729,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null != destinationTableMetadata) {
                     rs = (SQLServerResultSet) destinationTableMetadata;
                 } else {
-                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                            ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
                     // Get destination metadata
-                    rs = stmt.executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
+                    rs = stmt.executeQueryInternal(
+                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
                 }
 
                 int destColumnMetadataCount = rs.getMetaData().getColumnCount();
                 destColumnMetadata = new HashMap<>();
                 destCekTable = rs.getCekTable();
 
-                metaDataQuery = "select * from sys.columns where " + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+                metaDataQuery = "select * from sys.columns where " + "object_id=OBJECT_ID('"
+                        + escapedDestinationTableName + "') " + "order by column_id ASC";
 
                 try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
                         SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
@@ -1751,8 +1754,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             }
                             // Skip computed columns
                             if (!rsMoreMetaData.getBoolean("is_computed")) {
-                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i), rsMoreMetaData.getString("collation_name"),
-                                        bulkCopyEncryptionType));
+                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                        rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
                             }
                         } else {
                             destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
@@ -2061,7 +2064,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void writeColumnToTdsWriter(TDSWriter tdsWriter, int bulkPrecision, int bulkScale, int bulkJdbcType,
             boolean bulkNullable, // should it be destNullable instead?
-            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue) throws SQLServerException {
+            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue,
+            Calendar cal) throws SQLServerException {
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType,
@@ -2477,10 +2481,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                     tdsWriter.writeByte((byte) 0x07);
                                 else
                                     tdsWriter.writeByte((byte) 0x08);
-                                String timeStampValue = colValue.toString();
-                                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), bulkScale);
+
+                                Timestamp ts;
+                                if (colValue instanceof java.sql.Timestamp) {
+                                    ts = (Timestamp) colValue;
+                                } else {
+                                    ts = Timestamp.valueOf(colValue.toString());
+                                }
+
+                                tdsWriter.writeTime(ts, bulkScale, cal);
                                 // Send only the date part
-                                tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
+                                tdsWriter.writeDate(ts.getTime(), cal);
                         }
                     }
                     break;
@@ -2977,8 +2988,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Reads the given column from the result set current row and writes the data to tdsWriter.
      */
-    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
-            Object colValue) throws SQLServerException {
+    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal, Object colValue,
+            Calendar cal) throws SQLServerException {
         String destName = destColumnMetadata.get(destColOrdinal).columnName;
         int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
@@ -3099,7 +3110,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
         }
         writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
-                destColOrdinal, isStreaming, colValue);
+                destColOrdinal, isStreaming, colValue, cal);
     }
 
     /**
@@ -3631,7 +3642,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // where multiple source columns can be mapped to one destination column.
                 for (ColumnMapping columnMapping : columnMappings) {
                     writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
-                            null // cell
+                            null, null // cell
                     // value is
                     // retrieved
                     // inside
@@ -3644,20 +3655,32 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             else {
                 // Get all the column values of the current row.
                 Object[] rowObjects;
+                Parameter[] params = null;
 
                 try {
                     rowObjects = serverBulkData.getRowData();
+                    if (serverBulkData instanceof SQLServerBulkBatchInsertRecord) {
+                        params = ((SQLServerBulkBatchInsertRecord) serverBulkData).batchParam.get(row);
+                    }
                 } catch (Exception ex) {
                     // if no more data available to retrive
                     throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), ex);
                 }
 
                 for (ColumnMapping columnMapping : columnMappings) {
+
+                    Object rowObject = rowObjects[columnMapping.sourceColumnOrdinal - 1];
+                    Calendar cal = null;
+
+                    if (rowObject instanceof Timestamp && params != null) {
+                        cal = params[columnMapping.sourceColumnOrdinal - 1].getInputDTV().getCalendar();
+                    }
+
                     // If the SQLServerBulkCSVRecord does not have metadata for columns, it returns strings in the
                     // object array.
                     // COnvert the strings using destination table types.
                     writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
-                            rowObjects[columnMapping.sourceColumnOrdinal - 1]);
+                            rowObject, cal);
                 }
             }
             row++;

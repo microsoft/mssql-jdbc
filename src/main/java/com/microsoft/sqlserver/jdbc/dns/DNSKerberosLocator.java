@@ -9,6 +9,7 @@ import java.util.Set;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 
+
 /**
  * Represents a DNS Kerberos Locator
  */
@@ -38,7 +39,7 @@ public final class DNSKerberosLocator {
             Set<DNSRecordSRV> records = DNSUtilities.findSrvRecords("_kerberos._udp." + realmName);
             return !records.isEmpty();
         } catch (NameNotFoundException wrongDomainException) {
-            // config error - domain controller cannot be located via DNS 
+            // config error - domain controller cannot be located via DNS
             return false;
         }
     }

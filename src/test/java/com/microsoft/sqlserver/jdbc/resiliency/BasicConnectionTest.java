@@ -265,8 +265,7 @@ public class BasicConnectionTest extends AbstractTest {
     @Test
     public void testPooledConnectionLang() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
-        mds.setURL(connectionString + ";connectRetryCount=1");
-
+        mds.setURL(connectionString);
         PooledConnection pooledConnection = mds.getPooledConnection();
         String lang0 = null, lang1 = null;
 

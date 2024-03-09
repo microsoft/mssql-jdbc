@@ -391,21 +391,4 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         return byteBuffer.putShort(value).array();
     }
-
-    /*
-     * Verify signature against certificate
-     */
-    private boolean rsaVerifySignature(byte[] dataToVerify, byte[] signature,
-            CertificateDetails certificateDetails) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException {
-        Signature sig = Signature.getInstance("SHA256withRSA");
-
-        sig.initSign((PrivateKey) certificateDetails.privateKey);
-        sig.update(dataToVerify);
-
-        byte[] signedHash = sig.sign();
-
-        sig.initVerify(certificateDetails.certificate.getPublicKey());
-        sig.update(dataToVerify);
-        return sig.verify(signature);
-    }
 }

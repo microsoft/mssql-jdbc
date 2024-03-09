@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -34,65 +35,81 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
-@Tag("slow")
 public class TimeoutTest extends AbstractTest {
     static String randomServer = RandomUtil.getIdentifier("Server");
     static String waitForDelaySPName = RandomUtil.getIdentifier("waitForDelaySP");
     static final int waitForDelaySeconds = 10;
-    static final int defaultTimeout = 60; // loginTimeout default value
+    static final int defaultTimeout = 30; // loginTimeout default value
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
     }
 
+    /*
+     * TODO:
+     * The tests below uses a simple interval counting logic to determine whether there was at least 1 retry.
+     * Given the interval is long enough, then 1 retry should take at least 1 interval long, so if it took < 1 interval, then it assumes there were no retry. However, this only works if TNIR or failover is not enabled since those cases should retry but no wait interval in between. So this interval counting can not detect these cases.
+     * Note a better and more reliable way would be to check attemptNumber using reflection to determine the number of retries.
+     */
+
+    // test default loginTimeout used if not specified in connection string
     @Test
     public void testDefaultLoginTimeout() {
-        long timerEnd = 0;
-
+        long totalTime = 0;
         long timerStart = System.currentTimeMillis();
-        // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + "connectRetryCount=0")) {
+
+        // non existing server and default values to see if took default timeout
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+        // time should be < default loginTimeout
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(defaultTimeout),
+                "total time: " + totalTime + " default loginTimout: " + TimeUnit.SECONDS.toMillis(defaultTimeout));
     }
 
+    // test setting loginTimeout value
     @Test
     public void testURLLoginTimeout() {
-        long timerEnd = 0;
-        int timeout = 10;
+        long totalTime = 0;
+        int timeout = 15;
 
         long timerStart = System.currentTimeMillis();
 
+        // non existing server and set loginTimeout
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        verifyTimeout(timerEnd - timerStart, timeout);
+        // time should be < set loginTimeout
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+                "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
+    // test setting timeout in DM
     @Test
     public void testDMLoginTimeoutApplied() {
-        long timerEnd = 0;
-        int timeout = 10;
+        long totalTime = 0;
+        int timeout = 15;
 
         DriverManager.setLoginTimeout(timeout);
         long timerStart = System.currentTimeMillis();
@@ -100,22 +117,26 @@ public class TimeoutTest extends AbstractTest {
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        verifyTimeout(timerEnd - timerStart, timeout);
+        // time should be < DM timeout
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+                "total time: " + totalTime + " DM loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
+    // test that setting in connection string overrides value set in DM
     @Test
     public void testDMLoginTimeoutNotApplied() {
-        long timerEnd = 0;
-        int timeout = 10;
+        long totalTime = 0;
+        int timeout = 15;
         try {
             DriverManager.setLoginTimeout(timeout * 3); // 30 seconds
             long timerStart = System.currentTimeMillis();
@@ -124,196 +145,202 @@ public class TimeoutTest extends AbstractTest {
                     .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
                 fail(TestResource.getResource("R_shouldNotConnect"));
             } catch (Exception e) {
-                timerEnd = System.currentTimeMillis();
+                totalTime = System.currentTimeMillis() - timerStart;
+
                 assertTrue(
-                        (e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                                || ((isSqlAzure() || isSqlAzureDW())
-                                                                     ? e.getMessage()
-                                                                             .contains(TestResource
-                                                                                     .getResource("R_connectTimedOut"))
-                                                                     : false),
+                        (e.getMessage().toLowerCase()
+                                .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
+                                || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                        .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                         e.getMessage());
             }
-            verifyTimeout(timerEnd - timerStart, timeout);
+
+            // time should be < connection string loginTimeout
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+                    "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
         } finally {
             DriverManager.setLoginTimeout(0); // Default to 0 again
         }
     }
 
-    // Test connect retry for non-existent server with loginTimeout
+    // Test connect retry set to 0 (disabled)
     @Test
-    public void testConnectRetryBadServer() {
-        long timerEnd = 0;
+    public void testConnectRetryDisable() {
+        long totalTime = 0;
         long timerStart = System.currentTimeMillis();
-        int loginTimeout = 15;
+        int interval = defaultTimeout; // long interval so we can tell if there was a retry
+        long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent server with very short loginTimeout, no retry will happen as not a transient error
-        try (Connection con = PrepUtil
-                .getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + loginTimeout)) {
+        // non existent server with long loginTimeout, should return fast if no retries at all
+        try (Connection con = PrepUtil.getConnection(
+                "jdbc:sqlserver://" + randomServer + ";transparentNetworkIPResolution=false;loginTimeout=" + timeout
+                        + ";connectRetryCount=0;connectInterval=" + interval)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        verifyTimeout(timerEnd - timerStart, loginTimeout);
+        // if there was a retry then it would take at least 1 interval long, so if < interval means there were no retries
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(interval),
+                "total time: " + totalTime + " interval: " + TimeUnit.SECONDS.toMillis(interval));
+    }
+
+    // Test connect retry for non-existent server with loginTimeout
+    @Test
+    public void testConnectRetryBadServer() {
+        long totalTime = 0;
+        long timerStart = System.currentTimeMillis();
+        int timeout = 15;
+
+        // non existent server with very short loginTimeout, no retry will happen as not a transient error
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
+            fail(TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_tcpipConnectionToHost").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                    e.getMessage());
+        }
+
+        // time should be < loginTimeout set
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+                "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
     // Test connect retry for database error
     @Test
     public void testConnectRetryServerError() {
-        long timerEnd = 0;
+        long totalTime = 0;
         long timerStart = System.currentTimeMillis();
+        int interval = defaultTimeout; // long interval so we can tell if there was a retry
+        long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
-        int connectRetryCount = new Random().nextInt(256);
-        int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
-                        + ";logintimeout=" + defaultTimeout + ";connectRetryCount=" + connectRetryCount
-                        + ";connectRetryInterval=" + connectRetryInterval)) {
+                        + ";loginTimeout=" + timeout + ";connectRetryCount=" + 1 + ";connectRetryInterval=" + interval
+                        + ";transparentNetworkIPResolution=false")) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        // connect + all retries should always be <= loginTimeout
-        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+        // 1 retry should be at least 1 interval long but < 2 intervals
+        assertTrue(TimeUnit.SECONDS.toMillis(interval) < totalTime,
+                "interval: " + TimeUnit.SECONDS.toMillis(interval) + " total time: " + totalTime);
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(2 * interval),
+                "total time: " + totalTime + " 2 * interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
     // Test connect retry for database error using Datasource
     @Test
     public void testConnectRetryServerErrorDS() {
-        long timerEnd = 0;
+        long totalTime = 0;
         long timerStart = System.currentTimeMillis();
+        int interval = defaultTimeout; // long interval so we can tell if there was a retry
+        long loginTimeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry
-        int connectRetryCount = new Random().nextInt(256);
-        int connectRetryInterval = new Random().nextInt(defaultTimeout) + 1;
-
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
         SQLServerDataSource ds = new SQLServerDataSource();
         String connectStr = TestUtils.addOrOverrideProperty(connectionString, "database",
-                RandomUtil.getIdentifier("database")) + ";logintimeout=" + defaultTimeout + ";connectRetryCount="
-                + connectRetryCount + ";connectRetryInterval=" + connectRetryInterval;
+                RandomUtil.getIdentifier("database")) + ";logintimeout=" + loginTimeout + ";connectRetryCount=1"
+                + ";connectRetryInterval=" + interval;
         updateDataSource(connectStr, ds);
 
         try (Connection con = PrepUtil.getConnection(connectStr)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
+            totalTime = System.currentTimeMillis() - timerStart;
         }
 
-        // connect + all retries should always be <= loginTimeout
-        verifyTimeout(timerEnd - timerStart, defaultTimeout);
+        // 1 retry should be at least 1 interval long but < 2 intervals
+        assertTrue(TimeUnit.SECONDS.toMillis(interval) < totalTime,
+                "interval: " + TimeUnit.SECONDS.toMillis(interval) + " total time: " + totalTime);
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(2 * interval),
+                "total time: " + totalTime + " 2 * interval: " + TimeUnit.SECONDS.toMillis(2 * interval));
     }
 
     // Test connect retry for database error with loginTimeout
     @Test
     public void testConnectRetryTimeout() {
-        long timerEnd = 0;
-        int loginTimeout = 2;
+        long totalTime = 0;
         long timerStart = System.currentTimeMillis();
+        int interval = defaultTimeout; // long interval so we can tell if there was a retry
+        int loginTimeout = 2;
 
-        // non existent server with very short loginTimeout so there is no time to do all retries
+        // non existent database with very short loginTimeout so there is no time to do any retry
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
-                        + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval="
-                        + (new Random().nextInt(defaultTimeout - 1) + 1) + ";loginTimeout=" + loginTimeout)) {
+                        + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval=" + interval
+                        + ";loginTimeout=" + loginTimeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
+            totalTime = System.currentTimeMillis() - timerStart;
+
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
         }
 
-        verifyTimeout(timerEnd - timerStart, loginTimeout);
+        // if there was a retry then it would take at least 1 interval long, so if < interval means there were no retries
+        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(interval),
+                "total time: " + totalTime + " interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
+    // Test for detecting Azure server for connection retries
     @Test
-    public void testFailoverInstanceResolution() throws SQLException {
-        long timerEnd = 0;
-        long timerStart = System.currentTimeMillis();
+    public void testAzureEndpointRetry() {
 
-        // Try a non existing server and see if the default timeout is 15 seconds
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
-                + ";databaseName=FailoverDB_abc;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
-            fail(TestResource.getResource("R_shouldNotConnect"));
-        } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            assertTrue((e.getMessage().contains(TestResource.getResource("R_tcpipConnectionToHost")))
-                    || ((isSqlAzure() || isSqlAzureDW())
-                                                         ? e.getMessage().contains(
-                                                                 TestResource.getResource("R_connectTimedOut"))
-                                                         : false),
-                    e.getMessage());
-        }
+        try (Connection con = PrepUtil.getConnection(connectionString)) {
+            Field fields[] = con.getClass().getSuperclass().getDeclaredFields();
+            for (Field f : fields) {
+                if (f.getName().equals("connectRetryCount")) {
+                    f.setAccessible(true);
+                    int retryCount = f.getInt(con);
 
-        verifyTimeout(timerEnd - timerStart, defaultTimeout * 2);
-    }
+                    if (TestUtils.isAzureSynapseOnDemand(con)) {
+                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAULT
+                    } else if (TestUtils.isAzure(con)) {
+                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
+                    } else {
+                        // default retryCount is 1 if not set in connection string
+                        String retryCountFromConnStr = TestUtils.getProperty(connectionString, "connectRetryCount");
+                        int expectedRetryCount = (retryCountFromConnStr != null) ? Integer
+                                .parseInt(retryCountFromConnStr) : 1;
 
-    @Test
-    public void testFOInstanceResolution2() throws SQLException {
-        long timerEnd = 0;
-
-        long timerStart = System.currentTimeMillis();
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer
-                + "\\fooggg;databaseName=FailoverDB;failoverPartner=" + randomServer + "\\foo;user=sa;password=pwd;")) {
-            fail(TestResource.getResource("R_shouldNotConnect"));
-        } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-        }
-
-        verifyTimeout(timerEnd - timerStart, defaultTimeout);
-    }
-    
-    /**
-     * Tests that failover is still used with socket timeout by measuring timing during a socket timeout.
-     *  
-     */
-    @Test
-    public void testFailoverInstanceResolutionWithSocketTimeout() {
-        long timerEnd;
-        long timerStart = System.currentTimeMillis();
-        
-        try (Connection conn = PrepUtil.getConnection(connectionString
-                 + ";failoverPartner=" + RandomUtil.getIdentifier("FailoverPartner") 
-                    + ";socketTimeout=" + waitForDelaySeconds)) {
-            fail(TestResource.getResource("R_shouldNotConnect"));
-         } catch (Exception e) {
-            timerEnd = System.currentTimeMillis();
-            if (!(e instanceof SQLException)) {
-                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+                        assertTrue(retryCount == expectedRetryCount); // default connectRetryCount
+                    }
+                }
             }
-
-            verifyTimeout(timerEnd - timerStart, waitForDelaySeconds);
+        } catch (Exception e) {
+            fail(e.getMessage());
         }
-    }
-
-    private void verifyTimeout(long timeDiff, int timeout) {
-        // Verify that login timeout does not take longer than <timeout * 2> seconds.
-        assertTrue(timeDiff < TimeUnit.SECONDS.toMillis(timeout * 2),
-                "timeout: " + TimeUnit.SECONDS.toMillis(timeout) + " timediff: " + timeDiff);
     }
 
     /**
@@ -482,6 +509,16 @@ public class TimeoutTest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
+    }
+
+    static Field[] getConnectionFields(Connection c) {
+        Class<? extends Connection> cls = c.getClass();
+        // SQLServerConnection43 is returned for Java >=9 so need to get super class
+        if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {
+            return cls.getSuperclass().getDeclaredFields();
+        }
+
+        return cls.getDeclaredFields();
     }
 
     @AfterAll

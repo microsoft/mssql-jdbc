@@ -53,6 +53,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
+    static String tnirHost = getConfiguredProperty("tnirHost");
 
     String randomServer = RandomUtil.getIdentifier("Server");
 
@@ -205,8 +206,12 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseDefaultGSSCredential(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setCalcBigDecimalScale(booleanPropValue);
-        assertEquals(booleanPropValue, ds.getCalcBigDecimalScale(), TestResource.getResource("R_valuesAreDifferent"));
+        ds.setUseFlexibleCallableStatements(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getUseFlexibleCallableStatements(),
+                TestResource.getResource("R_valuesAreDifferent"));
+        ds.setCalcBigDecimalPrecision(booleanPropValue);
+        assertEquals(booleanPropValue, ds.getCalcBigDecimalPrecision(),
+                TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setServerCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -460,45 +465,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     public void testConnectCountInLoginAndCorrectRetryCount() {
         long timerStart = 0;
 
-        int connectRetryCount = 3;
-        int connectRetryInterval = 1;
-        int longLoginTimeout = loginTimeOutInSeconds * 4;
-
-        try {
-            SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setURL(connectionString);
-            ds.setLoginTimeout(longLoginTimeout);
-            ds.setConnectRetryCount(connectRetryCount);
-            ds.setConnectRetryInterval(connectRetryInterval);
-            ds.setDatabaseName(RandomUtil.getIdentifier("DataBase"));
-            timerStart = System.currentTimeMillis();
-
-            try (Connection con = ds.getConnection()) {
-                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
-            }
-        } catch (Exception e) {
-            long totalTime = System.currentTimeMillis() - timerStart;
-
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")), e.getMessage());
-            int expectedMinimumTimeInMillis = (connectRetryCount * connectRetryInterval) * 1000; // 3 seconds
-
-            // Minimum time is 0 seconds per attempt and connectRetryInterval * connectRetryCount seconds of interval.
-            // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
-            assertTrue(totalTime > expectedMinimumTimeInMillis, TestResource.getResource("R_executionNotLong")
-                    + " totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
-            assertTrue( totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong")
-                    + "totalTime: " + totalTime + " expectedTime: " + expectedMinimumTimeInMillis);
-        }
-    }
-
-    /**
-     * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
-     * that connection is retried the proper number of times. This is for cases with zero retries.
-     */
-    @Test
-    public void testConnectCountInLoginAndCorrectRetryCountWithZeroRetry() {
-        long timerStart = 0;
-
         int connectRetryCount = 0;
         int connectRetryInterval = 60;
         int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
@@ -523,7 +489,45 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
         }
     }
-    
+
+    // Test connect retry 0 but should still connect to TNIR
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectTnir() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries but should connect to TNIR (this assumes host is defined in host file
+        try (Connection con = PrepUtil
+                .getConnection(connectionString + ";transparentNetworkIPResolution=true;connectRetryCount=0;serverName="
+                        + tnirHost);) {} catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    // Test connect retry 0 and TNIR disabled
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectNoTnir() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries no TNIR should fail even tho host is defined in host file
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";transparentNetworkIPResolution=false;connectRetryCount=0;serverName=" + tnirHost);) {
+            assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))
+                    || ((isSqlAzure() || isSqlAzureDW())
+                                                         ? e.getMessage().contains(
+                                                                 TestResource.getResource("R_connectTimedOut"))
+                                                         : false),
+                    e.getMessage());
+        }
+    }
+
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
@@ -1013,9 +1017,12 @@ public class SQLServerConnectionTest extends AbstractTest {
         Runnable runnable = new Runnable() {
             public void run() {
                 SQLServerDataSource ds = new SQLServerDataSource();
+
                 ds.setURL(connectionString);
-                ds.setDatabaseName("invalidDatabase" + UUID.randomUUID());
+                ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(30);
+                ds.setConnectRetryCount(3);
+                ds.setConnectRetryInterval(10);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
@@ -1030,8 +1037,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         Thread.sleep(8000);
         executor.shutdownNow();
 
-        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet") + " status: "
-                + status + " isCancelled: " + future.isCancelled());
+        assertTrue(status && future.isCancelled(), TestResource.getResource("R_threadInterruptNotSet"));
     }
 
     /**

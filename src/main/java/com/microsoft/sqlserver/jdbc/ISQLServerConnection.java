@@ -479,6 +479,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
+     *        access token callback class
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
@@ -496,18 +497,33 @@ public interface ISQLServerConnection extends java.sql.Connection {
     ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
   
     /**
-     * Returns the current flag for calcBigDecimalScale.
+     * Returns the current flag for calcBigDecimalPrecision.
      *
-     * @return calcBigDecimalScale
-     *        Whether calculating big decimal scale from input values is enabled.
+     * @return calcBigDecimalPrecision
+     *         Whether calculating big decimal precision from input values is enabled.
      */
-    boolean getCalcBigDecimalScale();
+    boolean getCalcBigDecimalPrecision();
 
     /**
-     * Specifies whether to calculate scale from inputted big decimal values.
+     * Specifies whether to calculate precision from inputted big decimal values.
      *
-     * @param calcBigDecimalScale
-     *        A boolean that indicates if the driver should calculate scale from inputted big decimal values.
+     * @param calcBigDecimalPrecision
+     *        A boolean that indicates if the driver should calculate precision from inputted big decimal values.
      */
-    void setCalcBigDecimalScale(boolean computeBigDecimal);
+    void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
+
+    /**
+     * Specifies the flag for using Bulk Copy API for batch insert operations.
+     * 
+     * @param useBulkCopyForBatchInsert
+     *        boolean value for useBulkCopyForBatchInsert.
+     */
+    void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
+
+    /**
+     * Returns the useBulkCopyForBatchInsert value.
+     * 
+     * @return flag for using Bulk Copy API for batch insert operations.
+     */
+    boolean getUseBulkCopyForBatchInsert();
 }

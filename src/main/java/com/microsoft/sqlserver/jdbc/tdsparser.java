@@ -240,6 +240,17 @@ class TDSTokenHandler {
     }
 
     boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
+        // Very unlikely to return true. If we do, it was because any return values in the
+        // tds response were never read after the RPC. If they were never read, it's safe to skip
+        // them here
+        if (this.logContext.equals("ExecDoneHandler")) {
+            Parameter param = new Parameter(false);
+            param.skipRetValStatus(tdsReader);
+            param.skipValue(tdsReader, true);
+
+            return true;
+        }
+
         TDSParser.throwUnexpectedTokenException(tdsReader, logContext);
         return false;
     }
@@ -293,11 +304,12 @@ class TDSTokenHandler {
 
     boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
         /*
-         * SHOWPLAN or something else that produces extra metadata might be ON. instead of throwing an exception, warn
-         * and discard the column meta data
+         * SHOWPLAN or something else that produces extra metadata might be ON. Log info instead of throwing an exception, warn
+         * and discard the extra column meta data
          */
-        if (logger.isLoggable(Level.WARNING))
-            logger.warning(tdsReader.toString() + ": " + logContext + ": Discarding unexpected "
+        if (logger.isLoggable(Level.INFO))
+            logger.info(tdsReader.toString() + ": " + logContext
+                    + ": Discarding extra metadata which can be a result of SHOWPLAN settings:  "
                     + TDS.getTokenName(tdsReader.peekTokenType()));
         (new StreamColumns(false)).setFromTDS(tdsReader);
         return false;

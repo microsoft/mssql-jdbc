@@ -893,9 +893,9 @@ final class DDC {
      *
      * @return a Java object of the desired type.
      */
-    static final Object convertTemporalToObject(
-            SQLServerConnection connection, JDBCType jdbcType, SSType ssType, Calendar timeZoneCalendar,
-            int daysSinceBaseDate, long ticksSinceMidnight, int fractionalSecondsScale) throws SQLServerException {
+    static final Object convertTemporalToObject(SQLServerConnection connection, JDBCType jdbcType, SSType ssType,
+            Calendar timeZoneCalendar, int daysSinceBaseDate, long ticksSinceMidnight,
+            int fractionalSecondsScale) throws SQLServerException {
 
         // In cases where a Calendar object (and therefore Timezone) is not passed to the method,
         // use the path below instead to optimize performance.
@@ -1132,9 +1132,9 @@ final class DDC {
                 ts2.setNanos(subSecondNanos);
                 if (jdbcType == JDBCType.LOCALDATETIME) {
                     if (connection.getIgnoreOffsetOnDateTimeOffsetConversion()) {
-                        return LocalDateTime.of(
-                                cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH),
-                                cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), subSecondNanos);
+                        return LocalDateTime.of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+                                cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE),
+                                cal.get(Calendar.SECOND), subSecondNanos);
                     } else {
                         return ts2.toLocalDateTime();
                     }

@@ -25,41 +25,25 @@ class MaxResultBufferParserTest {
      * Method with input data for testValidateMaxResultBuffer Tests
      */
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                {"10p", (long) (0.1 * getMaxMemory())},
-                {"010p", (long) (0.1 * getMaxMemory())},
-                {"10pct", (long) (0.1 * getMaxMemory())},
-                {"10percent", (long) (0.1 * getMaxMemory())},
-                {"100", 100},
-                {"0100", 100},
-                {"100k", 100 * 1000},
-                {"0100k", 100 * 1000},
-                {"100K", 100 * 1000},
-                {"0100K", 100 * 1000},
-                {"100m", 100 * 1000 * 1000},
-                {"100M", 100 * 1000 * 1000},
-                // these values are too big (assuming heap size is 4GB)
-                {"200p", (long) (0.9 * getMaxMemory())},
-                {"0200p", (long) (0.9 * getMaxMemory())},
-                {"200pct", (long) (0.9 * getMaxMemory())},
-                {"200percent", (long) (0.9 * getMaxMemory())},
-                {"100g", (long) (0.9 * getMaxMemory())},
-                {"100G", (long) (0.9 * getMaxMemory())},
-                {"100t", (long) (0.9 * getMaxMemory())},
-                {"100T", (long) (0.9 * getMaxMemory())},
-                //when maxResultBuffer property is not supplied, assume -1
-                {"", -1},
-                {null, -1},
-                {"-1", -1},
-        });
+        return Arrays
+                .asList(new Object[][] {{"10p", (long) (0.1 * getMaxMemory())}, {"010p", (long) (0.1 * getMaxMemory())},
+                        {"10pct", (long) (0.1 * getMaxMemory())}, {"10percent", (long) (0.1 * getMaxMemory())},
+                        {"100", 100}, {"0100", 100}, {"100k", 100 * 1000}, {"0100k", 100 * 1000}, {"100K", 100 * 1000},
+                        {"0100K", 100 * 1000}, {"100m", 100 * 1000 * 1000}, {"100M", 100 * 1000 * 1000},
+                        // these values are too big (assuming heap size is 4GB)
+                        {"200p", (long) (0.9 * getMaxMemory())}, {"0200p", (long) (0.9 * getMaxMemory())},
+                        {"200pct", (long) (0.9 * getMaxMemory())}, {"200percent", (long) (0.9 * getMaxMemory())},
+                        {"100g", (long) (0.9 * getMaxMemory())}, {"100G", (long) (0.9 * getMaxMemory())},
+                        {"100t", (long) (0.9 * getMaxMemory())}, {"100T", (long) (0.9 * getMaxMemory())},
+                        // when maxResultBuffer property is not supplied, assume -1
+                        {"", -1}, {null, -1}, {"-1", -1},});
     }
 
     /**
      * Method with input data for testValidateMaxResultBufferException Tests
      */
     public static Iterable<Object[]> exceptionData() {
-        return Arrays.asList(new Object[][] {
-                {"-123p"}, {"-423pct"}, {"-100m"}, {"-500K"}, {"-123"},// values are correctly formatted, but they're negative
+        return Arrays.asList(new Object[][] {{"-123p"}, {"-423pct"}, {"-100m"}, {"-500K"}, {"-123"}, // values are correctly formatted, but they're negative
                 {"123precd"}, {"456pc"}, // percent phrases are misspelled
                 {"32P"}, {"-456PCT"}, {"150PERCENT"}, // percent phrases are correct, but they're in upper Case also middle one is negative
                 {"0101D"}, {"100l"}, {"-100L"}, // incorrect prefixes, last value is also negative
