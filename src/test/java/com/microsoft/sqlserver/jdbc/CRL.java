@@ -1,5 +1,7 @@
 package com.microsoft.sqlserver.jdbc;
 
+import org.junit.jupiter.api.Test;
+
 import java.sql.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -12,11 +14,12 @@ import java.util.logging.Logger;
 public class CRL {
 
     static String tableName = "test_decimal";
-    public static void main(String[] args) throws SQLException {
-
+    @Test
+    public void inputValidation() throws Exception {
         String connectionString = "jdbc:sqlserver://localhost:1433;database=TestDb;user=sa;password=TestPassword123;" +
                 "encrypt=true;trustServerCertificate=true;selectMethod=cursor;loginTimeout=5;" +
-                "connectRetryCount=1;";
+                "connectRetryCount=1;"
+                +"retryExec={2714,2716:1,2*2:CREATE;2715:1,3};";
 
 
         try(Connection conn = DriverManager.getConnection(connectionString);
@@ -26,18 +29,8 @@ public class CRL {
                 createTable(s);
             } catch (SQLServerException e) {
                 ps.execute();
-                dropTable(s);
             }
         }
-    }
-
-    // Global
-    public void readFromBadPropsFile() {
-        // Include multiple props file, badly formatted in props file
-    }
-    public void inputValidation() {
-        // Test empty rules, bad rules, bad values, incomplete rule
-        // For now connection only
     }
 
     // Connection
@@ -61,10 +54,5 @@ public class CRL {
         sql = sql.substring(0,sql.length() - 1);
         sql += ");";
         stmt.execute(sql);
-    }
-    private static void dropTable(Statement stmt) throws SQLException {
-        if (null != tableName) {
-            TestUtils.dropTableIfExists(tableName, stmt);
-        }
     }
 }

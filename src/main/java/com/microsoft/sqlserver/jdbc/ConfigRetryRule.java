@@ -57,12 +57,16 @@ public class ConfigRetryRule {
     private void addElements(String[] s) throws SQLServerException {
         //+"retryExec={2714,2716:1,2*2:CREATE;2715:1,3;+4060,4070};"
         if (s.length == 1) {
+            // If single element, connection
             isConnection = true;
             retryError = appendOrReplace(s[0]);
         } else if (s.length == 2 || s.length == 3) {
+            // If 2 or 3, statement, either with or without query
             // Parse first element (statement rules)
             if (!StringUtils.isNumeric(s[0])) {
-                // TODO - first argument is not numeric, return some error
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
+                Object[] msgArgs = {s[0], "\"Retry Error\""};
+                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
             } else {
                 retryError = s[0];
             }

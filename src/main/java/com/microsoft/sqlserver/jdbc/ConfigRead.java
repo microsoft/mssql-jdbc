@@ -79,15 +79,7 @@ public class ConfigRead {
 
     public void setFromConnectionString(String custom) throws SQLServerException {
         if (!custom.isEmpty()) {
-            if (Character.isDigit(custom.charAt(0))) {
-                // If we start with a digit, these are rules
-                setCustomRetryRules(custom);
-            } else {
-                // We got supplied with a non-digit
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-                Object[] msgArgs = {custom};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-            }
+            setCustomRetryRules(custom);
         }
     }
 
@@ -164,6 +156,7 @@ public class ConfigRead {
         try {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
             String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            location = location.substring(0, location.length() - 16);
             URI uri = new URI(location + "/");
             return uri.getPath();
         } catch (Exception e) {

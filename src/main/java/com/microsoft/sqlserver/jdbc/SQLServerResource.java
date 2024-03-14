@@ -548,7 +548,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
         {"R_InvalidScale", "Scale of input value is larger than the maximum allowed by SQL Server."},
         {"R_InvalidPropertyFile", "The properties file is not correctly formatted."},
-        {"R_InvalidRuleFormat", "The provided retry rule, {0}, is not in the correct rule format."}
+        {"R_InvalidRuleFormat", "The provided retry rule, {0}, is not in the correct rule format."},
+        {"R_InvalidParameterFormat", "The given value, {0}, is not of the correct format for the retry parameter, {1}."},
     };
 }
 // @formatter:on
