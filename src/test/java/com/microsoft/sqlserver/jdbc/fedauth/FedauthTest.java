@@ -16,7 +16,6 @@ import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
@@ -357,9 +356,9 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr + ";password=invalidPassword;")) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
-            MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidAADPasswordAuth"));
-            Object[] msgArgs = {azureUserName};
-            assertTrue(e.getMessage().contains(form.format(msgArgs)), "Expected R_invalidAADPasswordAuth error.");
+            MessageFormat form = new MessageFormat(TestResource.getResource("R_invalidAADAuth"));
+            Object[] msgArgs = {azureUserName, "ActiveDirectoryPassword"};
+            assertTrue(e.getMessage().contains(form.format(msgArgs)), "Expected R_invalidAADAuth error.");
         }
     }
 

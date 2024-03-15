@@ -55,7 +55,6 @@ import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
-import mssql.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
 
 class SQLServerMSAL4JUtils {
@@ -90,9 +89,9 @@ class SQLServerMSAL4JUtils {
 
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect;
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
 
-            if (null == (persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret))) {
+            if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
@@ -146,9 +145,9 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect;
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
 
-            if (null == (persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret))) {
+            if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
@@ -203,9 +202,9 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect;
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
 
-            if (null == (persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret))) {
+            if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
@@ -506,8 +505,6 @@ class SQLServerMSAL4JUtils {
                             .setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
 
                     tokenCacheMap.put(key, persistentTokenCacheAccessAspect);
-
-                    return persistentTokenCacheAccessAspect;
                 }
             }
 
