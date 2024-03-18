@@ -515,8 +515,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         org.junit.Assume.assumeTrue(isWindows);
 
         // no retries no TNIR should fail even tho host is defined in host file
-        try (Connection con = PrepUtil.getConnection(
-                connectionString + ";transparentNetworkIPResolution=false;connectRetryCount=0;serverName=" + tnirHost);) {
+        try (Connection con = PrepUtil.getConnection(connectionString
+                + ";transparentNetworkIPResolution=false;connectRetryCount=0;serverName=" + tnirHost);) {
             assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))

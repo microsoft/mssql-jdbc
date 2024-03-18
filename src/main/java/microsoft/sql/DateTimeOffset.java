@@ -74,12 +74,12 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
 
     /**
      * Constructs a DateTimeOffset from an existing java.time.OffsetDateTime
+     * DateTimeOffset represents values to 100 nanosecond precision. If the java.time.OffsetDateTime instance
+     * represents a value that is more precise, the value is rounded to the nearest multiple of 100 nanoseconds. Values
+     * within 50 nanoseconds of the next second are rounded up to the next second.
      *
      * @param offsetDateTime
      *        A java.time.OffsetDateTime value
-     * @apiNote DateTimeOffset represents values to 100 nanosecond precision. If the java.time.OffsetDateTime instance
-     * represents a value that is more precise,  the value is rounded to the nearest multiple of 100 nanoseconds. Values
-     * within 50 nanoseconds of the next second are rounded up to the next second.
      */
     private DateTimeOffset(java.time.OffsetDateTime offsetDateTime) {
         int hundredNanos = ((offsetDateTime.getNano() + 50) / 100);
@@ -123,13 +123,13 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
 
     /**
      * Directly converts a {@link java.time.OffsetDateTime} value to an equivalent {@link DateTimeOffset} value
+     * DateTimeOffset represents values to 100 nanosecond precision. If the java.time.OffsetDateTime instance
+     * represents a value that is more precise, the value is rounded to the nearest multiple of 100 nanoseconds. Values
+     * within 50 nanoseconds of the next second are rounded up to the next second.
      *
      * @param offsetDateTime
      *        A java.time.OffsetDateTime value
      * @return The DateTimeOffset value of the input java.time.OffsetDateTime
-     * @apiNote DateTimeOffset represents values to 100 nanosecond precision. If the java.time.OffsetDateTime instance
-     * represents a value that is more precise,  the value is rounded to the nearest multiple of 100 nanoseconds. Values
-     * within 50 nanoseconds of the next second are rounded up to the next second.
      */
     public static DateTimeOffset valueOf(java.time.OffsetDateTime offsetDateTime) {
         return new DateTimeOffset(offsetDateTime);

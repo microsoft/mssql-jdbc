@@ -3509,8 +3509,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
             // Make sure there's enough time to do another retry
             if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
-                    && (attemptNumber < connectRetryCount && connectRetryCount != 0) 
-                    && timerRemaining(
+                    && (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
                             timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry)) {
 
                 // don't wait for TNIR
