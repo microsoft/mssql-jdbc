@@ -63,7 +63,7 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
 
-    private static final TokenCacheMap tokenCacheMap = new TokenCacheMap();
+    private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
 
     private final static String LOGCONTEXT = "MSAL version "
             + com.microsoft.aad.msal4j.PublicClientApplication.class.getPackage().getImplementationVersion() + ": ";
@@ -89,11 +89,11 @@ class SQLServerMSAL4JUtils {
 
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
 
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
-                tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
 
             final PublicClientApplication pca = PublicClientApplication
@@ -145,11 +145,11 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
 
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
-                tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
 
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
@@ -202,11 +202,11 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
 
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
-                tokenCacheMap.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
             }
 
             ConfidentialClientApplication clientApplication = null;
