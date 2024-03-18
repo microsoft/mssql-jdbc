@@ -765,15 +765,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + " exception:" + ex);
 
-            if (ex.getMessage().equals(SQLServerException.getErrString("R_noServerResponse"))
-                    || TransientError.isTransientError(ex.getSQLServerError()) || isResourceManagerFailure(ex)) {
-                XAException e = new XAException(ex.toString());
-                e.errorCode = XAException.XAER_RMFAIL;
-                throw e;
-            }
-
             XAException e = new XAException(ex.toString());
-            e.errorCode = XAException.XAER_RMERR;
+            e.errorCode = XAException.XAER_RMFAIL;
             throw e;
         }
 
@@ -943,70 +936,6 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
     // Returns unique id for each PooledConnection instance.
     private static int nextResourceID() {
         return baseResourceID.incrementAndGet();
-    }
-
-    private enum ResourceManagerFailure {
-        CONN_RESET("Connection reset"),
-        CONN_RESET_BY_PEER("Connection reset by peer"),
-        CONN_TIMEOUT("Connection timed out"),
-        CONN_RESILIENCY_CLIENT_UNRECOVERABLE(SQLServerException.getErrString("R_crClientUnrecoverable"));
-
-        private final String errString;
-
-        ResourceManagerFailure(String errString) {
-            this.errString = errString;
-        }
-
-        @Override
-        public String toString() {
-            return errString;
-        }
-
-        static ResourceManagerFailure fromString(String errString) {
-            for (ResourceManagerFailure resourceManagerFailure : ResourceManagerFailure.values()) {
-                if (errString.equalsIgnoreCase(resourceManagerFailure.toString())) {
-                    return resourceManagerFailure;
-                }
-            }
-            return null;
-        }
-    }
-
-    /**
-     * Check if the root exception of the throwable should be a XAER_RMFAIL exception
-     *
-     * @param throwable
-     *        The exception to check if the root cause should be a XAER_RMFAIL
-     *
-     * @return True if XAER_RMFAIL, otherwise false
-     */
-    private boolean isResourceManagerFailure(Throwable throwable) {
-        Throwable root = Util.getRootCause(throwable);
-
-        if (null == root) {
-            return false;
-        }
-
-        if (xaLogger.isLoggable(Level.FINE)) {
-            xaLogger.fine(toString() + " Resource manager failure root exception: " + root);
-        }
-
-        ResourceManagerFailure err = ResourceManagerFailure.fromString(root.getMessage());
-
-        if (null == err) {
-            return false;
-        }
-
-        // Add as needed here for future XAER_RMFAIL exceptions
-        switch (err) {
-            case CONN_RESET:
-            case CONN_RESET_BY_PEER:
-            case CONN_TIMEOUT:
-            case CONN_RESILIENCY_CLIENT_UNRECOVERABLE:
-                return true;
-            default:
-                return false;
-        }
     }
 
 }
