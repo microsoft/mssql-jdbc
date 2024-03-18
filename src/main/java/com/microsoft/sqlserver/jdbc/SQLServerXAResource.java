@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.net.SocketException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,7 +24,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-import com.microsoft.sqlserver.jdbc.SQLServerError.TransientError;
 
 
 /**
@@ -754,20 +752,13 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     }
                 }
             }
-        } catch (SQLTimeoutException ex) {
+        } catch (SQLTimeoutException | SQLServerException ex) {
             if (xaLogger.isLoggable(Level.FINER))
                 xaLogger.finer(toString() + " exception:" + ex);
             XAException e = new XAException(ex.toString());
             e.errorCode = XAException.XAER_RMFAIL;
             throw e;
 
-        } catch (SQLServerException ex) {
-            if (xaLogger.isLoggable(Level.FINER))
-                xaLogger.finer(toString() + " exception:" + ex);
-
-            XAException e = new XAException(ex.toString());
-            e.errorCode = XAException.XAER_RMFAIL;
-            throw e;
         }
 
         if (xaLogger.isLoggable(Level.FINER))
