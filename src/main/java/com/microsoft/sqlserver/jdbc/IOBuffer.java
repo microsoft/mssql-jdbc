@@ -630,7 +630,7 @@ final class TDSChannel implements Serializable {
     }
 
     // Socket for raw TCP/IP communications with SQL Server
-    private transient Socket tcpSocket;
+    transient Socket tcpSocket;
 
     // Socket for SSL-encrypted communications with SQL Server
     private transient SSLSocket sslSocket;
