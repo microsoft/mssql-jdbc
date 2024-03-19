@@ -13,8 +13,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Properties;
@@ -1045,23 +1043,6 @@ final class Util {
             chars[i] = (char) (((0xFF & (bytes[i * 2])) << 8) | (0xFF & bytes[i * 2 + 1]));
         }
         return chars;
-    }
-
-    /**
-     * @param throwable
-     *        The exception to find root cause for.
-     *
-     * @return The root cause of the exception, otherwise null if null throwable input
-     */
-    static Throwable getRootCause(Throwable throwable) {
-        final List<Throwable> list = new ArrayList<>();
-
-        while (throwable != null && !list.contains(throwable)) {
-            list.add(throwable);
-            throwable = throwable.getCause();
-        }
-
-        return list.isEmpty() ? null : list.get(list.size() - 1);
     }
 }
 
