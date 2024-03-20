@@ -22,13 +22,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * @see <a href="https://aka.ms/msal4j-token-cache">https://aka.ms/msal4j-token-cache</a>
  */
 public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect {
-    private static PersistentTokenCacheAccessAspect instance = new PersistentTokenCacheAccessAspect();
-
+    private static PersistentTokenCacheAccessAspect instance;
     private final Lock lock = new ReentrantLock();
 
-    private PersistentTokenCacheAccessAspect() {}
+    static final long TIME_TO_LIVE = 86400000L; // Token cache time to live (24 hrs).
+    private long expiryTime;
 
     static PersistentTokenCacheAccessAspect getInstance() {
+        if (instance == null) {
+            instance = new PersistentTokenCacheAccessAspect();
+        }
         return instance;
     }
 
@@ -60,6 +63,14 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
             lock.unlock();
         }
 
+    }
+
+    public long getExpiryTime() {
+        return this.expiryTime;
+    }
+
+    public void setExpiryTime(long expiryTime) {
+        this.expiryTime = expiryTime;
     }
 
     /**

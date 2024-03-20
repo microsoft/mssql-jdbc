@@ -14,6 +14,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.security.MessageDigest;
 import java.text.MessageFormat;
 
 import java.util.Collections;
@@ -21,6 +22,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,6 +63,8 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
 
+    private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
+
     private final static String LOGCONTEXT = "MSAL version "
             + com.microsoft.aad.msal4j.PublicClientApplication.class.getPackage().getImplementationVersion() + ": ";
 
@@ -84,10 +88,17 @@ class SQLServerMSAL4JUtils {
         lock.lock();
 
         try {
+            String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+
+            if (null == persistentTokenCacheAccessAspect) {
+                persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+            }
+
             final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
-                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
-                    .authority(fedAuthInfo.stsurl).build();
+                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect).authority(fedAuthInfo.stsurl).build();
 
             final CompletableFuture<IAuthenticationResult> future = pca.acquireToken(UserNamePasswordParameters
                     .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
@@ -132,11 +143,19 @@ class SQLServerMSAL4JUtils {
         lock.lock();
 
         try {
+            String hashedSecret = getHashedSecret(
+                    new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+
+            if (null == persistentTokenCacheAccessAspect) {
+                persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+            }
+
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                     .builder(aadPrincipalID, credential).executorService(executorService)
-                    .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
-                    .authority(fedAuthInfo.stsurl).build();
+                    .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect).authority(fedAuthInfo.stsurl).build();
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
@@ -181,6 +200,15 @@ class SQLServerMSAL4JUtils {
         lock.lock();
 
         try {
+            String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
+                    certPassword, certKey, certKeyPassword});
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+
+            if (null == persistentTokenCacheAccessAspect) {
+                persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
+                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+            }
+
             ConfidentialClientApplication clientApplication = null;
 
             // check if cert is PKCS12 first
@@ -202,8 +230,7 @@ class SQLServerMSAL4JUtils {
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(is, certPassword);
                 clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
-                        .executorService(executorService)
-                        .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                        .executorService(executorService).setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
                         .authority(fedAuthInfo.stsurl).build();
             } catch (FileNotFoundException e) {
                 // re-throw if file not there no point to try another format
@@ -232,8 +259,7 @@ class SQLServerMSAL4JUtils {
 
                 IClientCredential credential = ClientCredentialFactory.createFromCertificate(privateKey, cert);
                 clientApplication = ConfidentialClientApplication.builder(aadPrincipalID, credential)
-                        .executorService(executorService)
-                        .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
+                        .executorService(executorService).setTokenCacheAccessAspect(persistentTokenCacheAccessAspect)
                         .authority(fedAuthInfo.stsurl).build();
             }
 
@@ -447,6 +473,47 @@ class SQLServerMSAL4JUtils {
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
 
             return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
+        }
+    }
+
+    private static String getHashedSecret(String[] secrets) throws SQLServerException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            for (String secret : secrets) {
+                if (null != secret) {
+                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+                }
+            }
+            return new String(md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
+    }
+
+    private static class TokenCacheMap {
+        private ConcurrentHashMap<String, PersistentTokenCacheAccessAspect> tokenCacheMap = new ConcurrentHashMap<>();
+
+        PersistentTokenCacheAccessAspect getEntry(String key) {
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.get(key);
+
+            if (null != persistentTokenCacheAccessAspect) {
+                if (System.currentTimeMillis() > persistentTokenCacheAccessAspect.getExpiryTime()) {
+                    tokenCacheMap.remove(key);
+
+                    persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
+                    persistentTokenCacheAccessAspect
+                            .setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
+
+                    tokenCacheMap.put(key, persistentTokenCacheAccessAspect);
+                }
+            }
+
+            return persistentTokenCacheAccessAspect;
+        }
+
+        void addEntry(String key, PersistentTokenCacheAccessAspect value) {
+            value.setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
+            tokenCacheMap.put(key, value);
         }
     }
 }
