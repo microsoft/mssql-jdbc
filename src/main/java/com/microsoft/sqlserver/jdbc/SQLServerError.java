@@ -6,12 +6,15 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.Serializable;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
  * SQLServerError represents a TDS error or message event.
  */
-public final class SQLServerError extends StreamPacket implements Serializable {
+public final class SQLServerError extends StreamPacket implements Serializable, ISQLServerMessage {
 
     /**
      * List SQL Server transient errors drivers will retry on from
@@ -221,6 +224,18 @@ public final class SQLServerError extends StreamPacket implements Serializable {
         super(TDS.TDS_ERR);
     }
 
+    SQLServerError(SQLServerError errorMsg) {
+        super(TDS.TDS_ERR);
+        this.errorNumber   = errorMsg.errorNumber;
+        this.errorState    = errorMsg.errorState;
+        this.errorSeverity = errorMsg.errorSeverity;
+        this.errorMessage  = errorMsg.errorMessage;
+        this.serverName    = errorMsg.serverName;
+        this.procName      = errorMsg.procName;
+        this.lineNumber    = errorMsg.lineNumber;
+    }
+    
+    @Override
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
         if (TDS.TDS_ERR != tdsReader.readUnsignedByte())
             assert false;
@@ -236,5 +251,105 @@ public final class SQLServerError extends StreamPacket implements Serializable {
         serverName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
         procName = tdsReader.readUnicodeString(tdsReader.readUnsignedByte());
         lineNumber = tdsReader.readUnsignedInt();
+    }
+
+
+
+    /** 
+     * Holds any "overflow messages", or messages that has been added <b>after</b> the first message.
+     * <p>
+     * This is later on used when creating a SQLServerException.<br>
+     * Where all entries in the errorChain will be added {@link java.sql.SQLException#setNextException(SQLException)}
+     */
+    private List<SQLServerError> errorChain;
+    
+    void addError(SQLServerError sqlServerError) {
+        if (errorChain == null) {
+            errorChain = new ArrayList<>();
+        }
+        errorChain.add(sqlServerError);
+    }
+
+    List<SQLServerError> getErrorChain() {
+        return errorChain;
+    }
+    
+    @Override
+    public SQLServerError getSQLServerMessage()
+    {
+        return this;
+    }
+
+    /**
+     * Downgrade a Error message into a Info message
+     * <p>
+     * This simply create a SQLServerInfoMessage from this SQLServerError, 
+     * without changing the message content. 
+     * @return
+     */
+    public ISQLServerMessage toSQLServerInfoMessage()
+    {
+        return toSQLServerInfoMessage(-1, -1);
+    }
+
+    /**
+     * Downgrade a Error message into a Info message
+     * <p>
+     * This simply create a SQLServerInfoMessage from this SQLServerError, 
+     * 
+     * @param newErrorSeverity  - The new ErrorSeverity
+     * 
+     * @return
+     */
+    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity)
+    {
+        return toSQLServerInfoMessage(newErrorSeverity, -1);
+    }
+
+    /**
+     * Downgrade a Error message into a Info message
+     * <p>
+     * This simply create a SQLServerInfoMessage from this SQLServerError, 
+     * 
+     * @param newErrorSeverity  - If you want to change the ErrorSeverity (-1: leave unchanged)
+     * @param newErrorNumber    - If you want to change the ErrorNumber   (-1: leave unchanged)
+     * 
+     * @return
+     */
+    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity, int newErrorNumber)
+    {
+        if (newErrorSeverity != -1) {
+            this.setErrorSeverity(newErrorSeverity);
+        }
+
+        if (newErrorNumber != -1) {
+            this.setErrorNumber(newErrorNumber);
+        }
+
+        return new SQLServerInfoMessage(this);
+    }
+
+    /**
+     * Set a new ErrorSeverity for this Message
+     * @param newSeverity
+     */
+    public void setErrorSeverity(int newSeverity)
+    {
+        this.errorSeverity = newSeverity;
+    }
+
+    /**
+     * Set a new ErrorNumber for this Message
+     * @param newSeverity
+     */
+    public void setErrorNumber(int newErrorNumber)
+    {
+        this.errorNumber = newErrorNumber;
+    }
+    
+    @Override
+    public SQLException toSqlExceptionOrSqlWarning()
+    {
+        return new SQLServerException(this);
     }
 }

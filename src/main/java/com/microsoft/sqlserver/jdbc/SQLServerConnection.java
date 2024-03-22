@@ -4927,6 +4927,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    // Any changes to SQLWarnings should be synchronized.
+    /** Used to add plain SQLWarning messages (if they do not hold extended information, like: ErrorSeverity, ServerName, ProcName etc */
+    void addWarning(SQLWarning sqlWarning) {
+        warningSynchronization.lock();
+        try {
+            if (null == sqlWarnings) {
+                sqlWarnings = sqlWarning;
+            } else {
+                sqlWarnings.setNextWarning(sqlWarning);
+            }
+        } finally {
+            warningSynchronization.unlock();
+        }
+    }
+
+    // Any changes to SQLWarnings should be synchronized.
+    /** Used to add messages that holds extended information, like: ErrorSeverity, ServerName, ProcName etc */
+    void addWarning(ISQLServerMessage sqlServerMessage) {
+        addWarning(new SQLServerWarning(sqlServerMessage.getSQLServerMessage()));
+    }
+
     @Override
     public void clearWarnings() throws SQLServerException {
         warningSynchronization.lock();
@@ -8498,6 +8519,34 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public String getIPAddressPreference() {
         return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
+    }
+
+
+
+    /** Message handler */
+    private transient ISQLServerMessageHandler serverMessageHandler;
+    
+    /**
+     * Set current message handler
+     * 
+     * @param messageHandler
+     * @return The previously installed message handler (null if none)
+     */
+    @Override
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler)
+    {
+    	ISQLServerMessageHandler installedMessageHandler = this.serverMessageHandler;
+    	this.serverMessageHandler = messageHandler;
+        return installedMessageHandler;
+	}
+
+    /**
+     * @return Get Currently installed message handler on the connection
+     */
+    @Override
+    public ISQLServerMessageHandler getServerMessageHandler()
+    {
+        return this.serverMessageHandler;
     }
 }
 
