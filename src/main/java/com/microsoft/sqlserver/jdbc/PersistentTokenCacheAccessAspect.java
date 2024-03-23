@@ -65,10 +65,21 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
 
     }
 
+    /**
+     * Get expiry time
+     * 
+     * @return expiry time
+     */
     public long getExpiryTime() {
         return this.expiryTime;
     }
 
+    /**
+     * Set expiry time
+     * 
+     * @param expiryTime
+     *        expiry time
+     */
     public void setExpiryTime(long expiryTime) {
         this.expiryTime = expiryTime;
     }

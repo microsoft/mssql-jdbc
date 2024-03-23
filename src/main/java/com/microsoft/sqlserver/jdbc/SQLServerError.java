@@ -226,15 +226,15 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
 
     SQLServerError(SQLServerError errorMsg) {
         super(TDS.TDS_ERR);
-        this.errorNumber   = errorMsg.errorNumber;
-        this.errorState    = errorMsg.errorState;
+        this.errorNumber = errorMsg.errorNumber;
+        this.errorState = errorMsg.errorState;
         this.errorSeverity = errorMsg.errorSeverity;
-        this.errorMessage  = errorMsg.errorMessage;
-        this.serverName    = errorMsg.serverName;
-        this.procName      = errorMsg.procName;
-        this.lineNumber    = errorMsg.lineNumber;
+        this.errorMessage = errorMsg.errorMessage;
+        this.serverName = errorMsg.serverName;
+        this.procName = errorMsg.procName;
+        this.lineNumber = errorMsg.lineNumber;
     }
-    
+
     @Override
     void setFromTDS(TDSReader tdsReader) throws SQLServerException {
         if (TDS.TDS_ERR != tdsReader.readUnsignedByte())
@@ -253,16 +253,14 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
         lineNumber = tdsReader.readUnsignedInt();
     }
 
-
-
-    /** 
+    /**
      * Holds any "overflow messages", or messages that has been added <b>after</b> the first message.
      * <p>
      * This is later on used when creating a SQLServerException.<br>
      * Where all entries in the errorChain will be added {@link java.sql.SQLException#setNextException(SQLException)}
      */
     private List<SQLServerError> errorChain;
-    
+
     void addError(SQLServerError sqlServerError) {
         if (errorChain == null) {
             errorChain = new ArrayList<>();
@@ -273,51 +271,51 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
     List<SQLServerError> getErrorChain() {
         return errorChain;
     }
-    
+
     @Override
-    public SQLServerError getSQLServerMessage()
-    {
+    public SQLServerError getSQLServerMessage() {
         return this;
     }
 
     /**
      * Downgrade a Error message into a Info message
      * <p>
-     * This simply create a SQLServerInfoMessage from this SQLServerError, 
-     * without changing the message content. 
-     * @return
+     * This simply create a SQLServerInfoMessage from this SQLServerError,
+     * without changing the message content.
+     * 
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerInfoMessage()
-    {
+    public ISQLServerMessage toSQLServerInfoMessage() {
         return toSQLServerInfoMessage(-1, -1);
     }
 
     /**
      * Downgrade a Error message into a Info message
      * <p>
-     * This simply create a SQLServerInfoMessage from this SQLServerError, 
+     * This simply create a SQLServerInfoMessage from this SQLServerError,
      * 
-     * @param newErrorSeverity  - The new ErrorSeverity
+     * @param newErrorSeverity
+     *        - The new ErrorSeverity
      * 
-     * @return
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity)
-    {
+    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity) {
         return toSQLServerInfoMessage(newErrorSeverity, -1);
     }
 
     /**
      * Downgrade a Error message into a Info message
      * <p>
-     * This simply create a SQLServerInfoMessage from this SQLServerError, 
+     * This simply create a SQLServerInfoMessage from this SQLServerError,
      * 
-     * @param newErrorSeverity  - If you want to change the ErrorSeverity (-1: leave unchanged)
-     * @param newErrorNumber    - If you want to change the ErrorNumber   (-1: leave unchanged)
+     * @param newErrorSeverity
+     *        - If you want to change the ErrorSeverity (-1: leave unchanged)
+     * @param newErrorNumber
+     *        - If you want to change the ErrorNumber (-1: leave unchanged)
      * 
-     * @return
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity, int newErrorNumber)
-    {
+    public ISQLServerMessage toSQLServerInfoMessage(int newErrorSeverity, int newErrorNumber) {
         if (newErrorSeverity != -1) {
             this.setErrorSeverity(newErrorSeverity);
         }
@@ -331,25 +329,26 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
 
     /**
      * Set a new ErrorSeverity for this Message
+     * 
      * @param newSeverity
+     *        new severity
      */
-    public void setErrorSeverity(int newSeverity)
-    {
+    public void setErrorSeverity(int newSeverity) {
         this.errorSeverity = newSeverity;
     }
 
     /**
      * Set a new ErrorNumber for this Message
-     * @param newSeverity
+     * 
+     * @param newErrorNumber
+     *        new error number
      */
-    public void setErrorNumber(int newErrorNumber)
-    {
+    public void setErrorNumber(int newErrorNumber) {
         this.errorNumber = newErrorNumber;
     }
-    
+
     @Override
-    public SQLException toSqlExceptionOrSqlWarning()
-    {
+    public SQLException toSqlExceptionOrSqlWarning() {
         return new SQLServerException(this);
     }
 }

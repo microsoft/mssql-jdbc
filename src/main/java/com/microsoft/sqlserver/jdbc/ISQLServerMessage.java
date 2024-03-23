@@ -6,8 +6,11 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
 
-public interface ISQLServerMessage
-{
+
+/**
+ * Provides an interface SQLServerMessage
+ */
+public interface ISQLServerMessage {
     /**
      * Returns SQLServerError containing detailed info about SQL Server Message as received from SQL Server.
      * 
@@ -67,16 +70,18 @@ public interface ISQLServerMessage
 
     /**
      * Creates a SQLServerException or SQLServerWarning from this SQLServerMessage<br>
+     * 
      * @return
-     * <ul>
-     *   <li>SQLServerException if it's a SQLServerError object</li>
-     *   <li>SQLServerWarning if it's a SQLServerInfoMessage object</li>
-     * </ul>
+     *         <ul>
+     *         <li>SQLServerException if it's a SQLServerError object</li>
+     *         <li>SQLServerWarning if it's a SQLServerInfoMessage object</li>
+     *         </ul>
      */
     public SQLException toSqlExceptionOrSqlWarning();
 
     /**
      * Check if this is a isErrorMessage
+     * 
      * @return true if it's an instance of SQLServerError
      */
     public default boolean isErrorMessage() {
@@ -85,6 +90,7 @@ public interface ISQLServerMessage
 
     /**
      * Check if this is a SQLServerInfoMessage
+     * 
      * @return true if it's an instance of SQLServerInfoMessage
      */
     public default boolean isInfoMessage() {

@@ -1053,6 +1053,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.ignoreOffsetOnDateTimeOffsetConversion = ignoreOffsetOnDateTimeOffsetConversion;
     }
 
+    /**
+     * Flag to indicate whether the driver should calculate precision for BigDecimal inputs, as opposed to using the maximum allowed valued for precision (38).
+     */
     private boolean calcBigDecimalPrecision = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION
             .getDefaultValue();
 
@@ -8521,31 +8524,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.IPADDRESS_PREFERENCE.toString());
     }
 
-
-
     /** Message handler */
     private transient ISQLServerMessageHandler serverMessageHandler;
-    
+
     /**
      * Set current message handler
      * 
      * @param messageHandler
+     *        message handler
      * @return The previously installed message handler (null if none)
      */
     @Override
-    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler)
-    {
-    	ISQLServerMessageHandler installedMessageHandler = this.serverMessageHandler;
-    	this.serverMessageHandler = messageHandler;
+    public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler) {
+        ISQLServerMessageHandler installedMessageHandler = this.serverMessageHandler;
+        this.serverMessageHandler = messageHandler;
         return installedMessageHandler;
-	}
+    }
 
     /**
      * @return Get Currently installed message handler on the connection
      */
     @Override
-    public ISQLServerMessageHandler getServerMessageHandler()
-    {
+    public ISQLServerMessageHandler getServerMessageHandler() {
         return this.serverMessageHandler;
     }
 }

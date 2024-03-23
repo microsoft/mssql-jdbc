@@ -485,17 +485,22 @@ public interface ISQLServerConnection extends java.sql.Connection {
 
     /**
      * Get Currently installed message handler on the connection
-     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
-     * @return 
+     * 
+     * @see ISQLServerMessageHandler#messageHandler(ISQLServerMessage)
+     * @return ISQLServerMessageHandler
      */
     ISQLServerMessageHandler getServerMessageHandler();
 
     /**
      * Set message handler on the connection
-     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     * 
+     * @param messageHandler
+     *        message handler
+     * 
+     * @see ISQLServerMessageHandler#messageHandler(ISQLServerMessage)
      */
     ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
-  
+
     /**
      * Returns the current flag for calcBigDecimalPrecision.
      *

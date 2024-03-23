@@ -268,7 +268,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     /** getColumns columns */
     private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
+
+    /** getTypes columns */
     private LinkedHashMap<Integer, String> getTypesDWColumns = null;
+
     /** getImportedKeys columns */
     private volatile LinkedHashMap<Integer, String> getImportedKeysDWColumns;
     private static final Lock LOCK = new ReentrantLock();
