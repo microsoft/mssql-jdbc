@@ -71,10 +71,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
+    // flag whether is exec escape syntax
     private boolean isExecEscapeSyntax;
 
+    // flag whether is call escape syntax
     private boolean isCallEscapeSyntax;
 
+    // flag whether is four part syntax
     private boolean isFourPartSyntax;
 
     /** Parameter positions in processed SQL statement text. */

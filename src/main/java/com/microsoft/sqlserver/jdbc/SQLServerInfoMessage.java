@@ -7,10 +7,11 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLException;
 
+
 /**
  * Holds information about SQL Server messages that is considered as Informational Messages (normally if SQL Server Severity is at 10)
  * <p>
- * Instead of just holding the SQL Server message (like a normal SQLWarning, it also holds all the 
+ * Instead of just holding the SQL Server message (like a normal SQLWarning, it also holds all the
  * SQL Servers extended information, like: ErrorSeverity, ServerName, ProcName etc
  * <p>
  * This enables client to print out extra information about the message.<br>
@@ -46,77 +47,76 @@ public final class SQLServerInfoMessage extends StreamPacket implements ISQLServ
     public String getErrorMessage() {
         return msg.getErrorMessage();
     }
-    
+
     @Override
     public int getErrorNumber() {
         return msg.getErrorNumber();
     }
-    
+
     @Override
     public int getErrorState() {
         return msg.getErrorState();
     }
-    
+
     @Override
     public int getErrorSeverity() {
         return msg.getErrorSeverity();
     }
-    
+
     @Override
     public String getServerName() {
         return msg.getServerName();
     }
-    
+
     @Override
-    public String getProcedureName()
-    {
+    public String getProcedureName() {
         return msg.getProcedureName();
     }
-    
+
     @Override
-    public long getLineNumber()
-    {
+    public long getLineNumber() {
         return msg.getLineNumber();
     }
 
     /**
      * Upgrade a Info message into a Error message
      * <p>
-     * This simply create a SQLServerError from this SQLServerInfoMessage, 
-     * without changing the message content. 
-     * @return
+     * This simply create a SQLServerError from this SQLServerInfoMessage,
+     * without changing the message content.
+     * 
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerError()
-    {
+    public ISQLServerMessage toSQLServerError() {
         return toSQLServerError(-1, -1);
     }
 
     /**
      * Upgrade a Info message into a Error message
      * <p>
-     * This simply create a SQLServerError from this SQLServerInfoMessage. 
+     * This simply create a SQLServerError from this SQLServerInfoMessage.
      * 
-     * @param newErrorSeverity  - The new ErrorSeverity
+     * @param newErrorSeverity
+     *        - The new ErrorSeverity
      * 
-     * @return
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerError(int newErrorSeverity)
-    {
+    public ISQLServerMessage toSQLServerError(int newErrorSeverity) {
         return toSQLServerError(newErrorSeverity, -1);
     }
 
     /**
      * Upgrade a Info message into a Error message
      * <p>
-     * This simply create a SQLServerError from this SQLServerInfoMessage. 
+     * This simply create a SQLServerError from this SQLServerInfoMessage.
      * 
-     * @param newErrorSeverity  - If you want to change the ErrorSeverity (-1: leave unchanged)
-     * @param newErrorNumber    - If you want to change the ErrorNumber   (-1: leave unchanged)
+     * @param newErrorSeverity
+     *        - If you want to change the ErrorSeverity (-1: leave unchanged)
+     * @param newErrorNumber
+     *        - If you want to change the ErrorNumber (-1: leave unchanged)
      * 
-     * @return
+     * @return ISQLServerMessage
      */
-    public ISQLServerMessage toSQLServerError(int newErrorSeverity, int newErrorNumber)
-    {
+    public ISQLServerMessage toSQLServerError(int newErrorSeverity, int newErrorNumber) {
         if (newErrorSeverity != -1) {
             this.msg.setErrorSeverity(newErrorSeverity);
         }
@@ -129,8 +129,7 @@ public final class SQLServerInfoMessage extends StreamPacket implements ISQLServ
     }
 
     @Override
-    public SQLException toSqlExceptionOrSqlWarning()
-    {
+    public SQLException toSqlExceptionOrSqlWarning() {
         return new SQLServerWarning(this.msg);
     }
 }

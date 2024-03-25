@@ -919,6 +919,22 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
         return isValid;
     }
 
+    /**
+     * Sign column master key metadata
+     * 
+     * @param masterKeyPath
+     *        master key path
+     * 
+     * @param allowEnclaveComputations
+     *        flag whether to allow enclave computations
+     * 
+     * @return
+     *         column master key metadata
+     * 
+     * @throws SQLServerException
+     *         when an error occurs
+     * 
+     */
     public byte[] signColumnMasterKeyMetadata(String masterKeyPath,
             boolean allowEnclaveComputations) throws SQLServerException {
         if (!allowEnclaveComputations) {
