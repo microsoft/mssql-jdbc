@@ -22,7 +22,6 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.Calendar;
 import java.util.Locale;
-import java.util.UUID;
 
 
 /**
@@ -1123,10 +1122,6 @@ final class Parameter {
         }
 
         void execute(DTV dtv, Boolean booleanValue) throws SQLServerException {
-            setTypeDefinition(dtv);
-        }
-
-        void execute(DTV dtv, UUID uuidValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 
