@@ -484,6 +484,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
+     * Get Currently installed message handler on the connection
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     * @return 
+     */
+    ISQLServerMessageHandler getServerMessageHandler();
+
+    /**
+     * Set message handler on the connection
+     * @see {@link ISQLServerMessageHandler#messageHandler(ISQLServerMessage)}
+     */
+    ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
+  
+    /**
      * Returns the current flag for calcBigDecimalPrecision.
      *
      * @return calcBigDecimalPrecision

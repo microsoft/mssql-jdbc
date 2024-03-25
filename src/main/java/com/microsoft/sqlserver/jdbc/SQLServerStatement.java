@@ -1620,7 +1620,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                         }
                     }
                 }
-
                 // If the current command (whatever it was) produced an error then stop parsing and propagate it up.
                 // In this case, the command is likely to be a RAISERROR, but it could be anything.
                 if (doneToken.isError())
@@ -1690,8 +1689,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onInfo(TDSReader tdsReader) throws SQLServerException {
-                StreamInfo infoToken = new StreamInfo();
-                infoToken.setFromTDS(tdsReader);
+                SQLServerInfoMessage infoMessage = new SQLServerInfoMessage();
+                infoMessage.setFromTDS(tdsReader);
 
                 // Under some circumstances the server cannot produce the cursored result set
                 // that we requested, but produces a client-side (default) result set instead.
@@ -1705,13 +1704,40 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // ErrorCause: Server cursor is not supported on the specified SQL, falling back to default result set
                 // ErrorCorrectiveAction: None required
                 //
-                if (16954 == infoToken.msg.getErrorNumber())
+                if (16954 == infoMessage.msg.getErrorNumber())
                     executedSqlDirectly = true;
 
-                SQLWarning warning = new SQLWarning(
-                        infoToken.msg.getErrorMessage(), SQLServerException.generateStateCode(connection,
-                                infoToken.msg.getErrorNumber(), infoToken.msg.getErrorState()),
-                        infoToken.msg.getErrorNumber());
+
+                // Call the message handler to see what that think of the message
+                // - discard
+                // - upgrade to Error
+                // - or simply pass on
+                ISQLServerMessageHandler msgHandler = ((ISQLServerConnection)getConnection()).getServerMessageHandler();
+                if (msgHandler != null) {
+
+                    // Let the message handler decide if the error should be unchanged, up/down-graded or ignored
+                    ISQLServerMessage srvMessage = msgHandler.messageHandler(infoMessage);
+                
+                    // Ignored
+                    if (srvMessage == null) {
+                    	return true;
+                    }
+                
+                    // The message handler changed it to an "Error Message"
+                    if (srvMessage.isErrorMessage()) {
+                        // Set/Add the error message to the "super"
+                        addDatabaseError( (SQLServerError)srvMessage );
+                        return true;
+                    }
+                    
+                    // Still a "info message", just set infoMessage and the code in the below section will create the Warnings
+                    if (srvMessage.isInfoMessage()) {
+                        infoMessage = (SQLServerInfoMessage)srvMessage;
+                    }
+                }
+
+                // Create the SQLWarning and add them to the Warning chain
+                SQLWarning warning = new SQLServerWarning(infoMessage.msg);
 
                 if (sqlWarnings == null) {
                     sqlWarnings = new Vector<>();

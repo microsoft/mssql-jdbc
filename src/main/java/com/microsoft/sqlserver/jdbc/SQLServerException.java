@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -178,6 +179,15 @@ public final class SQLServerException extends java.sql.SQLException {
         logException(obj, errText, bStack);
     }
 
+    public SQLServerException(SQLServerError sqlServerError) {
+        super(sqlServerError.getErrorMessage(), 
+            generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()), 
+            sqlServerError.getErrorNumber(), 
+            null);
+
+        this.sqlServerError = sqlServerError;
+	}
+
     /**
      * Constructs a new SQLServerException.
      * 
@@ -260,6 +270,21 @@ public final class SQLServerException extends java.sql.SQLException {
         SQLServerException theException = new SQLServerException(obj,
                 SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
         theException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
+
+        // Add any extra messages to the SQLException error chain
+        List<SQLServerError> errorChain = sqlServerError.getErrorChain();
+        if (errorChain != null) {
+            for (SQLServerError srvError : errorChain) {
+                String state2 = generateStateCode(con, srvError.getErrorNumber(), srvError.getErrorState());
+
+                SQLServerException chainException = new SQLServerException(obj,
+                        SQLServerException.checkAndAppendClientConnId(srvError.getErrorMessage(), con), 
+                        state2, srvError, bStack);
+                chainException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
+                
+                theException.setNextException(chainException);
+            }
+        }
 
         // Close the connection if we get a severity 20 or higher error class (nClass is severity of error).
         if ((sqlServerError.getErrorSeverity() >= 20) && (null != con)) {
