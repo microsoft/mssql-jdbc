@@ -4785,6 +4785,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Clean-up queue etc. related to batching of prepared statement discard actions (sp_unprepare).
         cleanupPreparedStatementDiscardActions();
+
+        ActivityCorrelator.cleanupActivityId();
     }
 
     /**
@@ -4805,6 +4807,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionCommand("IF @@TRANCOUNT > 0 ROLLBACK TRAN", "close connection");
             }
             notifyPooledConnection(null);
+
+            ActivityCorrelator.cleanupActivityId();
 
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " Connection closed and returned to connection pool");

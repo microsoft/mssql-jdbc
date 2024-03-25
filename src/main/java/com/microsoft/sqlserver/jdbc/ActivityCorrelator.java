@@ -5,7 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -13,15 +15,18 @@ import java.util.UUID;
  */
 final class ActivityCorrelator {
 
-    private static ThreadLocal<ActivityId> t_ActivityId = new ThreadLocal<ActivityId>() {
-        @Override
-        protected ActivityId initialValue() {
-            return new ActivityId();
-        }
-    };
+    private static Map<Long, ActivityId> activityIdMap = new ConcurrentHashMap<Long, ActivityId>();
 
     static ActivityId getCurrent() {
-        return t_ActivityId.get();
+        // get the value in TLS, not reference
+        long uniqueThreadId = Thread.currentThread().threadId();
+
+        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+        if (!activityIdMap.containsKey(uniqueThreadId)) {
+            activityIdMap.put(uniqueThreadId, new ActivityId());
+        }
+
+        return activityIdMap.get(uniqueThreadId);
     }
 
     // Increment the Sequence number of the ActivityId in TLS
@@ -34,6 +39,15 @@ final class ActivityCorrelator {
      * Prevent instantiation.
      */
     private ActivityCorrelator() {}
+
+    static void cleanupActivityId() {
+        // remove the ActivityId that belongs to this thread.
+        long uniqueThreadId = Thread.currentThread().threadId();
+
+        if (activityIdMap.containsKey(uniqueThreadId)) {
+            activityIdMap.remove(uniqueThreadId);
+        }
+    }
 }
 
 
