@@ -3209,7 +3209,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             // Socket timeout is bounded by loginTimeout during the login phase.
             // Reset socket timeout back to the original value.
-            tdsChannel.tcpSocket.setSoTimeout(this.getSocketTimeoutMilliseconds());
+            tdsChannel.resetTcpSocketTimeout();
 
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");

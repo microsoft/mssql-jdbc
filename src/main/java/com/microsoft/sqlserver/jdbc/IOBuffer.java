@@ -630,7 +630,7 @@ final class TDSChannel implements Serializable {
     }
 
     // Socket for raw TCP/IP communications with SQL Server
-    transient Socket tcpSocket;
+    private transient Socket tcpSocket;
 
     // Socket for SSL-encrypted communications with SQL Server
     private transient SSLSocket sslSocket;
@@ -2365,6 +2365,10 @@ final class TDSChannel implements Serializable {
      */
     final void setNetworkTimeout(int timeout) throws IOException {
         tcpSocket.setSoTimeout(timeout);
+    }
+
+    void resetTcpSocketTimeout() throws SocketException {
+        this.tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
     }
 }
 
