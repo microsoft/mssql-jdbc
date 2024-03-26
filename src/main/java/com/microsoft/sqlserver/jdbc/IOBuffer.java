@@ -6916,6 +6916,10 @@ final class TDSReader implements Serializable {
 
             // if messageType is RPC or QUERY, then increment Counter's state
             if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC() && null != command) {
+                if (null == command.getCounter()) {
+                    throw new SQLServerException(this, SQLServerException.getErrString("R_counterIsNull"), null, 0,
+                            false);
+                }
                 command.getCounter().increaseCounter(packetLength);
             }
 
