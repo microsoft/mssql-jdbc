@@ -3225,9 +3225,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             state = State.OPENED;
 
+            // Socket timeout is bounded by loginTimeout during the login phase.
+            // Reset socket timeout back to the original value.
+            tdsChannel.resetTcpSocketTimeout();
+
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
+        } catch (SocketException e) {
+            throw new SQLServerException(e.getMessage(), null);
         } finally {
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)

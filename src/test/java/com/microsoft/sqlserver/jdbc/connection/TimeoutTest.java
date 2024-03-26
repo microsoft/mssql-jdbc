@@ -281,6 +281,18 @@ public class TimeoutTest extends AbstractTest {
                 "total time: " + totalTime + " interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
+    @Test
+    public void testSocketTimeoutBoundedByLoginTimeoutReset() throws Exception {
+        try (Connection con = PrepUtil.getConnection(connectionString + ";socketTimeout=90000;loginTimeout=10;");
+                Statement stmt = con.createStatement()) {
+            // Login timeout (10s) is less than the 15s sec WAITFOR DELAY. Upon a login attempt, socketTimeout should be bounded
+            // by loginTimeout. After a successful login, when executing a query, socketTimeout should be reset to the
+            // original 90000ms timeout. The statement below should successfully execute as socketTimeout should not be bounded
+            // by loginTimeout, otherwise the test fails with a socket read timeout error.
+            stmt.execute("WAITFOR DELAY '00:00:15';");
+        }
+    }
+
     // Test for detecting Azure server for connection retries
     @Test
     public void testAzureEndpointRetry() {

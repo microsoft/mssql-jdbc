@@ -2366,6 +2366,10 @@ final class TDSChannel implements Serializable {
     final void setNetworkTimeout(int timeout) throws IOException {
         tcpSocket.setSoTimeout(timeout);
     }
+
+    void resetTcpSocketTimeout() throws SocketException {
+        this.tcpSocket.setSoTimeout(con.getSocketTimeoutMilliseconds());
+    }
 }
 
 
