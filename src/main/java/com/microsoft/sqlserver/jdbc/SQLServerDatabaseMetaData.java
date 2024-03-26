@@ -1425,7 +1425,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         // proc name supports escaping
         proc = escapeIDName(proc);
         arguments[0] = proc;
-        arguments[1] = schema;
+        arguments[1] = escapeIDName(schema);
         arguments[2] = catalog;
         // col name supports escaping
         col = escapeIDName(col);
@@ -1466,7 +1466,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          */
         String[] arguments = new String[3];
         arguments[0] = escapeIDName(proc);
-        arguments[1] = schema;
+        arguments[1] = escapeIDName(schema);
         arguments[2] = catalog;
         return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
                 getProceduresColumnNames);
