@@ -19,7 +19,8 @@ final class ActivityCorrelator {
 
     static ActivityId getCurrent() {
         // get the value in TLS, not reference
-        long uniqueThreadId = Thread.currentThread().threadId();
+        @SuppressWarnings("deprecation")
+        long uniqueThreadId = Thread.currentThread().getId();
 
         // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
         if (!activityIdMap.containsKey(uniqueThreadId)) {
@@ -42,7 +43,8 @@ final class ActivityCorrelator {
 
     static void cleanupActivityId() {
         // remove the ActivityId that belongs to this thread.
-        long uniqueThreadId = Thread.currentThread().threadId();
+        @SuppressWarnings("deprecation")
+        long uniqueThreadId = Thread.currentThread().getId();
 
         if (activityIdMap.containsKey(uniqueThreadId)) {
             activityIdMap.remove(uniqueThreadId);
