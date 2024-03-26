@@ -12,12 +12,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -29,16 +31,17 @@ public class ChainedExceptionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testTwoExceptions() throws Exception {
         try (Connection conn = getConnection()) {
 
             // The below should yield the following Server Messages:
-            //  1 : Msg 5074, Level 16, State 1: The object 'DF__#chained_exc__c1__AB25243A' is dependent on column 'c1'.
-            //  1 : Msg 4922, Level 16, State 9: ALTER TABLE ALTER COLUMN c1 failed because one or more objects access this column.
-            try (Statement stmnt = conn.createStatement()) { 
-                stmnt.executeUpdate("CREATE TABLE #chained_exception_test_x1(c1 INT DEFAULT(0))"); 
-                stmnt.executeUpdate("ALTER  TABLE #chained_exception_test_x1 ALTER COLUMN c1 VARCHAR(10)"); 
-                stmnt.executeUpdate("DROP   TABLE IF EXISTS #chained_exception_test_x1"); 
+            // 1 : Msg 5074, Level 16, State 1: The object 'DF__#chained_exc__c1__AB25243A' is dependent on column 'c1'.
+            // 1 : Msg 4922, Level 16, State 9: ALTER TABLE ALTER COLUMN c1 failed because one or more objects access this column.
+            try (Statement stmnt = conn.createStatement()) {
+                stmnt.executeUpdate("CREATE TABLE #chained_exception_test_x1(c1 INT DEFAULT(0))");
+                stmnt.executeUpdate("ALTER  TABLE #chained_exception_test_x1 ALTER COLUMN c1 VARCHAR(10)");
+                stmnt.executeUpdate("DROP   TABLE IF EXISTS #chained_exception_test_x1");
             }
 
             fail(TestResource.getResource("R_expectedFailPassed"));
@@ -46,18 +49,18 @@ public class ChainedExceptionTest extends AbstractTest {
         } catch (SQLException ex) {
 
             // Check the SQLException and the chain
-            int exCount     = 0;
+            int exCount = 0;
             int firstMsgNum = ex.getErrorCode();
-            int lastMsgNum  = -1;
+            int lastMsgNum = -1;
 
             while (ex != null) {
-            	exCount++;
+                exCount++;
 
                 lastMsgNum = ex.getErrorCode();
 
-            	ex = ex.getNextException();
+                ex = ex.getNextException();
             }
-            
+
             // Exception Count should be: 2
             assertEquals(2, exCount, "Number of SQLExceptions in the SQLException chain");
 

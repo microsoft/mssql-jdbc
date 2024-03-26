@@ -498,6 +498,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        message handler
      * 
      * @see ISQLServerMessageHandler#messageHandler(ISQLServerMessage)
+     * @return ISQLServerMessageHandler
      */
     ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler);
 
