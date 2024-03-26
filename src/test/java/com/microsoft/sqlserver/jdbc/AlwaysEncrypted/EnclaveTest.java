@@ -210,7 +210,7 @@ public class EnclaveTest extends AESetup {
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadJksSignature")));
 
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             createCMK(AETestConnectionString, badCmk, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases, "0x666");
             createCEK(AETestConnectionString, badCmk, badCek, jksProvider);
@@ -256,7 +256,7 @@ public class EnclaveTest extends AESetup {
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadAkvSignature")));
 
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             createCMK(AETestConnectionString, badCmk, Constants.AZURE_KEY_VAULT_NAME, keyIDs[0], "0x666");
             createCEK(AETestConnectionString, badCmk, badCek, akvProvider);
@@ -301,7 +301,7 @@ public class EnclaveTest extends AESetup {
         String badTable = TestUtils.escapeSingleQuotes(
                 AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVerifyBadWinSignature")));
 
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             // create CMK with a bad signature
             createCMK(AETestConnectionString, badCmk, Constants.WINDOWS_KEY_STORE_NAME, windowsKeyPath, "0x666");
@@ -397,7 +397,7 @@ public class EnclaveTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testAlter(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
@@ -445,7 +445,7 @@ public class EnclaveTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testStringRichQuery(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
 
@@ -473,7 +473,7 @@ public class EnclaveTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testAlterNoEncrypt(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
-        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
             PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");

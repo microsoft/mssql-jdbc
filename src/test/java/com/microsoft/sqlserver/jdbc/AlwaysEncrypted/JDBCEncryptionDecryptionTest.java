@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -11,6 +12,7 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IClientCredential;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerKeyVaultAuthenticationCallback;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -29,10 +31,14 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -67,6 +73,10 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.reqExternalSetup)
 public class JDBCEncryptionDecryptionTest extends AESetup {
     private boolean nullable = false;
+    private static final String UTF8_COLLATE_DB = "JDBC_UTF8_COLLATE_DB_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_LOGIN = "UTF8_LOGIN_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_USER = "UTF8_USER_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String UTF8_COLLATE_PWD = UUID.randomUUID().toString();
 
     enum TestCase {
         NORMAL,
@@ -75,6 +85,28 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         SETOBJECT_WITH_JAVATYPES,
         SETOBJECT_NULL,
         NULL
+    }
+
+    @BeforeAll
+    public static void init() throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            dropDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            createDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            createUtf8CollationDbCredentials(con, UTF8_COLLATE_DB, UTF8_COLLATE_LOGIN, UTF8_COLLATE_USER, UTF8_COLLATE_PWD);
+
+            String utf8CollatedDbConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
+            createCMK(utf8CollatedDbConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
+                    TestUtils.byteToHexDisplayString(jksProvider.signColumnMasterKeyMetadata(javaKeyAliases, true)));
+            createCEK(utf8CollatedDbConnectionString, cmkJks, cekJks, jksProvider);
+        }
+    }
+
+    @AfterAll
+    public static void cleanup() throws SQLException {
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+            dropDatabaseWithUtf8Collation(con, UTF8_COLLATE_DB);
+            dropUtf8CollationDbCredentials(con, UTF8_COLLATE_LOGIN, UTF8_COLLATE_USER);
+        }
     }
 
     /*
@@ -353,6 +385,141 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEcryptionAlgorithmVersion")),
                     e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharErrorNonUnicodeColumnAndSSPAUIsTrue(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values = createCharValuesNonUnicode(nullable);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE_NON_UNICODE, stmt);
+            createTable(CHAR_TABLE_AE_NON_UNICODE, cekJks, charTableNonUnicode);
+
+            // Insert unicode strings into non-unicode column - should fail as UTF8 collation is not used
+            populateCharNormalCaseNonUnicode(AETestConnectionString, values, true);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_possibleColumnDataCorruption"), e.getMessage());
+        }
+    }
+
+    @Tag(Constants.xSQLv14)
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharErrorSetObjectNonUnicodeColumnAndSSPAUIsTrue(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values = createCharValuesNonUnicode(nullable);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE_NON_UNICODE, stmt);
+            createTable(CHAR_TABLE_AE_NON_UNICODE, cekJks, charTableNonUnicode);
+
+            // Insert unicode strings into non-unicode column - should fail as UTF8 collation is not used
+            populateCharSetObjectNonUnicode(AETestConnectionString, values, true);
+            fail(TestResource.getResource("R_expectedFailPassed"));
+        } catch (Exception e) {
+            assertEquals(TestResource.getResource("R_possibleColumnDataCorruption"), e.getMessage());
+        }
+    }
+
+    @Tag(Constants.xSQLv14)
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharNonUnicodeColumnSSPAUIsTrueUTF8Collate(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "user", UTF8_COLLATE_LOGIN);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "password", UTF8_COLLATE_PWD);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values = createCharValuesNonUnicode(nullable);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE_NON_UNICODE, stmt);
+            createTable(CHAR_TABLE_AE_NON_UNICODE, cekJks, charTableUTF8Collate, stmt);
+
+            // Insert unicode strings into non-unicode column using setString() - should succeed as UTF8 collation is used
+            // and server is >= version 15
+            populateCharNormalCaseNonUnicode(connectionString, values, true);
+
+            try (SQLServerStatement statement = (SQLServerStatement) con.createStatement()) {
+                ResultSet rs = statement.executeQuery("SELECT * FROM " + CHAR_TABLE_AE_NON_UNICODE);
+                rs.next();
+
+                for (int i = 1; i <= 3; i++) {
+                    assertEquals(values[0], rs.getString(i));
+                }
+
+                // varchar
+                for (int i = 4; i <= 6; i++) {
+                    assertEquals(values[1], rs.getString(i));
+                }
+
+                // varchar(max)
+                for (int i = 7; i <= 9; i++) {
+                    assertEquals(values[2], rs.getString(i));
+                }
+
+                // varchar(8000)
+                for (int i = 10; i <= 12; i++) {
+                    assertEquals(values[3], rs.getString(i));
+                }
+            }
+        }
+    }
+
+    @Tag(Constants.xSQLv14)
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    @Tag(Constants.reqExternalSetup)
+    public void testCharSetObjectNonUnicodeColumnSSPAUIsTrueUTF8Collate(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "database", UTF8_COLLATE_DB);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "user", UTF8_COLLATE_LOGIN);
+        connectionString = TestUtils.addOrOverrideProperty(connectionString, "password", UTF8_COLLATE_PWD);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            String[] values = createCharValuesNonUnicode(nullable);
+            TestUtils.dropTableIfExists(CHAR_TABLE_AE_NON_UNICODE, stmt);
+            createTable(CHAR_TABLE_AE_NON_UNICODE, cekJks, charTableUTF8Collate, stmt);
+
+            // Insert unicode strings into non-unicode column using setObject() - should succeed as UTF8 collation is used
+            // and server is >= version 15
+            populateCharSetObjectNonUnicode(connectionString, values, true);
+
+            try (SQLServerStatement statement = (SQLServerStatement) con.createStatement()) {
+                ResultSet rs = statement.executeQuery("SELECT * FROM " + CHAR_TABLE_AE_NON_UNICODE);
+                rs.next();
+
+                for (int i = 1; i <= 3; i++) {
+                    assertEquals(values[0], rs.getString(i));
+                }
+
+                // varchar
+                for (int i = 4; i <= 6; i++) {
+                    assertEquals(values[1], rs.getString(i));
+                }
+
+                // varchar(max)
+                for (int i = 7; i <= 9; i++) {
+                    assertEquals(values[2], rs.getString(i));
+                }
+
+                // varchar(8000)
+                for (int i = 10; i <= 12; i++) {
+                    assertEquals(values[3], rs.getString(i));
+                }
+            }
         }
     }
 
