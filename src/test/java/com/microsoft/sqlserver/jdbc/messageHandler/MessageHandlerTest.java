@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import org.junit.jupiter.api.Tag;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
@@ -29,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerMessageHandler;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
@@ -66,6 +68,7 @@ public class MessageHandlerTest extends AbstractTest {
      * </ul>
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMsgHandlerWithStatement() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
 
@@ -166,6 +169,7 @@ public class MessageHandlerTest extends AbstractTest {
      * </ul>
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMsgHandlerWithPreparedStatement() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
 
@@ -276,6 +280,7 @@ public class MessageHandlerTest extends AbstractTest {
      * </ul>
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMsgHandlerWithCallableStatement() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
 
@@ -382,6 +387,7 @@ public class MessageHandlerTest extends AbstractTest {
      * Do a "long running procedure" and check that the message handler receives the "feedback" messages
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testMsgHandlerWithProcedureFeedback() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
 
