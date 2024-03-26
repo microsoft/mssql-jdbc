@@ -1759,6 +1759,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return pooledConnectionParent;
     }
 
+    /**
+     * List of listeners which are called before reconnecting.
+     */
+    private List<ReconnectListener> reconnectListeners = new ArrayList<>();
+
+    public void registerBeforeReconnectListener(ReconnectListener reconnectListener){
+        reconnectListeners.add(reconnectListener);
+    }
+
+    public void removeBeforeReconnectListener(ReconnectListener reconnectListener){
+        reconnectListeners.remove(reconnectListener);
+    }
+
     SQLServerConnection(String parentInfo) {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
@@ -4339,6 +4352,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 if (null != preparedStatementHandleCache) {
                                     preparedStatementHandleCache.clear();
                                 }
+
+                                this.reconnectListeners.forEach(ReconnectListener::beforeReconnect);
 
                                 if (loggerResiliency.isLoggable(Level.FINE)) {
                                     loggerResiliency.fine(toString()
