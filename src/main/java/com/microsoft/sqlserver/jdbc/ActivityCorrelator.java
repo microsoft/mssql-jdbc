@@ -11,14 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * ActivityCorrelator provides the APIs to access the ActivityId in TLS
+ * ActivityCorrelator provides the APIs to access the ActivityId in a map
  */
 final class ActivityCorrelator {
 
     private static Map<Long, ActivityId> activityIdMap = new ConcurrentHashMap<Long, ActivityId>();
 
     static ActivityId getCurrent() {
-        // get the value in TLS, not reference
+        // get the value, not reference
         @SuppressWarnings("deprecation")
         long uniqueThreadId = Thread.currentThread().getId();
 
@@ -30,7 +30,7 @@ final class ActivityCorrelator {
         return activityIdMap.get(uniqueThreadId);
     }
 
-    // Increment the Sequence number of the ActivityId in TLS
+    // Increment the Sequence number of the ActivityId
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
         return getCurrent().getIncrement();
