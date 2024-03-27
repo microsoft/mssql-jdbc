@@ -212,43 +212,43 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         }
     }
 
-    /* RFC4180 specifies that rules for quoted fields.  It allows quoted string data to contain newlines data
-    provided the contents otherwise conforms to the rules for escaping quotes.  For example, the following is valid:
-      "a","b","c"
-      "aaa","b          <-- newline is retained in data field
-      bb","c"
-      "aa","bb","cc"
-
-      We cannot simply use fileReader.readLine() to read these records but instead must continue reading until we reach
-      a newline that is not contained within quotes.
-    */
+    /*
+     * RFC4180 specifies that rules for quoted fields. It allows quoted string data to contain newlines data
+     * provided the contents otherwise conforms to the rules for escaping quotes. For example, the following is valid:
+     * "a","b","c"
+     * "aaa","b <-- newline is retained in data field
+     * bb","c"
+     * "aa","bb","cc"
+     * We cannot simply use fileReader.readLine() to read these records but instead must continue reading until we reach
+     * a newline that is not contained within quotes.
+     */
     private String readLineEscapeDelimiters() throws SQLServerException {
         int quoteCount = 0;
         StringBuilder sb = new StringBuilder();
         try {
             int c;
             while ((c = fileReader.read()) != -1) {
-                if((c == '\n' || c == '\r') && quoteCount % 2 == 0) {  // newlines only end the record if we are not in quotes
-                   fileReader.mark(1);
-                   c = fileReader.read(); // we might have read \r of a \r\n, if so we need to read the \n as well
-                   if(c != '\n') {
-                       fileReader.reset(); // only delimited by \n, unread last char so it goes into the next record
-                   }
-                   break;
+                if ((c == '\n' || c == '\r') && quoteCount % 2 == 0) { // newlines only end the record if we are not in quotes
+                    fileReader.mark(1);
+                    c = fileReader.read(); // we might have read \r of a \r\n, if so we need to read the \n as well
+                    if (c != '\n') {
+                        fileReader.reset(); // only delimited by \n, unread last char so it goes into the next record
+                    }
+                    break;
                 }
-                sb.append((char)c);
-                if( c == '"') {
+                sb.append((char) c);
+                if (c == '"') {
                     quoteCount++;
                 }
             }
             if (c == -1 && quoteCount % 2 != 0) { // stream ended, but we are within quotes -- data problem
-                throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVQuotes"),null,0,null);
+                throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVQuotes"), null, 0, null);
             }
-            if(c == -1) { // keep semantics of readLine() by returning a null when there is no more data
+            if (c == -1) { // keep semantics of readLine() by returning a null when there is no more data
                 return null;
             }
         } catch (IOException e) {
-            throw new SQLServerException(e.getMessage(),null,0,e);
+            throw new SQLServerException(e.getMessage(), null, 0, e);
         }
         return sb.toString();
     }
