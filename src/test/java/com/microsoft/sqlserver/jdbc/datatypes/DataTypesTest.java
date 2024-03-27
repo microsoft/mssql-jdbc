@@ -1874,38 +1874,36 @@ public class DataTypesTest extends AbstractTest {
     }
 
     @Test
-    public void testGetLocalDateTimeTypes() throws Exception {
-        // test value needs to be in a time zone other than local
-        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
-        int offsetSeconds = value.getOffset().getTotalSeconds();
-        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
-        value = value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
-        LocalDateTime valueWithOffsetConversion = value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+    public void testGetLocalDateTimeTypesWithDefaultOffsetDateTimeConversion() throws Exception {
+        OffsetDateTime value = prepareOffsetDateTime();
+        LocalDateTime valueWithOffsetConversion = convertOffsetDateTimeToLocalDateTime(value);
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
                 stmt.setObject(1, value);
-
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
 
-                // default behavior is to apply the time zone offset when converting DATETIMEOFFSET to local java.time types
                 assertEquals(value, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(valueWithOffsetConversion, rs.getObject(1, LocalDateTime.class));
                 assertEquals(valueWithOffsetConversion.toLocalDate(), rs.getObject(1, LocalDate.class));
                 assertEquals(valueWithOffsetConversion.toLocalTime(), rs.getObject(1, LocalTime.class));
             }
+        }
+    }
 
-            // change the behavior to be compatible with java.time conversion methods
+    @Test
+    public void testGetLocalDateTimeTypesWithIgnoreOffsetDateTimeConversion() throws Exception {
+        OffsetDateTime value = prepareOffsetDateTime();
+
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             conn.setIgnoreOffsetOnDateTimeOffsetConversion(true);
 
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
                 stmt.setObject(1, value);
-
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
 
-                // now the offset should be ignored instead of converting to local time zone
                 assertEquals(value, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(value.toLocalDateTime(), rs.getObject(1, LocalDateTime.class));
                 assertEquals(value.toLocalDate(), rs.getObject(1, LocalDate.class));
@@ -1944,6 +1942,17 @@ public class DataTypesTest extends AbstractTest {
         assertEquals(expected, DateTimeOffset.valueOf(expected).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundDown).getOffsetDateTime());
+    }
+
+    private OffsetDateTime prepareOffsetDateTime() {
+        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS);
+        int offsetSeconds = value.getOffset().getTotalSeconds();
+        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
+        return value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
+    }
+
+    private LocalDateTime convertOffsetDateTimeToLocalDateTime(OffsetDateTime value) {
+        return value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     static LocalDateTime getUnstorableValue() throws Exception {
