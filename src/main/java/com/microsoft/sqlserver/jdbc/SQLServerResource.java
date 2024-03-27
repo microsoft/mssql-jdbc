@@ -535,7 +535,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_crCommandCannotTimeOut", "Request failed to time out and SQLServerConnection does not exist"},
         {"R_InvalidIPAddressPreference", "IP address preference {0} is not valid."},
         {"R_UnableLoadAuthDll", "Unable to load authentication DLL {0}"},
-        {"R_illegalArgumentTrustManager", "Interal error. Peer certificate chain or key exchange algorithem can not be null or empty."},
+        {"R_illegalArgumentTrustManager", "Internal error. Peer certificate chain or key exchange algorithm can not be null or empty."},
         {"R_serverCertExpired", "Server Certificate has expired: {0}: {1}"},
         {"R_serverCertNotYetValid", "Server Certificate is not yet valid: {0}: {1}"},
         {"R_serverCertError", "Error validating Server Certificate: {0}: \n{1}:\n{2}."},
@@ -547,6 +547,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
         {"R_InvalidScale", "Scale of input value is larger than the maximum allowed by SQL Server."},
         {"R_colCountNotMatchColTypeCount", "Number of provided columns {0} does not match the column data types definition {1}."},
+        {"R_counterIsNull", "Unable to increase state of counter for the current command, as the counter is null."},
     };
 }
 // @formatter:on
