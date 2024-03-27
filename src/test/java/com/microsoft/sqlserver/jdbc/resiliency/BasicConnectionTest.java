@@ -6,15 +6,20 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import javax.sql.PooledConnection;
@@ -366,6 +371,100 @@ public class BasicConnectionTest extends AbstractTest {
             assertEquals(0, con.getDiscardedServerPreparedStatementCount());
         }
     }
+
+    @Test
+    public void testPreparedStatementHandleOfStatementShouldBeCleared() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int cacheSize = 2;
+            String query = String.format("/*testPreparedStatementHandleOfStatementShouldBeCleared%s*/SELECT 1; -- ",
+                  UUID.randomUUID().toString());
+
+            // enable caching
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(cacheSize);
+
+            List<SQLServerPreparedStatement> statements = new LinkedList<>();
+
+            // add statements to fill cache
+            for (int i = 0; i < cacheSize + 1; ++i) {
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i);
+                pstmt.execute();
+                pstmt.execute();
+                pstmt.execute();
+                pstmt.getMoreResults();
+                statements.add(pstmt);
+            }
+
+            // handle of the prepared statement should be set
+            assertNotEquals(0, statements.get(1).getPreparedStatementHandle());
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // call first statement to trigger reconnect
+            statements.get(0).execute();
+
+            // handle of the other statements should be cleared after reconnect
+            assertEquals(0, statements.get(1).getPreparedStatementHandle());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementShouldNotUseWrongHandleAfterReconnect() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
+            int cacheSize = 3;
+            String queryOne = "select * from sys.sysusers where name=?;";
+            String queryTwo = "select * from sys.sysusers where name=? and uid=?;";
+            String queryThree = "select * from sys.sysusers where name=? and uid=? and islogin=?";
+
+            String parameterOne = "name";
+            int parameterUid = 0;
+            int parameterIsLogin = 0;
+
+            // enable caching
+            con.setDisableStatementPooling(false);
+            con.setStatementPoolingCacheSize(cacheSize);
+            con.setServerPreparedStatementDiscardThreshold(cacheSize);
+
+            List<PreparedStatement> statements = new LinkedList<>();
+
+            PreparedStatement ps = con.prepareStatement(queryOne);
+            ps.setString(1, parameterOne);
+            statements.add(ps);
+
+            ps = con.prepareStatement(queryTwo);
+            ps.setString(1, parameterOne);
+            ps.setInt(2, parameterUid);
+            statements.add(ps);
+
+            ps = con.prepareStatement(queryThree);
+            ps.setString(1, parameterOne);
+            ps.setInt(2, parameterUid);
+            ps.setInt(3, parameterIsLogin);
+            statements.add(ps);
+
+            // add new statements to fill cache
+            for (PreparedStatement preparedStatement : statements) {
+                preparedStatement.execute();
+                preparedStatement.execute();
+                preparedStatement.execute();
+                preparedStatement.getMoreResults();
+            }
+
+            ResiliencyUtils.killConnection(con, connectionString, 1);
+
+            // call statements in reversed order, in order to force the statement to use the wrong handle
+            // first execute triggers a reconnect
+            Collections.reverse(statements);
+            for (PreparedStatement preparedStatement : statements) {
+                preparedStatement.execute();
+                preparedStatement.execute();
+                preparedStatement.execute();
+                preparedStatement.getMoreResults();
+            }
+        }
+    }
+
 
     @Test
     public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {

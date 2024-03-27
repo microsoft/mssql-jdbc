@@ -234,6 +234,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
+   /**
+    * Listener to clear the {@link SQLServerPreparedStatement#prepStmtHandle} and {@link SQLServerPreparedStatement#cachedPreparedStatementHandle}
+    * before reconnecting.
+    */
+    private ReconnectListener clearPrepStmtHandleOnReconnectListener;
+
     /**
      * Constructs a SQLServerPreparedStatement.
      * 
@@ -253,6 +259,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     SQLServerPreparedStatement(SQLServerConnection conn, String sql, int nRSType, int nRSConcur,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetting) throws SQLServerException {
         super(conn, nRSType, nRSConcur, stmtColEncSetting);
+
+        clearPrepStmtHandleOnReconnectListener = this::clearPrepStmtHandle;
+        connection.registerBeforeReconnectListener(clearPrepStmtHandleOnReconnectListener);
 
         if (null == sql) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
@@ -291,6 +300,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Closes the prepared statement's prepared handle.
      */
     private void closePreparedHandle() {
+        connection.removeBeforeReconnectListener(clearPrepStmtHandleOnReconnectListener);
+
         if (!hasPreparedStatementHandle())
             return;
 
@@ -3585,5 +3596,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 SQLServerException.getErrString("R_cannotTakeArgumentsPreparedOrCallable"));
         Object[] msgArgs = {"addBatch()"};
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+    }
+
+    private void clearPrepStmtHandle(){
+        prepStmtHandle = 0;
+        cachedPreparedStatementHandle = null;
+        if(getStatementLogger().isLoggable(Level.FINER)){
+            getStatementLogger().finer(toString() + " cleared cachedPrepStmtHandle!");
+        }
     }
 }
