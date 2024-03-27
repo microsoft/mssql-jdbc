@@ -314,6 +314,7 @@ public class TimeoutTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeoutBoundedByLoginTimeoutReset() throws Exception {
         try (Connection con = PrepUtil.getConnection(connectionString + ";socketTimeout=90000;loginTimeout=10;");
                 Statement stmt = con.createStatement()) {
