@@ -5,26 +5,32 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * ActivityCorrelator provides the APIs to access the ActivityId in TLS
+ * ActivityCorrelator provides the APIs to access the ActivityId in a map
  */
 final class ActivityCorrelator {
 
-    private static ThreadLocal<ActivityId> t_ActivityId = new ThreadLocal<ActivityId>() {
-        @Override
-        protected ActivityId initialValue() {
-            return new ActivityId();
-        }
-    };
+    private static Map<Long, ActivityId> activityIdMap = new ConcurrentHashMap<Long, ActivityId>();
 
     static ActivityId getCurrent() {
-        return t_ActivityId.get();
+        // get the value, not reference
+        @SuppressWarnings("deprecation")
+        long uniqueThreadId = Thread.currentThread().getId();
+
+        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
+        if (!activityIdMap.containsKey(uniqueThreadId)) {
+            activityIdMap.put(uniqueThreadId, new ActivityId());
+        }
+
+        return activityIdMap.get(uniqueThreadId);
     }
 
-    // Increment the Sequence number of the ActivityId in TLS
+    // Increment the Sequence number of the ActivityId
     // and return the ActivityId with new Sequence number
     static ActivityId getNext() {
         return getCurrent().getIncrement();
@@ -34,6 +40,16 @@ final class ActivityCorrelator {
      * Prevent instantiation.
      */
     private ActivityCorrelator() {}
+
+    static void cleanupActivityId() {
+        // remove the ActivityId that belongs to this thread.
+        @SuppressWarnings("deprecation")
+        long uniqueThreadId = Thread.currentThread().getId();
+
+        if (activityIdMap.containsKey(uniqueThreadId)) {
+            activityIdMap.remove(uniqueThreadId);
+        }
+    }
 }
 
 
