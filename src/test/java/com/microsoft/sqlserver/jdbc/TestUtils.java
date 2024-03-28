@@ -419,6 +419,15 @@ public final class TestUtils {
         dropObjectIfExists(tableName, "U", stmt);
     }
 
+    public static void dropTableWithSchemaIfExists(String tableNameWithSchema, java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF OBJECT_ID('" + tableNameWithSchema + "', 'U') IS NOT NULL DROP TABLE " + tableNameWithSchema + ";");
+    }
+
+
+    public static void dropProcedureWithSchemaIfExists(String procedureWithSchema, java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + procedureWithSchema + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
+    }
+
     /**
      * Deletes the contents of a table.
      * 
