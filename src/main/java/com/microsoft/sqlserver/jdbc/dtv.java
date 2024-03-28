@@ -99,6 +99,8 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv, Boolean booleanValue) throws SQLServerException;
 
+    abstract void execute(DTV dtv, UUID uuidValue) throws SQLServerException;
+
     abstract void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException;
 
     abstract void execute(DTV dtv, Blob blobValue) throws SQLServerException;
@@ -291,7 +293,11 @@ final class DTV {
         }
 
         void execute(DTV dtv, String strValue) throws SQLServerException {
-            tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
+            if (dtv.getJdbcType() == JDBCType.GUID) {
+                tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else {
+                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
+            }
         }
 
         void execute(DTV dtv, Clob clobValue) throws SQLServerException {
@@ -1126,6 +1132,10 @@ final class DTV {
             tdsWriter.writeRPCBit(name, booleanValue, isOutParam);
         }
 
+        void execute(DTV dtv, UUID uuidValue) throws SQLServerException {
+            tdsWriter.writeRPCUUID(name, uuidValue, isOutParam);
+        }
+
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
@@ -1537,8 +1547,14 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
-                case GUID:
                     op.execute(this, (byte[]) null);
+                    break;
+
+                case GUID:
+                    if (null != cryptoMeta)
+                        op.execute(this, (byte[]) null);
+                    else
+                        op.execute(this, (UUID) null);
                     break;
 
                 case TINYINT:
@@ -1619,7 +1635,7 @@ final class DTV {
                             byte[] bArray = Util.asGuidByteArray((UUID) value);
                             op.execute(this, bArray);
                         } else {
-                            op.execute(this, String.valueOf(value));
+                            op.execute(this, UUID.fromString(String.valueOf(value)));
                         }
                     } else if (JDBCType.SQL_VARIANT == jdbcType) {
                         op.execute(this, String.valueOf(value));
@@ -2193,6 +2209,8 @@ final class AppDTVImpl extends DTVImpl {
         void execute(DTV dtv, Short shortValue) throws SQLServerException {}
 
         void execute(DTV dtv, Boolean booleanValue) throws SQLServerException {}
+
+        void execute(DTV dtv, UUID uuidValue) throws SQLServerException {}
 
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {}
 
