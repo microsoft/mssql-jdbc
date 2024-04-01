@@ -41,6 +41,7 @@ public class GuidTest extends AbstractTest {
      * Test UUID conversions
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testGuid() throws Exception {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
 
