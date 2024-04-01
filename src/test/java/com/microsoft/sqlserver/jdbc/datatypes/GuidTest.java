@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
+import com.microsoft.sqlserver.testframework.Constants;
 /*
  * This test is for testing the serialisation of String as microsoft.sql.Types.GUID
  */
