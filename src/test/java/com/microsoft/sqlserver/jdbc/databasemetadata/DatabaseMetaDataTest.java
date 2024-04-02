@@ -59,8 +59,13 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataTest extends AbstractTest {
 
+    private static final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
+    private static final String schema = "schema_demo" + uuid;
+    private static final String escapedSchema = "schema\\_demo" + uuid;
+    private static final String tableNameWithSchema = schema + ".resource";
+    private static final String sprocWithSchema = schema + ".updateresource";
     private static Map<Integer, String> getColumnsDWColumns = null;
     private static Map<Integer, String> getImportedKeysDWColumns = null;
     private static final String TABLE_CAT = "TABLE_CAT";
@@ -991,6 +996,25 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void shouldEscapeSchemaName() throws SQLException {
+        try (Connection con = getConnection()) {
+            DatabaseMetaData md = con.getMetaData();
+            try (ResultSet procedures = md.getProcedures(
+                    null, escapedSchema, "updateresource")) {
+                if (!procedures.next()) {
+                    fail("Escaped schema pattern did not succeed. No results found.");
+                }
+            }
+
+            try (ResultSet columns = md.getProcedureColumns(null, escapedSchema, "updateresource", null)) {
+                if (!columns.next()) {
+                    fail("Escaped schema pattern did not succeed. No results found.");
+                }
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();
@@ -1000,6 +1024,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");
             stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName)
                     + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
+            stmt.execute("CREATE SCHEMA " + schema);
+            stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
+            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS " +
+                    "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
+                    + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
         }
     }
 
@@ -1008,6 +1037,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropFunctionIfExists(functionName, stmt);
+            TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
+            TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
+            TestUtils.dropSchemaIfExists(schema, stmt);
         }
     }
 }
