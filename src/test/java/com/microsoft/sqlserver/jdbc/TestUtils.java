@@ -425,7 +425,8 @@ public final class TestUtils {
 
 
     public static void dropProcedureWithSchemaIfExists(String procedureWithSchema, java.sql.Statement stmt) throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + procedureWithSchema + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
+        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'"
+                + procedureWithSchema + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
     }
 
     /**

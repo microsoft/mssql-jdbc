@@ -1026,7 +1026,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
             stmt.execute("CREATE SCHEMA " + schema);
             stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
-            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE " + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
+            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS " +
+                    "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
+                    + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
         }
     }
 

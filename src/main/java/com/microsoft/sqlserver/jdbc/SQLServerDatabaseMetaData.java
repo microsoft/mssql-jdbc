@@ -1422,7 +1422,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         String[] arguments = new String[5];
 
-        // proc name supports escaping
+        // proc schema and col name supports escaping
         proc = escapeIDName(proc);
         arguments[0] = proc;
         arguments[1] = escapeIDName(schema);
