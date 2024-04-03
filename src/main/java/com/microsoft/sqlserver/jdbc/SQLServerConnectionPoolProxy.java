@@ -696,10 +696,10 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public ISQLServerMessageHandler getServerMessageHandler() {
         return wrappedConnection.getServerMessageHandler();
     }
-    
+
     @Override
     public ISQLServerMessageHandler setServerMessageHandler(ISQLServerMessageHandler messageHandler) {
-    	return wrappedConnection.setServerMessageHandler(messageHandler);
+        return wrappedConnection.setServerMessageHandler(messageHandler);
     }
 
     /**

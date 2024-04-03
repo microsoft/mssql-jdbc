@@ -465,7 +465,6 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-
     @Test
     public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {

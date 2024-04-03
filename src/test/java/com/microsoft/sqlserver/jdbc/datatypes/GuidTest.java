@@ -24,6 +24,8 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.microsoft.sqlserver.testframework.Constants;
+
+
 /*
  * This test is for testing the serialisation of String as microsoft.sql.Types.GUID
  */
@@ -49,8 +51,7 @@ public class GuidTest extends AbstractTest {
             // Create the test table
             TestUtils.dropTableIfExists(escapedTableName, stmt);
 
-            String query = "create table " + escapedTableName
-                    + " (uuid uniqueidentifier, id int IDENTITY primary key)";
+            String query = "create table " + escapedTableName + " (uuid uniqueidentifier, id int IDENTITY primary key)";
             stmt.executeUpdate(query);
 
             UUID uuid = UUID.randomUUID();

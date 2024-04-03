@@ -1707,32 +1707,32 @@ public class SQLServerStatement implements ISQLServerStatement {
                 if (16954 == infoMessage.msg.getErrorNumber())
                     executedSqlDirectly = true;
 
-
                 // Call the message handler to see what that think of the message
                 // - discard
                 // - upgrade to Error
                 // - or simply pass on
-                ISQLServerMessageHandler msgHandler = ((ISQLServerConnection)getConnection()).getServerMessageHandler();
+                ISQLServerMessageHandler msgHandler = ((ISQLServerConnection) getConnection())
+                        .getServerMessageHandler();
                 if (msgHandler != null) {
 
                     // Let the message handler decide if the error should be unchanged, up/down-graded or ignored
                     ISQLServerMessage srvMessage = msgHandler.messageHandler(infoMessage);
-                
+
                     // Ignored
                     if (srvMessage == null) {
-                    	return true;
+                        return true;
                     }
-                
+
                     // The message handler changed it to an "Error Message"
                     if (srvMessage.isErrorMessage()) {
                         // Set/Add the error message to the "super"
-                        addDatabaseError( (SQLServerError)srvMessage );
+                        addDatabaseError((SQLServerError) srvMessage);
                         return true;
                     }
-                    
+
                     // Still a "info message", just set infoMessage and the code in the below section will create the Warnings
                     if (srvMessage.isInfoMessage()) {
-                        infoMessage = (SQLServerInfoMessage)srvMessage;
+                        infoMessage = (SQLServerInfoMessage) srvMessage;
                     }
                 }
 

@@ -4807,8 +4807,8 @@ final class TDSWriter {
             writeByte((byte) 0);
 
         } else {
-            writeByte((byte) 0x10);  // maximum length = 16
-            writeByte((byte) 0x10);  // length = 16
+            writeByte((byte) 0x10); // maximum length = 16
+            writeByte((byte) 0x10); // length = 16
 
             byte[] val = Util.asGuidByteArray(uuidValue);
             writeBytes(val, 0, val.length);

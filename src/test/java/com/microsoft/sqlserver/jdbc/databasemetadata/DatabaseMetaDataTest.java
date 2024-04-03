@@ -1002,15 +1002,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE SCHEMA " + schema);
             stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
-            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS " +
-                    "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
+            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS "
+                    + "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
                     + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
         }
 
         try (Connection con = getConnection()) {
             DatabaseMetaData md = con.getMetaData();
-            try (ResultSet procedures = md.getProcedures(
-                    null, escapedSchema, "updateresource")) {
+            try (ResultSet procedures = md.getProcedures(null, escapedSchema, "updateresource")) {
                 if (!procedures.next()) {
                     fail("Escaped schema pattern did not succeed. No results found.");
                 }
