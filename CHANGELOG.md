@@ -4,15 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.7.0] Preview Release
-### Changed
-- Remove synchronized from Socket overrides [#2337] (https://github.com/microsoft/mssql-jdbc/pull/2337)
-- Default to RMFAIL instead of RMERR [#2348] (https://github.com/microsoft/mssql-jdbc/pull/2348)
-
 ### Added
 - Server Message Handler and SQLException Chaining [#2251] (https://github.com/microsoft/mssql-jdbc/pull/2251)
 - Finish support for RFC4180 for CSV bulk insert operations [#2338] (https://github.com/microsoft/mssql-jdbc/pull/2338)
 - Allow constructing a microsoft.sql.DateTimeOffset instance from a java.time.OffsetDateTime value [#2340] (https://github.com/microsoft/mssql-jdbc/pull/2340)
 - Added support for TDSType.GUID [#2370] (https://github.com/microsoft/mssql-jdbc/pull/2370)
+
+### Changed
+- Remove synchronized from Socket overrides [#2337] (https://github.com/microsoft/mssql-jdbc/pull/2337)
+- Default to RMFAIL instead of RMERR [#2348] (https://github.com/microsoft/mssql-jdbc/pull/2348)
 
 ### Fixed issues
 - Fix to allow connection retries to be disabled by setting connectRetryCount to 0 [#2293] (https://github.com/microsoft/mssql-jdbc/pull/2293)
@@ -35,8 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed issues
 - Fixed the way ActivityID was defined and used to be more in line with the behavior of other Microsoft drivers [#2254](https://github.com/microsoft/mssql-jdbc/pull/2254)
-- - Fixed missing getters and setters for `useBulkCopyForBatchInsert` [#2277](https://github.com/microsoft/mssql-jdbc/pull/2277)
-- - Fixed an issue where, when using the TOP qualifier in a query, the driver returns an error concerning ParameterMetadata [#2287](https://github.com/microsoft/mssql-jdbc/pull/2287)
+- Fixed missing getters and setters for `useBulkCopyForBatchInsert` [#2277](https://github.com/microsoft/mssql-jdbc/pull/2277)
+- Fixed an issue where, when using the TOP qualifier in a query, the driver returns an error concerning ParameterMetadata [#2287](https://github.com/microsoft/mssql-jdbc/pull/2287)
 - Fixed an issue where insert statements with missing whitespace worked correctly in regular cases, but not when using batch inserts [#2290](https://github.com/microsoft/mssql-jdbc/pull/2290)
 - Fixed timezone not being properly applied to Timestamps when inserted using batch insert with bulkcopy [#2291](https://github.com/microsoft/mssql-jdbc/pull/2291)
 - Fixed locks in IOBuffer to prevent deadlock issues that could arise [#2295](https://github.com/microsoft/mssql-jdbc/pull/2295)
