@@ -335,6 +335,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     @Test
+    @Tag((Constants.xAzureSQLDW))
     public void testNullGuid() throws Exception {
         String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c24) values (?)";
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
