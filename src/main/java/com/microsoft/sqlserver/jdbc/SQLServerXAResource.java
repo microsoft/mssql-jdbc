@@ -25,7 +25,6 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 
-
 /**
  * Implements Transaction id used to recover transactions.
  */

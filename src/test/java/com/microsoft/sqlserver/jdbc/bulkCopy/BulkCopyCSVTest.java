@@ -166,7 +166,8 @@ public class BulkCopyCSVTest extends AbstractTest {
         expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck", ""};
         expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63", ""};
         expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck ", ""};
-        expectedEscaped[11] = new String[] {"1997", "F\r\no\r\nr\r\nd", "E350", "\"Super\" \"luxurious\" \"truck\"", ""};
+        expectedEscaped[11] = new String[] {"1997", "F\r\no\r\nr\r\nd", "E350", "\"Super\" \"luxurious\" \"truck\"",
+                ""};
 
         try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);

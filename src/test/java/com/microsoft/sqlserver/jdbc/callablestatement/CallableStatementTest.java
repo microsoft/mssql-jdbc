@@ -1160,10 +1160,12 @@ public class CallableStatementTest extends AbstractTest {
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("IF OBJECT_ID(N'" + table + "') IS NOT NULL DROP TABLE " + table);
-            stmt.execute("CREATE TABLE " + table + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
+            stmt.execute("CREATE TABLE " + table
+                    + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
             stmt.execute("INSERT " + table + " EXEC sp_helpserver");
 
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
+            ResultSet rs = stmt
+                    .executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
             rs.next();
 
             if (rs.getInt(1) == 1) {
@@ -1171,7 +1173,8 @@ public class CallableStatementTest extends AbstractTest {
             }
 
             stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + remoteUser + "', @rmtpassword=N'" + remotePassword + "'");
+            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + remoteUser
+                    + "', @rmtpassword=N'" + remotePassword + "'");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
         }
@@ -1183,11 +1186,14 @@ public class CallableStatementTest extends AbstractTest {
         ds.setEncrypt(false);
         ds.setTrustServerCertificate(true);
 
-        try (Connection linkedServerConnection = ds.getConnection(); Statement stmt = linkedServerConnection.createStatement()) {
-            stmt.execute("create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
+        try (Connection linkedServerConnection = ds.getConnection();
+                Statement stmt = linkedServerConnection.createStatement()) {
+            stmt.execute(
+                    "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
         }
 
-        try (CallableStatement cstmt = connection.prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
+        try (CallableStatement cstmt = connection
+                .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
             int sum = 11;
             int param0 = 1;
             int param1 = 10;

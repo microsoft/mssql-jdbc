@@ -180,13 +180,12 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     public SQLServerException(SQLServerError sqlServerError) {
-        super(sqlServerError.getErrorMessage(), 
-            generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()), 
-            sqlServerError.getErrorNumber(), 
-            null);
+        super(sqlServerError.getErrorMessage(),
+                generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()),
+                sqlServerError.getErrorNumber(), null);
 
         this.sqlServerError = sqlServerError;
-	}
+    }
 
     /**
      * Constructs a new SQLServerException.
@@ -278,10 +277,10 @@ public final class SQLServerException extends java.sql.SQLException {
                 String state2 = generateStateCode(con, srvError.getErrorNumber(), srvError.getErrorState());
 
                 SQLServerException chainException = new SQLServerException(obj,
-                        SQLServerException.checkAndAppendClientConnId(srvError.getErrorMessage(), con), 
-                        state2, srvError, bStack);
+                        SQLServerException.checkAndAppendClientConnId(srvError.getErrorMessage(), con), state2,
+                        srvError, bStack);
                 chainException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
-                
+
                 theException.setNextException(chainException);
             }
         }
