@@ -231,10 +231,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private Vector<CryptoMetadata> cryptoMetaBatch = new Vector<>();
 
-   /**
-    * Listener to clear the {@link SQLServerPreparedStatement#prepStmtHandle} and {@link SQLServerPreparedStatement#cachedPreparedStatementHandle}
-    * before reconnecting.
-    */
+    /**
+     * Listener to clear the {@link SQLServerPreparedStatement#prepStmtHandle} and
+     * {@link SQLServerPreparedStatement#cachedPreparedStatementHandle} before reconnecting.
+     */
     private ReconnectListener clearPrepStmtHandleOnReconnectListener;
 
     /**
@@ -3595,10 +3595,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
     }
 
-    private void clearPrepStmtHandle(){
+    private void clearPrepStmtHandle() {
         prepStmtHandle = 0;
         cachedPreparedStatementHandle = null;
-        if(getStatementLogger().isLoggable(Level.FINER)){
+        if (getStatementLogger().isLoggable(Level.FINER)) {
             getStatementLogger().finer(toString() + " cleared cachedPrepStmtHandle!");
         }
     }

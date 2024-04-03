@@ -1761,11 +1761,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private List<ReconnectListener> reconnectListeners = new ArrayList<>();
 
-    public void registerBeforeReconnectListener(ReconnectListener reconnectListener){
+    public void registerBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.add(reconnectListener);
     }
 
-    public void removeBeforeReconnectListener(ReconnectListener reconnectListener){
+    public void removeBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.remove(reconnectListener);
     }
 

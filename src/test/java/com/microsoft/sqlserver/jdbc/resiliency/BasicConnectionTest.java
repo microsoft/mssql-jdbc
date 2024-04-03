@@ -377,7 +377,7 @@ public class BasicConnectionTest extends AbstractTest {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             int cacheSize = 2;
             String query = String.format("/*testPreparedStatementHandleOfStatementShouldBeCleared%s*/SELECT 1; -- ",
-                  UUID.randomUUID().toString());
+                    UUID.randomUUID().toString());
 
             // enable caching
             con.setDisableStatementPooling(false);
