@@ -997,7 +997,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void shouldEscapeSchemaName() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE SCHEMA " + schema);
+            stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
+            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS " +
+                    "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
+                    + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
+        }
+
         try (Connection con = getConnection()) {
             DatabaseMetaData md = con.getMetaData();
             try (ResultSet procedures = md.getProcedures(
@@ -1013,6 +1022,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
         }
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
+            TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
+            TestUtils.dropSchemaIfExists(schema, stmt);
+        }
     }
 
     @BeforeAll
@@ -1024,11 +1039,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     + " ([col_1] int NOT NULL, [col%2] varchar(200), [col[3] decimal(15,2))");
             stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName)
                     + " (@p1 INT, @p2 INT) RETURNS INT AS BEGIN DECLARE @result INT; SET @result = @p1 + @p2; RETURN @result; END");
-            stmt.execute("CREATE SCHEMA " + schema);
-            stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
-            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS " +
-                    "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
-                    + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
         }
     }
 
