@@ -4,7 +4,6 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -42,7 +41,10 @@ public class BulkCopyMoneyTest extends AbstractTest {
     static String destTableName2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("moneyBulkCopyDest"));
 
     @Test
-    public void testMoneyWithBulkCopy() throws SQLException {
+    /**
+     * Tests money and smallmoney with bulkcopy using minimum and maximum values of each
+     */
+    public void testMoneyWithBulkCopy() throws Exception {
         try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(-214799.3648, 922337203685387.5887, conn); // SMALLMONEY MIN
             testMoneyLimits(214799.3698, 922337203685387.5887, conn); // SMALLMONEY MAX
@@ -51,7 +53,7 @@ public class BulkCopyMoneyTest extends AbstractTest {
         }
     }
 
-    private void testMoneyLimits(double smallMoneyVal, double moneyVal, Connection conn) throws SQLException {
+    private void testMoneyLimits(double smallMoneyVal, double moneyVal, Connection conn) throws Exception {
         SQLServerBulkCSVFileRecord fileRecord = constructFileRecord(smallMoneyVal, moneyVal);
 
         try {
@@ -62,7 +64,7 @@ public class BulkCopyMoneyTest extends AbstractTest {
         }
     }
 
-    private SQLServerBulkCSVFileRecord constructFileRecord(double smallMoneyVal, double moneyVal) throws SQLException {
+    private SQLServerBulkCSVFileRecord constructFileRecord(double smallMoneyVal, double moneyVal) throws Exception {
         Map<Object, Object> data = new HashMap();
         data.put(smallMoneyVal, moneyVal);
 
@@ -77,7 +79,7 @@ public class BulkCopyMoneyTest extends AbstractTest {
         SQLServerBulkCSVFileRecord fileRecord = null;
         try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
             fileRecord = new SQLServerBulkCSVFileRecord(inputStream, encoding, delimiter, true);
-        } catch (IOException e) {}
+        }
         return fileRecord;
     }
 
