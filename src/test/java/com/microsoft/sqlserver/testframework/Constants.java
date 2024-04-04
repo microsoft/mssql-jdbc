@@ -179,6 +179,7 @@ public final class Constants {
     public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String PREPARE_METHOD = "PREPAREMETHOD";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
+    public static final String UTF8 = "UTF-8";
 
     public enum LOB {
         CLOB,

@@ -25,17 +25,17 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- *
- *
+ * Tests money/smallmoney limits with BulkCopy
  */
 @RunWith(JUnitPlatform.class)
 public class BulkCopyMoneyTest extends AbstractTest {
-    static String encoding = "UTF-8";
-    static String delimiter = ",";
+    static String encoding = Constants.UTF8;
+    static String delimiter = Constants.COMMA;
     static String destTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("moneyBulkCopyDest"));
     static String destTableName2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("moneyBulkCopyDest"));
     @Test
@@ -88,7 +88,6 @@ public class BulkCopyMoneyTest extends AbstractTest {
             fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
             fileRecord.addColumnMetadata(2, "c2", java.sql.Types.DECIMAL, 19, 4); // with money
 
-
             bulkCopy.setDestinationTableName(destTableName);
             bulkCopy.writeToServer(fileRecord);
 
@@ -97,7 +96,6 @@ public class BulkCopyMoneyTest extends AbstractTest {
                 bcOperation.setDestinationTableName(destTableName2);
                 bcOperation.writeToServer(rs);
             }
-
         }
     }
 
