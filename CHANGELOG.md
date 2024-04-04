@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed ClassLoader leak of ActivityCorrelator ThreadLocal [#2366] (https://github.com/microsoft/mssql-jdbc/pull/2366)
 - Check if TDSCommand counter is null before incrementing. [#2368] (https://github.com/microsoft/mssql-jdbc/pull/2368)
 - Escape schema for getProcedures and getProcedureColumns in SQLServerDatabaseMetaData [#2369] (https://github.com/microsoft/mssql-jdbc/pull/2369)
+- Fix to properly validate money and small money values for BulkCopy [#2379] (https://github.com/microsoft/mssql-jdbc/pull/2379)
  
 ## [12.6.0] Stable Release
 ### Changed
