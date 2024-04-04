@@ -63,6 +63,7 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+        setupMoneyTests();
     }
 
     public static void setupMoneyTests() throws SQLException {
@@ -220,8 +221,6 @@ public class BulkCopyAllTypesTest extends AbstractTest {
 
     @Test
     public void testMoneyWithBulkCopy() throws Exception {
-        setupMoneyTests();
-
         try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(Constants.MIN_VALUE_SMALLMONEY, Constants.MAX_VALUE_MONEY - 1, conn); // SMALLMONEY MIN
             testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY, Constants.MAX_VALUE_MONEY - 1, conn); // SMALLMONEY MAX
