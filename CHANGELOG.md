@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [12.7.0] Preview Release
+## [12.7.1] Preview Release
 ### Added
 - Server Message Handler and SQLException Chaining [#2251] (https://github.com/microsoft/mssql-jdbc/pull/2251)
 - Finish support for RFC4180 for CSV bulk insert operations [#2338] (https://github.com/microsoft/mssql-jdbc/pull/2338)
