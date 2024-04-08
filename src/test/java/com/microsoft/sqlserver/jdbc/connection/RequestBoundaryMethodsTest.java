@@ -251,8 +251,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             con.beginRequest();
             try (Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-                stmt.executeUpdate(
-                        "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col int)");
                 try (PreparedStatement ps = con.prepareStatement(
                         "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?)")) {
                     ps.setInt(1, 2);
