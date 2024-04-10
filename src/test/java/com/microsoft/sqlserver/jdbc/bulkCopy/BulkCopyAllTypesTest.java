@@ -4,13 +4,33 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import javax.sql.RowSetMetaData;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetFactory;
+import javax.sql.rowset.RowSetMetaDataImpl;
+import javax.sql.rowset.RowSetProvider;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -20,8 +40,10 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -30,20 +52,6 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-
-import javax.sql.RowSetMetaData;
-import javax.sql.rowset.CachedRowSet;
-import javax.sql.rowset.RowSetFactory;
-import javax.sql.rowset.RowSetMetaDataImpl;
-import javax.sql.rowset.RowSetProvider;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 
 @RunWith(JUnitPlatform.class)
@@ -55,12 +63,26 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+        setupMoneyTests();
+    }
+
+    public static void setupMoneyTests() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(destTableName, stmt);
+            TestUtils.dropTableIfExists(destTableName2, stmt);
+
+            String table = "create table " + destTableName + " (c1 smallmoney, c2 money)";
+            stmt.execute(table);
+            table = "create table " + destTableName2 + " (c1 smallmoney, c2 money)";
+            stmt.execute(table);
+        }
     }
 
     /**
      * Test TVP with result set
-     * 
+     *
      * @throws SQLException
+     *         an exception
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
@@ -127,6 +149,12 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     private static final String dateTimeTestTable = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyTimestampTest"));
 
+    /**
+     * Test money/smallmoney with BulkCopy
+     * 
+     * @throws SQLException
+     *         an exception
+     */
     @Test
     public void testBulkCopyTimestamp() throws SQLException {
         List<Timestamp> timeStamps = new ArrayList<>();
@@ -184,5 +212,75 @@ public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static long getTime(Timestamp time) {
         return (3 * time.getTime() + 5) / 10;
+    }
+
+    static String encoding = Constants.UTF8;
+    static String delimiter = Constants.COMMA;
+    static String destTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("moneyBulkCopyDest"));
+    static String destTableName2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("moneyBulkCopyDest"));
+
+    @Test
+    public void testMoneyWithBulkCopy() throws Exception {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            testMoneyLimits(Constants.MIN_VALUE_SMALLMONEY - 1, Constants.MAX_VALUE_MONEY - 1, conn); // 1 less than SMALLMONEY MIN
+            testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY + 1, Constants.MAX_VALUE_MONEY - 1, conn); // 1 more than SMALLMONEY MAX
+            testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY - 1, Constants.MIN_VALUE_MONEY - 1, conn); // 1 less than MONEY MIN
+            testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY - 1, Constants.MAX_VALUE_MONEY + 1, conn); // 1 more than MONEY MAX
+        }
+    }
+
+    private void testMoneyLimits(double smallMoneyVal, double moneyVal, Connection conn) throws Exception {
+        SQLServerBulkCSVFileRecord fileRecord = constructFileRecord(smallMoneyVal, moneyVal);
+
+        try {
+            testMoneyWithBulkCopy(conn, fileRecord);
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_valueOutOfRange")), e.getMessage());
+        }
+    }
+
+    private SQLServerBulkCSVFileRecord constructFileRecord(double smallMoneyVal, double moneyVal) throws Exception {
+        Map<Object, Object> data = new HashMap();
+        data.put(smallMoneyVal, moneyVal);
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("smallmoneycol, moneycol\n");
+
+        for (Map.Entry entry : data.entrySet()) {
+            stringBuilder.append(String.format("%s,%s\n", entry.getKey(), entry.getValue()));
+        }
+
+        byte[] bytes = stringBuilder.toString().getBytes(StandardCharsets.UTF_8);
+        SQLServerBulkCSVFileRecord fileRecord;
+        try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
+            fileRecord = new SQLServerBulkCSVFileRecord(inputStream, encoding, delimiter, true);
+        }
+        return fileRecord;
+    }
+
+    private void testMoneyWithBulkCopy(Connection conn, SQLServerBulkCSVFileRecord fileRecord) throws SQLException {
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn); Statement stmt = conn.createStatement()) {
+
+            fileRecord.addColumnMetadata(1, "c1", java.sql.Types.DECIMAL, 10, 4); // with smallmoney
+            fileRecord.addColumnMetadata(2, "c2", java.sql.Types.DECIMAL, 19, 4); // with money
+
+            bulkCopy.setDestinationTableName(destTableName);
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("select * FROM " + destTableName + " order by c1");
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn)) {
+                bcOperation.setDestinationTableName(destTableName2);
+                bcOperation.writeToServer(rs);
+            }
+        }
+    }
+
+    @AfterAll
+    public static void cleanUp() throws Exception {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            TestUtils.dropTableIfExists(destTableName, stmt);
+            TestUtils.dropTableIfExists(destTableName2, stmt);
+        }
     }
 }
