@@ -216,8 +216,6 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
                 }
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
