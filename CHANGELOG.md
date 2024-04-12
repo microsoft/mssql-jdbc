@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Clear prepared statement cache when resetting statement pool connection [#2361](https://github.com/microsoft/mssql-jdbc/pull/2361)
 - Clear prepared statement handle before reconnect [#2364](https://github.com/microsoft/mssql-jdbc/pull/2364)
 - Fixed ClassLoader leak of ActivityCorrelator ThreadLocal [#2366](https://github.com/microsoft/mssql-jdbc/pull/2366)
-- Check if TDSCommand counter is null before incrementing. [#2368](https://github.com/microsoft/mssql-jdbc/pull/2368)
+- Check if TDSCommand counter is null before incrementing [#2368](https://github.com/microsoft/mssql-jdbc/pull/2368)
 - Escape schema for getProcedures and getProcedureColumns in SQLServerDatabaseMetaData [#2369](https://github.com/microsoft/mssql-jdbc/pull/2369)
 - Fix to properly validate money and small money values for BulkCopy [#2379](https://github.com/microsoft/mssql-jdbc/pull/2379)
  
@@ -129,7 +129,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Fixed BigDecimal Precision/Scale issue [2051](https://github.com/microsoft/mssql-jdbc/pull/2051)
 - Fixed NULL state and 0 error code for SQL exceptions [2018](https://github.com/microsoft/mssql-jdbc/pull/2018)
 - Fixed incorrect updateCount [2013](https://github.com/microsoft/mssql-jdbc/pull/2013)
-- Fixed Azure Active Directory user name cache matching to be case insensitive [1923](https://github.com/microsoft/mssql-jdbc/pull/1923)
+- Fixed Azure Active Directory username cache matching to be case insensitive [1923](https://github.com/microsoft/mssql-jdbc/pull/1923)
 - Fixed concurrency issues in encrypt/decrypt obfuscation methods for truststore password [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
 - Fixed Idle Connection recovery so that unprocessedResponseCount isn't over decremented [1989](https://github.com/microsoft/mssql-jdbc/pull/1989)
 - Fixed race condition connecting to the wrong SQLServer host in configurable IPv6 [1968](https://github.com/microsoft/mssql-jdbc/pull/1968)
@@ -184,7 +184,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Fixed issues
 - Fixed double connection issue when enabling TDS 8.0 and SSL by reusing original socket connection [1817](https://github.com/microsoft/mssql-jdbc/pull/1817)
 - Fixed unknown token error 0xA3 when selectMethod cursor is used with data classification [1821](https://github.com/microsoft/mssql-jdbc/pull/1821)
-- Fixed out of bounds error for when a data classification information type is not provided [1847](https://github.com/microsoft/mssql-jdbc/pull/1847)
+- Fixed out-of-bounds error for when a data classification information type is not provided [1847](https://github.com/microsoft/mssql-jdbc/pull/1847)
 
 
 ## [11.1.1] Preview Release
@@ -247,7 +247,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [9.5.0] Preview Release
 ### Added
 - Idle Connection Resiliency Feature [1669](https://github.com/microsoft/mssql-jdbc/pull/1669)
-- Fix for Bulkcopy multi byte characters in char/vchar columns [1671](https://github.com/microsoft/mssql-jdbc/pull/1671)
+- Fix for Bulkcopy multibyte characters in char/vchar columns [1671](https://github.com/microsoft/mssql-jdbc/pull/1671)
 - Java 17 support [1676](https://github.com/microsoft/mssql-jdbc/pull/1676)
 - Added logging when deriving realm [1672](https://github.com/microsoft/mssql-jdbc/pull/1672)
 - Added check for closed statement to registerColumnEncryptionKeyStoreProvidersOnStatement [1644](https://github.com/microsoft/mssql-jdbc/pull/1644)
@@ -776,12 +776,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [6.3.2] Preview Release
 ### Added
 - Added new connection property: sslProtocol [#422](https://github.com/Microsoft/mssql-jdbc/pull/422)
-- Added "slow" tag to long running tests [#461](https://github.com/Microsoft/mssql-jdbc/pull/461)
+- Added "slow" tag to long-running tests [#461](https://github.com/Microsoft/mssql-jdbc/pull/461)
 
 ### Fixed Issues 
 - Fixed some error messages [#452](https://github.com/Microsoft/mssql-jdbc/pull/452) & [#459](https://github.com/Microsoft/mssql-jdbc/pull/459)
 - Fixed statement leaks [#455](https://github.com/Microsoft/mssql-jdbc/pull/455)
-- Fixed an issue regarding to loginTimeout with TLS [#456](https://github.com/Microsoft/mssql-jdbc/pull/456)
+- Fixed an issue regarding loginTimeout with TLS [#456](https://github.com/Microsoft/mssql-jdbc/pull/456)
 - Fixed sql_variant issue with String type [#442](https://github.com/Microsoft/mssql-jdbc/pull/442)
 - Fixed issue with throwing error message for unsupported datatype [#450](https://github.com/Microsoft/mssql-jdbc/pull/450)
 - Fixed issue that initial batchException was not thrown [#458](https://github.com/Microsoft/mssql-jdbc/pull/458)
