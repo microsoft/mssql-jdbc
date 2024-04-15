@@ -1364,6 +1364,18 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
     }
 
+    @Override
+    public void setRetryExec(String retryExec) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(),
+                retryExec);
+    }
+
+    @Override
+    public String getRetryExec() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(),
+                null);
+    }
+
     /**
      * Sets a property string value.
      *

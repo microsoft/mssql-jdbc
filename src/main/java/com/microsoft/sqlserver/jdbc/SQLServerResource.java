@@ -519,6 +519,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
         {"R_calcBigDecimalPrecisionPropertyDescription", "Indicates whether the driver should calculate precision for big decimal values."},
+        {"R_retryExecPropertyDescription", "Indicates whether the driver should calculate precision for big decimal values."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
