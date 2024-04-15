@@ -1173,16 +1173,16 @@ public class CallableStatementTest extends AbstractTest {
             }
 
             stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + remoteUser
-                    + "', @rmtpassword=N'" + remotePassword + "'");
+            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + linkedServerUser
+                    + "', @rmtpassword=N'" + linkedServerPassword + "'");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
         }
 
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(linkedServer);
-        ds.setUser(remoteUser);
-        ds.setPassword(remotePassword);
+        ds.setUser(linkedServerUser);
+        ds.setPassword(linkedServerPassword);
         ds.setEncrypt(false);
         ds.setTrustServerCertificate(true);
 
