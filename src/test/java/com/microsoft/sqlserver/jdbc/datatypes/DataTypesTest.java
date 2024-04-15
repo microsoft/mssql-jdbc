@@ -1875,6 +1875,7 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGetLocalDateTimeTypesWithDefaultOffsetDateTimeConversion() throws Exception {
+        // test value needs to be in a time zone other than local
         OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
         int offsetSeconds = value.getOffset().getTotalSeconds();
         offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
@@ -1887,6 +1888,7 @@ public class DataTypesTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
 
+                // default behavior is to apply the time zone offset when converting DATETIMEOFFSET to local java.time types
                 assertEquals(value, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(valueWithOffsetConversion, rs.getObject(1, LocalDateTime.class));
                 assertEquals(valueWithOffsetConversion.toLocalDate(), rs.getObject(1, LocalDate.class));
@@ -1903,6 +1905,8 @@ public class DataTypesTest extends AbstractTest {
         value = value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
+
+            // change the behavior to be compatible with java.time conversion methods
             conn.setIgnoreOffsetOnDateTimeOffsetConversion(true);
 
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
@@ -1910,6 +1914,7 @@ public class DataTypesTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
 
+                // now the offset should be ignored instead of converting to local time zone
                 assertEquals(value, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(value.toLocalDateTime(), rs.getObject(1, LocalDateTime.class));
                 assertEquals(value.toLocalDate(), rs.getObject(1, LocalDate.class));
