@@ -186,6 +186,10 @@ public class AESetup extends AbstractTest {
             if (enclaveServer.length > 1) {
                 System.out.println("Testing enclave: " + enclaveProperties);
             }
+
+            String password = getConfiguredProperty("enclaveServerPassword");
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.PASSWORD,
+                    password);
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false;columnEncryptionSetting=enabled;";
         }

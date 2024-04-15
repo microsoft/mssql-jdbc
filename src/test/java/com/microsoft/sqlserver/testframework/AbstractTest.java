@@ -267,7 +267,6 @@ public abstract class AbstractTest {
         // If these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
         String user = getConfiguredProperty("userNTLM");
-        String password = getConfiguredProperty("passwordNTLM");
 
         if (null != domain) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "domain", domain);
@@ -277,11 +276,7 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
         }
 
-        if (null != password) {
-            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
-        }
-
-        if (null != user && null != password) {
+        if (null != user) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");

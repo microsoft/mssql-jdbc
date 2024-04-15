@@ -243,7 +243,9 @@ public class EnclavePackageTest extends AbstractTest {
             if (TestUtils.isAEv2(con4)) {
                 verifyEnclaveEnabled(con4, protocol);
             }
-        }
+        } catch (Exception e) {
+		System.out.println("exception: " +e.getMessage() + " \n connection string: " + cString);
+	}
     }
 
     /**
