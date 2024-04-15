@@ -1875,8 +1875,11 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGetLocalDateTimeTypesWithDefaultOffsetDateTimeConversion() throws Exception {
-        OffsetDateTime value = prepareOffsetDateTime();
-        LocalDateTime valueWithOffsetConversion = convertOffsetDateTimeToLocalDateTime(value);
+        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
+        int offsetSeconds = value.getOffset().getTotalSeconds();
+        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
+        value = value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
+        LocalDateTime valueWithOffsetConversion = value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             try (PreparedStatement stmt = conn.prepareStatement("SELECT ?")) {
@@ -1894,7 +1897,10 @@ public class DataTypesTest extends AbstractTest {
 
     @Test
     public void testGetLocalDateTimeTypesWithIgnoreOffsetDateTimeConversion() throws Exception {
-        OffsetDateTime value = prepareOffsetDateTime();
+        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS); // Linux has more precision than SQL Server
+        int offsetSeconds = value.getOffset().getTotalSeconds();
+        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
+        value = value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
 
         try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             conn.setIgnoreOffsetOnDateTimeOffsetConversion(true);
@@ -1942,17 +1948,6 @@ public class DataTypesTest extends AbstractTest {
         assertEquals(expected, DateTimeOffset.valueOf(expected).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundDown).getOffsetDateTime());
-    }
-
-    private OffsetDateTime prepareOffsetDateTime() {
-        OffsetDateTime value = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS);
-        int offsetSeconds = value.getOffset().getTotalSeconds();
-        offsetSeconds += offsetSeconds < 0 ? 3600 : -3600;
-        return value.withOffsetSameLocal(ZoneOffset.ofTotalSeconds(offsetSeconds));
-    }
-
-    private LocalDateTime convertOffsetDateTimeToLocalDateTime(OffsetDateTime value) {
-        return value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     static LocalDateTime getUnstorableValue() throws Exception {
