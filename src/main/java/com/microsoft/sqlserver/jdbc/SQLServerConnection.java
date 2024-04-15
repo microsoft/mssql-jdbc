@@ -1069,6 +1069,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
+    private String retryExec = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
+
+    public String getRetryExec() {
+        return retryExec;
+    }
+
+    public void setRetryExec(String retryExec) {
+        this.retryExec = retryExec;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2005,9 +2015,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
-                        // only retry if transient error
+                        // Retry for all errors transient + passed in to CRL
                         SQLServerError sqlServerError = e.getSQLServerError();
-                        if (!TransientError.isTransientError(sqlServerError)) {
+                        ConfigRetryRule rule = ConfigRead.getInstance().searchRuleSet(sqlServerError.getErrorNumber(), "connection");
+
+                        if (!ConfigRead.getInstance().getReplaceFlag()) {
+                            if (!TransientError.isTransientError(sqlServerError) || rule == null) {
+                                throw e;
+                            }
+                        } else if (rule == null) {
                             throw e;
                         }
 
@@ -2340,6 +2356,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey,
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
+
+                sPropKey = SQLServerDriverStringProperty.RETRY_EXEC.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                retryExec = sPropValue;
+                //ConfigRead.getInstance().setCustomRetryRules(sPropValue);
+                ConfigRead.getInstance().setFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
