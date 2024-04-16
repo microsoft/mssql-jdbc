@@ -1158,7 +1158,6 @@ public class CallableStatementTest extends AbstractTest {
     public void testFourPartSyntaxCallEscapeSyntax() throws SQLException {
         String table = "serverList";
 
-        System.out.println("testFourPartSyntaxCallEscapeSyntax1: connectionString=" + connectionString);
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("IF OBJECT_ID(N'" + table + "') IS NOT NULL DROP TABLE " + table);
             stmt.execute("CREATE TABLE " + table
@@ -1174,31 +1173,27 @@ public class CallableStatementTest extends AbstractTest {
             }
 
             stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + linkedServerUser
-                    + "', @rmtpassword=N'" + linkedServerPassword + "'");
+            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
+                    + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
         }
 
-        System.out.println("testFourPartSyntaxCallEscapeSyntax2: connectionString=" + connectionString);
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(linkedServer);
         ds.setUser(linkedServerUser);
         ds.setPassword(linkedServerPassword);
         ds.setEncrypt(false);
         ds.setTrustServerCertificate(true);
-        System.out.println("testFourPartSyntaxCallEscapeSyntax3: linkedServer=" + linkedServer + " linkedServerUser"
-                + linkedServerUser + " linkedServerPassword=" + linkedServerPassword);
 
         try (Connection linkedServerConnection = ds.getConnection();
+                // Statement stmt = linkedServerConnection.createStatement()) {
                 Statement stmt = linkedServerConnection.createStatement()) {
             stmt.execute(
                     "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
         }
 
-        try (CallableStatement cstmt = connection
-                .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
-            System.out.println("testFourPartSyntaxCallEscapeSyntax4: connectionString=" + connectionString);
+        try (CallableStatement cstmt = connection.prepareCall("{call TestAdd(?,?,?)}")) {
 
             int sum = 11;
             int param0 = 1;
