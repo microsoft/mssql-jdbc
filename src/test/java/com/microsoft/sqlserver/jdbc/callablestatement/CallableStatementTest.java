@@ -22,7 +22,6 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -40,8 +39,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-
-import javax.sql.DataSource;
 
 
 /**
@@ -1187,7 +1184,6 @@ public class CallableStatementTest extends AbstractTest {
         ds.setTrustServerCertificate(true);
 
         try (Connection linkedServerConnection = ds.getConnection();
-                // Statement stmt = linkedServerConnection.createStatement()) {
                 Statement stmt = linkedServerConnection.createStatement()) {
             stmt.execute(
                     "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
