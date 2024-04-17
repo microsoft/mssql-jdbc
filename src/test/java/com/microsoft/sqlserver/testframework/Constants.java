@@ -139,6 +139,8 @@ public final class Constants {
     public static final String DOMAIN_NAME = "DOMAINNAME";
     public static final String DATABASE = "DATABASE";
     public static final String DATABASE_NAME = "DATABASENAME";
+    public static final String SERVER_NAME = "SERVERNAME";
+
     public static final String COLUMN_ENCRYPTION_SETTING = "COLUMNENCRYPTIONSETTING";
     public static final String DISABLE_STATEMENT_POOLING = "DISABLESTATEMENTPOOLING";
     public static final String STATEMENT_POOLING_CACHE_SIZE = "STATEMENTPOOLINGCACHESIZE";

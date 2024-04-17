@@ -345,6 +345,9 @@ public abstract class AbstractTest {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
                             break;
+                        case Constants.SERVER_NAME:
+                            ds.setServerName(value);
+                            break;
                         case Constants.USER:
                         case Constants.USER_NAME:
                             ds.setUser(value);
