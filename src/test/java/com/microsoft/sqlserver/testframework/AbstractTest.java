@@ -63,8 +63,8 @@ public abstract class AbstractTest {
     protected static String[] keyIDs = null;
 
     protected static String linkedServer = null;
-    protected static String remoteUser = null;
-    protected static String remotePassword = null;
+    protected static String linkedServerUser = null;
+    protected static String linkedServerPassword = null;
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
@@ -201,8 +201,8 @@ public abstract class AbstractTest {
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
         linkedServer = getConfiguredProperty("linkedServer", null);
-        remoteUser = getConfiguredProperty("remoteUser", null);
-        remotePassword = getConfiguredProperty("remotePassword", null);
+        linkedServerUser = getConfiguredProperty("linkedServerUser", null);
+        linkedServerPassword = getConfiguredProperty("linkedServerPassword", null);
 
         kerberosServer = getConfiguredProperty("kerberosServer", null);
         kerberosServerPort = getConfiguredProperty("kerberosServerPort", null);
@@ -267,7 +267,6 @@ public abstract class AbstractTest {
         // If these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
         String user = getConfiguredProperty("userNTLM");
-        String password = getConfiguredProperty("passwordNTLM");
 
         if (null != domain) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "domain", domain);
@@ -277,11 +276,7 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
         }
 
-        if (null != password) {
-            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
-        }
-
-        if (null != user && null != password) {
+        if (null != user) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
@@ -349,6 +344,9 @@ public abstract class AbstractTest {
                     switch (name.toUpperCase()) {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.SERVER_NAME:
+                            ds.setServerName(value);
                             break;
                         case Constants.USER:
                         case Constants.USER_NAME:

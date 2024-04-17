@@ -22,7 +22,6 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -40,8 +39,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-
-import javax.sql.DataSource;
 
 
 /**
@@ -1173,16 +1170,16 @@ public class CallableStatementTest extends AbstractTest {
             }
 
             stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @rmtuser=N'" + remoteUser
-                    + "', @rmtpassword=N'" + remotePassword + "'");
+            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
+                    + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
         }
 
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setServerName(linkedServer);
-        ds.setUser(remoteUser);
-        ds.setPassword(remotePassword);
+        ds.setUser(linkedServerUser);
+        ds.setPassword(linkedServerPassword);
         ds.setEncrypt(false);
         ds.setTrustServerCertificate(true);
 
