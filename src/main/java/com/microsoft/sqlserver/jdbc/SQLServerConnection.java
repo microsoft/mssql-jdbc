@@ -2020,16 +2020,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         if (null == sqlServerError) {
                             throw e;
                         } else {
-                            ConfigRetryRule rule = ConfigRead.getInstance().searchRuleSet(sqlServerError.getErrorNumber(), "connection");
+                            ConfigRetryRule rule = ConfigurableRetryLogic.getInstance()
+                                    .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
 
-                            if (null == rule && !ConfigRead.getInstance().getReplaceFlag()
+                            if (null == rule && !ConfigurableRetryLogic.getInstance().getReplaceFlag()
                                     && !TransientError.isTransientError(sqlServerError)) {
-                                // If the error has not been configured in CRL AND we appending to the existing
-                                // list of errors AND this is not a transient error, then we throw.
                                 throw e;
                             }
                         }
-
 
                         // check if there's time to retry, no point to wait if no time left
                         if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
@@ -2368,8 +2366,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 retryExec = sPropValue;
-                //ConfigRead.getInstance().setCustomRetryRules(sPropValue);
-                ConfigRead.getInstance().setFromConnectionString(sPropValue);
+                // ConfigurableRetryLogic.getInstance().setCustomRetryRules(sPropValue);
+                ConfigurableRetryLogic.getInstance().setFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
