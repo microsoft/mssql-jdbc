@@ -6,7 +6,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 
 public class ConfigurableRetryLogic {
@@ -20,7 +25,7 @@ public class ConfigurableRetryLogic {
     private static boolean replaceFlag; // Are we replacing the list of transient errors (for connection retry)?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
-    static private final java.util.logging.Logger configReadLogger = java.util.logging.Logger
+    private static final java.util.logging.Logger configReadLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
 
     private ConfigurableRetryLogic() throws SQLServerException {
@@ -42,19 +47,11 @@ public class ConfigurableRetryLogic {
         } else {
             reread();
         }
-
         return driverInstance;
     }
 
-    /**
-     * Check if it's time to re-read, and if the file has changed. If so, then re-set up rules.
-     *
-     * @throws SQLServerException
-     *         an exception
-     */
     private static void reread() throws SQLServerException {
         long currentTime = new Date().getTime();
-
         if ((currentTime - timeLastRead) >= intervalBetweenReads && !compareModified()) {
             timeLastRead = currentTime;
             setUpRules();
@@ -72,26 +69,24 @@ public class ConfigurableRetryLogic {
         }
     }
 
-    public void setFromConnectionString(String custom) throws SQLServerException {
+    void setFromConnectionString(String custom) throws SQLServerException {
         rulesFromConnectionString = custom;
         setUpRules();
     }
 
-    public void storeLastQuery(String sql) {
+    void storeLastQuery(String sql) {
         lastQuery = sql.toLowerCase();
     }
 
-    public String getLastQuery() {
+    String getLastQuery() {
         return lastQuery;
     }
 
     private static void setUpRules() throws SQLServerException {
-        //For every new setup, everything should be reset
         cxnRules = new HashMap<>();
         stmtRules = new HashMap<>();
         replaceFlag = false;
         lastQuery = "";
-
         LinkedList<String> temp;
 
         if (!rulesFromConnectionString.isEmpty()) {
@@ -101,7 +96,6 @@ public class ConfigurableRetryLogic {
         } else {
             temp = readFromFile();
         }
-
         createRules(temp);
     }
 
@@ -115,8 +109,8 @@ public class ConfigurableRetryLogic {
             if (rule.getError().contains(",")) {
                 String[] arr = rule.getError().split(",");
 
-                for (String s : arr) {
-                    ConfigRetryRule splitRule = new ConfigRetryRule(s, rule);
+                for (String retryError : arr) {
+                    ConfigRetryRule splitRule = new ConfigRetryRule(retryError, rule);
                     if (rule.getConnectionStatus()) {
                         if (rule.getReplaceExisting()) {
                             if (!replaceFlag) {
@@ -160,14 +154,13 @@ public class ConfigurableRetryLogic {
 
     private static LinkedList<String> readFromFile() {
         String filePath = getCurrentClassPath();
-
         LinkedList<String> list = new LinkedList<>();
+
         try {
             File f = new File(filePath + defaultPropsFile);
             timeLastModified = f.lastModified();
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
-
                 while ((readLine = buffer.readLine()) != null) {
                     if (readLine.startsWith("retryExec")) {
                         String value = readLine.split("=")[1];
@@ -198,11 +191,10 @@ public class ConfigurableRetryLogic {
                 }
             }
         }
-
         return null;
     }
 
-    public boolean getReplaceFlag() {
+    boolean getReplaceFlag() {
         return replaceFlag;
     }
 }
@@ -219,44 +211,43 @@ class ConfigRetryRule {
     private boolean isConnection = false;
     private boolean replaceExisting = false;
 
-    public ConfigRetryRule(String s) throws SQLServerException {
-        String[] stArr = parse(s);
-        addElements(stArr);
+    public ConfigRetryRule(String rule) throws SQLServerException {
+        addElements(parse(rule));
         calcWaitTime();
     }
 
-    public ConfigRetryRule(String rule, ConfigRetryRule r) {
-        copyFromCopy(r);
+    public ConfigRetryRule(String rule, ConfigRetryRule base) {
+        copyFromExisting(base);
         this.retryError = rule;
     }
 
-    private void copyFromCopy(ConfigRetryRule r) {
-        this.retryError = r.getError();
-        this.operand = r.getOperand();
-        this.initialRetryTime = r.getInitialRetryTime();
-        this.retryChange = r.getRetryChange();
-        this.retryCount = r.getRetryCount();
-        this.retryQueries = r.getRetryQueries();
-        this.waitTimes = r.getWaitTimes();
-        this.isConnection = r.getConnectionStatus();
+    private void copyFromExisting(ConfigRetryRule base) {
+        this.retryError = base.getError();
+        this.operand = base.getOperand();
+        this.initialRetryTime = base.getInitialRetryTime();
+        this.retryChange = base.getRetryChange();
+        this.retryCount = base.getRetryCount();
+        this.retryQueries = base.getRetryQueries();
+        this.waitTimes = base.getWaitTimes();
+        this.isConnection = base.getConnectionStatus();
     }
 
-    private String[] parse(String s) {
-        String temp = s + " ";
+    private String[] parse(String rule) {
+        String parsed = rule + " ";
 
-        temp = temp.replace(": ", ":0");
-        temp = temp.replace("{", "");
-        temp = temp.replace("}", "");
-        temp = temp.trim();
+        parsed = parsed.replace(": ", ":0");
+        parsed = parsed.replace("{", "");
+        parsed = parsed.replace("}", "");
+        parsed = parsed.trim();
 
-        return temp.split(":");
+        return parsed.split(":");
     }
 
-    private void parameterIsNumber(String value) throws SQLServerException {
+    private void parameterIsNumeric(String value) throws SQLServerException {
         if (!StringUtils.isNumeric(value)) {
             String[] arr = value.split(",");
-            for (String st : arr) {
-                if (!StringUtils.isNumeric(st)) {
+            for (String error : arr) {
+                if (!StringUtils.isNumeric(error)) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
                     throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
                 }
@@ -264,93 +255,87 @@ class ConfigRetryRule {
         }
     }
 
-    private void addElements(String[] s) throws SQLServerException {
-        if (s.length == 1) {
-            String errorWithoutOptionalPrefix = appendOrReplace(s[0]);
-            parameterIsNumber(errorWithoutOptionalPrefix);
+    private void addElements(String[] rule) throws SQLServerException {
+        if (rule.length == 1) {
+            String errorWithoutOptionalPrefix = appendOrReplace(rule[0]);
+            parameterIsNumeric(errorWithoutOptionalPrefix);
             isConnection = true;
             retryError = errorWithoutOptionalPrefix;
-        } else if (s.length == 2 || s.length == 3) {
-            parameterIsNumber(s[0]);
-            retryError = s[0];
+        } else if (rule.length == 2 || rule.length == 3) {
+            parameterIsNumeric(rule[0]);
+            retryError = rule[0];
+            String[] timings = rule[1].split(",");
+            parameterIsNumeric(timings[0]);
 
-            String[] st = s[1].split(",");
-            parameterIsNumber(st[0]);
-            if (Integer.parseInt(st[0]) > 0) {
-                retryCount = Integer.parseInt(st[0]);
+            if (Integer.parseInt(timings[0]) > 0) {
+                retryCount = Integer.parseInt(timings[0]);
             } else {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
                 throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
             }
 
-            if (st.length == 2) {
-                if (st[1].contains("*")) {
-                    String[] sss = st[1].split("\\*");
-                    parameterIsNumber(sss[0]);
-                    initialRetryTime = Integer.parseInt(sss[0]);
+            if (timings.length == 2) {
+                if (timings[1].contains("*")) {
+                    String[] initialAndChange = timings[1].split("\\*");
+                    parameterIsNumeric(initialAndChange[0]);
+                    initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = "*";
-                    if (sss.length > 1) {
-                        parameterIsNumber(sss[1]);
-                        retryChange = Integer.parseInt(sss[1]);
+                    if (initialAndChange.length > 1) {
+                        parameterIsNumeric(initialAndChange[1]);
+                        retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
                         retryChange = initialRetryTime;
                     }
-                } else if (st[1].contains("+")) {
-                    String[] sss = st[1].split("\\+");
-                    parameterIsNumber(sss[0]);
+                } else if (timings[1].contains("+")) {
+                    String[] initialAndChange = timings[1].split("\\+");
+                    parameterIsNumeric(initialAndChange[0]);
 
-                    initialRetryTime = Integer.parseInt(sss[0]);
+                    initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = "+";
-                    if (sss.length > 1) {
-                        parameterIsNumber(sss[1]);
-                        retryChange = Integer.parseInt(sss[1]);
+                    if (initialAndChange.length > 1) {
+                        parameterIsNumeric(initialAndChange[1]);
+                        retryChange = Integer.parseInt(initialAndChange[1]);
                     }
                 } else {
-                    parameterIsNumber(st[1]);
-                    initialRetryTime = Integer.parseInt(st[1]);
+                    parameterIsNumeric(timings[1]);
+                    initialRetryTime = Integer.parseInt(timings[1]);
                 }
-            } else if (st.length > 2) {
-                // If the timing options have more than 2 parts, they are badly formatted.
+            } else if (timings.length > 2) {
                 StringBuilder builder = new StringBuilder();
-
-                for (String string : s) {
+                for (String string : rule) {
                     builder.append(string);
                 }
-
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRuleFormat"));
                 Object[] msgArgs = {builder.toString()};
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
             }
 
-            if (s.length == 3) {
-                retryQueries = (s[2].equals("0") ? "" : s[2].toLowerCase());
+            if (rule.length == 3) {
+                retryQueries = (rule[2].equals("0") ? "" : rule[2].toLowerCase());
             }
         } else {
-            // If the length is not 1,2,3, then the provided option is invalid
             StringBuilder builder = new StringBuilder();
-
-            for (String string : s) {
+            for (String string : rule) {
                 builder.append(string);
             }
-
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRuleFormat"));
             Object[] msgArgs = {builder.toString()};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
         }
     }
 
-    private String appendOrReplace(String s) {
-        if (s.charAt(0) == '+') {
+    private String appendOrReplace(String retryError) {
+        if (retryError.charAt(0) == '+') {
             replaceExisting = false;
-            StringUtils.isNumeric(s.substring(1));
-            return s.substring(1);
+            StringUtils.isNumeric(retryError.substring(1));
+            return retryError.substring(1);
         } else {
             replaceExisting = true;
-            return s;
+            return retryError;
         }
     }
 
-    public void calcWaitTime() {
+    private void calcWaitTime() {
         for (int i = 0; i < retryCount; ++i) {
             int waitTime = initialRetryTime;
             if (operand.equals("+")) {
@@ -361,7 +346,6 @@ class ConfigRetryRule {
                 for (int k = 0; k < i; ++k) {
                     waitTime *= retryChange;
                 }
-
             }
             waitTimes.add(waitTime);
         }
