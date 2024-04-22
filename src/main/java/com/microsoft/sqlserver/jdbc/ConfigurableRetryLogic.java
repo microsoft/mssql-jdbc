@@ -15,9 +15,11 @@ import java.util.Map;
 
 
 public class ConfigurableRetryLogic {
+    private final static int INTERVAL_BETWEEN_READS = 30000; // How many ms must have elapsed before we re-read
+    private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
+    private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static ConfigurableRetryLogic driverInstance = null;
-    private final static int intervalBetweenReads = 30000; // How many ms must have elapsed before we re-read
-    private final static String defaultPropsFile = "mssql-jdbc.properties";
     private static long timeLastModified;
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
@@ -25,8 +27,7 @@ public class ConfigurableRetryLogic {
     private static boolean replaceFlag; // Are we replacing the list of transient errors (for connection retry)?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
-    private static final java.util.logging.Logger configReadLogger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
+
 
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead = new Date().getTime();
@@ -52,14 +53,14 @@ public class ConfigurableRetryLogic {
 
     private static void reread() throws SQLServerException {
         long currentTime = new Date().getTime();
-        if ((currentTime - timeLastRead) >= intervalBetweenReads && !compareModified()) {
+        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS && !compareModified()) {
             timeLastRead = currentTime;
             setUpRules();
         }
     }
 
     private static boolean compareModified() {
-        String inputToUse = getCurrentClassPath() + defaultPropsFile;
+        String inputToUse = getCurrentClassPath() + DEFAULT_PROPS_FILE;
 
         try {
             File f = new File(inputToUse);
@@ -145,8 +146,8 @@ public class ConfigurableRetryLogic {
             URI uri = new URI(location + "/");
             return uri.getPath();
         } catch (Exception e) {
-            if (configReadLogger.isLoggable(java.util.logging.Level.FINEST)) {
-                configReadLogger.finest("Unable to get current class path for properties file reading.");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
+                CONFIGURABLE_RETRY_LOGGER.finest("Unable to get current class path for properties file reading.");
             }
         }
         return null;
@@ -157,7 +158,7 @@ public class ConfigurableRetryLogic {
         LinkedList<String> list = new LinkedList<>();
 
         try {
-            File f = new File(filePath + defaultPropsFile);
+            File f = new File(filePath + DEFAULT_PROPS_FILE);
             timeLastModified = f.lastModified();
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
@@ -169,8 +170,8 @@ public class ConfigurableRetryLogic {
                 }
             }
         } catch (IOException e) {
-            if (configReadLogger.isLoggable(java.util.logging.Level.FINEST)) {
-                configReadLogger.finest("No properties file exists or file is badly formatted.");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
+                CONFIGURABLE_RETRY_LOGGER.finest("No properties file exists or file is badly formatted.");
             }
         }
         return list;
