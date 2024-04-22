@@ -76,15 +76,14 @@ public class ConfigurableRetryLogic {
         }
     }
 
-    public void setCustomRetryRules(String cRR) throws SQLServerException {
-        rulesFromConnectionString = cRR;
-        setUpRules();
-    }
+//    public void setCustomRetryRules(String cRR) throws SQLServerException {
+//        rulesFromConnectionString = cRR;
+//        setUpRules();
+//    }
 
     public void setFromConnectionString(String custom) throws SQLServerException {
-        if (!custom.isEmpty()) {
-            setCustomRetryRules(custom);
-        }
+        rulesFromConnectionString = custom;
+        setUpRules();
     }
 
     public void storeLastQuery(String sql) {
@@ -96,6 +95,12 @@ public class ConfigurableRetryLogic {
     }
 
     private static void setUpRules() throws SQLServerException {
+        //For every new setup, everything should be reset
+        cxnRules = new HashMap<>();
+        stmtRules = new HashMap<>();
+        replaceFlag = false;
+        lastQuery = "";
+
         LinkedList<String> temp = null;
 
         if (!rulesFromConnectionString.isEmpty()) {
@@ -103,6 +108,7 @@ public class ConfigurableRetryLogic {
             for (String s : rulesFromConnectionString.split(";")) {
                 temp.add(s);
             }
+            rulesFromConnectionString = "";
         } else {
             temp = readFromFile();
         }

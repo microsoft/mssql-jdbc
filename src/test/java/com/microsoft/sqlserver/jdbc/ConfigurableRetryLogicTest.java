@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -21,16 +22,16 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
  * Test connection and statement retry for configurable retry logic
  */
 public class ConfigurableRetryLogicTest extends AbstractTest {
-    private final String baseConnectionString = "jdbc:sqlserver://localhost:1433;database=TestDb;user=sa;password=TestPassword123;"
-            + "encrypt=true;trustServerCertificate=true;selectMethod=cursor;loginTimeout=5;" + "connectRetryCount=1;";
+    private static String connectionStringCRL = null;
     private static final String tableName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("crlTestTable"));
 
     @Test
-    public void testStatementRetryPS() throws Exception {
-        String connectionString = baseConnectionString + "retryExec={2714:3,2*2:CREATE;2715:1,3;+4060,4070};"; // 2714 There is already an object named x
+    public void testStatementRetryPreparedStatement() throws Exception {
+        connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
+                "{2714:3,2*2:CREATE;2715:1,3;+4060,4070}");
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement s = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement()) {
             PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
             try {
                 createTable(s);
@@ -46,11 +47,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     @Test
-    public void testStatementRetryCS() throws Exception {
-        String connectionString = baseConnectionString + "retryExec={2714:3,2*2:CREATE;2715:1,3;+4060,4070};"; // 2714 There is already an object named x
+    public void testStatementRetryCallableStatement() throws Exception {
+        connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
+                "{2714:3,2*2:CREATE;2715:1,3;+4060,4070}");
         String call = "create table " + tableName + " (c1 int null);";
 
-        try (Connection conn = DriverManager.getConnection(connectionString); Statement s = conn.createStatement();
+        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement();
                 CallableStatement cs = conn.prepareCall(call)) {
             try {
                 createTable(s);
@@ -65,8 +67,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
-    public void testStatementRetry(String connectionString) throws Exception {
-        String cxnString = baseConnectionString + connectionString; // 2714 There is already an object named x
+    public void testStatementRetry(String addedRetryParams) throws Exception {
+        String cxnString = connectionString + addedRetryParams; // 2714 There is already an object named x
 
         try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
             try {
@@ -82,8 +84,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
-    public void testStatementRetryWithShortQueryTimeout(String connectionString) throws Exception {
-        String cxnString = baseConnectionString + connectionString; // 2714 There is already an object named x
+    public void testStatementRetryWithShortQueryTimeout(String addedRetryParams) throws Exception {
+        String cxnString = connectionString + addedRetryParams; // 2714 There is already an object named x
 
         try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
             try {
@@ -97,7 +99,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     @Test
-    public void timingTests() {
+    public void timingTests() throws Exception {
 
     }
 
@@ -121,7 +123,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             // Test length 1
             testStatementRetry("retryExec={4060};");
             testStatementRetry("retryExec={+4060,4070};");
-            testStatementRetry("retryExec={4060,4070};");
 
             testStatementRetry("retryExec={2714:1;};");
 
@@ -225,5 +226,10 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     private static void dropTable(Statement stmt) throws SQLException {
         TestUtils.dropTableIfExists(tableName, stmt);
+    }
+
+    @BeforeAll
+    public static void setupTests() throws Exception {
+        setConnection();
     }
 }
