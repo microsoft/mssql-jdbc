@@ -6,11 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 
 
 public class ConfigurableRetryLogic {
@@ -24,7 +20,7 @@ public class ConfigurableRetryLogic {
     private static boolean replaceFlag; // Are we replacing the list of transient errors (for connection retry)?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
-    static private java.util.logging.Logger configReadLogger = java.util.logging.Logger
+    static private final java.util.logging.Logger configReadLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
 
     private ConfigurableRetryLogic() throws SQLServerException {
@@ -76,11 +72,6 @@ public class ConfigurableRetryLogic {
         }
     }
 
-//    public void setCustomRetryRules(String cRR) throws SQLServerException {
-//        rulesFromConnectionString = cRR;
-//        setUpRules();
-//    }
-
     public void setFromConnectionString(String custom) throws SQLServerException {
         rulesFromConnectionString = custom;
         setUpRules();
@@ -101,13 +92,11 @@ public class ConfigurableRetryLogic {
         replaceFlag = false;
         lastQuery = "";
 
-        LinkedList<String> temp = null;
+        LinkedList<String> temp;
 
         if (!rulesFromConnectionString.isEmpty()) {
             temp = new LinkedList<>();
-            for (String s : rulesFromConnectionString.split(";")) {
-                temp.add(s);
-            }
+            Collections.addAll(temp, rulesFromConnectionString.split(";"));
             rulesFromConnectionString = "";
         } else {
             temp = readFromFile();
@@ -182,9 +171,7 @@ public class ConfigurableRetryLogic {
                 while ((readLine = buffer.readLine()) != null) {
                     if (readLine.startsWith("retryExec")) {
                         String value = readLine.split("=")[1];
-                        for (String s : value.split(";")) {
-                            list.add(s);
-                        }
+                        Collections.addAll(list, value.split(";"));
                     }
                 }
             }
@@ -196,7 +183,7 @@ public class ConfigurableRetryLogic {
         return list;
     }
 
-    public ConfigRetryRule searchRuleSet(int ruleToSearch, String ruleSet) throws SQLServerException {
+    ConfigRetryRule searchRuleSet(int ruleToSearch, String ruleSet) throws SQLServerException {
         reread();
         if (ruleSet.equals("statement")) {
             for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {

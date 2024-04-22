@@ -99,7 +99,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     @Test
-    public void timingTests() throws Exception {
+    public void timingTests() {
 
     }
 
