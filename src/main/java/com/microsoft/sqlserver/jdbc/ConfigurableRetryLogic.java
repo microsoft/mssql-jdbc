@@ -28,7 +28,6 @@ public class ConfigurableRetryLogic {
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
 
-
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead = new Date().getTime();
         setUpRules();

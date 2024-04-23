@@ -34,8 +34,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry works with prepared statements.
+     * 
      * @throws Exception
-     *          if unable to connect or execute against db
+     *         if unable to connect or execute against db
      */
     @Test
     public void testStatementRetryPreparedStatement() throws Exception {
@@ -59,8 +60,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry works with callable statements.
+     * 
      * @throws Exception
-     *          if unable to connect or execute against db
+     *         if unable to connect or execute against db
      */
     @Test
     public void testStatementRetryCallableStatement() throws Exception {
@@ -85,8 +87,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry works with statements. Used in below negative testing.
+     * 
      * @throws Exception
-     *          if unable to connect or execute against db
+     *         if unable to connect or execute against db
      */
     public void testStatementRetry(String addedRetryParams) throws Exception {
         String cxnString = connectionString + addedRetryParams; // 2714 There is already an object named x
@@ -107,8 +110,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry works with statements. A different error is expected here than the test above.
+     * 
      * @throws Exception
-     *          if unable to connect or execute against db
+     *         if unable to connect or execute against db
      */
     public void testStatementRetryWithShortQueryTimeout(String addedRetryParams) throws Exception {
         String cxnString = connectionString + addedRetryParams; // 2714 There is already an object named x
@@ -156,11 +160,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
-                    "total time: " + totalTime + ", expected minimum time: "
-                            + TimeUnit.SECONDS.toMillis(5));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(5 + expectedTime),
-                    "total time: " + totalTime + ", expected maximum time: "
-                            + TimeUnit.SECONDS.toMillis(5 + expectedTime));
+                    "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(5 + expectedTime), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(5 + expectedTime));
         }
 
         timerStart = System.currentTimeMillis();
@@ -173,11 +175,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(8),
-                    "total time: " + totalTime + ", expected minimum time: "
-                            + TimeUnit.SECONDS.toMillis(8));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(8 + expectedTime),
-                    "total time: " + totalTime + ", expected maximum time: "
-                            + TimeUnit.SECONDS.toMillis(8 + expectedTime));
+                    "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(8));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(8 + expectedTime), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(8 + expectedTime));
         }
 
         timerStart = System.currentTimeMillis();
@@ -190,11 +190,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(10),
-                    "total time: " + totalTime + ", expected minimum time: "
-                            + TimeUnit.SECONDS.toMillis(10));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(10 + expectedTime),
-                    "total time: " + totalTime + ", expected maximum time: "
-                            + TimeUnit.SECONDS.toMillis(10 + expectedTime));
+                    "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(10));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(10 + expectedTime), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(10 + expectedTime));
         }
     }
 
@@ -251,8 +249,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry error correctly fail.
+     * 
      * @throws Exception
-     *          for the invalid parameter
+     *         for the invalid parameter
      */
     @Test
     public void testRetryError() throws Exception {
@@ -273,8 +272,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry count correctly fail.
+     * 
      * @throws Exception
-     *          for the invalid parameter
+     *         for the invalid parameter
      */
     @Test
     public void testRetryCount() throws Exception {
@@ -295,8 +295,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid initial retry time correctly fail.
+     * 
      * @throws Exception
-     *          for the invalid parameter
+     *         for the invalid parameter
      */
     @Test
     public void testInitialRetryTime() throws Exception {
@@ -317,8 +318,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid operand correctly fail.
+     * 
      * @throws Exception
-     *          for the invalid parameter
+     *         for the invalid parameter
      */
     @Test
     public void testOperand() throws Exception {
@@ -332,8 +334,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry change correctly fail.
+     * 
      * @throws Exception
-     *          for the invalid parameter
+     *         for the invalid parameter
      */
     @Test
     public void testRetryChange() throws Exception {

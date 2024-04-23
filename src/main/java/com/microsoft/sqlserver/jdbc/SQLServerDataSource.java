@@ -1366,14 +1366,12 @@ public class SQLServerDataSource
 
     @Override
     public void setRetryExec(String retryExec) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(),
-                retryExec);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), retryExec);
     }
 
     @Override
     public String getRetryExec() {
-        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(),
-                null);
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), null);
     }
 
     /**

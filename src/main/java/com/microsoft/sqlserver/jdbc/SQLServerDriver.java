@@ -611,7 +611,7 @@ enum SQLServerDriverStringProperty {
     SERVER_CERTIFICATE("serverCertificate", ""),
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
-    RETRY_EXEC("retryExec","");
+    RETRY_EXEC("retryExec", "");
 
     private final String name;
     private final String defaultValue;

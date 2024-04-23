@@ -272,21 +272,25 @@ public class SQLServerStatement implements ISQLServerStatement {
                 ConfigRetryRule rule = null;
 
                 if (null != sqlServerError) {
-                    rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber(), "statement");
+                    rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber(),
+                            "statement");
                 }
 
                 if (null != rule && retryAttempt < rule.getRetryCount()) {
                     boolean meetsQueryMatch = true;
                     if (!(rule.getRetryQueries().isEmpty())) {
                         // If query has been defined for the rule, we need to query match
-                        meetsQueryMatch = rule.getRetryQueries().contains(ConfigurableRetryLogic.getInstance().getLastQuery().split(" ")[0]);
+                        meetsQueryMatch = rule.getRetryQueries()
+                                .contains(ConfigurableRetryLogic.getInstance().getLastQuery().split(" ")[0]);
                     }
 
                     if (meetsQueryMatch) {
                         try {
                             int timeToWait = rule.getWaitTimes().get(retryAttempt);
-                            if (connection.getQueryTimeoutSeconds() >= 0 && timeToWait > connection.getQueryTimeoutSeconds()) {
-                                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRetryInterval"));
+                            if (connection.getQueryTimeoutSeconds() >= 0
+                                    && timeToWait > connection.getQueryTimeoutSeconds()) {
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_InvalidRetryInterval"));
                                 throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
                             }
                             try {
@@ -295,7 +299,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                                 Thread.currentThread().interrupt();
                             }
                         } catch (IndexOutOfBoundsException exc) {
-                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_indexOutOfRange"));
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_indexOutOfRange"));
                             Object[] msgArgs = {retryAttempt};
                             throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
 
