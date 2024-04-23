@@ -220,7 +220,7 @@ public class FedauthCommon extends AbstractTest {
                 Set<String> scopes = new HashSet<>();
                 scopes.add(spn + "/.default");
                 if (null == fedauthClientApp) {
-                    IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                    IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationClientKey);
                     fedauthClientApp = ConfidentialClientApplication.builder(applicationClientID, credential)
                             .executorService(Executors.newFixedThreadPool(1))
                             .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();

@@ -461,7 +461,7 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null != applicationClientID && null != applicationKey) {
+        if (null != applicationClientID && null != applicationClientKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -471,7 +471,8 @@ public class MSITest extends AESetup {
                     props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID,
+                        applicationClientKey);
                 map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             } finally {
                 if (null != file) {

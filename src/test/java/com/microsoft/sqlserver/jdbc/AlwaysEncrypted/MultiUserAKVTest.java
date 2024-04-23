@@ -100,7 +100,7 @@ public class MultiUserAKVTest extends AESetup {
             tempMap.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null != akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null != akvProvider && null != applicationClientID && null != applicationClientKey) {
             tempMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
 
@@ -313,7 +313,7 @@ public class MultiUserAKVTest extends AESetup {
 
             // Register invalid key store provider on statement level. This will overwrite the previous one.
             SQLServerColumnEncryptionAzureKeyVaultProvider providerWithBadCred = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                    "badApplicationID", "badApplicationKey");
+                    "badApplicationID", "badapplicationClientKey");
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, providerWithBadCred);
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
 
@@ -614,7 +614,7 @@ public class MultiUserAKVTest extends AESetup {
 
         SQLServerColumnEncryptionAzureKeyVaultProvider azureKeyVaultProvider = null;
 
-        if (null != applicationClientID && null != applicationKey) {
+        if (null != applicationClientID && null != applicationClientKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -625,7 +625,7 @@ public class MultiUserAKVTest extends AESetup {
                     props.store(os, "");
                 }
                 azureKeyVaultProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID,
-                        applicationKey);
+                        applicationClientKey);
 
             } finally {
                 if (null != file) {

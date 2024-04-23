@@ -107,7 +107,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                applicationClientID, applicationKey);
+                applicationClientID, applicationClientKey);
         String keystoreName = "keystoreName";
         akv.setName(keystoreName);
         assertTrue(akv.getName().equals(keystoreName), "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
@@ -211,7 +211,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationClientKey);
 
         // null encryptedColumnEncryptionKey
         try {
@@ -290,7 +290,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationClientKey);
 
         // null akvpath
         try {
@@ -2291,7 +2291,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         setAEConnectionString(serverName, url, protocol);
 
         ClientSecretCredential credential = new ClientSecretCredentialBuilder().tenantId(tenantID)
-                .clientId(applicationClientID).clientSecret(applicationKey).build();
+                .clientId(applicationClientID).clientSecret(applicationClientKey).build();
 
         try {
             SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
@@ -2340,7 +2340,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
         @Override
         public String getAccessToken(String authority, String resource, String scope) {
             try {
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationClientKey);
                 ConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).authority(authority).build();
                 Set<String> scopes = new HashSet<>();

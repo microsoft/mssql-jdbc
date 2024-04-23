@@ -58,7 +58,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
-    protected static String applicationKey = null;
+    protected static String applicationClientKey = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
 
@@ -158,7 +158,7 @@ public abstract class AbstractTest {
         connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
 
         applicationClientID = getConfiguredProperty("applicationClientID");
-        applicationKey = getConfiguredProperty("applicationKey");
+        applicationClientKey = getConfiguredProperty("applicationClientKey");
         tenantID = getConfiguredProperty("tenantID");
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
@@ -231,7 +231,7 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null == akvProvider && null != applicationClientID && null != applicationClientKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -241,7 +241,8 @@ public abstract class AbstractTest {
                     props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
                     props.store(os, "");
                 }
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID,
+                        applicationClientKey);
                 map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             } finally {
                 if (null != file) {

@@ -98,14 +98,14 @@ public final class TestUtils {
 
     public static String ACCESS_TOKEN_CALLBACK = null;
 
-    static String applicationKey;
+    static String applicationClientKey;
     static String applicationClientID;
 
     static {
         try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
             Properties configProperties = new Properties();
             configProperties.load(input);
-            applicationKey = configProperties.getProperty("applicationKey");
+            applicationClientKey = configProperties.getProperty("applicationClientKey");
             applicationClientID = configProperties.getProperty("applicationClientID");
         } catch (IOException e) {
             // No config file found
@@ -123,7 +123,7 @@ public final class TestUtils {
 
             try {
                 ExecutorService executorService = Executors.newSingleThreadExecutor();
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationClientKey);
                 ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).executorService(executorService).authority(stsurl)
                         .build();

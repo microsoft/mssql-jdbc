@@ -288,7 +288,7 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + applicationClientID
-                + ";AADSecurePrincipalSecret=" + applicationKey;
+                + ";AADSecurePrincipalSecret=" + applicationClientKey;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -310,7 +310,7 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
-                + applicationKey;
+                + applicationClientKey;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -328,7 +328,7 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidSecret() throws Exception {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
-                + applicationKey;
+                + applicationClientKey;
 
         String invalidSecretUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
@@ -396,7 +396,7 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_MSALExecution");
 
         // Wrong AADSecurePrincipalId provided.
-        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + applicationClientKey;
         validateException(url, "R_MSALExecution");
 
         // AADSecurePrincipalSecret/password not provided.
@@ -406,17 +406,17 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // AADSecurePrincipalId/username not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "AADSecurePrincipalSecret=" + applicationClientKey;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-        url = baseUrl + "password=" + applicationKey;
+        url = baseUrl + "password=" + applicationClientKey;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
 
         // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
-        url = baseUrl + "Username=" + applicationClientID + ";password=" + applicationKey + ";AADSecurePrincipalId="
-                + applicationClientID + ";AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "Username=" + applicationClientID + ";password=" + applicationClientKey
+                + ";AADSecurePrincipalId=" + applicationClientID + ";AADSecurePrincipalSecret=" + applicationClientKey;
         validateException(url, "R_BothUserPasswordandDeprecated");
     }
 

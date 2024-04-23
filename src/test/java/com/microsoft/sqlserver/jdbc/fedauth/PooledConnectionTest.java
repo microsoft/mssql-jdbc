@@ -73,7 +73,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             try {
                 ExecutorService executorService = Executors.newSingleThreadExecutor();
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationClientKey);
                 ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                         .builder(applicationClientID, credential).executorService(executorService)
                         .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();

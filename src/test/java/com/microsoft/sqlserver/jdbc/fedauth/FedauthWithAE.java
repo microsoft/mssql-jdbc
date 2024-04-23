@@ -282,7 +282,7 @@ public class FedauthWithAE extends FedauthCommon {
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKV() throws SQLServerException {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         return registerAKVProvider(
-                new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
+                new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationClientKey));
     }
 
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider(
