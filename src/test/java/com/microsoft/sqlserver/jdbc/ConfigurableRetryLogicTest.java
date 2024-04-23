@@ -197,6 +197,18 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
+     * Tests that CRL works with multiple rules provided at once.
+     */
+    @Test
+    public void multipleRules() {
+        try {
+            testStatementRetry("retryExec={2716:1,2*2:CREATE;2714:1,2*2:CREATE};");
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        }
+    }
+
+    /**
      * Tests that CRL is able to read from a properties file, in the event the connection property is not used.
      */
     @Test
