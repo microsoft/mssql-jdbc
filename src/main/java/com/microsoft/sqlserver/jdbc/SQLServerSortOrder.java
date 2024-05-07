@@ -10,7 +10,7 @@ package com.microsoft.sqlserver.jdbc;
  * Specifies the sorting order
  *
  */
-enum SQLServerSortOrder {
+public enum SQLServerSortOrder {
     ASCENDING(0),
     DESCENDING(1),
     UNSPECIFIED(-1);
