@@ -546,7 +546,7 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropUserIfExists(String userName, Statement stmt) throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.sysuers where name = '" + escapeSingleQuotes(userName)
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
                 + "') DROP USER " + AbstractSQLGenerator.escapeIdentifier(userName));
     }
 
@@ -558,7 +558,7 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropLoginIfExists(String userName, Statement stmt) throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.sysuers where name = '" + escapeSingleQuotes(userName)
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
                 + "') DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(userName));
     }
 
