@@ -233,8 +233,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             String password = "password" + UUID.randomUUID();
 
-            stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP USER "
-                    + escapedNewUser);
+            TestUtils.dropUserIfExists(newUserName, stmt);
+            TestUtils.dropLoginIfExists(newUserName, stmt);
 
             // create new user and login
             try {
