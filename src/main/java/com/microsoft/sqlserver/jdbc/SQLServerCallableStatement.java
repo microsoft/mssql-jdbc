@@ -423,13 +423,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
                 if ((outParamIndex < 0 || outParamIndex >= inOutParam.length)
                         || (!inOutParam[outParamIndex].isOutput())) {
+                    if (outParamHandler.srv.getStatus() == userDefinedFunctionReturnStatus) {
+                        continue;
+                    }
+
                     if (getStatementLogger().isLoggable(java.util.logging.Level.INFO)) {
                         getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex
                                 + "; adjustment: " + outParamIndexAdjustment);
-                    }
-
-                    if (outParamHandler.srv.getStatus() == 2) {
-                        continue;
                     }
 
                     connection.throwInvalidTDS();
