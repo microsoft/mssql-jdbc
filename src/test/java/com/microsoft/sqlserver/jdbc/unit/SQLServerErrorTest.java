@@ -41,11 +41,16 @@ public class SQLServerErrorTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
-    public void testLoginFailedError() {
+    public void testLoginFailedError() {        
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(connectionString);
-        ds.setLoginTimeout(loginTimeOutInSeconds);
-        ds.setPassword("");
+
+        // test to remove password only valid for password auth
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        if (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")) {
+            ds.setURL(connectionString);
+            ds.setLoginTimeout(loginTimeOutInSeconds);
+            ds.setPassword("");
+        }
         try (SQLServerConnection connection = (SQLServerConnection) ds.getConnection()) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLServerException e) {
