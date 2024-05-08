@@ -62,7 +62,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
-    private static final String newUserName = RandomUtil.getIdentifier("newUser");
+    private static final String newUserName = "newUser" + uuid;
     private static final String schema = "schema_demo" + uuid;
     private static final String escapedSchema = "schema\\_demo" + uuid;
     private static final String tableNameWithSchema = schema + ".resource";
