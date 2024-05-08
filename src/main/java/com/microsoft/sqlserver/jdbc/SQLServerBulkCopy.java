@@ -2622,7 +2622,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Writes sql_variant data based on the baseType for bulkcopy
      * 
      * @throws SQLServerException
-     *          an exception
+     *         an exception
      */
     private void writeSqlVariant(TDSWriter tdsWriter, Object colValue, ResultSet sourceResultSet, int srcColOrdinal,
             int destColOrdinal, int bulkJdbcType, boolean isStreaming) throws SQLServerException {
