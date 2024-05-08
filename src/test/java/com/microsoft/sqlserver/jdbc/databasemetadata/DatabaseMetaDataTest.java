@@ -62,6 +62,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
+    private static final String newUserName = "newUser" + uuid;
     private static final String schema = "schema_demo" + uuid;
     private static final String escapedSchema = "schema\\_demo" + uuid;
     private static final String tableNameWithSchema = schema + ".resource";
@@ -227,14 +228,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testImpersonateGetUserName() throws SQLException {
-        String newUser = "newUser" + UUID.randomUUID();
+        String escapedNewUser = AbstractSQLGenerator.escapeIdentifier(newUserName);
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            String escapedNewUser = AbstractSQLGenerator.escapeIdentifier(newUser);
             String password = "password" + UUID.randomUUID();
 
-            stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP USER"
-                    + escapedNewUser);
+            TestUtils.dropUserIfExists(newUserName, stmt);
+            TestUtils.dropLoginIfExists(newUserName, stmt);
 
             // create new user and login
             try {
@@ -248,17 +248,17 @@ public class DatabaseMetaDataTest extends AbstractTest {
             }
 
             DatabaseMetaData databaseMetaData = conn.getMetaData();
-            try (CallableStatement asOtherUser = conn.prepareCall("EXECUTE AS USER = '" + newUser + "'")) {
+            try (CallableStatement asOtherUser = conn.prepareCall("EXECUTE AS USER = '" + newUserName + "'")) {
                 asOtherUser.execute();
-                assertTrue(newUser.equalsIgnoreCase(databaseMetaData.getUserName()),
+                assertTrue(newUserName.equalsIgnoreCase(databaseMetaData.getUserName()),
                         TestResource.getResource("R_userNameNotMatch"));
             } catch (Exception e) {
                 fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
-            } finally {
-                stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP USER"
-                        + escapedNewUser);
-                stmt.execute("IF EXISTS (select * from sys.sysusers where name = '" + escapedNewUser + "') DROP LOGIN"
-                        + escapedNewUser);
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropUserIfExists(newUserName, stmt);
+                TestUtils.dropLoginIfExists(newUserName, stmt);
             }
         }
     }
@@ -1049,6 +1049,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
             TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
             TestUtils.dropSchemaIfExists(schema, stmt);
+            TestUtils.dropUserIfExists(newUserName, stmt);
+            TestUtils.dropLoginIfExists(newUserName, stmt);
         }
     }
 }
