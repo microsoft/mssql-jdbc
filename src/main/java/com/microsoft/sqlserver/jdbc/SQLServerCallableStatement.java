@@ -269,7 +269,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // the response stream.
             for (int index = 0; index < inOutParam.length; ++index) {
                 if (index != outParamIndex && inOutParam[index].isValueGotten()) {
-                    assert inOutParam[index].isOutput();
                     inOutParam[index].resetOutputValue();
                 }
             }
@@ -428,6 +427,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                         getStatementLogger().info(toString() + " Unexpected outParamIndex: " + outParamIndex
                                 + "; adjustment: " + outParamIndexAdjustment);
                     }
+
+                    if (outParamHandler.srv.getStatus() == 2) {
+                        continue;
+                    }
+
                     connection.throwInvalidTDS();
                 }
 

@@ -1156,6 +1156,7 @@ public class CallableStatementTest extends AbstractTest {
         String table = "serverList";
 
         try (Statement stmt = connection.createStatement()) {
+            stmt.execute("EXEC sp_droplinkedsrvlogin @rmtsrvname='" + linkedServer + "', @localLogin=NULL;");
             stmt.execute("IF OBJECT_ID(N'" + table + "') IS NOT NULL DROP TABLE " + table);
             stmt.execute("CREATE TABLE " + table
                     + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
@@ -1187,6 +1188,9 @@ public class CallableStatementTest extends AbstractTest {
                 Statement stmt = linkedServerConnection.createStatement()) {
             stmt.execute(
                     "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
+
+            stmt.execute(
+                    "create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
         }
 
         try (CallableStatement cstmt = connection
@@ -1210,6 +1214,14 @@ public class CallableStatementTest extends AbstractTest {
             cstmt.registerOutParameter(3, Types.INTEGER);
             cstmt.execute();
             assertEquals(sum, cstmt.getInt(3));
+        }
+
+        try (CallableStatement cstmt = connection.prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
+            int expected = 15;
+            cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
+            cstmt.setInt(2, 5);
+            cstmt.execute();
+            assertEquals(expected, cstmt.getInt(3));
         }
     }
 
