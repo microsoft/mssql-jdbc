@@ -1156,7 +1156,6 @@ public class CallableStatementTest extends AbstractTest {
         String table = "serverList";
 
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("EXEC sp_droplinkedsrvlogin @rmtsrvname='" + linkedServer + "', @localLogin=NULL;");
             stmt.execute("IF OBJECT_ID(N'" + table + "') IS NOT NULL DROP TABLE " + table);
             stmt.execute("CREATE TABLE " + table
                     + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
