@@ -1221,7 +1221,7 @@ public class CallableStatementTest extends AbstractTest {
             cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
             cstmt.setInt(2, 5);
             cstmt.execute();
-            assertEquals(expected, cstmt.getInt(3));
+            assertEquals(expected, cstmt.getInt(1));
         }
     }
 
