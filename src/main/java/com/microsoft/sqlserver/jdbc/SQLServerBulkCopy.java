@@ -2596,7 +2596,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         throw new SQLServerException(null, form.format(new Object[] {}), null, 0, false);
                     }
                     writeSqlVariant(tdsWriter, colValue, sourceResultSet, srcColOrdinal, destColOrdinal, bulkJdbcType,
-                            bulkScale, isStreaming);
+                            isStreaming);
                     break;
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
@@ -2622,9 +2622,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Writes sql_variant data based on the baseType for bulkcopy
      * 
      * @throws SQLServerException
+     *         an exception
      */
     private void writeSqlVariant(TDSWriter tdsWriter, Object colValue, ResultSet sourceResultSet, int srcColOrdinal,
-            int destColOrdinal, int bulkJdbcType, int bulkScale, boolean isStreaming) throws SQLServerException {
+            int destColOrdinal, int bulkJdbcType, boolean isStreaming) throws SQLServerException {
         if (null == colValue) {
             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
             return;
@@ -2633,7 +2634,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         int baseType = variantType.getBaseType();
         byte[] srcBytes;
         // for sql variant we normally should return the colvalue for time as time string. but for
-        // bulkcopy we need it to be timestamp. so we have to retrieve it again once we are in bulkcopy
+        // bulkcopy we need it to be a timestamp. so we have to retrieve it again once we are in bulkcopy
         // and make sure that the base type is time.
         if (TDSType.TIMEN == TDSType.valueOf(baseType)) {
             variantType.setIsBaseTypeTimeValue(true);
@@ -2671,16 +2672,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 tdsWriter.writeReal(Float.valueOf(colValue.toString()));
                 break;
 
+            case MONEY4:
             case MONEY8:
                 // For decimalN we right TDSWriter.BIGDECIMAL_MAX_LENGTH as maximum length = 17
                 // 17 + 2 for basetype and probBytes + 2 for precision and length = 21 the length of data in header
-                writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
-                tdsWriter.writeByte((byte) 38);
-                tdsWriter.writeByte((byte) 4);
-                tdsWriter.writeSqlVariantInternalBigDecimal((BigDecimal) colValue, bulkJdbcType);
-                break;
-
-            case MONEY4:
                 writeBulkCopySqlVariantHeader(21, TDSType.DECIMALN.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeByte((byte) 38);
                 tdsWriter.writeByte((byte) 4);
@@ -2791,9 +2786,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case GUID:
                 length = colValue.toString().length();
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
-                // since while reading collation from sourceMetaData in guid we don't read collation, cause we are
-                // reading binary
-                // but in writing it we are using char, we need to get the collation.
+                // since while reading collation from sourceMetaData in GUID we don't read collation, because we are
+                // reading binary, but in writing it we are using char, so we need to get the collation.
                 SQLCollation collation = (null != destColumnMetadata.get(srcColOrdinal).collation) ? destColumnMetadata
                         .get(srcColOrdinal).collation : connection.getDatabaseCollation();
                 variantType.setCollation(collation);
