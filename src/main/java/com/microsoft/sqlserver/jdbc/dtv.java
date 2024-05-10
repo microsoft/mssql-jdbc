@@ -1902,6 +1902,15 @@ final class DTV {
                     op.execute(this, (Clob) value);
                     break;
 
+                case UUID:
+                    if (null != cryptoMeta) {
+                        byte[] bArray = Util.asGuidByteArray((UUID) value);
+                        op.execute(this, bArray);
+                    } else {
+                        op.execute(this, (UUID) value);
+                    }
+                    break;
+
                 case INPUTSTREAM:
                     op.execute(this, (InputStream) value);
                     break;

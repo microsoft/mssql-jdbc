@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.UUID;
 
 
 enum TDSType {
@@ -424,6 +425,7 @@ enum JavaType {
     TVP(com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
     GEOMETRY(Geometry.class, JDBCType.GEOMETRY),
     GEOGRAPHY(Geography.class, JDBCType.GEOGRAPHY),
+    UUID(UUID.class, JDBCType.GUID),
 
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
