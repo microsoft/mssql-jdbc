@@ -113,13 +113,15 @@ public class GuidTest extends AbstractTest {
         try (SQLServerResultSet rs = (SQLServerResultSet) pstmt.getResultSet()) {
             rs.next();
 
-            if (GuidTest.TestType.SETNULL == testType) {
+            if (TestType.SETNULL == testType) {
                 String s = rs.getUniqueIdentifier(1);
                 assertNull(s);
                 assertTrue(rs.wasNull());
             } else {
-                assertEquals(obj, UUID.fromString(rs.getUniqueIdentifier(1)));
-                assertEquals(obj, rs.getObject(1, UUID.class));
+                UUID expected = obj instanceof UUID ? (UUID) obj : UUID.fromString(obj.toString());
+                assertEquals(expected, UUID.fromString(rs.getUniqueIdentifier(1)));
+                assertEquals(expected, UUID.fromString(rs.getObject(1, String.class)));
+                assertEquals(expected, rs.getObject(1, UUID.class));
             }
         }
     }
