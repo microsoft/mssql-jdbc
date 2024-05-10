@@ -29,9 +29,7 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -1910,9 +1908,11 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                         case "LONGNVARCHAR":
                             pstmt.setNString(1, values[i + 1 / 3]);
                             break;
-                        case "GUID":
-                            pstmt.setUniqueIdentifier(1, null);
+                        case "GUIDSTRING":
                             pstmt.setUniqueIdentifier(1, Constants.UID);
+                            break;
+                        case "GUID":
+                            pstmt.setObject(1, UUID.fromString(Constants.UID));
                             break;
                         case "BIT":
                             if (values[i + 1 / 3].equals("null")) {
@@ -2121,7 +2121,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
                 populateCharSetObject(values);
                 break;
             case SETOBJECT_NULL:
-                populateDateSetObjectNull();
+                populateCharSetObjectNull();
                 break;
             case SETOBJECT_WITH_JDBCTYPES:
                 populateCharSetObjectWithJDBCTypes(values);

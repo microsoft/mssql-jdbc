@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
@@ -103,6 +104,7 @@ public class AESetup extends AbstractTest {
             {"Nchar", "nchar(30) COLLATE Latin1_General_BIN2", "NCHAR"},
             {"Nvarchar", "nvarchar(60) COLLATE Latin1_General_BIN2", "NCHAR"},
             {"NvarcharMax", "nvarchar(max) COLLATE Latin1_General_BIN2", "LONGNVARCHAR"},
+            {"UniqueidentifierString", "uniqueidentifier", "GUIDSTRING"},
             {"Uniqueidentifier", "uniqueidentifier", "GUID"},
             {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
@@ -451,7 +453,7 @@ public class AESetup extends AbstractTest {
         String nvarchar4000 = RandomData.generateNCharTypes("4000", nullable, encrypted);
 
         String[] values = {char20.trim(), varchar50, varcharmax, nchar30, nvarchar60, nvarcharmax, Constants.UID,
-                varchar8000, nvarchar4000};
+                Constants.UID, varchar8000, nvarchar4000};
 
         return values;
     }
@@ -850,23 +852,34 @@ public class AESetup extends AbstractTest {
                 pstmt.setNString(i, charValues[5]);
             }
 
-            // uniqueidentifier
+            // uniqueidentifier as String
             for (int i = 19; i <= 21; i++) {
                 if (null == charValues[6]) {
                     pstmt.setUniqueIdentifier(i, null);
                 } else {
-                    pstmt.setUniqueIdentifier(i, Constants.UID);
+                    pstmt.setUniqueIdentifier(i, charValues[6]);
+                }
+            }
+
+            // uniqueidentifier
+            for (int i = 22; i <= 24; i++) {
+                if (null == charValues[7]) {
+                    pstmt.setUniqueIdentifier(i, null);
+                } else {
+                    // cannot override setUniqueIdentifier to accept UUID parameter without breaking compatibility
+                    // falling back to testing UUID string parameter
+                    pstmt.setUniqueIdentifier(i, charValues[6]);
                 }
             }
 
             // varchar8000
-            for (int i = 22; i <= 24; i++) {
-                pstmt.setString(i, charValues[7]);
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setString(i, charValues[8]);
             }
 
             // nvarchar4000
-            for (int i = 25; i <= 27; i++) {
-                pstmt.setNString(i, charValues[8]);
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setNString(i, charValues[9]);
             }
 
             pstmt.execute();
@@ -917,25 +930,97 @@ public class AESetup extends AbstractTest {
                 pstmt.setObject(i, charValues[5], java.sql.Types.LONGNVARCHAR);
             }
 
-            // uniqueidentifier
+            // uniqueidentifier as String
             for (int i = 19; i <= 21; i++) {
                 pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
             }
 
-            // varchar8000
+            // uniqueidentifier
             for (int i = 22; i <= 24; i++) {
-                pstmt.setObject(i, charValues[7]);
+                pstmt.setObject(i, UUID.fromString(charValues[7]), microsoft.sql.Types.GUID);
+            }
+
+            // varchar8000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, charValues[8]);
             }
 
             // nvarchar4000
-            for (int i = 25; i <= 27; i++) {
-                pstmt.setObject(i, charValues[8], java.sql.Types.NCHAR);
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, charValues[9], java.sql.Types.NCHAR);
             }
 
             pstmt.execute();
         }
     }
 
+    /**
+     * Populate char data with null data.
+     * 
+     * @throws SQLException
+     */
+    protected static void populateCharSetObjectNull() throws SQLException {
+        String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, null, java.sql.Types.CHAR);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, null, java.sql.Types.VARCHAR);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, null, java.sql.Types.LONGVARCHAR);
+            }
+
+            // nchar
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NCHAR);
+            }
+
+            // nvarchar
+            for (int i = 13; i <= 15; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NVARCHAR);
+            }
+
+            // nvarchar(max)
+            for (int i = 16; i <= 18; i++) {
+                pstmt.setObject(i, null, java.sql.Types.LONGNVARCHAR);
+            }
+
+            // uniqueidentifier as String
+            for (int i = 19; i <= 21; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.GUID);
+            }
+
+            // uniqueidentifier
+            for (int i = 22; i <= 24; i++) {
+                pstmt.setObject(i, null, microsoft.sql.Types.GUID);
+            }
+
+            // varchar8000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, null, java.sql.Types.VARCHAR);
+            }
+
+            // nvarchar4000
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, null, java.sql.Types.NCHAR);
+            }
+
+            pstmt.execute();
+        }
+    }
+    
     /**
      * Populate char data using set object with JDBC types.
      * 
@@ -980,19 +1065,24 @@ public class AESetup extends AbstractTest {
                 pstmt.setObject(i, charValues[5], JDBCType.LONGNVARCHAR);
             }
 
-            // uniqueidentifier
+            // uniqueidentifier as String
             for (int i = 19; i <= 21; i++) {
                 pstmt.setObject(i, charValues[6], microsoft.sql.Types.GUID);
             }
 
-            // varchar8000
+            // uniqueidentifier
             for (int i = 22; i <= 24; i++) {
-                pstmt.setObject(i, charValues[7], JDBCType.VARCHAR);
+                pstmt.setObject(i, UUID.fromString(charValues[7]), microsoft.sql.Types.GUID);
+            }
+
+            // varchar8000
+            for (int i = 25; i <= 27; i++) {
+                pstmt.setObject(i, charValues[8], JDBCType.VARCHAR);
             }
 
             // vnarchar4000
-            for (int i = 25; i <= 27; i++) {
-                pstmt.setObject(i, charValues[8], JDBCType.NVARCHAR);
+            for (int i = 28; i <= 30; i++) {
+                pstmt.setObject(i, charValues[9], JDBCType.NVARCHAR);
             }
 
             pstmt.execute();
@@ -1032,19 +1122,18 @@ public class AESetup extends AbstractTest {
                 pstmt.setNull(i, java.sql.Types.NVARCHAR);
             }
 
-            // uniqueidentifier
-            for (int i = 19; i <= 21; i++) {
+            // uniqueidentifier as String, uniqueidentifier
+            for (int i = 19; i <= 24; i++) {
                 pstmt.setNull(i, microsoft.sql.Types.GUID);
-
             }
 
             // varchar8000
-            for (int i = 22; i <= 24; i++) {
+            for (int i = 24; i <= 27; i++) {
                 pstmt.setNull(i, java.sql.Types.VARCHAR);
             }
 
             // nvarchar4000
-            for (int i = 25; i <= 27; i++) {
+            for (int i = 28; i <= 30; i++) {
                 pstmt.setNull(i, java.sql.Types.NVARCHAR);
             }
 
