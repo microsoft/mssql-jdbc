@@ -539,6 +539,30 @@ public final class TestUtils {
     }
 
     /**
+     * mimic "DROP USER..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP USER " + AbstractSQLGenerator.escapeIdentifier(userName));
+    }
+
+    /**
+     * mimic "DROP LOGIN..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropLoginIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(userName));
+    }
+
+    /**
      * <pre>
      * This method drops objects for below types:
      * 
@@ -1115,7 +1139,7 @@ public final class TestUtils {
     public static void freeProcCache(Statement stmt) {
         try {
             stmt.execute("DBCC FREEPROCCACHE");
-        // ignore error
+            // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
         } catch (Exception e) {}
     }
 }
