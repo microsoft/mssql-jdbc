@@ -50,7 +50,7 @@ public class FipsTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
-                    TestResource.getResource("R_invalidTrustCert"));
+                    TestResource.getResource("R_invalidTrustCert") + ": " + e.getMessage());
         }
     }
 
@@ -62,13 +62,19 @@ public class FipsTest extends AbstractTest {
      */
     @Test
     public void fipsEncryptTest() throws Exception {
+        // test doesn't apply to managed identity as encrypt is set to on by default
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null && !(auth.equalsIgnoreCase("ActiveDirectoryManagedIdentity")
+                || auth.equalsIgnoreCase("ActiveDirectoryMSI")));
+
         Properties props = buildConnectionProperties();
         props.setProperty(Constants.ENCRYPT, Boolean.FALSE.toString());
+        System.out.println("fipsEncryptTest connectionString=" + connectionString);
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
-                    TestResource.getResource("R_invalidEncrypt"));
+                    TestResource.getResource("R_invalidTrustCert") + ": " + e.getMessage());
         }
     }
 
@@ -118,6 +124,11 @@ public class FipsTest extends AbstractTest {
      */
     @Test
     public void fipsDatSourceEncrypt() {
+        // test doesn't apply to managed identity as encrypt is set to on by default
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null && !(auth.equalsIgnoreCase("ActiveDirectoryManagedIdentity")
+                || auth.equalsIgnoreCase("ActiveDirectoryMSI")));
+
         SQLServerDataSource ds = new SQLServerDataSource();
         setDataSourceProperties(ds);
         ds.setEncrypt(Constants.FALSE);
@@ -126,7 +137,7 @@ public class FipsTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
-                    TestResource.getResource("R_invalidEncrypt"));
+                    TestResource.getResource("R_invalidEncrypt") + ": " + e.getMessage());
         }
     }
 
@@ -146,7 +157,7 @@ public class FipsTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
             Assertions.assertTrue(e.getMessage().contains(TestResource.getResource("R_invalidFipsConfig")),
-                    TestResource.getResource("R_invalidTrustCert"));
+                    TestResource.getResource("R_invalidTrustCert") + ": " + e.getMessage());
         }
     }
 

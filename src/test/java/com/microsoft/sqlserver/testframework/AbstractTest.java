@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -299,19 +301,23 @@ public abstract class AbstractTest {
     }
 
     protected static void setConnection() throws Exception {
-        setupConnectionString();
+        try {
+            setupConnectionString();
 
-        Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
-        Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-        if (!SQLServerDriver.isRegistered()) {
-            SQLServerDriver.register();
-        }
-        if (null == connection || connection.isClosed()) {
-            connection = getConnection();
-        }
-        isSqlAzureOrAzureDW(connection);
+            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+            if (!SQLServerDriver.isRegistered()) {
+                SQLServerDriver.register();
+            }
+            if (null == connection || connection.isClosed()) {
+                connection = getConnection();
+            }
+            isSqlAzureOrAzureDW(connection);
 
-        checkSqlOS(connection);
+            checkSqlOS(connection);
+        } catch (Exception e) {
+            fail("setConnection failed, connectionString=" + connectionString + "\nException: " + e.getMessage());
+        }
     }
 
     /**
