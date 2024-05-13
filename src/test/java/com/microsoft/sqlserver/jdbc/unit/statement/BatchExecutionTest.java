@@ -184,7 +184,7 @@ public class BatchExecutionTest extends AbstractTest {
                 stmt.execute(createSql);
 
                 Timestamp timestamp = new Timestamp(ms);
-                
+
                 pstmt.setTimestamp(1, timestamp, gmtCal);
                 pstmt.addBatch();
                 pstmt.executeBatch();
