@@ -216,7 +216,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
 
         if (inOutParam[i - 1].isReturnValue() && bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType
-                && returnValueStatus != userDefinedFunctionReturnStatus) {
+                && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
             return inOutParam[i - 1];
         }
 
@@ -364,7 +364,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         OutParamHandler outParamHandler = new OutParamHandler();
 
         if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType
-                && callRPCDirectly(inOutParam) && returnValueStatus != userDefinedFunctionReturnStatus) {
+                && callRPCDirectly(inOutParam) && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
             nOutParamsAssigned++;
         }
 
@@ -413,7 +413,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
 
                 if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && callRPCDirectly(inOutParam)
-                        && returnValueStatus != userDefinedFunctionReturnStatus) {
+                        && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
                     outParamIndex++;
                 } else {
                     // Statements need to have their out param indices adjusted by the number
@@ -423,7 +423,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
                 if ((outParamIndex < 0 || outParamIndex >= inOutParam.length)
                         || (!inOutParam[outParamIndex].isOutput())) {
-                    if (outParamHandler.srv.getStatus() == userDefinedFunctionReturnStatus) {
+
+                    // For RPC calls with out parameters, the initial return value token will indicate
+                    // it being a RPC. In such case, consume the token as it does not contain the out parameter
+                    // value. The subsequent token will have the value.
+                    if (outParamHandler.srv.getStatus() == USER_DEFINED_FUNCTION_RETURN_STATUS) {
                         continue;
                     }
 
