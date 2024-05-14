@@ -6043,18 +6043,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
 
-                // get and validate connection retry values
-                validateConnectionRetry();
-                
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-                    fedAuthToken = SQLServerMSAL4JUtils.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId, connectRetryCount, connectRetryInterval);
+                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                            managedIdentityClientId);
                     break;
                 }
 
-                fedAuthToken = SQLServerMSAL4JUtils.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
-                        connectRetryCount, connectRetryInterval);
+                fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6181,12 +6177,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
 
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-                    fedAuthToken = SQLServerMSAL4JUtils.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                    fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
                             managedIdentityClientId);
                     break;
                 }
 
-                fedAuthToken = SQLServerMSAL4JUtils.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
 
                 break;
