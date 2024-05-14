@@ -535,7 +535,7 @@ public final class TestUtils {
      */
     public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
         stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
-                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+                + "') DROP SCHEMA" + AbstractSQLGenerator.escapeIdentifier(schemaName));
     }
 
     /**
@@ -1139,7 +1139,8 @@ public final class TestUtils {
     public static void freeProcCache(Statement stmt) {
         try {
             stmt.execute("DBCC FREEPROCCACHE");
+        } catch (Exception e) {
             // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
-        } catch (Exception e) {}
+        }
     }
 }
