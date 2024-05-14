@@ -465,9 +465,6 @@ class SQLServerMSAL4JUtils {
             logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
         }
 
-        System.out.println("Getting Managed Identity authentication token for: " + managedIdentityClientId
-                + " retryCount=" + retryCount + " retryInterval=" + retryInterval);
-
         if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
             mic = new ManagedIdentityCredentialBuilder().clientId(managedIdentityClientId).maxRetry(retryCount)
                     .retryTimeout(duration -> Duration.ofSeconds(retryInterval)).build();
@@ -498,7 +495,6 @@ class SQLServerMSAL4JUtils {
             logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
         }
 
-        System.out.println("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
         return sqlFedAuthToken;
     }
 

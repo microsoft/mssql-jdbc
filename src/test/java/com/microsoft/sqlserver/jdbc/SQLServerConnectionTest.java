@@ -484,9 +484,10 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
-                                    && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMSI").toLowerCase())),
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && (e.getMessage()
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())
+                                    || e.getMessage().toLowerCase()
+                                            .contains(TestResource.getResource("R_MInotAvailable").toLowerCase()))),
                     e.getMessage());
             long totalTime = System.currentTimeMillis() - timerStart;
 
@@ -804,7 +805,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null
                                     && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMSI").toLowerCase())),
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -837,7 +838,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null
                                     && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMSI").toLowerCase())),
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -870,7 +871,7 @@ public class SQLServerConnectionTest extends AbstractTest {
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null
                                     && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMSI").toLowerCase())),
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
