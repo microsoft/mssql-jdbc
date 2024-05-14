@@ -8,20 +8,11 @@ package com.microsoft.sqlserver.jdbc;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.Iterator;
 import java.util.List;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-
-import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
 
 
 /**
@@ -39,12 +30,6 @@ class SQLServerSecurityUtility {
     static final int NETWORK_CONNECT_TIMEOUT_ERROR = 599;
 
     static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
-
-    // Environment variable for intellij keepass database path
-    private static final String INTELLIJ_KEEPASS_PASS = "INTELLIJ_KEEPASS_PATH";
-
-    // Environment variable for additionally allowed tenants. The tenantIds are comma delimited
-    private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
 
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
@@ -317,117 +302,5 @@ class SQLServerSecurityUtility {
         if (!provider.verifyColumnMasterKeyMetadata(keyPath, isEnclaveEnabled, cmkSignature)) {
             throw new SQLServerException(SQLServerException.getErrString("R_VerifySignatureFailed"), null);
         }
-    }
-
-    /**
-     * Get Managed Identity Authentication token through a ManagedIdentityCredential
-     * 
-     * @param resource
-     *        Token resource.
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
-     * @return fedauth token
-     * @throws SQLServerException
-     */
-    static SqlAuthenticationToken getManagedIdentityCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
-        ManagedIdentityCredential mic = null;
-
-        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
-            logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
-        }
-
-        if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-            mic = new ManagedIdentityCredentialBuilder().clientId(managedIdentityClientId).build();
-        } else {
-            mic = new ManagedIdentityCredentialBuilder().build();
-        }
-
-        TokenRequestContext tokenRequestContext = new TokenRequestContext();
-        String scope = resource.endsWith(SQLServerMSAL4JUtils.SLASH_DEFAULT) ? resource : resource
-                + SQLServerMSAL4JUtils.SLASH_DEFAULT;
-        tokenRequestContext.setScopes(Arrays.asList(scope));
-
-        SqlAuthenticationToken sqlFedAuthToken = null;
-
-        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).blockOptional();
-
-        if (!accessTokenOptional.isPresent()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
-                    null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toEpochSecond());
-        }
-
-        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
-            logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
-        }
-
-        return sqlFedAuthToken;
-    }
-
-    /**
-     * Get Managed Identity Authentication token through the DefaultAzureCredential
-     *
-     * @param resource
-     *        Token resource.
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
-     * @return fedauth token
-     * @throws SQLServerException
-     */
-    static SqlAuthenticationToken getDefaultAzureCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
-        String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
-        String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
-
-        DefaultAzureCredentialBuilder dacBuilder = new DefaultAzureCredentialBuilder();
-        DefaultAzureCredential dac = null;
-
-        if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-            dacBuilder.managedIdentityClientId(managedIdentityClientId);
-        }
-
-        if (null != intellijKeepassPath && !intellijKeepassPath.isEmpty()) {
-            dacBuilder.intelliJKeePassDatabasePath(intellijKeepassPath);
-        }
-
-        if (null != additionallyAllowedTenants && additionallyAllowedTenants.length != 0) {
-            dacBuilder.additionallyAllowedTenants(additionallyAllowedTenants);
-        }
-
-        dac = dacBuilder.build();
-
-        TokenRequestContext tokenRequestContext = new TokenRequestContext();
-        String scope = resource.endsWith(SQLServerMSAL4JUtils.SLASH_DEFAULT) ? resource : resource
-                + SQLServerMSAL4JUtils.SLASH_DEFAULT;
-        tokenRequestContext.setScopes(Arrays.asList(scope));
-
-        SqlAuthenticationToken sqlFedAuthToken = null;
-
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional();
-
-        if (!accessTokenOptional.isPresent()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
-                    null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toEpochSecond());
-        }
-
-        return sqlFedAuthToken;
-    }
-
-    private static String[] getAdditonallyAllowedTenants() {
-        String additonallyAllowedTenants = System.getenv(ADDITIONALLY_ALLOWED_TENANTS);
-
-        if (null != additonallyAllowedTenants && !additonallyAllowedTenants.isEmpty()) {
-            return System.getenv(ADDITIONALLY_ALLOWED_TENANTS).split(",");
-        }
-
-        return null;
     }
 }
