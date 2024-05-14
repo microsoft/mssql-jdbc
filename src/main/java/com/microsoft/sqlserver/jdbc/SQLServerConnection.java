@@ -6043,6 +6043,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 String managedIdentityClientId = activeConnectionProperties
                         .getProperty(SQLServerDriverStringProperty.USER.toString());
 
+                // get and validate connection retry values
+                validateConnectionRetry();
+                
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerMSAL4JUtils.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
                             managedIdentityClientId, connectRetryCount, connectRetryInterval);
