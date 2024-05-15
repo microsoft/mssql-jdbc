@@ -346,6 +346,42 @@
 			</build>
 		</profile>
 		<profile>
+			<id>jre21</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>21</source>
+							<target>21</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>jre22</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
