@@ -1188,8 +1188,7 @@ public class CallableStatementTest extends AbstractTest {
             stmt.execute(
                     "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
 
-            stmt.execute(
-                    "create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
+            stmt.execute("create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
         }
 
         try (CallableStatement cstmt = connection
@@ -1215,7 +1214,8 @@ public class CallableStatementTest extends AbstractTest {
             assertEquals(sum, cstmt.getInt(3));
         }
 
-        try (CallableStatement cstmt = connection.prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
+        try (CallableStatement cstmt = connection
+                .prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
             int expected = 15;
             cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
             cstmt.setInt(2, 5);
