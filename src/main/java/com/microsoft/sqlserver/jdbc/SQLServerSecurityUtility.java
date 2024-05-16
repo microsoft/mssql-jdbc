@@ -352,9 +352,8 @@ class SQLServerSecurityUtility {
         if (null == mic) {
             LOCK.lock();
 
-            mic = (ManagedIdentityCredential) getCredentialFromCache(key);
-
             try {
+                mic = (ManagedIdentityCredential) getCredentialFromCache(key);
                 if (null == mic) {
                     ManagedIdentityCredentialBuilder micBuilder = new ManagedIdentityCredentialBuilder();
 
