@@ -428,9 +428,8 @@ class SQLServerSecurityUtility {
         if (null == dac) {
             LOCK.lock();
 
-            dac = (DefaultAzureCredential) getCredentialFromCache(key);
-
             try {
+                dac = (DefaultAzureCredential) getCredentialFromCache(key);
                 if (null == dac) {
                     DefaultAzureCredentialBuilder dacBuilder = new DefaultAzureCredentialBuilder();
 
