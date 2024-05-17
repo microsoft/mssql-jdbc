@@ -344,13 +344,14 @@ final class DDC {
         return valueBytes;
     }
 
-    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) {
+    static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) throws SQLServerException {
         byte[] valueBytes = new byte[bLength];
 
         BigInteger bi = bigDecimalVal.unscaledValue();
 
         if (bLength == 8) {
             // money
+            Util.validateMoneyRange(bigDecimalVal, JDBCType.MONEY);
             byte[] longbArray = new byte[bLength];
             Util.writeLong(bi.longValue(), longbArray, 0);
             /*
@@ -362,6 +363,7 @@ final class DDC {
             System.arraycopy(longbArray, 4, valueBytes, 0, 4);
         } else {
             // smallmoney
+            Util.validateMoneyRange(bigDecimalVal, JDBCType.SMALLMONEY);
             Util.writeInt(bi.intValue(), valueBytes, 0);
         }
 
