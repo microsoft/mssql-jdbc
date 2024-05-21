@@ -13,6 +13,9 @@ import java.io.CharArrayReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -26,11 +29,27 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Assert;
+
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.IClientCredential;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
@@ -74,6 +93,97 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
+
+    public static final int TEST_TOKEN_EXPIRY_SECONDS = 120; // token expiry time in secs
+
+    public static String ACCESS_TOKEN_CALLBACK = null;
+
+    static String applicationKey;
+    static String applicationClientID;
+
+    static {
+        try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
+            Properties configProperties = new Properties();
+            configProperties.load(input);
+            applicationKey = configProperties.getProperty("applicationKey");
+            applicationClientID = configProperties.getProperty("applicationClientID");
+        } catch (IOException e) {
+            // No config file found
+        }
+    }
+
+    public static boolean expireTokenToggle = false;
+
+    public static final SQLServerAccessTokenCallback accessTokenCallback = new SQLServerAccessTokenCallback() {
+        @Override
+        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
+            String scope = spn + "/.default";
+            Set<String> scopes = new HashSet<>();
+            scopes.add(scope);
+
+            try {
+                ExecutorService executorService = Executors.newSingleThreadExecutor();
+                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                ConfidentialClientApplication clientApplication = ConfidentialClientApplication
+                        .builder(applicationClientID, credential).executorService(executorService).authority(stsurl)
+                        .build();
+                CompletableFuture<IAuthenticationResult> future = clientApplication
+                        .acquireToken(ClientCredentialParameters.builder(scopes).build());
+
+                IAuthenticationResult authenticationResult = future.get();
+                String accessToken = authenticationResult.accessToken();
+                long expiresOn = authenticationResult.expiresOnDate().getTime();
+
+                ACCESS_TOKEN_CALLBACK = accessToken;
+
+                if (expireTokenToggle) {
+                    Date now = new Date();
+                    long minutesToExpireWithin = TEST_TOKEN_EXPIRY_SECONDS * 1000; // Expire within 2 minutes
+                    return new SqlAuthenticationToken(accessToken, now.getTime() + minutesToExpireWithin);
+                } else {
+                    return new SqlAuthenticationToken(accessToken, expiresOn);
+                }
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+            return null;
+        }
+    };
+
+    public static void setAccessTokenExpiry(Object con, String accessToken) {
+        Field fedAuthTokenField;
+        try {
+            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
+            fedAuthTokenField.setAccessible(true);
+
+            Date newExpiry = new Date(
+                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
+            SqlAuthenticationToken newFedAuthToken = new SqlAuthenticationToken(accessToken, newExpiry);
+            fedAuthTokenField.set(con, newFedAuthToken);
+        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+            Assert.fail("Failed to set token expiry: " + e.getMessage());
+        }
+    }
+
+    public static void setAccessTokenExpiry(Object con) {
+        Field fedAuthTokenField;
+        Field wrappedConnection;
+        try {
+            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
+            fedAuthTokenField.setAccessible(true);
+
+            wrappedConnection = SQLServerConnectionPoolProxy.class.getDeclaredField("wrappedConnection");
+            wrappedConnection.setAccessible(true);
+            Object wrappedConnectionObj = wrappedConnection.get(con);
+
+            Date newExpiry = new Date(
+                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
+            SqlAuthenticationToken newFedAuthToken = new SqlAuthenticationToken(ACCESS_TOKEN_CALLBACK, newExpiry);
+            fedAuthTokenField.set(wrappedConnectionObj, newFedAuthToken);
+        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+            Assert.fail("Failed to set token expiry: " + e.getMessage());
+        }
+    }
 
     private TestUtils() {}
 
@@ -125,6 +235,15 @@ public final class TestUtils {
     public static boolean isAzureMI(Connection con) {
         isAzure(con);
         return ((SQLServerConnection) con).isAzureMI();
+    }
+
+    /**
+     * Checks if connection is established to Azure Synapse OnDemand server
+     * 
+     */
+    public static boolean isAzureSynapseOnDemand(Connection con) {
+        isAzure(con);
+        return ((SQLServerConnection) con).isAzureSynapseOnDemandEndpoint();
     }
 
     /**
@@ -300,6 +419,18 @@ public final class TestUtils {
         dropObjectIfExists(tableName, "U", stmt);
     }
 
+    public static void dropTableWithSchemaIfExists(String tableNameWithSchema,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.execute(
+                "IF OBJECT_ID('" + tableNameWithSchema + "', 'U') IS NOT NULL DROP TABLE " + tableNameWithSchema + ";");
+    }
+
+    public static void dropProcedureWithSchemaIfExists(String procedureWithSchema,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + procedureWithSchema
+                + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
+    }
+
     /**
      * Deletes the contents of a table.
      * 
@@ -376,7 +507,8 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName);
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName)
+                + "') DROP TYPE " + typeName);
     }
 
     /**
@@ -403,7 +535,31 @@ public final class TestUtils {
      */
     public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
         stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
-                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+                + "') DROP SCHEMA" + AbstractSQLGenerator.escapeIdentifier(schemaName));
+    }
+
+    /**
+     * mimic "DROP USER..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP USER " + AbstractSQLGenerator.escapeIdentifier(userName));
+    }
+
+    /**
+     * mimic "DROP LOGIN..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropLoginIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(userName));
     }
 
     /**
@@ -962,6 +1118,29 @@ public final class TestUtils {
             FileInputStream is = new FileInputStream(certname);
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             return cf.generateCertificate(is);
+        }
+    }
+
+    public static String getConnectionID(
+            SQLServerPooledConnection pc) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+        Class<?> pooledConnection = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerPooledConnection");
+        Class<?> connection = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnection");
+
+        Field physicalConnection = pooledConnection.getDeclaredField("physicalConnection");
+        Field traceID = connection.getDeclaredField("traceID");
+
+        physicalConnection.setAccessible(true);
+        traceID.setAccessible(true);
+
+        SQLServerConnection conn = (SQLServerConnection) physicalConnection.get(pc);
+        return (String) traceID.get(conn);
+    }
+
+    public static void freeProcCache(Statement stmt) {
+        try {
+            stmt.execute("DBCC FREEPROCCACHE");
+        } catch (Exception e) {
+            // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
         }
     }
 }

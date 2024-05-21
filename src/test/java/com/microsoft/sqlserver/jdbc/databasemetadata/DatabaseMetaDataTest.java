@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -43,6 +44,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.StringUtils;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -57,10 +59,48 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 public class DatabaseMetaDataTest extends AbstractTest {
 
+    private static final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
     private static final String tableName = RandomUtil.getIdentifier("DBMetadataTable");
     private static final String functionName = RandomUtil.getIdentifier("DBMetadataFunction");
+    private static final String newUserName = "newUser" + uuid;
+    private static final String schema = "schema_demo" + uuid;
+    private static final String escapedSchema = "schema\\_demo" + uuid;
+    private static final String tableNameWithSchema = schema + ".resource";
+    private static final String sprocWithSchema = schema + ".updateresource";
     private static Map<Integer, String> getColumnsDWColumns = null;
     private static Map<Integer, String> getImportedKeysDWColumns = null;
+    private static final String TABLE_CAT = "TABLE_CAT";
+    private static final String TABLE_SCHEM = "TABLE_SCHEM";
+    private static final String TABLE_NAME = "TABLE_NAME";
+    private static final String COLUMN_NAME = "COLUMN_NAME";
+    private static final String DATA_TYPE = "DATA_TYPE";
+    private static final String TYPE_NAME = "TYPE_NAME";
+    private static final String COLUMN_SIZE = "COLUMN_SIZE";
+    private static final String BUFFER_LENGTH = "BUFFER_LENGTH";
+    private static final String DECIMAL_DIGITS = "DECIMAL_DIGITS";
+    private static final String NUM_PREC_RADIX = "NUM_PREC_RADIX";
+    private static final String NULLABLE = "NULLABLE";
+    private static final String REMARKS = "REMARKS";
+    private static final String COLUMN_DEF = "COLUMN_DEF";
+    private static final String SQL_DATA_TYPE = "SQL_DATA_TYPE";
+    private static final String SQL_DATETIME_SUB = "SQL_DATETIME_SUB";
+    private static final String CHAR_OCTET_LENGTH = "CHAR_OCTET_LENGTH";
+    private static final String ORDINAL_POSITION = "ORDINAL_POSITION";
+    private static final String IS_NULLABLE = "IS_NULLABLE";
+    private static final String SCOPE_CATALOG = "SCOPE_CATALOG";
+    private static final String SCOPE_SCHEMA = "SCOPE_SCHEMA";
+    private static final String SCOPE_TABLE = "SCOPE_TABLE";
+    private static final String SOURCE_DATA_TYPE = "SOURCE_DATA_TYPE";
+    private static final String IS_AUTOINCREMENT = "IS_AUTOINCREMENT";
+    private static final String IS_GENERATEDCOLUMN = "IS_GENERATEDCOLUMN";
+    private static final String SS_IS_SPARSE = "SS_IS_SPARSE";
+    private static final String SS_IS_COLUMN_SET = "SS_IS_COLUMN_SET";
+    private static final String SS_UDT_CATALOG_NAME = "SS_UDT_CATALOG_NAME";
+    private static final String SS_UDT_SCHEMA_NAME = "SS_UDT_SCHEMA_NAME";
+    private static final String SS_UDT_ASSEMBLY_TYPE_NAME = "SS_UDT_ASSEMBLY_TYPE_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_CATALOG_NAME = "SS_XML_SCHEMACOLLECTION_CATALOG_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_SCHEMA_NAME = "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME";
+    private static final String SS_XML_SCHEMACOLLECTION_NAME = "SS_XML_SCHEMACOLLECTION_NAME";
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
@@ -155,9 +195,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.xAzureSQLDB)
     public void testDBUserLogin() throws SQLException {
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null
+                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
+
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String connectionString = getConnectionString();
@@ -181,9 +223,48 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             assertNotNull(userName, TestResource.getResource("R_userNameNull"));
             assertTrue(userName.equalsIgnoreCase(userFromConnectionString),
-                    TestResource.getResource("R_userNameNotMatch"));
+                    TestResource.getResource("R_userNameNotMatch") + "userName: " + userName + "from connectio string: "
+                            + userFromConnectionString);
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testImpersonateGetUserName() throws SQLException {
+        String escapedNewUser = AbstractSQLGenerator.escapeIdentifier(newUserName);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            String password = "password" + UUID.randomUUID();
+
+            TestUtils.dropUserIfExists(newUserName, stmt);
+            TestUtils.dropLoginIfExists(newUserName, stmt);
+
+            // create new user and login
+            try {
+                stmt.execute("CREATE USER " + escapedNewUser + " WITH password='" + password + "'");
+            } catch (SQLServerException e) {
+                // handle failed cases when database is master
+                if (e.getMessage().contains("contained database")) {
+                    stmt.execute("CREATE LOGIN " + escapedNewUser + " WITH password='" + password + "'");
+                    stmt.execute("CREATE USER " + escapedNewUser);
+                }
+            }
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            try (CallableStatement asOtherUser = conn.prepareCall("EXECUTE AS USER = '" + newUserName + "'")) {
+                asOtherUser.execute();
+                assertTrue(newUserName.equalsIgnoreCase(databaseMetaData.getUserName()),
+                        TestResource.getResource("R_userNameNotMatch"));
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropUserIfExists(newUserName, stmt);
+                TestUtils.dropLoginIfExists(newUserName, stmt);
+            }
         }
     }
 
@@ -298,6 +379,58 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
                 MessageFormat atLeastOneFoundFormat = new MessageFormat(TestResource.getResource("R_atLeastOneFound"));
                 assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+            }
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
+        }
+    }
+
+    /**
+     * Tests that the schemaPattern parameter containing _ and % are escaped by
+     * {@link SQLServerDatabaseMetaData#getSchemas(String catalog, String schemaPattern)}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testDBSchemasForSchemaPatternWithWildcards() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testCatalog = "catalog" + id;
+        String[] schemas = {"some_schema", "some%schema", "some[schema"};
+        String[] schemaPatterns = {"some\\_schema", "some\\%schema", "some\\[schema"};
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", testCatalog));
+            stmt.execute(String.format("USE [%s]", testCatalog));
+
+            for (int i = 0; i < schemas.length; ++i) {
+                stmt.execute(String.format("CREATE SCHEMA [%s]", schemas[i]));
+
+                try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, schemaPatterns[i])) {
+
+                    MessageFormat schemaEmptyFormat = new MessageFormat(TestResource.getResource("R_nameEmpty"));
+                    Object[] schemaMsgArgs = {schemas[i]};
+                    Object[] catalogMsgArgs = {testCatalog};
+
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        String schemaName = rs.getString(1);
+                        String catalogName = rs.getString(2);
+                        assertTrue(!StringUtils.isEmpty(schemaName), schemaEmptyFormat.format(schemaMsgArgs));
+                        assertTrue(!StringUtils.isEmpty(catalogName), schemaEmptyFormat.format(catalogMsgArgs));
+                        assertEquals(schemaName, schemaMsgArgs[0]);
+                        assertEquals(catalogName, catalogMsgArgs[0]);
+                    }
+
+                    MessageFormat atLeastOneFoundFormat = new MessageFormat(
+                            TestResource.getResource("R_atLeastOneFound"));
+                    assertTrue(hasResults, atLeastOneFoundFormat.format(schemaMsgArgs));
+                }
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
@@ -758,6 +891,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLMI)
     public void testGetImportedKeysDW() throws SQLException {
@@ -795,6 +929,111 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates the metadata data types defined by JDBC spec.
+     * Refer to <a href="https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getColumns-java.lang.String-java.lang.String-java.lang.String-java.lang.String-">DatabaseMetadata getColumns() specs</a>
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testValidateColumnMetadata() throws SQLException {
+        Map<String, Class<?>> getColumnMetaDataClass = new LinkedHashMap<>();
+
+        getColumnMetaDataClass.put(TABLE_CAT, String.class);
+        getColumnMetaDataClass.put(TABLE_SCHEM, String.class);
+        getColumnMetaDataClass.put(TABLE_NAME, String.class);
+        getColumnMetaDataClass.put(COLUMN_NAME, String.class);
+        getColumnMetaDataClass.put(DATA_TYPE, Integer.class);
+        getColumnMetaDataClass.put(TYPE_NAME, String.class);
+        getColumnMetaDataClass.put(COLUMN_SIZE, Integer.class);
+        getColumnMetaDataClass.put(BUFFER_LENGTH, Integer.class); // Not used
+        getColumnMetaDataClass.put(DECIMAL_DIGITS, Integer.class);
+        getColumnMetaDataClass.put(NUM_PREC_RADIX, Integer.class);
+        getColumnMetaDataClass.put(NULLABLE, Integer.class);
+        getColumnMetaDataClass.put(REMARKS, String.class);
+        getColumnMetaDataClass.put(COLUMN_DEF, String.class);
+        getColumnMetaDataClass.put(SQL_DATA_TYPE, Integer.class);
+        getColumnMetaDataClass.put(SQL_DATETIME_SUB, Integer.class);
+        getColumnMetaDataClass.put(CHAR_OCTET_LENGTH, Integer.class);
+        getColumnMetaDataClass.put(ORDINAL_POSITION, Integer.class);
+        getColumnMetaDataClass.put(IS_NULLABLE, String.class);
+        getColumnMetaDataClass.put(SCOPE_CATALOG, String.class);
+        getColumnMetaDataClass.put(SCOPE_SCHEMA, String.class);
+        getColumnMetaDataClass.put(SCOPE_TABLE, String.class);
+        getColumnMetaDataClass.put(SOURCE_DATA_TYPE, Short.class);
+        getColumnMetaDataClass.put(IS_AUTOINCREMENT, String.class);
+        getColumnMetaDataClass.put(IS_GENERATEDCOLUMN, String.class);
+        getColumnMetaDataClass.put(SS_IS_SPARSE, Short.class);
+        getColumnMetaDataClass.put(SS_IS_COLUMN_SET, Short.class);
+        getColumnMetaDataClass.put(SS_UDT_CATALOG_NAME, String.class);
+        getColumnMetaDataClass.put(SS_UDT_SCHEMA_NAME, String.class);
+        getColumnMetaDataClass.put(SS_UDT_ASSEMBLY_TYPE_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_CATALOG_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, String.class);
+        getColumnMetaDataClass.put(SS_XML_SCHEMACOLLECTION_NAME, String.class);
+
+        try (Connection conn = getConnection()) {
+            ResultSetMetaData metadata = conn.getMetaData().getColumns(null, null, tableName, null).getMetaData();
+
+            // Ensure that there is an expected class for every column in the metadata result set
+            assertEquals(metadata.getColumnCount(), getColumnMetaDataClass.size());
+
+            for (int i = 1; i < metadata.getColumnCount(); i++) {
+                String columnLabel = metadata.getColumnLabel(i);
+                String columnClassName = metadata.getColumnClassName(i);
+                Class<?> expectedClass = getColumnMetaDataClass.get(columnLabel);
+
+                // Ensure the metadata column is in the metadata column class map
+                if (expectedClass == null) {
+                    MessageFormat form1 = new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"));
+                    Object[] msgArgs1 = {"expected metadata column class for column " + columnLabel};
+                    fail(form1.format(msgArgs1));
+                }
+
+                // Ensure the actual and expected column metadata types match
+                if (!columnClassName.equals(expectedClass.getName())) {
+                    MessageFormat form1 = new MessageFormat(
+                            TestResource.getResource("R_expectedClassDoesNotMatchActualClass"));
+                    Object[] msgArgs1 = {expectedClass.getName(), columnClassName, columnLabel};
+                    fail(form1.format(msgArgs1));
+                }
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void shouldEscapeSchemaName() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE SCHEMA " + schema);
+            stmt.execute("CREATE TABLE " + tableNameWithSchema + " (id UNIQUEIDENTIFIER, name NVARCHAR(400));");
+            stmt.execute("CREATE PROCEDURE " + sprocWithSchema + "(@id UNIQUEIDENTIFIER, @name VARCHAR(400)) AS "
+                    + "BEGIN SET TRANSACTION ISOLATION LEVEL SERIALIZABLE BEGIN TRANSACTION UPDATE "
+                    + tableNameWithSchema + " SET name = @name WHERE id = @id COMMIT END");
+        }
+
+        try (Connection con = getConnection()) {
+            DatabaseMetaData md = con.getMetaData();
+            try (ResultSet procedures = md.getProcedures(null, escapedSchema, "updateresource")) {
+                if (!procedures.next()) {
+                    fail("Escaped schema pattern did not succeed. No results found.");
+                }
+            }
+
+            try (ResultSet columns = md.getProcedureColumns(null, escapedSchema, "updateresource", null)) {
+                if (!columns.next()) {
+                    fail("Escaped schema pattern did not succeed. No results found.");
+                }
+            }
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
+            TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
+            TestUtils.dropSchemaIfExists(schema, stmt);
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();
@@ -812,6 +1051,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropFunctionIfExists(functionName, stmt);
+            TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
+            TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
+            TestUtils.dropSchemaIfExists(schema, stmt);
         }
     }
 }
