@@ -69,7 +69,6 @@ public class FipsTest extends AbstractTest {
 
         Properties props = buildConnectionProperties();
         props.setProperty(Constants.ENCRYPT, Boolean.FALSE.toString());
-        System.out.println("fipsEncryptTest connectionString=" + connectionString);
         try (Connection con = PrepUtil.getConnection(connectionString, props)) {
             Assertions.fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLException e) {
