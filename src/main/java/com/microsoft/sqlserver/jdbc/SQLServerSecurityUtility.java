@@ -54,7 +54,7 @@ class SQLServerSecurityUtility {
     // Credential Cache for ManagedIdentityCredential and DefaultAzureCredential
     private static final HashMap<String, Credential> CREDENTIAL_CACHE = new HashMap<>();
 
-    private static final Lock LOCK = new ReentrantLock();
+    private static final Lock CREDENTIAL_LOCK = new ReentrantLock();
 
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
@@ -350,7 +350,7 @@ class SQLServerSecurityUtility {
         ManagedIdentityCredential mic = (ManagedIdentityCredential) getCredentialFromCache(key);
 
         if (null == mic) {
-            LOCK.lock();
+            CREDENTIAL_LOCK.lock();
 
             try {
                 mic = (ManagedIdentityCredential) getCredentialFromCache(key);
@@ -359,14 +359,15 @@ class SQLServerSecurityUtility {
 
                     if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                         mic = micBuilder.clientId(managedIdentityClientId).build();
-                        addCredentialToCache(key, mic);
                     } else {
                         mic = micBuilder.build();
-                        addCredentialToCache(key, mic);
                     }
+
+                    Credential credential = new Credential(mic);
+                    CREDENTIAL_CACHE.put(key, credential);
                 }
             } finally {
-                LOCK.unlock();
+                CREDENTIAL_LOCK.unlock();
             }
         }
 
@@ -425,7 +426,7 @@ class SQLServerSecurityUtility {
         DefaultAzureCredential dac = (DefaultAzureCredential) getCredentialFromCache(key);
 
         if (null == dac) {
-            LOCK.lock();
+            CREDENTIAL_LOCK.lock();
 
             try {
                 dac = (DefaultAzureCredential) getCredentialFromCache(key);
@@ -445,10 +446,12 @@ class SQLServerSecurityUtility {
                     }
 
                     dac = dacBuilder.build();
-                    addCredentialToCache(key, dac);
+
+                    Credential credential = new Credential(dac);
+                    CREDENTIAL_CACHE.put(key, credential);
                 }
             } finally {
-                LOCK.unlock();
+                CREDENTIAL_LOCK.unlock();
             }
         }
 
@@ -481,11 +484,6 @@ class SQLServerSecurityUtility {
         }
 
         return null;
-    }
-
-    private static void addCredentialToCache(String key, TokenCredential tokenCredential) {
-        Credential credential = new Credential(tokenCredential);
-        CREDENTIAL_CACHE.put(key, credential);
     }
 
     private static TokenCredential getCredentialFromCache(String key) {
