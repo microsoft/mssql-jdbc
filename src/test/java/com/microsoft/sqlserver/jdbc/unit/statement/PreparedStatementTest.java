@@ -258,7 +258,9 @@ public class PreparedStatementTest extends AbstractTest {
             con.setStatementPoolingCacheSize(0);
 
             // Clean-up proc cache
-            this.executeSQL(con, "DBCC FREEPROCCACHE;");
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.freeProcCache(stmt);
+            }
 
             String lookupUniqueifier = UUID.randomUUID().toString();
 

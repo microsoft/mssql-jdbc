@@ -220,5 +220,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_unexpectedThreadCount", "Thread count is higher than expected."},
             {"R_expectedClassDoesNotMatchActualClass",
                     "Expected column class {0} does not match actual column class {1} for column {2}."},
-            {"R_loginFailedMSI", "Login failed for user '<token-identified principal>'"}};
+            {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
+            {"R_MInotAvailable", "Managed Identity authentication is not available"},};
 }

@@ -188,6 +188,8 @@ public class BatchExecutionTest extends AbstractTest {
                 pstmt.setTimestamp(1, timestamp, gmtCal);
                 pstmt.addBatch();
                 pstmt.executeBatch();
+            } catch (Exception e) {
+                fail(e.getMessage());
             }
 
             // Insert Timestamp using bulkcopy for batch insert
@@ -200,6 +202,8 @@ public class BatchExecutionTest extends AbstractTest {
                 pstmt.setTimestamp(1, timestamp, gmtCal);
                 pstmt.addBatch();
                 pstmt.executeBatch();
+            } catch (Exception e) {
+                fail(e.getMessage());
             }
 
             // Compare Timestamp values inserted, should be the same
@@ -225,6 +229,8 @@ public class BatchExecutionTest extends AbstractTest {
                 assertEquals(ts0, ts1, failureMsg);
                 assertEquals(t0, t1, failureMsg);
                 assertEquals(d0, d1, failureMsg);
+            } catch (Exception e) {
+                fail(e.getMessage());
             }
         }
     }

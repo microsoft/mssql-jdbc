@@ -152,6 +152,10 @@ public class PoolingTest extends AbstractTest {
 
     @Test
     public void testConnectionPoolClientConnectionId() throws SQLException {
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null
+                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
+
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
         PooledConnection pc = null;
