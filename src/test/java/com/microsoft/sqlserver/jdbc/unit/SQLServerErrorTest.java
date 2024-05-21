@@ -41,7 +41,7 @@ public class SQLServerErrorTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
-    public void testLoginFailedError() {        
+    public void testLoginFailedError() {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setLoginTimeout(loginTimeOutInSeconds);
