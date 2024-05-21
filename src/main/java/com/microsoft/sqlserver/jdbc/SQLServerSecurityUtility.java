@@ -346,7 +346,8 @@ class SQLServerSecurityUtility {
             logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
         }
 
-        String key = getHashedSecret(new String[]{managedIdentityClientId, ManagedIdentityCredential.class.getSimpleName()});
+        String key = getHashedSecret(
+                new String[] {managedIdentityClientId, ManagedIdentityCredential.class.getSimpleName()});
         ManagedIdentityCredential mic = (ManagedIdentityCredential) getCredentialFromCache(key);
 
         if (null == mic) {
