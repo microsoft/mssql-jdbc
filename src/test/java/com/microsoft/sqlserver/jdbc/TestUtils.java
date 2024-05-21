@@ -523,7 +523,31 @@ public final class TestUtils {
      */
     public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
         stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
-                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
+                + "') DROP SCHEMA" + AbstractSQLGenerator.escapeIdentifier(schemaName));
+    }
+
+    /**
+     * mimic "DROP USER..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropUserIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP USER " + AbstractSQLGenerator.escapeIdentifier(userName));
+    }
+
+    /**
+     * mimic "DROP LOGIN..."
+     * 
+     * @param userName
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropLoginIfExists(String userName, Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.sysusers where name = '" + escapeSingleQuotes(userName)
+                + "') DROP LOGIN " + AbstractSQLGenerator.escapeIdentifier(userName));
     }
 
     /**
@@ -1098,5 +1122,13 @@ public final class TestUtils {
 
         SQLServerConnection conn = (SQLServerConnection) physicalConnection.get(pc);
         return (String) traceID.get(conn);
+    }
+
+    public static void freeProcCache(Statement stmt) {
+        try {
+            stmt.execute("DBCC FREEPROCCACHE");
+        } catch (Exception e) {
+            // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
+        }
     }
 }
