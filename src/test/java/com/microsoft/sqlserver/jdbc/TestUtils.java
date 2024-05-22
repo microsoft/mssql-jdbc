@@ -138,8 +138,8 @@ public final class TestUtils {
 
                 if (expireTokenToggle) {
                     Date now = new Date();
-                    long minutesToExpireWithin = TEST_TOKEN_EXPIRY_SECONDS * 1000; // Expire within 2 minutes
-                    return new SqlAuthenticationToken(accessToken, now.getTime() + minutesToExpireWithin);
+                    long millisecondsToExpireWithin = TEST_TOKEN_EXPIRY_SECONDS * 1000; // Expire within 2 minutes
+                    return new SqlAuthenticationToken(accessToken, now.getTime() + millisecondsToExpireWithin);
                 } else {
                     return new SqlAuthenticationToken(accessToken, expiresOn);
                 }

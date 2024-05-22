@@ -358,7 +358,7 @@ class SQLServerSecurityUtility {
         } else {
             AccessToken accessToken = accessTokenOptional.get();
             sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toEpochSecond());
+                    accessToken.getExpiresAt().toInstant().toEpochMilli());
         }
 
         if (logger.isLoggable(java.util.logging.Level.FINEST)) {
@@ -415,7 +415,7 @@ class SQLServerSecurityUtility {
         } else {
             AccessToken accessToken = accessTokenOptional.get();
             sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toEpochSecond());
+                    accessToken.getExpiresAt().toInstant().toEpochMilli());
         }
 
         return sqlFedAuthToken;
