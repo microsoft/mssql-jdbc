@@ -24,7 +24,7 @@ public class SqlAuthenticationToken implements Serializable {
     private final String accessToken;
 
     /**
-     * Contructs a SqlAuthentication token.
+     * Constructs a SqlAuthentication token.
      *
      * @param accessToken
      *        The access token string.
@@ -37,7 +37,7 @@ public class SqlAuthenticationToken implements Serializable {
     }
 
     /**
-     * Contructs a SqlAuthentication token.
+     * Constructs a SqlAuthentication token.
      *
      * @param accessToken
      *        The access token string.
