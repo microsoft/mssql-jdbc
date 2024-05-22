@@ -909,10 +909,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropFunctionIfExists(functionName, stmt);
-
-            TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
-            TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
-            TestUtils.dropSchemaIfExists(schema, stmt);
         }
     }
 }
