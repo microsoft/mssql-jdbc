@@ -33,7 +33,7 @@ public class SqlAuthenticationToken implements Serializable {
      */
     public SqlAuthenticationToken(String accessToken, long expiresOn) {
         this.accessToken = accessToken;
-        this.expiresOn = new Date(expiresOn);
+        this.expiresOn = new Date(expiresOn * 1000);
     }
 
     /**
