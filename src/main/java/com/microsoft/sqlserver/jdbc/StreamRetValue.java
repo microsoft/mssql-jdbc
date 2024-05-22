@@ -18,8 +18,12 @@ final class StreamRetValue extends StreamPacket {
      */
     private int ordinalOrLength;
 
-    final int getOrdinalOrLength() {
+    int getOrdinalOrLength() {
         return ordinalOrLength;
+    }
+
+    int getStatus() {
+        return status;
     }
 
     /*

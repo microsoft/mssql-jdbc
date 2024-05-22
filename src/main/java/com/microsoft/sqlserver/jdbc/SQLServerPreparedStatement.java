@@ -77,9 +77,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     // flag whether is call escape syntax
     private boolean isCallEscapeSyntax;
 
-    // flag whether is four part syntax
-    private boolean isFourPartSyntax;
-
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
 
@@ -148,11 +145,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Regex for 'exec' escape syntax
      */
     private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
-
-    /**
-     * Regex for four part syntax
-     */
-    private static final Pattern fourPartSyntaxPattern = Pattern.compile("(.+)\\.(.+)\\.(.+)\\.(.+)");
 
     /** Returns the prepared statement SQL */
     @Override
@@ -290,7 +282,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         userSQL = parsedSQL.processedSQL;
         isExecEscapeSyntax = isExecEscapeSyntax(sql);
         isCallEscapeSyntax = isCallEscapeSyntax(sql);
-        isFourPartSyntax = isFourPartSyntax(sql);
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
@@ -1258,10 +1249,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // 4. Compliant CALL escape syntax
         // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour of
         // wrapping call to execute the procedure
-        // If isFourPartSyntax is true, sproc is being executed against linked server, then
-        // use prior behaviour of wrapping call to execute procedure
         return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax
-                && !isExecEscapeSyntax && !isFourPartSyntax);
+                && !isExecEscapeSyntax);
     }
 
     /**
@@ -1287,10 +1276,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private boolean isCallEscapeSyntax(String sql) {
         return callEscapePattern.matcher(sql).find();
-    }
-
-    private boolean isFourPartSyntax(String sql) {
-        return fourPartSyntaxPattern.matcher(sql).find();
     }
 
     /**
