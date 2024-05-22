@@ -179,6 +179,11 @@ public final class Constants {
     public static final String SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY = "SENDTEMPORALDATATYPESASSTRINGFORBULKCOPY";
     public static final String PREPARE_METHOD = "PREPAREMETHOD";
     public static final String CONFIG_PROPERTIES_FILE = "config.properties";
+    public static final String UTF8 = "UTF-8";
+    public static final double MAX_VALUE_MONEY = 922337203685477.5807;
+    public static final double MIN_VALUE_MONEY = -922337203685477.5808;
+    public static final double MAX_VALUE_SMALLMONEY = 214748.3647;
+    public static final double MIN_VALUE_SMALLMONEY = -214748.3648;
 
     public enum LOB {
         CLOB,
