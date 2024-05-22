@@ -1807,6 +1807,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final void resetPooledConnection() {
         tdsChannel.resetPooledConnection();
         initResettableValues();
+
+        // reset prepared statement handle cache
+        if (null != preparedStatementHandleCache) {
+            preparedStatementHandleCache.clear();
+        }
     }
 
     /**

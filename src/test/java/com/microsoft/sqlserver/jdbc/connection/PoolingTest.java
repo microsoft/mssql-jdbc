@@ -23,11 +23,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.runner.JUnitPlatform;
-import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -42,7 +41,6 @@ import com.zaxxer.hikari.HikariDataSource;
  * Tests pooled connection
  *
  */
-@RunWith(JUnitPlatform.class)
 public class PoolingTest extends AbstractTest {
     static String tempTableName = RandomUtil.getIdentifier("#poolingtest");
     static String tableName = RandomUtil.getIdentifier("PoolingTestTable");
@@ -214,6 +212,69 @@ public class PoolingTest extends AbstractTest {
             connect(ds);
         } finally {
             ds.close();
+        }
+    }
+
+    /**
+     * test that prepared statement cache is cleared when disableStatementPooling is not set
+     */
+    @Test
+    public void testDisableStatementPooling() throws SQLException {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+        ds.setURL(connectionString + ";disableStatementPooling=false;statementPoolingCacheSize=20");
+        PooledConnection pConn = ds.getPooledConnection();
+
+        // create test table
+        try (Connection conn = pConn.getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+
+            stmt.execute(
+                    "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (c1 int, c2 varchar(20))");
+        }
+
+        try {
+            for (int i = 0; i < 5; i++) {
+                try (Connection conn = pConn.getConnection();) {
+                    conn.setAutoCommit(false);
+
+                    try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(
+                            "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?)")) {
+
+                        for (int j = 0; j < 3; j++) {
+                            pstmt.setInt(1, j);
+                            pstmt.setString(2, "test" + j);
+                            pstmt.addBatch();
+                        }
+
+                        pstmt.executeBatch();
+                        conn.commit();
+                    }
+                }
+            }
+
+            try (Connection conn = pConn.getConnection(); Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                            + " order by c1 desc")) {
+
+                int i = 1;
+                while (rs.next()) {
+                    if (i <= 5) {
+                        assertEquals(2, rs.getInt(1));
+                        assertEquals("test2", rs.getString(2));
+                    } else if (i > 5 && i <= 10) {
+                        assertEquals(1, rs.getInt(1));
+                        assertEquals("test1", rs.getString(2));
+                    } else if (i > 10 && i <= 15) {
+                        assertEquals(0, rs.getInt(1));
+                        assertEquals("test0", rs.getString(2));
+                    }
+                    i++;
+                }
+            }
+        } finally {
+            if (null != pConn) {
+                pConn.close();
+            }
         }
     }
 
