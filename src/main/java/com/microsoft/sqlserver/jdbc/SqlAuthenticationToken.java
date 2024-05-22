@@ -29,11 +29,11 @@ public class SqlAuthenticationToken implements Serializable {
      * @param accessToken
      *        The access token string.
      * @param expiresOn
-     *        The expiration date in seconds since the unix epoch.
+     *        The expiration date in milliseconds since the unix epoch.
      */
     public SqlAuthenticationToken(String accessToken, long expiresOn) {
         this.accessToken = accessToken;
-        this.expiresOn = new Date(expiresOn * 1000);
+        this.expiresOn = new Date(expiresOn);
     }
 
     /**
