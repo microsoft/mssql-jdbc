@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.6.2] Hotfix & Stable Release
+### Added
+- Added credential caching for Managed Identity Credential and Default Azure Credential [#2426](https://github.com/microsoft/mssql-jdbc/pull/2426)
+
+### Fixed issues
+- Check that money and small money are within correct range for bulkcopy [#2419](https://github.com/microsoft/mssql-jdbc/pull/2419)
+- Check if TDSCommand counter is null before incrementing [#2420](https://github.com/microsoft/mssql-jdbc/pull/2420)
+- Clear prepared statement cache when resetting statement pool connection [#2421](https://github.com/microsoft/mssql-jdbc/pull/2421)
+- Clear prepared statement handle before reconnect [#2422](https://github.com/microsoft/mssql-jdbc/pull/2422)
+- RPC calls for CallableStatements will be executed directly [#2427](https://github.com/microsoft/mssql-jdbc/pull/2427)
+- Corrected authentication token object to accept expiration in milliseconds [#2428](https://github.com/microsoft/mssql-jdbc/pull/2428)
+
 ## [12.6.1] Hotfix & Stable Release
 ### Fixed issues
 - Fixed 'EXEC' escape syntax for CallableStatements. 'EXEC' keyword can be used to execute stored procedures. [#2329](https://github.com/microsoft/mssql-jdbc/pull/2329)
@@ -16,8 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed issues
 - Fixed the way ActivityID was defined and used to be more in line with the behavior of other Microsoft drivers [#2254](https://github.com/microsoft/mssql-jdbc/pull/2254)
-- - Fixed missing getters and setters for `useBulkCopyForBatchInsert` [#2277](https://github.com/microsoft/mssql-jdbc/pull/2277)
-- - Fixed an issue where, when using the TOP qualifier in a query, the driver returns an error concerning ParameterMetadata [#2287](https://github.com/microsoft/mssql-jdbc/pull/2287)
+- Fixed missing getters and setters for `useBulkCopyForBatchInsert` [#2277](https://github.com/microsoft/mssql-jdbc/pull/2277)
+- Fixed an issue where, when using the TOP qualifier in a query, the driver returns an error concerning ParameterMetadata [#2287](https://github.com/microsoft/mssql-jdbc/pull/2287)
 - Fixed an issue where insert statements with missing whitespace worked correctly in regular cases, but not when using batch inserts [#2290](https://github.com/microsoft/mssql-jdbc/pull/2290)
 - Fixed timezone not being properly applied to Timestamps when inserted using batch insert with bulkcopy [#2291](https://github.com/microsoft/mssql-jdbc/pull/2291)
 - Fixed locks in IOBuffer to prevent deadlock issues that could arise [#2295](https://github.com/microsoft/mssql-jdbc/pull/2295)
