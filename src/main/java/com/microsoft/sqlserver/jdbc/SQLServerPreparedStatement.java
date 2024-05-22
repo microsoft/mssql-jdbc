@@ -1245,8 +1245,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // 2. There must be parameters
         // 3. Parameters must not be a TVP type
         // 4. Compliant CALL escape syntax
-        // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour to
-        // execute the procedure
+        // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour of
+        // wrapping call to execute the procedure
         return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax
                 && !isExecEscapeSyntax);
     }
