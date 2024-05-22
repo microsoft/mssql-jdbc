@@ -63,8 +63,8 @@ public abstract class AbstractTest {
     protected static String[] keyIDs = null;
 
     protected static String linkedServer = null;
-    protected static String remoteUser = null;
-    protected static String remotePassword = null;
+    protected static String linkedServerUser = null;
+    protected static String linkedServerPassword = null;
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
@@ -201,8 +201,8 @@ public abstract class AbstractTest {
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
         linkedServer = getConfiguredProperty("linkedServer", null);
-        remoteUser = getConfiguredProperty("remoteUser", null);
-        remotePassword = getConfiguredProperty("remotePassword", null);
+        linkedServerUser = getConfiguredProperty("linkedServerUser", null);
+        linkedServerPassword = getConfiguredProperty("linkedServerPassword", null);
 
         kerberosServer = getConfiguredProperty("kerberosServer", null);
         kerberosServerPort = getConfiguredProperty("kerberosServerPort", null);
