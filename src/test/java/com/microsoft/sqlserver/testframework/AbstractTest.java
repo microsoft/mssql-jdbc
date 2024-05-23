@@ -279,11 +279,7 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
         }
 
-        if (null != password) {
-            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
-        }
-
-        if (null != user && null != password) {
+        if (null != user) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
@@ -355,6 +351,9 @@ public abstract class AbstractTest {
                     switch (name.toUpperCase()) {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.SERVER_NAME:
+                            ds.setServerName(value);
                             break;
                         case Constants.USER:
                         case Constants.USER_NAME:

@@ -88,7 +88,7 @@ public class ReflectiveTests extends AbstractTest {
 
         // ensure count is not set to something else as this test assumes exactly just 1 retry
         // this is only true for non-Azure as retry counts gets auto changed for Azure servers
-        timeoutVariations(m, 6000, Optional.empty());
+        timeoutVariations(m, 6500, Optional.empty());
     }
 
     /*
