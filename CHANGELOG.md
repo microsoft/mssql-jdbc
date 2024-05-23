@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Clear prepared statement handle before reconnect [#2422](https://github.com/microsoft/mssql-jdbc/pull/2422)
 - RPC calls for CallableStatements will be executed directly [#2427](https://github.com/microsoft/mssql-jdbc/pull/2427)
 - Corrected authentication token object to accept expiration in milliseconds [#2428](https://github.com/microsoft/mssql-jdbc/pull/2428)
+- SocketTimeout should be unbounded by loginTimeout after a successful connection open [#2431](https://github.com/microsoft/mssql-jdbc/pull/2431)
 
 ## [12.6.1] Hotfix & Stable Release
 ### Fixed issues
