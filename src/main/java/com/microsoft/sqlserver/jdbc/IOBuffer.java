@@ -6912,10 +6912,6 @@ final class TDSReader implements Serializable {
 
             // if messageType is RPC or QUERY, then increment Counter's state
             if (tdsChannel.getWriter().checkIfTdsMessageTypeIsBatchOrRPC() && null != command) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.warning(toString() + ": increasing state of counter for TDS Command: " + command.toString());
-                }
-
                 if (null == command.getCounter()) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_NullValue"));
                     Object[] msgArgs1 = {"TDS command counter"};

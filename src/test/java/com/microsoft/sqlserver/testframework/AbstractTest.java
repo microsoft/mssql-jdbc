@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -277,11 +279,7 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "user", user);
         }
 
-        if (null != password) {
-            connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "password", password);
-        }
-
-        if (null != user && null != password) {
+        if (null != user) {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
@@ -304,19 +302,23 @@ public abstract class AbstractTest {
     }
 
     protected static void setConnection() throws Exception {
-        setupConnectionString();
+        try {
+            setupConnectionString();
 
-        Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
-        Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-        if (!SQLServerDriver.isRegistered()) {
-            SQLServerDriver.register();
-        }
-        if (null == connection || connection.isClosed()) {
-            connection = getConnection();
-        }
-        isSqlAzureOrAzureDW(connection);
+            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+            if (!SQLServerDriver.isRegistered()) {
+                SQLServerDriver.register();
+            }
+            if (null == connection || connection.isClosed()) {
+                connection = getConnection();
+            }
+            isSqlAzureOrAzureDW(connection);
 
-        checkSqlOS(connection);
+            checkSqlOS(connection);
+        } catch (Exception e) {
+            fail("setConnection failed, connectionString=" + connectionString + "\nException: " + e.getMessage());
+        }
     }
 
     /**
@@ -349,6 +351,9 @@ public abstract class AbstractTest {
                     switch (name.toUpperCase()) {
                         case Constants.INTEGRATED_SECURITY:
                             ds.setIntegratedSecurity(Boolean.parseBoolean(value));
+                            break;
+                        case Constants.SERVER_NAME:
+                            ds.setServerName(value);
                             break;
                         case Constants.USER:
                         case Constants.USER_NAME:
