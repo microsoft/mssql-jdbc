@@ -584,7 +584,9 @@ enum JavaType {
         TIMESTAMP(JavaType.TIMESTAMP, EnumSet.of(JDBCType.TIME, // This is needed to send nanoseconds to the driver as
                                                                 // setTime() is only milliseconds
                 JDBCType.TIMESTAMP, // This is datetime2
-                JDBCType.DATETIME, JDBCType.SMALLDATETIME));
+                JDBCType.DATETIME, JDBCType.SMALLDATETIME)),
+        
+        UUID(JavaType.UUID, EnumSet.of(JDBCType.GUID));
 
         private final EnumSet<JDBCType> to;
         private final JavaType from;
