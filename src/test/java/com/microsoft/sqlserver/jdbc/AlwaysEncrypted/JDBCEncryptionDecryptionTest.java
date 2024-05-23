@@ -517,7 +517,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
+            String[] values = {null, null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
         }
@@ -554,7 +554,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
+            String[] values = {null, null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.SETOBJECT, false);
         }
@@ -591,7 +591,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-            String[] values = {null, null, null, null, null, null, null, null, null};
+            String[] values = {null, null, null, null, null, null, null, null, null, null};
 
             testChars(stmt, cekJks, charTable, values, TestCase.NULL, false);
         }

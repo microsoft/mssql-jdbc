@@ -816,7 +816,7 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateCharNormalCase(String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -868,7 +868,7 @@ public class AESetup extends AbstractTest {
                 } else {
                     // cannot override setUniqueIdentifier to accept UUID parameter without breaking compatibility
                     // falling back to testing UUID string parameter
-                    pstmt.setUniqueIdentifier(i, charValues[6]);
+                    pstmt.setUniqueIdentifier(i, charValues[7]);
                 }
             }
 
@@ -894,7 +894,7 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateCharSetObject(String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -937,7 +937,7 @@ public class AESetup extends AbstractTest {
 
             // uniqueidentifier
             for (int i = 22; i <= 24; i++) {
-                pstmt.setObject(i, UUID.fromString(charValues[7]), microsoft.sql.Types.GUID);
+                pstmt.setObject(i, charValues[7] == null ? null : UUID.fromString(charValues[7]), microsoft.sql.Types.GUID);
             }
 
             // varchar8000
@@ -961,7 +961,7 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateCharSetObjectNull() throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1029,7 +1029,7 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateCharSetObjectWithJDBCTypes(String[] charValues) throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
@@ -1096,7 +1096,7 @@ public class AESetup extends AbstractTest {
      */
     protected static void populateCharNullCase() throws SQLException {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
-                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
+                + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
