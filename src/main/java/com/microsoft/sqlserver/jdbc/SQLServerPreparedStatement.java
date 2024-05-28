@@ -147,7 +147,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
 
     /**
-     * For caching data related to bulkcopy
+     * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
     private String bcOperationTableName = null;
