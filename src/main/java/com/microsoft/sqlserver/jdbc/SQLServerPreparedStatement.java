@@ -2549,7 +2549,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     ti.getScale());
                         }
 
-                        if (bcOperation == null) {
+                        if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
                             option.setBulkCopyTimeout(queryTimeout);
