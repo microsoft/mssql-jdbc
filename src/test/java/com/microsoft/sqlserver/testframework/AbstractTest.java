@@ -61,6 +61,7 @@ public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
+    protected static String servicePrincipalCertificateApplicationClientId = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
 
@@ -162,6 +163,7 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
+        servicePrincipalCertificateApplicationClientId = getConfiguredProperty("servicePrincipalCertificateApplicationClientId");
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");

@@ -366,8 +366,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
         // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
+                + ";clientCertificate=" + clientCertificate;
 
         // Should fail on invalid cert field values
         String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
@@ -428,8 +428,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuth() {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + applicationClientID
-                + ";password=" + certificatePassword + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
+                + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
 
         SQLServerDataSource ds = new SQLServerDataSource();
