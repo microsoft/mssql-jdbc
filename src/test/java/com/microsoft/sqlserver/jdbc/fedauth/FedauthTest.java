@@ -468,6 +468,9 @@ public class FedauthTest extends FedauthCommon {
         url = baseUrl + ";clientCertificate=" + clientCertificate + ";password=wrongPassword";
         validateException(url, "R_readCertError");
 
+        baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
+
         // wrong certificate key or password
         url = baseUrl + "password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
                 + "clientPassword=wrongPassword";
