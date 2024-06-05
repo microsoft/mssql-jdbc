@@ -469,7 +469,7 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
-        url = baseUrl + "password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
+        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
                 + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
