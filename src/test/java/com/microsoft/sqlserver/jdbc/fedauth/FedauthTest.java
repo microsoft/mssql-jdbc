@@ -450,7 +450,7 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + applicationClientID;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
 
         // no certificate provided.
         String url = baseUrl;
@@ -467,9 +467,6 @@ public class FedauthTest extends FedauthCommon {
         // wrong certificate password
         url = baseUrl + ";clientCertificate=" + clientCertificate + ";password=wrongPassword";
         validateException(url, "R_readCertError");
-
-        baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
 
         // wrong certificate key or password
         url = baseUrl + "password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
