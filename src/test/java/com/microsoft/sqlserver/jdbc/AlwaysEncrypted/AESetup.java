@@ -1128,7 +1128,7 @@ public class AESetup extends AbstractTest {
             }
 
             // varchar8000
-            for (int i = 24; i <= 27; i++) {
+            for (int i = 25; i <= 27; i++) {
                 pstmt.setNull(i, java.sql.Types.VARCHAR);
             }
 
