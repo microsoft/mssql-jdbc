@@ -24,7 +24,7 @@ public class ConfigurableRetryLogic {
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
     private static String rulesFromConnectionString = "";
-    private static boolean replaceFlag; // Are we replacing the list of transient errors (for connection retry)?
+    private static boolean replaceFlag = false; // Are we replacing the list of transient errors (for connection retry)?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
 

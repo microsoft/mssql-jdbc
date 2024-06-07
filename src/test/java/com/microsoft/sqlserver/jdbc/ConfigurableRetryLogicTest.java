@@ -108,6 +108,25 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
+    public void testConnectionRetry(String replacedDbName, String addedRetryParams) throws Exception {
+        String cxnString = connectionString + addedRetryParams; // 2714 There is already an object named x
+        cxnString = TestUtils.addOrOverrideProperty(cxnString, "database", replacedDbName);
+
+        try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
+            try {
+                //createTable(s);
+                //s.execute("create table " + tableName + " (c1 int null);");
+                fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (Exception e) {
+                System.out.println("blah");
+                assertTrue(e.getMessage().startsWith("There is already an object"),
+                        TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
+            } finally {
+                dropTable(s);
+            }
+        }
+    }
+
     /**
      * Tests that statement retry works with statements. A different error is expected here than the test above.
      * 
@@ -357,6 +376,62 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testStatementRetry("retryExec={2714,2716:1,2+2:CREATE};");
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+        }
+    }
+
+    @Test
+    public void testConnectionRetry() throws Exception {
+        // Test retry with a single connection rule (replace)
+
+        // Replace existing rules with our own
+
+        try {
+            //testConnectionRetry("blah","retryExec={4060};");
+            testConnectionRetry("blah","retryExec={9999};");
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+        }
+
+        // Test retry with a single connection rule (append)
+
+        // Test retry with multiple connection rules
+//        try {
+//            testStatementRetry("retryExec={:1,2*2:CREATE};");
+//        } catch (SQLServerException e) {
+//            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+//        }
+    }
+
+    @Test
+    public void connectionTimingTest() throws Exception {
+        long totalTime;
+        long timerStart = System.currentTimeMillis();
+        long expectedTime = 5;
+
+        // No retries since CRL rules override
+        try {
+            testConnectionRetry("blah","retryExec={9999};");
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            System.out.println("totalTime: " + totalTime);
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedTime),
+                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedTime));
+        }
+
+        timerStart = System.currentTimeMillis();
+
+        // Now retry, timing should reflect this
+        try {
+            testConnectionRetry("blah","retryExec={4060};");
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            System.out.println("totalTime: " + totalTime);
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedTime),
+                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedTime));
         }
     }
 

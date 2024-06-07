@@ -2023,9 +2023,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             ConfigRetryRule rule = ConfigurableRetryLogic.getInstance()
                                     .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
 
-                            if (null == rule && !ConfigurableRetryLogic.getInstance().getReplaceFlag()
-                                    && !TransientError.isTransientError(sqlServerError)) {
-                                throw e;
+                            if (null == rule) {
+                                if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
+                                    throw e;
+                                } else {
+                                    if (!TransientError.isTransientError(sqlServerError)) {
+                                        throw e;
+                                    }
+                                }
                             }
                         }
 
