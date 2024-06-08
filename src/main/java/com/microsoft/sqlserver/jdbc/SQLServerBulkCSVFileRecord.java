@@ -19,6 +19,7 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -61,10 +62,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     private boolean escapeDelimiters;
 
     /**
-     * Regex to ignore delimiter when the field is enclosed in quotes.
-     * 
+     * Double quote character to parse lines with
      */
-    private static final String ESCAPE_SPLIT_PATTERN = "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+    private static final char doubleQuoteChar = '\"';
 
     /*
      * Class names for logging.
@@ -206,8 +206,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         if (firstLineIsColumnNames) {
             currentLine = fileReader.readLine();
             if (null != currentLine) {
-                columnNames = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
-                        currentLine.split(delimiter + ESCAPE_SPLIT_PATTERN, -1)) : currentLine.split(delimiter, -1);
+                columnNames = (escapeDelimiters && currentLine.contains("\""))
+                                                                               ? escapeQuotesRFC4180(parseString(
+                                                                                       currentLine, delimiter))
+                                                                               : parseString(currentLine, delimiter);
             }
         }
     }
@@ -292,8 +294,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
              * Binary data may be corrupted The limit in split() function should be a negative value, otherwise trailing
              * empty strings are discarded. Empty string is returned if there is no value.
              */
-            String[] data = (escapeDelimiters && currentLine.contains("\"")) ? escapeQuotesRFC4180(
-                    currentLine.split(delimiter + ESCAPE_SPLIT_PATTERN, -1)) : currentLine.split(delimiter, -1);
+            String[] data = (escapeDelimiters && currentLine.contains("\""))
+                                                                             ? escapeQuotesRFC4180(parseString(
+                                                                                     currentLine, delimiter))
+                                                                             : parseString(currentLine, delimiter);
 
             // Cannot go directly from String[] to Object[] and expect it to act as an array.
 
@@ -631,5 +635,28 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             tokens[i] = sb.toString();
         }
         return tokens;
+    }
+
+    private static String[] parseString(String buffer, String delimiter) {
+        ArrayList<String> tokens = new ArrayList<>();
+        int position = 0;
+        boolean quoted = false;
+
+        for (int i = 0; i < buffer.length(); i++) {
+            if (buffer.charAt(i) == doubleQuoteChar) {
+                quoted = !quoted;
+            } else if (!quoted && i + delimiter.length() <= buffer.length()
+                    && buffer.substring(i, i + delimiter.length()).equals(delimiter)) {
+                // Add field to token list when delimiter is found
+                tokens.add(buffer.substring(position, i));
+
+                position = i + delimiter.length();
+                i = position - 1; // Adjust the index to start after the delimiter
+            }
+        }
+
+        // Add the last field
+        tokens.add(buffer.substring(position));
+        return tokens.toArray(new String[0]);
     }
 }

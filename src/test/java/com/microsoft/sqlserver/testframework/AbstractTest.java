@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,6 +61,7 @@ public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
+    protected static String servicePrincipalCertificateApplicationClientId = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
 
@@ -160,6 +163,7 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
         tenantID = getConfiguredProperty("tenantID");
+        servicePrincipalCertificateApplicationClientId = getConfiguredProperty("servicePrincipalCertificateApplicationClientId");
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
@@ -299,19 +303,23 @@ public abstract class AbstractTest {
     }
 
     protected static void setConnection() throws Exception {
-        setupConnectionString();
+        try {
+            setupConnectionString();
 
-        Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
-        Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-        if (!SQLServerDriver.isRegistered()) {
-            SQLServerDriver.register();
-        }
-        if (null == connection || connection.isClosed()) {
-            connection = getConnection();
-        }
-        isSqlAzureOrAzureDW(connection);
+            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+            if (!SQLServerDriver.isRegistered()) {
+                SQLServerDriver.register();
+            }
+            if (null == connection || connection.isClosed()) {
+                connection = getConnection();
+            }
+            isSqlAzureOrAzureDW(connection);
 
-        checkSqlOS(connection);
+            checkSqlOS(connection);
+        } catch (Exception e) {
+            fail("setConnection failed, connectionString=" + connectionString + "\nException: " + e.getMessage());
+        }
     }
 
     /**

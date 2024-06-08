@@ -72,7 +72,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** Check if statement contains TVP Type */
     boolean isTVPType = false;
 
-    static int userDefinedFunctionReturnStatus = 2;
+    protected static final int USER_DEFINED_FUNCTION_RETURN_STATUS = 2;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -1676,7 +1676,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-                if (moreResults && null == procedureRetStatToken && status != userDefinedFunctionReturnStatus) {
+                if (moreResults && null == procedureRetStatToken && status != USER_DEFINED_FUNCTION_RETURN_STATUS) {
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);

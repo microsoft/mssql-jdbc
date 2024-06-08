@@ -41,7 +41,12 @@ public class SQLServerErrorTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xAzureSQLDW)
-    public void testLoginFailedError() {        
+    public void testLoginFailedError() {
+        // test to remove password only valid for password auth
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null
+                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
+
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
         ds.setLoginTimeout(loginTimeOutInSeconds);
