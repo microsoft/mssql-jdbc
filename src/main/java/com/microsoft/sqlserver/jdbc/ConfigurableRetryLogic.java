@@ -12,6 +12,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class ConfigurableRetryLogic {
@@ -27,6 +29,7 @@ public class ConfigurableRetryLogic {
     private static boolean replaceFlag = false; // Are we replacing the list of transient errors (for connection retry)?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
+    private static final Lock CRL_LOCK = new ReentrantLock();
 
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead = new Date().getTime();
@@ -41,13 +44,18 @@ public class ConfigurableRetryLogic {
      * @throws SQLServerException
      *         an exception
      */
-    public static synchronized ConfigurableRetryLogic getInstance() throws SQLServerException {
-        if (driverInstance == null) {
-            driverInstance = new ConfigurableRetryLogic();
-        } else {
-            reread();
+    public static ConfigurableRetryLogic getInstance() throws SQLServerException {
+        CRL_LOCK.lock();
+        try {
+            if (driverInstance == null) {
+                driverInstance = new ConfigurableRetryLogic();
+            } else {
+                reread();
+            }
+            return driverInstance;
+        } finally {
+            CRL_LOCK.unlock();
         }
-        return driverInstance;
     }
 
     private static void reread() throws SQLServerException {
