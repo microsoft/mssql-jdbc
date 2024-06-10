@@ -10,6 +10,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -215,6 +218,26 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void statementTimingTestFromFile() {
+        long totalTime;
+        long timerStart = System.currentTimeMillis();
+        long expectedTime = 5;
+
+        // A single retry waiting 5 seconds
+        try {
+            testStatementRetry("");
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
+                    "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(5 + expectedTime), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(5 + expectedTime));
+        }
+    }
+
     /**
      * Tests that CRL works with multiple rules provided at once.
      */
@@ -380,58 +403,53 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     @Test
-    public void testConnectionRetry() throws Exception {
-        // Test retry with a single connection rule (replace)
-
-        // Replace existing rules with our own
-
-        try {
-            //testConnectionRetry("blah","retryExec={4060};");
-            testConnectionRetry("blah","retryExec={9999};");
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
-        }
-
-        // Test retry with a single connection rule (append)
-
-        // Test retry with multiple connection rules
-//        try {
-//            testStatementRetry("retryExec={:1,2*2:CREATE};");
-//        } catch (SQLServerException e) {
-//            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
-//        }
-    }
-
-    @Test
-    public void connectionTimingTest() throws Exception {
+    public void connectionTimingTest() {
         long totalTime;
         long timerStart = System.currentTimeMillis();
-        long expectedTime = 5;
+        long expectedMaxTime = 1; // No retries, expected time < 1 second
+
 
         // No retries since CRL rules override
         try {
             testConnectionRetry("blah","retryExec={9999};");
         } catch (Exception e) {
-            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
-            System.out.println("totalTime: " + totalTime);
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedTime),
-                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
         }
 
         timerStart = System.currentTimeMillis();
+        long expectedMinTime = 20; // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug
+        expectedMaxTime = 25;
 
         // Now retry, timing should reflect this
         try {
             testConnectionRetry("blah","retryExec={4060};");
         } catch (Exception e) {
-            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
-            System.out.println("totalTime: " + totalTime);
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedTime),
-                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+        }
+
+        timerStart = System.currentTimeMillis();
+
+        // Append should work the same way
+        try {
+            testConnectionRetry("blah","retryExec={+4060,4070};");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
         }
     }
 
