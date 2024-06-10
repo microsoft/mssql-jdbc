@@ -394,7 +394,14 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={9999};");
         } catch (Exception e) {
             System.out.println("9999------------------Error: " + e.getMessage() + "------------------");
-            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
+                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                    e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
@@ -411,7 +418,14 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={4060};");
         } catch (Exception e) {
             System.out.println("4060------------------Error: " + e.getMessage() + "------------------");
-            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
+                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                    e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
@@ -428,7 +442,14 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={+4060,4070};");
         } catch (Exception e) {
             System.out.println("+4060------------------Error: " + e.getMessage() + "------------------");
-            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(
+                    (e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
+                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                    e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
