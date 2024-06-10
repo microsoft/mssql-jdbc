@@ -393,6 +393,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testConnectionRetry("blah","retryExec={9999};");
         } catch (Exception e) {
+            System.out.println("9999------------------Error: " + e.getMessage() + "------------------");
             assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
@@ -409,6 +410,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testConnectionRetry("blah","retryExec={4060};");
         } catch (Exception e) {
+            System.out.println("4060------------------Error: " + e.getMessage() + "------------------");
             assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
@@ -425,6 +427,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testConnectionRetry("blah","retryExec={+4060,4070};");
         } catch (Exception e) {
+            System.out.println("+4060------------------Error: " + e.getMessage() + "------------------");
             assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
