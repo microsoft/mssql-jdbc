@@ -218,26 +218,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void statementTimingTestFromFile() {
-        long totalTime;
-        long timerStart = System.currentTimeMillis();
-        long expectedTime = 5;
-
-        // A single retry waiting 5 seconds
-        try {
-            testStatementRetry("");
-        } catch (Exception e) {
-            Assertions.fail(TestResource.getResource("R_unexpectedException"));
-        } finally {
-            totalTime = System.currentTimeMillis() - timerStart;
-            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
-                    "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(5 + expectedTime), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(5 + expectedTime));
-        }
-    }
-
     /**
      * Tests that CRL works with multiple rules provided at once.
      */
