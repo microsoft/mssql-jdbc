@@ -382,56 +382,59 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
-//    @Test
-//    public void connectionTimingTest() {
-//        long totalTime;
-//        long timerStart = System.currentTimeMillis();
-//        long expectedMaxTime = 1; // No retries, expected time < 1 second
-//
-//
-//        // No retries since CRL rules override
-//        try {
-//            testConnectionRetry("blah","retryExec={9999};");
-//        } catch (Exception e) {
-//            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
-//        } finally {
-//            totalTime = System.currentTimeMillis() - timerStart;
-//            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-//                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-//        }
-//
-//        timerStart = System.currentTimeMillis();
-//        long expectedMinTime = 20; // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug
-//        expectedMaxTime = 25;
-//
-//        // Now retry, timing should reflect this
-//        try {
-//            testConnectionRetry("blah","retryExec={4060};");
-//        } catch (Exception e) {
-//            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
-//        } finally {
-//            totalTime = System.currentTimeMillis() - timerStart;
-//            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-//                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-//            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
-//                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
-//        }
-//
-//        timerStart = System.currentTimeMillis();
-//
-//        // Append should work the same way
-//        try {
-//            testConnectionRetry("blah","retryExec={+4060,4070};");
-//        } catch (Exception e) {
-//            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
-//        } finally {
-//            totalTime = System.currentTimeMillis() - timerStart;
-//            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-//                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-//            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
-//                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
-//        }
-//    }
+    @Test
+    public void connectionTimingTest() {
+        long totalTime;
+        long timerStart = System.currentTimeMillis();
+        long expectedMaxTime = 1; // No retries, expected time < 1 second
+
+
+        // No retries since CRL rules override
+        try {
+            testConnectionRetry("blah","retryExec={9999};");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            System.out.println(totalTime);
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+        }
+
+        timerStart = System.currentTimeMillis();
+        long expectedMinTime = 20; // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug
+        expectedMaxTime = 25;
+
+        // Now retry, timing should reflect this
+        try {
+            testConnectionRetry("blah","retryExec={4060};");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            System.out.println(totalTime);
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+        }
+
+        timerStart = System.currentTimeMillis();
+
+        // Append should work the same way
+        try {
+            testConnectionRetry("blah","retryExec={+4060,4070};");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().startsWith(TestResource.getResource("R_cannotOpenDatabase")));
+        } finally {
+            totalTime = System.currentTimeMillis() - timerStart;
+            System.out.println(totalTime);
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+        }
+    }
 
     private static void createTable(Statement stmt) throws SQLException {
         String sql = "create table " + tableName + " (c1 int null);";
