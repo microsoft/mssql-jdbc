@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -107,6 +108,36 @@ public class BatchExecutionTest extends AbstractTest {
     public void testBatchUpdateCountTrueOnFirstPstmtSpPrepare() throws Exception {
         long[] expectedUpdateCount = {1, 1, -3, -3, -3};
         testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
+    }
+
+    @Test
+    public void testSqlServerBulkCopyCachingPstmtLevel() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+
+        try (Connection con = DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement();
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
+
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            String createSql = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            stmt.execute(createSql);
+
+            Field cachedBulkCopyOperationField = pstmt.getClass().getDeclaredField("bcOperation");
+            cachedBulkCopyOperationField.setAccessible(true);
+            Object cachedBulkCopyOperation = cachedBulkCopyOperationField.get(pstmt);
+            assertEquals(null, cachedBulkCopyOperation, "SqlServerBulkCopy object should not be cached yet.");
+
+            Timestamp timestamp = new Timestamp(ms);
+
+            pstmt.setTimestamp(1, timestamp, gmtCal);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            cachedBulkCopyOperation = cachedBulkCopyOperationField.get(pstmt);
+            assertNotNull("SqlServerBulkCopy object should be cached.", cachedBulkCopyOperation);
+        }
     }
 
     @Test

@@ -2383,7 +2383,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             bcOperation.setDestinationTableMetadata(rs);
                         }
 
-
                         bcOperation.writeToServer(batchRecord);
 
                         updateCounts = new int[batchParamValues.size()];
