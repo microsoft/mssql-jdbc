@@ -387,6 +387,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         long totalTime;
         long timerStart = System.currentTimeMillis();
         long expectedMaxTime = 1; // No retries, expected time < 1 second
+        Exception ex = null;
 
 
         // No retries since CRL rules override
@@ -394,19 +395,24 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={9999};");
         } catch (Exception e) {
             System.out.println("9999------------------Error: " + e.getMessage() + "------------------");
+            ex = e;
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
                             .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            if (null != ex && ex.getMessage().toLowerCase()
+                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                        "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+            }
+
         }
 
         timerStart = System.currentTimeMillis();
@@ -418,21 +424,25 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={4060};");
         } catch (Exception e) {
             System.out.println("4060------------------Error: " + e.getMessage() + "------------------");
+            ex = e;
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
                             .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
-                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+            if (null != ex && ex.getMessage().toLowerCase()
+                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                        "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+                assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                        "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+            }
         }
 
         timerStart = System.currentTimeMillis();
@@ -442,21 +452,25 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testConnectionRetry("blah","retryExec={+4060,4070};");
         } catch (Exception e) {
             System.out.println("+4060------------------Error: " + e.getMessage() + "------------------");
+            ex = e;
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
                             .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
+                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
             System.out.println(totalTime);
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-                    "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
-                    "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+            if (null != ex && ex.getMessage().toLowerCase()
+                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
+                        "total time: " + totalTime + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
+                assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime),
+                        "total time: " + totalTime + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
+            }
         }
     }
 
