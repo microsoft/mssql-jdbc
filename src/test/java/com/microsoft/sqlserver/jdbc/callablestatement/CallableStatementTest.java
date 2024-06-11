@@ -65,6 +65,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Table"));
     private static String manyParamProc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Procedure"));
+    private static String currentTimeProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("currentTime_Procedure"));
     private static String manyParamUserDefinedType = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
@@ -108,6 +110,7 @@ public class CallableStatementTest extends AbstractTest {
             createUserDefinedType();
             createTableManyParams();
             createProcedureManyParams();
+            createProcedureCurrentTime();
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
             createOutOfOrderSproc();
@@ -1224,6 +1227,17 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testTimestampStringConversion() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call dbo.CurrentTime(?)}")) {
+            String timestamp = "2024-05-29 15:35:53.461";
+            stmt.setObject(1, timestamp, Types.TIMESTAMP);
+            stmt.registerOutParameter(1, Types.TIMESTAMP);
+            stmt.execute();
+            stmt.getObject("currentTimeStamp");
+        }
+    }
+
     /**
      * Cleanup after test
      *
@@ -1242,6 +1256,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
+            TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
@@ -1289,6 +1304,15 @@ public class CallableStatementTest extends AbstractTest {
                 + type + ", @p5 " + type + ", @p6 " + type + ", @p7 " + type + ", @p8 " + type + ", @p9 " + type
                 + ", @p10 " + type + " AS INSERT INTO " + manyParamsTable
                 + " VALUES(@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureCurrentTime() throws SQLException {
+        String type = manyParamUserDefinedType;
+        String sql = "CREATE PROCEDURE " + currentTimeProc + "@currentTimeStamp datetime = null OUTPUT " +
+                "AS BEGIN SET @currentTimeStamp = CURRENT_TIMESTAMP; END";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
