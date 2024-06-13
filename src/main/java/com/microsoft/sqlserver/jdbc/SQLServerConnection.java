@@ -2015,6 +2015,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
+                        // Only retry if matches configured CRL rules, or transient error (if CRL is not in use)
                         SQLServerError sqlServerError = e.getSQLServerError();
 
                         if (null == sqlServerError) {
@@ -2371,7 +2372,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 retryExec = sPropValue;
-                // ConfigurableRetryLogic.getInstance().setCustomRetryRules(sPropValue);
                 ConfigurableRetryLogic.getInstance().setFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();

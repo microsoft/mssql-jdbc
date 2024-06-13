@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class ConfigurableRetryLogic {
-    private final static int INTERVAL_BETWEEN_READS = 30000; // How many ms must have elapsed before we re-read
+    private final static int INTERVAL_BETWEEN_READS = 30000;
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
     private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
@@ -26,7 +26,7 @@ public class ConfigurableRetryLogic {
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
     private static String rulesFromConnectionString = "";
-    private static boolean replaceFlag = false; // Are we replacing the list of transient errors (for connection retry)?
+    private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
     private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
@@ -37,8 +37,8 @@ public class ConfigurableRetryLogic {
     }
 
     /**
-     * Fetches the static instance of ConfigurableRetryLogic, instantiating it if it hasn't already been. Each time the instance
-     * is fetched, we check if a re-read is needed, and do so if properties should be re-read.
+     * Fetches the static instance of ConfigurableRetryLogic, instantiating it if it hasn't already been.
+     * Each time the instance is fetched, we check if a re-read is needed, and do so if properties should be re-read.
      *
      * @return The static instance of ConfigurableRetryLogic
      * @throws SQLServerException
