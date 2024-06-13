@@ -1310,8 +1310,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     private static void createProcedureCurrentTime() throws SQLException {
-        String type = manyParamUserDefinedType;
-        String sql = "CREATE PROCEDURE " + currentTimeProc + "@currentTimeStamp datetime = null OUTPUT " +
+        String sql = "CREATE PROCEDURE " + currentTimeProc + " @currentTimeStamp datetime = null OUTPUT " +
                 "AS BEGIN SET @currentTimeStamp = CURRENT_TIMESTAMP; END";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
