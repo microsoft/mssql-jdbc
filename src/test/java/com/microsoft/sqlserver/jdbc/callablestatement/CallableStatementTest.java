@@ -1229,7 +1229,7 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testTimestampStringConversion() throws SQLException {
-        try (CallableStatement stmt = connection.prepareCall("{call dbo.CurrentTime(?)}")) {
+        try (CallableStatement stmt = connection.prepareCall("{call " + currentTimeProc + "(?)}")) {
             String timestamp = "2024-05-29 15:35:53.461";
             stmt.setObject(1, timestamp, Types.TIMESTAMP);
             stmt.registerOutParameter(1, Types.TIMESTAMP);
