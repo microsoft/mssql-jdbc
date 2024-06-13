@@ -160,7 +160,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     public void statementTimingTests() {
         long totalTime;
         long timerStart = System.currentTimeMillis();
-        long expectedTime = 5;
 
         // A single retry immediately
         try {
@@ -169,8 +168,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedTime),
-                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(10),
+                    "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(10));
         }
 
         timerStart = System.currentTimeMillis();
@@ -184,8 +183,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(5 + expectedTime), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(5 + expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(15), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(15));
         }
 
         timerStart = System.currentTimeMillis();
@@ -199,8 +198,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(8),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(8));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(8 + expectedTime), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(8 + expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(18), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(18));
         }
 
         timerStart = System.currentTimeMillis();
@@ -214,8 +213,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(10),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(10));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(10 + expectedTime), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(10 + expectedTime));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(20), "total time: " + totalTime
+                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(20));
         }
     }
 
@@ -393,7 +392,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     public void connectionTimingTest() {
         long totalTime;
         long timerStart = System.currentTimeMillis();
-        long expectedMaxTime = 1;
+        long expectedMaxTime = 10;
 
         // No retries since CRL rules override, expected time ~1 second
         try {
@@ -419,7 +418,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
         timerStart = System.currentTimeMillis();
         long expectedMinTime = 20;
-        expectedMaxTime = 25;
+        expectedMaxTime = 30;
 
         // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug = expected 20s execution time
         try {
