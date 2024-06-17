@@ -55,6 +55,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_setNull_SP"));
     private static String inputParamsProcedureName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
+    private static String conditionalSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_conditionalSproc"));
     private static String getObjectLocalDateTimeProcedureName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP"));
     private static String getObjectOffsetDateTimeProcedureName = AbstractSQLGenerator
@@ -97,6 +99,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
+            TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
@@ -115,6 +118,7 @@ public class CallableStatementTest extends AbstractTest {
             createProcedureZeroParams();
             createOutOfOrderSproc();
             createByParamNameSproc();
+            createConditionalProcedure();
             createUserDefinedFunction();
         }
     }
@@ -1151,6 +1155,36 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    public void testCallableStatementDefaultValues() throws SQLException {
+        String call0 = "{call " + conditionalSproc + " (?, ?, 1)}";
+        String call1 = "{call " + conditionalSproc + " (?, ?, 2)}";
+        int expectedValue = 5; // The sproc should return this value
+
+        try (CallableStatement cstmt = connection.prepareCall(call0)) {
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.execute();
+            ResultSet rs = cstmt.getResultSet();
+            rs.next();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+
+        } catch (NullPointerException npe) {
+            assertEquals(TestResource.getResource("R_nullPointerExceptionFromResultSet"),
+                    npe.getMessage());
+        }
+
+        try (CallableStatement cstmt = connection.prepareCall(call1)) {
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.execute();
+            ResultSet rs = cstmt.getResultSet();
+            rs.next();
+
+            assertEquals(Integer.toString(expectedValue), rs.getString(1));
+        }
+    }
+
+    @Test
     @Tag(Constants.reqExternalSetup)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
@@ -1257,6 +1291,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
             TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
+            TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
@@ -1312,6 +1347,14 @@ public class CallableStatementTest extends AbstractTest {
     private static void createProcedureCurrentTime() throws SQLException {
         String sql = "CREATE PROCEDURE " + currentTimeProc + " @currentTimeStamp datetime = null OUTPUT " +
                 "AS BEGIN SET @currentTimeStamp = CURRENT_TIMESTAMP; END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createConditionalProcedure() throws SQLException {
+        String sql = "CREATE PROCEDURE " + conditionalSproc + " @param0 INT, @param1 INT, @maybe bigint = 2 " +
+                "AS BEGIN IF @maybe >= 2 BEGIN SELECT 5 END END";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
