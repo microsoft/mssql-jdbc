@@ -146,6 +146,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
 
+    /**
+     * For caching data related to batch insert with bulkcopy
+     */
+    private SQLServerBulkCopy bcOperation = null;
+    private String bcOperationTableName = null;
+    private ArrayList<String> bcOperationColumnList = null;
+    private ArrayList<String> bcOperationValueList = null;
+
     /** Returns the prepared statement SQL */
     @Override
     public String toString() {
@@ -392,6 +400,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Clean up client-side state
         batchParamValues = null;
+
+        if (null != bcOperation) {
+            bcOperation.close();
+        }
     }
 
     /**
@@ -2287,9 +2299,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                     }
 
-                    String tableName = parseUserSQLForTableNameDW(false, false, false, false);
-                    ArrayList<String> columnList = parseUserSQLForColumnListDW();
-                    ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+                    if (null == bcOperationTableName) {
+                        bcOperationTableName = parseUserSQLForTableNameDW(false, false, false, false);
+                    }
+
+                    if (null == bcOperationColumnList) {
+                        bcOperationColumnList = parseUserSQLForColumnListDW();
+                    }
+
+                    if (null == bcOperationValueList) {
+                        bcOperationValueList = parseUserSQLForValueListDW(false);
+                    }
 
                     checkAdditionalQuery();
 
@@ -2298,28 +2318,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(tableName) + " '")) {
+                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
                         Map<Integer, Integer> columnMappings = null;
-                        if (null != columnList && !columnList.isEmpty()) {
-                            if (columnList.size() != valueList.size()) {
+                        if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
+                            if (bcOperationColumnList.size() != bcOperationValueList.size()) {
 
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
-                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                Object[] msgArgs = {bcOperationColumnList.size(), bcOperationValueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
-                            columnMappings = new HashMap<>(columnList.size());
+                            columnMappings = new HashMap<>(bcOperationColumnList.size());
                         } else {
-                            if (rs.getColumnCount() != valueList.size()) {
+                            if (rs.getColumnCount() != bcOperationValueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
-                                Object[] msgArgs = {rs.getColumnCount(), valueList.size()};
+                                Object[] msgArgs = {rs.getColumnCount(), bcOperationValueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, columnList, valueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2335,8 +2355,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             } else {
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
-                            if (null != columnList && !columnList.isEmpty()) {
-                                int columnIndex = columnList.indexOf(c.getColumnName());
+                            if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
+                                int columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
                                 if (columnIndex > -1) {
                                     columnMappings.put(columnIndex + 1, i);
                                     batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
@@ -2348,20 +2368,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
 
-                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                        option.setBulkCopyTimeout(queryTimeout);
-                        bcOperation.setBulkCopyOptions(option);
-                        bcOperation.setDestinationTableName(tableName);
-                        if (columnMappings != null) {
-                            for (Entry<Integer, Integer> pair : columnMappings.entrySet()) {
-                                bcOperation.addColumnMapping(pair.getKey(), pair.getValue());
+                        if (null == bcOperation) {
+                            bcOperation = new SQLServerBulkCopy(connection);
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            option.setBulkCopyTimeout(queryTimeout);
+                            bcOperation.setBulkCopyOptions(option);
+                            bcOperation.setDestinationTableName(bcOperationTableName);
+                            if (columnMappings != null) {
+                                for (Entry<Integer, Integer> pair : columnMappings.entrySet()) {
+                                    bcOperation.addColumnMapping(pair.getKey(), pair.getValue());
+                                }
                             }
+                            bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                            bcOperation.setDestinationTableMetadata(rs);
                         }
-                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                        bcOperation.setDestinationTableMetadata(rs);
+
                         bcOperation.writeToServer(batchRecord);
-                        bcOperation.close();
+
                         updateCounts = new int[batchParamValues.size()];
                         for (int i = 0; i < batchParamValues.size(); ++i) {
                             updateCounts[i] = 1;
@@ -2471,9 +2494,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
                     }
 
-                    String tableName = parseUserSQLForTableNameDW(false, false, false, false);
-                    ArrayList<String> columnList = parseUserSQLForColumnListDW();
-                    ArrayList<String> valueList = parseUserSQLForValueListDW(false);
+                    if (null == bcOperationTableName) {
+                        bcOperationTableName = parseUserSQLForTableNameDW(false, false, false, false);
+                    }
+
+                    if (null == bcOperationColumnList) {
+                        bcOperationColumnList = parseUserSQLForColumnListDW();
+                    }
+
+                    if (null == bcOperationValueList) {
+                        bcOperationValueList = parseUserSQLForValueListDW(false);
+                    }
 
                     checkAdditionalQuery();
 
@@ -2482,25 +2513,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(tableName) + " '")) {
-                        if (null != columnList && !columnList.isEmpty()) {
-                            if (columnList.size() != valueList.size()) {
+                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
+                        if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
+                            if (bcOperationColumnList.size() != bcOperationValueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
-                                Object[] msgArgs = {columnList.size(), valueList.size()};
+                                Object[] msgArgs = {bcOperationColumnList.size(), bcOperationValueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         } else {
-                            if (rs.getColumnCount() != valueList.size()) {
+                            if (rs.getColumnCount() != bcOperationValueList.size()) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_colNotMatchTable"));
-                                Object[] msgArgs = {columnList != null ? columnList.size() : 0, valueList.size()};
+                                Object[] msgArgs = {bcOperationColumnList!= null ? bcOperationColumnList.size() : 0, bcOperationValueList.size()};
                                 throw new IllegalArgumentException(form.format(msgArgs));
                             }
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, columnList, valueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2517,15 +2548,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     ti.getScale());
                         }
 
-                        SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(connection);
-                        SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
-                        option.setBulkCopyTimeout(queryTimeout);
-                        bcOperation.setBulkCopyOptions(option);
-                        bcOperation.setDestinationTableName(tableName);
-                        bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
-                        bcOperation.setDestinationTableMetadata(rs);
+                        if (null == bcOperation) {
+                            bcOperation = new SQLServerBulkCopy(connection);
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            option.setBulkCopyTimeout(queryTimeout);
+                            bcOperation.setBulkCopyOptions(option);
+                            bcOperation.setDestinationTableName(bcOperationTableName);
+                            bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
+                            bcOperation.setDestinationTableMetadata(rs);
+                        }
+
                         bcOperation.writeToServer(batchRecord);
-                        bcOperation.close();
+
                         updateCounts = new long[batchParamValues.size()];
                         for (int i = 0; i < batchParamValues.size(); ++i) {
                             updateCounts[i] = 1;
