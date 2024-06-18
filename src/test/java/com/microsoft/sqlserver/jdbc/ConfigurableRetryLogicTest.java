@@ -272,7 +272,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     public void testRetryError() throws Exception {
         // Test incorrect format (NaN)
         try {
-            testStatementRetry("retryExec={TEST};");
+            testStatementRetry("retryExec={TEST:TEST};");
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
         }
