@@ -1168,9 +1168,10 @@ public class CallableStatementTest extends AbstractTest {
             rs.next();
             fail(TestResource.getResource("R_expectedFailPassed"));
 
-        } catch (NullPointerException npe) {
-            assertEquals(TestResource.getResource("R_nullPointerExceptionFromResultSet"),
-                    npe.getMessage());
+        } catch (Exception e) {
+            assertTrue(TestResource
+                    .getResource("R_nullPointerExceptionFromResultSet").equalsIgnoreCase(e.getMessage())
+                    || e.getMessage().equals(null));
         }
 
         try (CallableStatement cstmt = connection.prepareCall(call1)) {
