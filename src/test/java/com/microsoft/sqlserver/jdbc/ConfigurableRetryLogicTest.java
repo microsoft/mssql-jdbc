@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,7 +25,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 /**
- * Test connection and statement retry for configurable retry logic
+ * Test statement retry for configurable retry logic
  */
 public class ConfigurableRetryLogicTest extends AbstractTest {
     private static String connectionStringCRL = null;
@@ -100,29 +105,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                 s.execute("create table " + tableName + " (c1 int null);");
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage().startsWith("There is already an object"),
-                        TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
-            } finally {
-                dropTable(s);
-            }
-        }
-    }
-
-    /**
-     * Tests connection retry. Used in other tests.
-     *
-     * @throws Exception
-     *         if unable to connect or execute against db
-     */
-    public void testConnectionRetry(String replacedDbName, String addedRetryParams) throws Exception {
-        String cxnString = connectionString + addedRetryParams;
-        cxnString = TestUtils.addOrOverrideProperty(cxnString, "database", replacedDbName);
-
-        try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
-            try {
-                fail(TestResource.getResource("R_expectedFailPassed"));
-            } catch (Exception e) {
-                System.out.println("blah");
                 assertTrue(e.getMessage().startsWith("There is already an object"),
                         TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
             } finally {
@@ -380,94 +362,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testStatementRetry("retryExec={2714,2716:1,2+2:CREATE};");
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
-        }
-    }
-
-    /**
-     * Tests that the correct number of retries are happening for all connection scenarios. Tests are expected to take
-     * a minimum of the sum of whatever has been defined for the waiting intervals, and maximum of the previous sum
-     * plus some amount of time to account for test environment slowness.
-     */
-    @Test
-    public void connectionTimingTest() {
-        long totalTime;
-        long timerStart = System.currentTimeMillis();
-        long expectedMaxTime = 10;
-
-        // No retries since CRL rules override, expected time ~1 second
-        try {
-            testConnectionRetry("blah", "retryExec={9999};");
-        } catch (Exception e) {
-            assertTrue(
-                    (e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
-                    e.getMessage());
-
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
-                // Only check the timing if the correct error, "cannot open database", is returned.
-                totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-                        "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-            }
-        }
-
-        timerStart = System.currentTimeMillis();
-        long expectedMinTime = 20;
-        expectedMaxTime = 30;
-
-        // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug = expected 20s execution time
-        try {
-            testConnectionRetry("blah", "retryExec={4060};");
-        } catch (Exception e) {
-            assertTrue(
-                    (e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
-                    e.getMessage());
-
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
-                // Only check the timing if the correct error, "cannot open database", is returned.
-                totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime
-                        + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-                assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime), "total time: " + totalTime
-                        + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
-            }
-        }
-
-        timerStart = System.currentTimeMillis();
-
-        // Append should work the same way
-        try {
-            testConnectionRetry("blah", "retryExec={+4060,4070};");
-        } catch (Exception e) {
-            assertTrue(
-                    (e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
-                    e.getMessage());
-
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
-                // Only check the timing if the correct error, "cannot open database", is returned.
-                totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime
-                        + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-                assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime), "total time: " + totalTime
-                        + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
-            }
         }
     }
 

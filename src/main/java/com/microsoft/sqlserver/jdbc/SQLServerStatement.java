@@ -272,8 +272,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 ConfigRetryRule rule = null;
 
                 if (null != sqlServerError) {
-                    rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber(),
-                            "statement");
+                    rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber());
                 }
 
                 if (null != rule && retryAttempt < rule.getRetryCount()) {

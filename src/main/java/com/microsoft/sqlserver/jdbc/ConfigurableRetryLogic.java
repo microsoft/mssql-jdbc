@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+
 package com.microsoft.sqlserver.jdbc;
 
 import java.io.BufferedReader;
@@ -26,8 +31,6 @@ public class ConfigurableRetryLogic {
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
     private static String rulesFromConnectionString = "";
-    private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
-    private static HashMap<Integer, ConfigRetryRule> cxnRules = new HashMap<>();
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
 
@@ -91,9 +94,7 @@ public class ConfigurableRetryLogic {
     }
 
     private static void setUpRules() throws SQLServerException {
-        cxnRules = new HashMap<>();
         stmtRules = new HashMap<>();
-        replaceFlag = false;
         lastQuery = "";
         LinkedList<String> temp;
 
@@ -108,7 +109,6 @@ public class ConfigurableRetryLogic {
     }
 
     private static void createRules(LinkedList<String> listOfRules) throws SQLServerException {
-        cxnRules = new HashMap<>();
         stmtRules = new HashMap<>();
 
         for (String potentialRule : listOfRules) {
@@ -119,28 +119,10 @@ public class ConfigurableRetryLogic {
 
                 for (String retryError : arr) {
                     ConfigRetryRule splitRule = new ConfigRetryRule(retryError, rule);
-                    if (rule.getConnectionStatus()) {
-                        if (rule.getReplaceExisting()) {
-                            if (!replaceFlag) {
-                                cxnRules = new HashMap<>();
-                            }
-                            replaceFlag = true;
-                        }
-                        cxnRules.put(Integer.parseInt(splitRule.getError()), splitRule);
-                    } else {
-                        stmtRules.put(Integer.parseInt(splitRule.getError()), splitRule);
-                    }
+                    stmtRules.put(Integer.parseInt(splitRule.getError()), splitRule);
                 }
             } else {
-                if (rule.getConnectionStatus()) {
-                    if (rule.getReplaceExisting()) {
-                        cxnRules = new HashMap<>();
-                        replaceFlag = true;
-                    }
-                    cxnRules.put(Integer.parseInt(rule.getError()), rule);
-                } else {
-                    stmtRules.put(Integer.parseInt(rule.getError()), rule);
-                }
+                stmtRules.put(Integer.parseInt(rule.getError()), rule);
             }
         }
     }
@@ -184,26 +166,14 @@ public class ConfigurableRetryLogic {
         return list;
     }
 
-    ConfigRetryRule searchRuleSet(int ruleToSearch, String ruleSet) throws SQLServerException {
+    ConfigRetryRule searchRuleSet(int ruleToSearch) throws SQLServerException {
         reread();
-        if (ruleSet.equals("statement")) {
-            for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {
-                if (entry.getKey() == ruleToSearch) {
-                    return entry.getValue();
-                }
-            }
-        } else {
-            for (Map.Entry<Integer, ConfigRetryRule> entry : cxnRules.entrySet()) {
-                if (entry.getKey() == ruleToSearch) {
-                    return entry.getValue();
-                }
+        for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {
+            if (entry.getKey() == ruleToSearch) {
+                return entry.getValue();
             }
         }
         return null;
-    }
-
-    boolean getReplaceFlag() {
-        return replaceFlag;
     }
 }
 
@@ -216,7 +186,6 @@ class ConfigRetryRule {
     private int retryCount = 1;
     private String retryQueries = "";
     private ArrayList<Integer> waitTimes = new ArrayList<>();
-    private boolean isConnection = false;
     private boolean replaceExisting = false;
 
     public ConfigRetryRule(String rule) throws SQLServerException {
@@ -237,7 +206,6 @@ class ConfigRetryRule {
         this.retryCount = base.getRetryCount();
         this.retryQueries = base.getRetryQueries();
         this.waitTimes = base.getWaitTimes();
-        this.isConnection = base.getConnectionStatus();
     }
 
     private String[] parse(String rule) {
@@ -264,12 +232,7 @@ class ConfigRetryRule {
     }
 
     private void addElements(String[] rule) throws SQLServerException {
-        if (rule.length == 1) {
-            String errorWithoutOptionalPrefix = appendOrReplace(rule[0]);
-            parameterIsNumeric(errorWithoutOptionalPrefix);
-            isConnection = true;
-            retryError = errorWithoutOptionalPrefix;
-        } else if (rule.length == 2 || rule.length == 3) {
+        if (rule.length == 2 || rule.length == 3) {
             parameterIsNumeric(rule[0]);
             retryError = rule[0];
             String[] timings = rule[1].split(",");
@@ -286,6 +249,7 @@ class ConfigRetryRule {
                 if (timings[1].contains("*")) {
                     String[] initialAndChange = timings[1].split("\\*");
                     parameterIsNumeric(initialAndChange[0]);
+
                     initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = "*";
                     if (initialAndChange.length > 1) {
@@ -303,6 +267,8 @@ class ConfigRetryRule {
                     if (initialAndChange.length > 1) {
                         parameterIsNumeric(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
+                    } else {
+                        retryChange = initialRetryTime;
                     }
                 } else {
                     parameterIsNumeric(timings[1]);
@@ -329,17 +295,6 @@ class ConfigRetryRule {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRuleFormat"));
             Object[] msgArgs = {builder.toString()};
             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-        }
-    }
-
-    private String appendOrReplace(String retryError) {
-        if (retryError.charAt(0) == '+') {
-            replaceExisting = false;
-            StringUtils.isNumeric(retryError.substring(1));
-            return retryError.substring(1);
-        } else {
-            replaceExisting = true;
-            return retryError;
         }
     }
 
@@ -379,19 +334,11 @@ class ConfigRetryRule {
         return retryCount;
     }
 
-    public boolean getConnectionStatus() {
-        return isConnection;
-    }
-
     public String getRetryQueries() {
         return retryQueries;
     }
 
     public ArrayList<Integer> getWaitTimes() {
         return waitTimes;
-    }
-
-    public boolean getReplaceExisting() {
-        return replaceExisting;
     }
 }
