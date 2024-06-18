@@ -186,7 +186,6 @@ class ConfigRetryRule {
     private int retryCount = 1;
     private String retryQueries = "";
     private ArrayList<Integer> waitTimes = new ArrayList<>();
-    private boolean replaceExisting = false;
 
     public ConfigRetryRule(String rule) throws SQLServerException {
         addElements(parse(rule));

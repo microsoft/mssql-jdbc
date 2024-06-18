@@ -46,7 +46,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     @Test
     public void testStatementRetryPreparedStatement() throws Exception {
         connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
-                "{2714:3,2*2:CREATE;2715:1,3;+4060,4070}");
+                "{2714:3,2*2:CREATE;2715:1,3}");
 
         try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement()) {
             PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
@@ -72,7 +72,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     @Test
     public void testStatementRetryCallableStatement() throws Exception {
         connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
-                "{2714:3,2*2:CREATE;2715:1,3;+4060,4070}");
+                "{2714:3,2*2:CREATE;2715:1,3}");
         String call = "create table " + tableName + " (c1 int null);";
 
         try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement();
@@ -236,8 +236,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testStatementRetry("retryExec={;};");
 
             // Test length 1
-            testStatementRetry("retryExec={4060};");
-            testStatementRetry("retryExec={+4060,4070};");
             testStatementRetry("retryExec={2714:1;};");
 
             // Test length 2
