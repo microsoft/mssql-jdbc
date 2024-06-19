@@ -42,6 +42,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_givenValueType", "The given value of type"},
             {"R_lengthTruncated", " The inserted length is truncated or not correct!"},
             {"R_timeValueTruncated", " The time value is truncated or not correct!"},
+            {"R_nullPointerExceptionFromResultSet", "Cannot invoke \"java.sql.ResultSet.next()\" because \"rs\" is null"},
             {"R_invalidErrorMessage", "Invalid Error Message: "},
             {"R_kerberosNativeGSSFailure",
                     "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
