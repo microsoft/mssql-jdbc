@@ -1278,7 +1278,6 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
-            TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
