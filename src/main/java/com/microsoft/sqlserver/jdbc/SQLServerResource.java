@@ -165,6 +165,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidDatetimeType", "The datetimeType connection property {0} is not valid."},
         {"R_dataAlreadyAccessed", "The data has been accessed and is not available for this column or parameter."},
         {"R_outParamsNotPermittedinBatch", "The OUT and INOUT parameters are not permitted in a batch."},
+        {"R_possibleColumnDataCorruption", "Attempted to insert encrypted unicode data into non-unicode column. Data corruption may occur."},
         {"R_colNotMatchTable", "Number of provided columns {0} does not match the table definition {1}."},
         {"R_invalidSQL", "Invalid SQL query {0}."},
         {"R_multipleQueriesNotAllowed", "Multiple queries are not allowed."},

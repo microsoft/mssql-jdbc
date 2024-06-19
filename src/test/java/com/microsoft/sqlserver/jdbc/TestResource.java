@@ -75,6 +75,7 @@ public final class TestResource extends ListResourceBundle {
             {"R_notValidParameterForProcedure", "{0} is not a parameter for procedure {1}."},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
             {"R_connectionClosed", "The connection has been closed"},
+            {"R_possibleColumnDataCorruption", "Attempted to insert encrypted unicode data into non-unicode column. Data corruption may occur."},
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},
             {"R_invalidQueryTimeout", "The query timeout value {0} is not valid."},
             {"R_skipAzure", "Skipping test case on Azure SQL."},
