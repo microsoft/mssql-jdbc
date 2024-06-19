@@ -523,6 +523,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setCalcBigDecimalPrecision");
         verifiedMethodNames.add("registerBeforeReconnectListener");
         verifiedMethodNames.add("removeBeforeReconnectListener");
+        verifiedMethodNames.add("getRetryExec");
+        verifiedMethodNames.add("setRetryExec");
         return verifiedMethodNames;
     }
 }

@@ -5,9 +5,9 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -212,6 +212,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setCalcBigDecimalPrecision(booleanPropValue);
         assertEquals(booleanPropValue, ds.getCalcBigDecimalPrecision(),
                 TestResource.getResource("R_valuesAreDifferent"));
+        ds.setRetryExec(stringPropValue);
+        assertEquals(stringPropValue, ds.getRetryExec(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setServerCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));

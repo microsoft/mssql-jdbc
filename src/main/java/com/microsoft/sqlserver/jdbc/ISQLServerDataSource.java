@@ -1350,4 +1350,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return calcBigDecimalPrecision boolean value
      */
     boolean getCalcBigDecimalPrecision();
+
+    /**
+     * Returns value of 'retryExec' from Connection String.
+     *
+     * @param retryExec
+     */
+    void setRetryExec(String retryExec);
+
+    /**
+     * Sets the value for 'retryExec' property
+     *
+     * @return retryExec String value
+     */
+    String getRetryExec();
 }
