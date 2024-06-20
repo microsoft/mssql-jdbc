@@ -21,7 +21,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -487,7 +486,7 @@ class SQLServerSecurityUtility {
         return null;
     }
 
-    private static TokenCredential getCredentialFromCache(String key) {
+    private static Object getCredentialFromCache(String key) {
         Credential credential = CREDENTIAL_CACHE.get(key);
 
         if (null != credential) {
@@ -498,9 +497,9 @@ class SQLServerSecurityUtility {
     }
 
     private static class Credential {
-        TokenCredential tokenCredential;
+        Object tokenCredential;
 
-        public Credential(TokenCredential tokenCredential) {
+        public Credential(Object tokenCredential) {
             this.tokenCredential = tokenCredential;
         }
     }
