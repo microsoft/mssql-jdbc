@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.6.3] Hotfix & Stable Release
+
+### Fixed issues
+- Fixed timestamp string conversion regression [#2455](https://github.com/microsoft/mssql-jdbc/pull/2455)
+- Fixed SQLServerCallableStatement default value regression [#2456](https://github.com/microsoft/mssql-jdbc/pull/2456)
+- Fixed issue where TokenCredential class was required to be imported [#2453](https://github.com/microsoft/mssql-jdbc/pull/2453)
+
 ## [12.6.2] Hotfix & Stable Release
 ### Added
 - Added credential caching for Managed Identity Credential and Default Azure Credential [#2426](https://github.com/microsoft/mssql-jdbc/pull/2426)
