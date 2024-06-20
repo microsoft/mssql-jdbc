@@ -70,6 +70,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Table"));
     private static String manyParamProc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Procedure"));
+    private static String currentTimeProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("currentTime_Procedure"));
     private static String manyParamUserDefinedType = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
@@ -114,6 +116,7 @@ public class CallableStatementTest extends AbstractTest {
             createUserDefinedType();
             createTableManyParams();
             createProcedureManyParams();
+            createProcedureCurrentTime();
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
             createOutOfOrderSproc();
@@ -1260,6 +1263,17 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testTimestampStringConversion() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + currentTimeProc + "(?)}")) {
+            String timestamp = "2024-05-29 15:35:53.461";
+            stmt.setObject(1, timestamp, Types.TIMESTAMP);
+            stmt.registerOutParameter(1, Types.TIMESTAMP);
+            stmt.execute();
+            stmt.getObject("currentTimeStamp");
+        }
+    }
+
     /**
      * Cleanup after test
      *
@@ -1278,6 +1292,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
+            TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
@@ -1331,6 +1346,14 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    private static void createProcedureCurrentTime() throws SQLException {
+        String sql = "CREATE PROCEDURE " + currentTimeProc + " @currentTimeStamp datetime = null OUTPUT " +
+                "AS BEGIN SET @currentTimeStamp = CURRENT_TIMESTAMP; END";
+          try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+  
     private static void createConditionalProcedure() throws SQLException {
         String sql = "CREATE PROCEDURE " + conditionalSproc + " @param0 INT, @param1 INT, @maybe bigint = 2 " +
                 "AS BEGIN IF @maybe >= 2 BEGIN SELECT 5 END END";
