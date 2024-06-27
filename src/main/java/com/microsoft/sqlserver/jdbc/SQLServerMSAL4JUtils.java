@@ -65,7 +65,7 @@ class SQLServerMSAL4JUtils {
 
     private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
 
-    private final static String LOGCONTEXT = "MSAL version "
+    static String LOGCONTEXT = "MSAL "
             + com.microsoft.aad.msal4j.PublicClientApplication.class.getPackage().getImplementationVersion() + ": ";
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger
@@ -91,9 +91,18 @@ class SQLServerMSAL4JUtils {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
 
+            // check if new or password has changed
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finest(LOGCONTEXT + authenticationString + ": adding new cached entry for user: " + user);
+                }
+            } else {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finest(LOGCONTEXT + authenticationString + ": found cached entry for user: " + user);
+                }
             }
 
             final PublicClientApplication pca = PublicClientApplication
@@ -147,9 +156,21 @@ class SQLServerMSAL4JUtils {
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
 
+            // check if new or password has changed
+
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finest(LOGCONTEXT + authenticationString + ": adding new cached entry for principal id: "
+                            + aadPrincipalID);
+                }
+            } else {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finest(LOGCONTEXT + authenticationString + ": found cached entry for principal id: "
+                            + aadPrincipalID);
+                }
             }
 
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
