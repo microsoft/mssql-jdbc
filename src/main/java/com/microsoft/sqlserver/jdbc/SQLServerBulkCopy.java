@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static com.microsoft.sqlserver.jdbc.SQLServerConnection.BULK_COPY_OPERATION_CACHE;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -17,6 +18,8 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -46,6 +49,8 @@ import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 import javax.sql.RowSet;
@@ -262,6 +267,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Shared timer
      */
     private transient ScheduledFuture<?> timeout;
+
+    /**
+     * Shared timer
+     */
+    private static final Lock DESTINATION_COL_METADATA_LOCK = new ReentrantLock();
 
     /**
      * The maximum temporal precision we can send when using varchar(precision) in bulkcommand, to send a
@@ -1719,62 +1729,80 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
+        String databaseName = connection.activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
+        String key = getHashedSecret(new String[] {escapedDestinationTableName, databaseName});
+        destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
 
         SQLServerResultSet rs = null;
         SQLServerStatement stmt = null;
         String metaDataQuery = null;
 
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
-            try {
-                if (null != destinationTableMetadata) {
-                    rs = (SQLServerResultSet) destinationTableMetadata;
-                } else {
-                    stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-                            ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
+            DESTINATION_COL_METADATA_LOCK.lock();
+            destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
 
-                    // Get destination metadata
-                    rs = stmt.executeQueryInternal(
-                            "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
-                }
+            if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
+                try {
+                    if (null != destinationTableMetadata) {
+                        rs = (SQLServerResultSet) destinationTableMetadata;
+                    } else {
+                        stmt = (SQLServerStatement) connection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                                ResultSet.CONCUR_READ_ONLY, connection.getHoldability(), stmtColumnEncriptionSetting);
 
-                int destColumnMetadataCount = rs.getMetaData().getColumnCount();
-                destColumnMetadata = new HashMap<>();
-                destCekTable = rs.getCekTable();
+                        // Get destination metadata
+                        rs = stmt.executeQueryInternal(
+                                "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
+                    }
 
-                metaDataQuery = "select * from sys.columns where " + "object_id=OBJECT_ID('"
-                        + escapedDestinationTableName + "') " + "order by column_id ASC";
+                    int destColumnMetadataCount = rs.getMetaData().getColumnCount();
+                    destColumnMetadata = new HashMap<>();
+                    destCekTable = rs.getCekTable();
 
-                try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
-                        SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
-                    for (int i = 1; i <= destColumnMetadataCount; ++i) {
-                        if (rsMoreMetaData.next()) {
-                            String bulkCopyEncryptionType = null;
-                            if (connection.getServerSupportsColumnEncryption()) {
-                                bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
+                    if (!connection.getServerSupportsColumnEncryption()) {
+                        metaDataQuery = "select collation_name, is_computed from sys.columns where " + "object_id=OBJECT_ID('"
+                                + escapedDestinationTableName + "') " + "order by column_id ASC";
+                    } else {
+                        metaDataQuery = "select collation_name, is_computed, encryption_type from sys.columns where "
+                                + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+                    }
+
+                    try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();
+                            SQLServerResultSet rsMoreMetaData = statementMoreMetadata.executeQueryInternal(metaDataQuery)) {
+                        for (int i = 1; i <= destColumnMetadataCount; ++i) {
+                            if (rsMoreMetaData.next()) {
+                                String bulkCopyEncryptionType = null;
+                                if (connection.getServerSupportsColumnEncryption()) {
+                                    bulkCopyEncryptionType = rsMoreMetaData.getString("encryption_type");
+                                }
+                                // Skip computed columns
+                                if (!rsMoreMetaData.getBoolean("is_computed")) {
+                                    destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
+                                            rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
+                                }
+                            } else {
+                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                             }
-                            // Skip computed columns
-                            if (!rsMoreMetaData.getBoolean("is_computed")) {
-                                destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i),
-                                        rsMoreMetaData.getString("collation_name"), bulkCopyEncryptionType));
-                            }
-                        } else {
-                            destColumnMetadata.put(i, new BulkColumnMetaData(rs.getColumn(i)));
                         }
                     }
-                    destColumnCount = destColumnMetadata.size();
-                }
-            } catch (SQLException e) {
-                // Unable to retrieve metadata for destination
-                throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
-            } finally {
-                if (null != rs) {
-                    rs.close();
-                }
-                if (null != stmt) {
-                    stmt.close();
+
+                    BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
+                } catch (SQLException e) {
+                    // Unable to retrieve metadata for destination
+                    throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveColMeta"), e);
+                } finally {
+                    DESTINATION_COL_METADATA_LOCK.unlock();
+                    if (null != rs) {
+                        rs.close();
+                    }
+                    if (null != stmt) {
+                        stmt.close();
+                    }
                 }
             }
         }
+
+        destColumnCount = destColumnMetadata.size();
     }
 
     /**
@@ -3708,5 +3736,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType)
                 && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
+    }
+
+    private static String getHashedSecret(String[] secrets) throws SQLServerException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            for (String secret : secrets) {
+                if (null != secret) {
+                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+                }
+            }
+            return new String(md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
     }
 }

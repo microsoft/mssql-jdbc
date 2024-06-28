@@ -1552,6 +1552,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** transaction descriptor */
     private byte[] transactionDescriptor = new byte[8];
 
+    static final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> BULK_COPY_OPERATION_CACHE = new HashMap<>();
+
     /**
      * Flag (Yukon and later) set to true whenever a transaction is rolled back..The flag's value is reset to false when
      * a new transaction starts or when the autoCommit mode changes.
