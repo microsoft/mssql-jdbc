@@ -137,6 +137,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
+    /** Used for toggling bulk copy caching */
+    private Boolean enableBulkCopyCache = null;
+
     /** Used for toggling use of sp_prepare */
     private String prepareMethod = null;
 
@@ -3044,6 +3047,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
+
+                sPropKey = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    setEnableBulkCopyCache(isBooleanPropertyOn(sPropKey, sPropValue));
                 }
 
                 sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
@@ -8050,6 +8059,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
         this.enablePrepareOnFirstPreparedStatementCall = value;
+    }
+
+    @Override
+    public boolean getEnableBulkCopyCache() {
+        if (null == this.enableBulkCopyCache) {
+            return false;
+        }
+
+        return this.enableBulkCopyCache;
+    }
+
+    @Override
+    public void setEnableBulkCopyCache(boolean value) {
+        this.enableBulkCopyCache = value;
     }
 
     @Override

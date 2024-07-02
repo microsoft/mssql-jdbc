@@ -532,4 +532,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return flag for using Bulk Copy API for batch insert operations.
      */
     boolean getUseBulkCopyForBatchInsert();
+
+    /**
+     * Returns value of 'enableBulkCopyCache' from Connection String.
+     *
+     * @param enableBulkCopyCache
+     *        indicates whether the driver should use connection level caching of metadata for bulk copy
+     */
+    void setEnableBulkCopyCache(boolean enableBulkCopyCache);
+
+    /**
+     * Sets the value for 'enableBulkCopyCache' property
+     *
+     * @return enableBulkCopyCache boolean value
+     */
+    boolean getEnableBulkCopyCache();
 }

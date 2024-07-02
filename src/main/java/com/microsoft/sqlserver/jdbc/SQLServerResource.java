@@ -234,6 +234,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_socketTimeoutPropertyDescription", "The number of milliseconds to wait before the java.net.SocketTimeoutException is raised."},
         {"R_serverPreparedStatementDiscardThresholdPropertyDescription", "The threshold for when to close discarded prepare statements on the server (calling a batch of sp_unprepares). A value of 1 or less will cause sp_unprepare to be called immediately on PreparedStatment close."},
         {"R_enablePrepareOnFirstPreparedStatementCallPropertyDescription", "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
+        {"R_enableBulkCopyCachePropertyDescription", "This setting specifies whether the driver caches the metadata used for bulk copy for batch inserts."},
         {"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a connection. A value less than 1 means no cache."},
         {"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."},
         {"R_msiClientIdPropertyDescription", "Client Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
