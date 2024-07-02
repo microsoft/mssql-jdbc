@@ -24,6 +24,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.TimeZone;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -137,6 +138,39 @@ public class BatchExecutionTest extends AbstractTest {
 
             cachedBulkCopyOperation = cachedBulkCopyOperationField.get(pstmt);
             assertNotNull("SqlServerBulkCopy object should be cached.", cachedBulkCopyOperation);
+        }
+    }
+
+    @Test
+    public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;enableBulkCopyCache=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement()) {
+
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            String createSql = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            stmt.execute(createSql);
+
+            // Calling getSuperClass() because SQLServerConnection is the parent and SQLServerConnection43 is the child
+            Field bulkcopyMetadataCacheField = con.getClass().getSuperclass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            bulkcopyMetadataCacheField.setAccessible(true);
+            Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+
+            assertTrue(((HashMap) bulkcopyCache).isEmpty(), "Cache should be empty");
+
+            for (int i = 0; i < 5; i++) {
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)");
+                Timestamp timestamp = new Timestamp(ms);
+                pstmt.setTimestamp(1, timestamp, gmtCal);
+                pstmt.addBatch();
+                pstmt.executeBatch();
+
+                bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+                assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
+            }
         }
     }
 
