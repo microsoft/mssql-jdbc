@@ -386,6 +386,17 @@ public class CallableStatementTest extends AbstractTest {
             cs.execute();
             assertEquals(1, cs.getInt(1));
         }
+
+        // Test zero parameter sproc with return value with parentheses
+        call = "{? = CALL " + zeroParamSproc + "()}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            // Calling zero parameter sproc with return value with parentheses
+            // should return a value that's not zero
+            assertEquals(1, cs.getInt(1));
+        }
     }
 
     @Test
