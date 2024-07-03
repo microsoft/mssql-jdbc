@@ -1740,7 +1740,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
-
             if (connection.getEnableBulkCopyCache()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
                 destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
@@ -1748,6 +1747,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                     try {
                         setDestinationColumnMetadata(escapedDestinationTableName);
+
+                        // We are caching the following metadata about the table:
+                        // 1. collation_name
+                        // 2. is_computed
+                        // 3. encryption_type
+                        //
+                        // Using this caching method, 'enableBulkCopyCache', may have unintended consequences if the
+                        // table changes somehow between inserts. For example, if the collation_name changes, the
+                        // driver will not be aware of this and the inserted data will likely be corrupted. In such
+                        // scenario, we can't detect this without making an additional metadata query, which would
+                        // defeat the purpose of caching.
                         BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
                     } finally {
                         DESTINATION_COL_METADATA_LOCK.unlock();
