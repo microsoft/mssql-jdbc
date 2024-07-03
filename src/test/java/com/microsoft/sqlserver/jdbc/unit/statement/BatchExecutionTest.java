@@ -144,7 +144,6 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
-        System.out.println(System.getProperty("java.version"));
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
@@ -153,7 +152,7 @@ public class BatchExecutionTest extends AbstractTest {
                 Statement stmt = con.createStatement()) {
 
             // Needs to be on a JDK version greater than 8
-            assumeTrue(Integer.parseInt(System.getProperty("java.version")) > 8);
+            assumeTrue(TestUtils.getJVMVersion() > 8);
 
             TestUtils.dropTableIfExists(timestampTable1, stmt);
             TestUtils.dropTableIfExists(timestampTable2, stmt);
