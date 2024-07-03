@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static com.microsoft.sqlserver.jdbc.SQLServerConnection.BULK_COPY_OPERATION_CACHE;
+import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -3751,19 +3752,5 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType)
                 && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
-    }
-
-    private static String getHashedSecret(String[] secrets) throws SQLServerException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            for (String secret : secrets) {
-                if (null != secret) {
-                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-                }
-            }
-            return new String(md.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
-        }
     }
 }

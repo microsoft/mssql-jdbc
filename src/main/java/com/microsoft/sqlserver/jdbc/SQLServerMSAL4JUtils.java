@@ -14,7 +14,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import java.security.MessageDigest;
 import java.text.MessageFormat;
 
 import java.util.Collections;
@@ -56,6 +55,8 @@ import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
+
+import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 
 
 class SQLServerMSAL4JUtils {
@@ -504,20 +505,6 @@ class SQLServerMSAL4JUtils {
             ExecutionException correctedExecutionException = new ExecutionException(correctedAuthenticationException);
 
             return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
-        }
-    }
-
-    private static String getHashedSecret(String[] secrets) throws SQLServerException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            for (String secret : secrets) {
-                if (null != secret) {
-                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-                }
-            }
-            return new String(md.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
     }
 
