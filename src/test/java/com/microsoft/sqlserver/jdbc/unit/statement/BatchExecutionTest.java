@@ -179,8 +179,10 @@ public class BatchExecutionTest extends AbstractTest {
                 assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
             }
 
+            // Cache should have 1 metadata item cached
             assertEquals(1, ((HashMap) bulkcopyCache).size());
 
+            // Execute a different batch call on a different table
             for (int i = 0; i < 5; i++) {
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)");
                 Timestamp timestamp = new Timestamp(ms);
@@ -192,6 +194,7 @@ public class BatchExecutionTest extends AbstractTest {
                 assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
             }
 
+            // Cache should now have 2 metadata items cached
             assertEquals(2, ((HashMap) bulkcopyCache).size());
         }
     }
