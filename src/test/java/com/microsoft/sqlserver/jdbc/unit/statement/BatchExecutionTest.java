@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -143,6 +144,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
+        System.out.println(System.getProperty("java.version"));
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
@@ -150,11 +152,17 @@ public class BatchExecutionTest extends AbstractTest {
                 connectionString + ";useBulkCopyForBatchInsert=true;enableBulkCopyCache=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
 
-            TestUtils.dropTableIfExists(timestampTable1, stmt);
-            String createSql = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
-            stmt.execute(createSql);
+            // Needs to be on a JDK version greater than 8
+            assumeTrue(Integer.parseInt(System.getProperty("java.version")) > 8);
 
-            // Calling getSuperClass() because SQLServerConnection is the parent and SQLServerConnection43 is the child
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            TestUtils.dropTableIfExists(timestampTable2, stmt);
+            String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            String createSqlTable2 = "CREATE TABLE " + timestampTable2 + " (c1 DATETIME2(3))";
+            stmt.execute(createSqlTable1);
+            stmt.execute(createSqlTable2);
+
+            // Calling getSuperClass() because SQLServerConnection is the parent
             Field bulkcopyMetadataCacheField = con.getClass().getSuperclass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
             bulkcopyMetadataCacheField.setAccessible(true);
             Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
@@ -171,6 +179,21 @@ public class BatchExecutionTest extends AbstractTest {
                 bulkcopyCache = bulkcopyMetadataCacheField.get(con);
                 assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
             }
+
+            assertEquals(1, ((HashMap) bulkcopyCache).size());
+
+            for (int i = 0; i < 5; i++) {
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)");
+                Timestamp timestamp = new Timestamp(ms);
+                pstmt.setTimestamp(1, timestamp, gmtCal);
+                pstmt.addBatch();
+                pstmt.executeBatch();
+
+                bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+                assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
+            }
+
+            assertEquals(2, ((HashMap) bulkcopyCache).size());
         }
     }
 
