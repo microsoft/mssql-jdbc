@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -89,11 +90,21 @@ class SQLServerMSAL4JUtils {
 
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(user,
+                    hashedSecret);
 
+            // check if account password was changed
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": cache token for user: " + user);
+                }
+            } else {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": retrieved cached token for user: " + user);
+                }
             }
 
             final PublicClientApplication pca = PublicClientApplication
@@ -145,11 +156,21 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
+                    hashedSecret);
 
+            // check if principal secret was changed
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
+                }
+            } else {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
+                }
             }
 
             IClientCredential credential = ClientCredentialFactory.createFromSecret(aadPrincipalSecret);
@@ -202,11 +223,21 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(hashedSecret);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
+                    hashedSecret);
 
+            // check if cert was changed
             if (null == persistentTokenCacheAccessAspect) {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
+
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
+                }
+            } else {
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
+                }
             }
 
             ConfidentialClientApplication clientApplication = null;
@@ -493,18 +524,25 @@ class SQLServerMSAL4JUtils {
     private static class TokenCacheMap {
         private ConcurrentHashMap<String, PersistentTokenCacheAccessAspect> tokenCacheMap = new ConcurrentHashMap<>();
 
-        PersistentTokenCacheAccessAspect getEntry(String key) {
+        PersistentTokenCacheAccessAspect getEntry(String value, String key) {
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = tokenCacheMap.get(key);
 
             if (null != persistentTokenCacheAccessAspect) {
-                if (System.currentTimeMillis() > persistentTokenCacheAccessAspect.getExpiryTime()) {
+                long currentTime = System.currentTimeMillis();
+
+                if (currentTime > persistentTokenCacheAccessAspect.getExpiryTime()) {
                     tokenCacheMap.remove(key);
 
                     persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                     persistentTokenCacheAccessAspect
-                            .setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
+                            .setExpiryTime(currentTime + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
 
                     tokenCacheMap.put(key, persistentTokenCacheAccessAspect);
+
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.finest(LOGCONTEXT + ": entry expired for: " + value + " new entry will expire in: "
+                                + TimeUnit.MILLISECONDS.toSeconds(PersistentTokenCacheAccessAspect.TIME_TO_LIVE) + "s");
+                    }
                 }
             }
 
@@ -514,6 +552,10 @@ class SQLServerMSAL4JUtils {
         void addEntry(String key, PersistentTokenCacheAccessAspect value) {
             value.setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
             tokenCacheMap.put(key, value);
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest(LOGCONTEXT + ": add entry for: " + value + ", will expire in: "
+                        + TimeUnit.MILLISECONDS.toSeconds(PersistentTokenCacheAccessAspect.TIME_TO_LIVE) + "s");
+            }
         }
     }
 }
