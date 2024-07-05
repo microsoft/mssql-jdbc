@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [12.7.0] Preview Release
+## [12.7.1] Preview Release
 ### Added
 - Added JDK 22 support [#2414](https://github.com/microsoft/mssql-jdbc/pull/2414)
 - Added credential caching for Managed Identity Credential and Default Azure Credential [#2415](https://github.com/microsoft/mssql-jdbc/pull/2415)
