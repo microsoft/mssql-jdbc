@@ -563,13 +563,13 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     @Override
-    public boolean getEnableBulkCopyCache() {
-        return wrappedConnection.getEnableBulkCopyCache();
+    public boolean getcacheBulkCopyMetadata() {
+        return wrappedConnection.getcacheBulkCopyMetadata();
     }
 
     @Override
-    public void setEnableBulkCopyCache(boolean value) {
-        wrappedConnection.setEnableBulkCopyCache(value);
+    public void setcacheBulkCopyMetadata(boolean value) {
+        wrappedConnection.setcacheBulkCopyMetadata(value);
     }
 
     @Override

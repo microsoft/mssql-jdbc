@@ -1732,7 +1732,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
         String key = null;
 
-        if (connection.getEnableBulkCopyCache()) {
+        if (connection.getcacheBulkCopyMetadata()) {
             String databaseName = connection.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
             key = getHashedSecret(new String[] {escapedDestinationTableName, databaseName});
@@ -1740,7 +1740,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
-            if (connection.getEnableBulkCopyCache()) {
+            if (connection.getcacheBulkCopyMetadata()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
                 destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
 
@@ -1753,7 +1753,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         // 2. is_computed
                         // 3. encryption_type
                         //
-                        // Using this caching method, 'enableBulkCopyCache', may have unintended consequences if the
+                        // Using this caching method, 'cacheBulkCopyMetadata', may have unintended consequences if the
                         // table changes somehow between inserts. For example, if the collation_name changes, the
                         // driver will not be aware of this and the inserted data will likely be corrupted. In such
                         // scenario, we can't detect this without making an additional metadata query, which would
@@ -1763,8 +1763,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         DESTINATION_COL_METADATA_LOCK.unlock();
                     }
                 }
+
+                if (loggerExternal.isLoggable(Level.FINER)) {
+                    loggerExternal.finer(this.toString() + " Acquiring existing destination column metadata " +
+                            "from cache for bulk copy");
+                }
+
             } else {
                 setDestinationColumnMetadata(escapedDestinationTableName);
+
+                if (loggerExternal.isLoggable(Level.FINER)) {
+                    loggerExternal.finer(this.toString() + " cacheBulkCopyMetadata=false - Querying server " +
+                            "for destination column metadata");
+                }
             }
         }
 

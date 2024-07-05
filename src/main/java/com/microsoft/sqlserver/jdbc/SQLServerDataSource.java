@@ -960,14 +960,14 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setEnableBulkCopyCache(boolean enableBulkCopyCache) {
+    public void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata) {
         setBooleanProperty(connectionProps,
                 SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
-                enableBulkCopyCache);
+                cacheBulkCopyMetadata);
     }
 
     @Override
-    public boolean getEnableBulkCopyCache() {
+    public boolean getcacheBulkCopyMetadata() {
         boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE
                 .getDefaultValue();
         return getBooleanProperty(connectionProps,

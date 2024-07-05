@@ -148,7 +148,7 @@ public class BatchExecutionTest extends AbstractTest {
         long ms = 1578743412000L;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;enableBulkCopyCache=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                connectionString + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
 
             // Needs to be on a JDK version greater than 8

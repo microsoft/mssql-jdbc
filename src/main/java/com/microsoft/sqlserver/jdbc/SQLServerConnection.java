@@ -138,7 +138,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
     /** Used for toggling bulk copy caching */
-    private Boolean enableBulkCopyCache = null;
+    private Boolean cacheBulkCopyMetadata = null;
 
     /** Used for toggling use of sp_prepare */
     private String prepareMethod = null;
@@ -3052,7 +3052,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropKey = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    setEnableBulkCopyCache(isBooleanPropertyOn(sPropKey, sPropValue));
+                    setcacheBulkCopyMetadata(isBooleanPropertyOn(sPropKey, sPropValue));
                 }
 
                 sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
@@ -8062,17 +8062,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     @Override
-    public boolean getEnableBulkCopyCache() {
-        if (null == this.enableBulkCopyCache) {
+    public boolean getcacheBulkCopyMetadata() {
+        if (null == this.cacheBulkCopyMetadata) {
             return false;
         }
 
-        return this.enableBulkCopyCache;
+        return this.cacheBulkCopyMetadata;
     }
 
     @Override
-    public void setEnableBulkCopyCache(boolean value) {
-        this.enableBulkCopyCache = value;
+    public void setcacheBulkCopyMetadata(boolean value) {
+        this.cacheBulkCopyMetadata = value;
     }
 
     @Override

@@ -534,17 +534,17 @@ public interface ISQLServerConnection extends java.sql.Connection {
     boolean getUseBulkCopyForBatchInsert();
 
     /**
-     * Returns value of 'enableBulkCopyCache' from Connection String.
+     * Returns value of 'cacheBulkCopyMetadata' from Connection String.
      *
-     * @param enableBulkCopyCache
+     * @param cacheBulkCopyMetadata
      *        indicates whether the driver should use connection level caching of metadata for bulk copy
      */
-    void setEnableBulkCopyCache(boolean enableBulkCopyCache);
+    void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata);
 
     /**
-     * Sets the value for 'enableBulkCopyCache' property
+     * Sets the value for 'cacheBulkCopyMetadata' property
      *
-     * @return enableBulkCopyCache boolean value
+     * @return cacheBulkCopyMetadata boolean value
      */
-    boolean getEnableBulkCopyCache();
+    boolean getcacheBulkCopyMetadata();
 }
