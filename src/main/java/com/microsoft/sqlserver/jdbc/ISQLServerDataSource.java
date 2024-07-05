@@ -1350,4 +1350,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return calcBigDecimalPrecision boolean value
      */
     boolean getCalcBigDecimalPrecision();
+
+    /**
+     * Returns value of 'cacheBulkCopyMetadata' from Connection String.
+     *
+     * @param cacheBulkCopyMetadata
+     *        indicates whether the driver should use connection level caching of metadata for bulk copy
+     */
+    void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata);
+
+    /**
+     * Sets the value for 'cacheBulkCopyMetadata' property
+     *
+     * @return cacheBulkCopyMetadata boolean value
+     */
+    boolean getcacheBulkCopyMetadata();
 }

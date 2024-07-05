@@ -137,6 +137,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
 
+    /** Used for toggling bulk copy caching */
+    private Boolean cacheBulkCopyMetadata = null;
+
     /** Used for toggling use of sp_prepare */
     private String prepareMethod = null;
 
@@ -1551,6 +1554,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** transaction descriptor */
     private byte[] transactionDescriptor = new byte[8];
+
+    static final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> BULK_COPY_OPERATION_CACHE = new HashMap<>();
 
     /**
      * Flag (Yukon and later) set to true whenever a transaction is rolled back..The flag's value is reset to false when
@@ -3042,6 +3047,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
+
+                sPropKey = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    setcacheBulkCopyMetadata(isBooleanPropertyOn(sPropKey, sPropValue));
                 }
 
                 sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
@@ -8048,6 +8059,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void setEnablePrepareOnFirstPreparedStatementCall(boolean value) {
         this.enablePrepareOnFirstPreparedStatementCall = value;
+    }
+
+    @Override
+    public boolean getcacheBulkCopyMetadata() {
+        if (null == this.cacheBulkCopyMetadata) {
+            return false;
+        }
+
+        return this.cacheBulkCopyMetadata;
+    }
+
+    @Override
+    public void setcacheBulkCopyMetadata(boolean value) {
+        this.cacheBulkCopyMetadata = value;
     }
 
     @Override

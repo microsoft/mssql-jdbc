@@ -1143,4 +1143,14 @@ public final class TestUtils {
             // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
         }
     }
+
+    public static int getJVMVersion() {
+        String version = System.getProperty("java.version");
+        if(version.startsWith("1.")) {
+            version = version.substring(2, 3);
+        } else {
+            int dot = version.indexOf(".");
+            if(dot != -1) { version = version.substring(0, dot); }
+        } return Integer.parseInt(version);
+    }
 }

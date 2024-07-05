@@ -960,6 +960,21 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata) {
+        setBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
+                cacheBulkCopyMetadata);
+    }
+
+    @Override
+    public boolean getcacheBulkCopyMetadata() {
+        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE
+                .getDefaultValue();
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(), defaultValue);
+    }
+
+    @Override
     public void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold) {
         setIntProperty(connectionProps,
                 SQLServerDriverIntProperty.SERVER_PREPARED_STATEMENT_DISCARD_THRESHOLD.toString(),

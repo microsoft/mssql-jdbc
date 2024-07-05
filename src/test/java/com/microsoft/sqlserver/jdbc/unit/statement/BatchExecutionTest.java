@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +25,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.TimeZone;
 
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
@@ -137,6 +139,64 @@ public class BatchExecutionTest extends AbstractTest {
 
             cachedBulkCopyOperation = cachedBulkCopyOperationField.get(pstmt);
             assertNotNull("SqlServerBulkCopy object should be cached.", cachedBulkCopyOperation);
+        }
+    }
+
+    @Test
+    public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement()) {
+
+            // Needs to be on a JDK version greater than 8
+            assumeTrue(TestUtils.getJVMVersion() > 8);
+
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            TestUtils.dropTableIfExists(timestampTable2, stmt);
+            String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            String createSqlTable2 = "CREATE TABLE " + timestampTable2 + " (c1 DATETIME2(3))";
+            stmt.execute(createSqlTable1);
+            stmt.execute(createSqlTable2);
+
+            Field bulkcopyMetadataCacheField = TestUtils.getJVMVersion() > 8 ?
+                    con.getClass().getSuperclass().getDeclaredField("BULK_COPY_OPERATION_CACHE") :
+                    con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            bulkcopyMetadataCacheField.setAccessible(true);
+            Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+
+            assertTrue(((HashMap) bulkcopyCache).isEmpty(), "Cache should be empty");
+
+            for (int i = 0; i < 5; i++) {
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)");
+                Timestamp timestamp = new Timestamp(ms);
+                pstmt.setTimestamp(1, timestamp, gmtCal);
+                pstmt.addBatch();
+                pstmt.executeBatch();
+
+                bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+                assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
+            }
+
+            // Cache should have 1 metadata item cached
+            assertEquals(1, ((HashMap) bulkcopyCache).size());
+
+            // Execute a different batch call on a different table
+            for (int i = 0; i < 5; i++) {
+                PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)");
+                Timestamp timestamp = new Timestamp(ms);
+                pstmt.setTimestamp(1, timestamp, gmtCal);
+                pstmt.addBatch();
+                pstmt.executeBatch();
+
+                bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+                assertTrue(!((HashMap) bulkcopyCache).isEmpty(), "Cache should not be empty");
+            }
+
+            // Cache should now have 2 metadata items cached
+            assertEquals(2, ((HashMap) bulkcopyCache).size());
         }
     }
 

@@ -516,6 +516,8 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("getServerMessageHandler");
         verifiedMethodNames.add("setServerMessageHandler");
         verifiedMethodNames.add("getCalcBigDecimalScale");
+        verifiedMethodNames.add("setcacheBulkCopyMetadata");
+        verifiedMethodNames.add("getcacheBulkCopyMetadata");
         verifiedMethodNames.add("setCalcBigDecimalScale");
         verifiedMethodNames.add("getUseFlexibleCallableStatements");
         verifiedMethodNames.add("setUseFlexibleCallableStatements");

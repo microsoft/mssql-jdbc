@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -26,6 +25,8 @@ import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
+
+import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 
 
 /**
@@ -501,20 +502,6 @@ class SQLServerSecurityUtility {
 
         public Credential(Object tokenCredential) {
             this.tokenCredential = tokenCredential;
-        }
-    }
-
-    private static String getHashedSecret(String[] secrets) throws SQLServerException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            for (String secret : secrets) {
-                if (null != secret) {
-                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-                }
-            }
-            return new String(md.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
     }
 }
