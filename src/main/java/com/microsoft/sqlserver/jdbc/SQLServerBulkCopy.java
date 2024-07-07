@@ -41,6 +41,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -113,6 +114,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
+    private class ColumnOrderHint implements Serializable {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 6132627333120344137L;
+
+        String columnName = null;
+
+        SQLServerSortOrder sortOrder;
+
+        ColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) {
+            this.columnName = columnName;
+            this.sortOrder = sortOrder;
+        }
+    }
+
     /**
      * Class name for logging.
      */
@@ -137,6 +154,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Mappings between columns in the data source and columns in the destination
      */
     private List<ColumnMapping> columnMappings;
+
+    /**
+     * Column order hints describe the sort order of columns in the clustered index of the destination
+     */
+    private List<ColumnOrderHint> columnOrderHints;
 
     /**
      * Flag if SQLServerBulkCopy owns the connection and should close it when Close is called
@@ -459,6 +481,43 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         loggerExternal.exiting(loggerClassName, "clearColumnMappings");
     }
 
+     /**
+     * Adds a new column mapping, using column names to specify both source and destination columns.
+     * 
+     * @param columnName
+     *        Column name.
+     * @param sortOrder
+     *        Column sort order.
+     * @throws SQLServerException
+     *         If the column order hint is invalid
+     */
+    public void addColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "addColumnOrderHint",
+                    new Object[] {columnName, sortOrder});
+        }
+
+        if (null == columnName || columnName.isEmpty()) {
+            throwInvalidArgument("columnName");
+        } else if (null == sortOrder || SQLServerSortOrder.UNSPECIFIED == sortOrder) {
+            throwInvalidArgument("sortOrder");
+        }
+        columnOrderHints.add(new ColumnOrderHint(columnName, sortOrder));
+
+        loggerExternal.exiting(loggerClassName, "addColumnOrderHint");
+    }
+
+     /**
+     * Clears the contents of the column order hints
+     */
+    public void clearColumnOrderHints() {
+        loggerExternal.entering(loggerClassName, "clearColumnOrderHints");
+
+        columnOrderHints.clear();
+
+        loggerExternal.exiting(loggerClassName, "clearColumnOrderHints");
+    }
+
     /**
      * Closes the SQLServerBulkCopy instance
      */
@@ -648,6 +707,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private void initializeDefaults() {
         columnMappings = new ArrayList<>();
+        columnOrderHints = new ArrayList<>();
         destinationTableName = null;
         serverBulkData = null;
         sourceResultSet = null;
@@ -1482,6 +1542,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
         List<String> bulkOptions = new ArrayList<>();
+        Set<String> destColumns = new HashSet<>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
 
@@ -1490,8 +1551,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 endColumn = " ) ";
             }
             ColumnMapping colMapping = columnMappings.get(i);
-            String columnCollation = destColumnMetadata
-                    .get(columnMappings.get(i).destinationColumnOrdinal).collationName;
+
+            BulkColumnMetaData columnMetaData = destColumnMetadata
+                    .get(columnMappings.get(i).destinationColumnOrdinal);
+            destColumns.add(columnMetaData.columnName);
+
+            String columnCollation = columnMetaData.collationName;
             String addCollate = "";
 
             String destType = getDestTypeFromSrcType(colMapping.sourceColumnOrdinal,
@@ -1534,6 +1599,36 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         if (copyOptions.isAllowEncryptedValueModifications()) {
             bulkOptions.add("ALLOW_ENCRYPTED_VALUE_MODIFICATIONS");
+        }
+
+        if (0 < columnOrderHints.size()) {
+            StringBuilder orderHintText = new StringBuilder("ORDER(");
+
+            for (ColumnOrderHint columnOrderHint : columnOrderHints) {
+                String columnName = columnOrderHint.columnName;
+                
+                if (!destColumns.contains(columnName)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidColumn"));
+                    Object[] msgArgs = { columnName };
+                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND,
+                            DriverError.NOT_SET, null);
+                }
+
+                String sortOrderText = columnOrderHint.sortOrder == SQLServerSortOrder.DESCENDING ? "DESC" : "ASC";
+
+                if (columnName.contains("]")) {
+                    String escapedColumnName = columnName.replaceAll("]", "]]");
+                    orderHintText.append(escapedColumnName).append(" ").append(sortOrderText).append(", ");
+                } else {
+                    orderHintText.append(columnName).append(" ").append(sortOrderText).append(", ");
+                } 
+            }
+
+            orderHintText.setLength(orderHintText.length() - 2);
+            orderHintText.append(")");
+            
+            bulkOptions.add(orderHintText.toString());
         }
 
         Iterator<String> it = bulkOptions.iterator();
