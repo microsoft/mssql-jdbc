@@ -482,7 +482,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
      /**
-     * Adds a new column mapping, using column names to specify both source and destination columns.
+     * Adds a new column order hint, specify the column name and sort order
      * 
      * @param columnName
      *        Column name.
