@@ -1619,9 +1619,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 if (columnName.contains("]")) {
                     String escapedColumnName = columnName.replaceAll("]", "]]");
-                    orderHintText.append(escapedColumnName).append(" ").append(sortOrderText).append(", ");
+                    orderHintText.append("[").append(escapedColumnName).append("] ").append(sortOrderText).append(", ");
                 } else {
-                    orderHintText.append(columnName).append(" ").append(sortOrderText).append(", ");
+                    orderHintText.append("[").append(columnName).append("] ").append(sortOrderText).append(", ");
                 } 
             }
 
