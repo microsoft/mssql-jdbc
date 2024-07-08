@@ -161,9 +161,15 @@ public class BatchExecutionTest extends AbstractTest {
             stmt.execute(createSqlTable1);
             stmt.execute(createSqlTable2);
 
-            Field bulkcopyMetadataCacheField = TestUtils.getJVMVersion() > 8 ?
-                    con.getClass().getSuperclass().getDeclaredField("BULK_COPY_OPERATION_CACHE") :
-                    con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            Field bulkcopyMetadataCacheField;
+
+            if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
+                bulkcopyMetadataCacheField = con.getClass().getSuperclass()
+                        .getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            } else {
+                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            }
+
             bulkcopyMetadataCacheField.setAccessible(true);
             Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
 
