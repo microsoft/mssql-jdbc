@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.8.0] Stable Release
+- No changes since previous release
+
 ## [12.7.1] Preview Release
 ### Added
 - Added JDK 22 support [#2414](https://github.com/microsoft/mssql-jdbc/pull/2414)
