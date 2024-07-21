@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -21,12 +20,13 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
+
+import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 
 
 /**
@@ -487,7 +487,7 @@ class SQLServerSecurityUtility {
         return null;
     }
 
-    private static TokenCredential getCredentialFromCache(String key) {
+    private static Object getCredentialFromCache(String key) {
         Credential credential = CREDENTIAL_CACHE.get(key);
 
         if (null != credential) {
@@ -498,24 +498,10 @@ class SQLServerSecurityUtility {
     }
 
     private static class Credential {
-        TokenCredential tokenCredential;
+        Object tokenCredential;
 
-        public Credential(TokenCredential tokenCredential) {
+        public Credential(Object tokenCredential) {
             this.tokenCredential = tokenCredential;
-        }
-    }
-
-    private static String getHashedSecret(String[] secrets) throws SQLServerException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            for (String secret : secrets) {
-                if (null != secret) {
-                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
-                }
-            }
-            return new String(md.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
         }
     }
 }

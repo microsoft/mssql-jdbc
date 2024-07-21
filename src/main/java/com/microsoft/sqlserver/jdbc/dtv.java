@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -1643,6 +1644,8 @@ final class DTV {
                         op.execute(this, ((Geometry) value).serialize());
                     } else if (JDBCType.GEOGRAPHY == jdbcType) {
                         op.execute(this, ((Geography) value).serialize());
+                    } else if (JDBCType.TIMESTAMP == jdbcType) {
+                        op.execute(this, Timestamp.valueOf((String) value));
                     } else {
                         if (null != cryptoMeta) {
                             // if streaming types check for allowed data length in AE

@@ -7,15 +7,15 @@ package com.microsoft.sqlserver.jdbc;
 
 final class SQLJdbcVersion {
     static final int MAJOR = 12;
-    static final int MINOR = 7;
-    static final int PATCH = 1;
+    static final int MINOR = 8;
+    static final int PATCH = 0;
     static final int BUILD = 0;
     /*
      * Used to load mssql-jdbc_auth DLL.
      * 1. Set to "-preview" for preview release.
      * 2. Set to "" (empty String) for official release.
      */
-    static final String RELEASE_EXT = "-preview";
+    static final String RELEASE_EXT = "";
 
     private SQLJdbcVersion() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
