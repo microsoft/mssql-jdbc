@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -57,6 +58,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
     private static String conditionalSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_conditionalSproc"));
+    private static String simpleRetValSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_simpleSproc"));
     private static String getObjectLocalDateTimeProcedureName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP"));
     private static String getObjectOffsetDateTimeProcedureName = AbstractSQLGenerator
@@ -100,6 +103,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
+            TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
@@ -119,6 +123,7 @@ public class CallableStatementTest extends AbstractTest {
             createOutOfOrderSproc();
             createByParamNameSproc();
             createConditionalProcedure();
+            createSimpleRetValSproc();
             createUserDefinedFunction();
         }
     }
@@ -1198,6 +1203,21 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    public void testCallableStatementSetByAnnotatedArgs() throws SQLException {
+        String call = "{? = call " + simpleRetValSproc + " (@Arg1 = ?)}";
+        int expectedValue = 1; // The sproc should return this value
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.registerOutParameter(1, Types.INTEGER);
+            cstmt.setInt(1, 2);
+            cstmt.setString(2, "foo");
+            cstmt.execute();
+
+            Assert.assertEquals(expectedValue, cstmt.getInt(1));
+        }
+    }
+
+    @Test
     @Tag(Constants.reqExternalSetup)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
@@ -1305,6 +1325,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
             TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
+            TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
@@ -1368,6 +1389,13 @@ public class CallableStatementTest extends AbstractTest {
     private static void createConditionalProcedure() throws SQLException {
         String sql = "CREATE PROCEDURE " + conditionalSproc + " @param0 INT, @param1 INT, @maybe bigint = 2 " +
                 "AS BEGIN IF @maybe >= 2 BEGIN SELECT 5 END END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createSimpleRetValSproc() throws SQLException {
+        String sql = "CREATE PROCEDURE " + simpleRetValSproc + " (@Arg1 VARCHAR(128)) AS DECLARE @ReturnCode INT RETURN 1";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
