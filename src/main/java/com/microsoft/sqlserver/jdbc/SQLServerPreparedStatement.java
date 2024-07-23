@@ -137,9 +137,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /**
      * Regex for JDBC 'call' escape syntax
+     *
+     * Matches {[? =] call sproc ([@arg =] ?, [@arg =] ?, [@arg =] ? ...)}
      */
     private static final Pattern callEscapePattern = Pattern
-            .compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call [^\\(\\)]+\\s*((\\(\\s*\\?\\s*(,\\s*\\?\\s*)*\\))?|\\(\\))\\s*}");
+            .compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call [^\\(\\)]+\\s*" +
+                    "((\\(\\s*(.+\\s*=\\s*)?\\?\\s*(,\\s*\\?\\s*)*\\))?|\\(\\))\\s*}");
 
     /**
      * Regex for 'exec' escape syntax
