@@ -2681,13 +2681,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void checkAdditionalQuery() {
         while (checkAndRemoveCommentsAndSpace(true)) {}
-
-        // At this point, if localUserSQL is not empty (after removing all whitespaces, semicolons and comments), we
-        // have a
-        // new query. reject this.
-        if (localUserSQL.length() > 0) {
-            throw new IllegalArgumentException(SQLServerException.getErrString("R_multipleQueriesNotAllowed"));
-        }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
