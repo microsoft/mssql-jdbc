@@ -5992,7 +5992,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         attemptRefreshTokenLocked = true;
 
-        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass
+        if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
+                && null != accessTokenCallback) {
+            fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+        } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass
                 && !accessTokenCallbackClass.isEmpty()) {
             try {
                 Object[] msgArgs = {"accessTokenCallbackClass",
@@ -6005,9 +6008,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         SQLServerException.getErrString("R_InvalidAccessTokenCallbackClass"));
                 throw new SQLServerException(form.format(new Object[] {accessTokenCallbackClass}), e.getCause());
             }
-        } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
-                && null != accessTokenCallback) {
-            fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
         } else {
             fedAuthToken = getFedAuthToken(fedAuthInfo);
         }

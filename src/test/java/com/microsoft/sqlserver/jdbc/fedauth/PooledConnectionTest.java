@@ -346,6 +346,35 @@ public class PooledConnectionTest extends FedauthCommon {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.reqExternalSetup)
     @Test
+    public void testDSPooledConnectionAccessTokenCallbackObjectReused() throws Exception {
+        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+
+        // User/password is not required for access token callback
+        AbstractTest.updateDataSource(accessTokenCallbackConnectionString, ds);
+        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
+
+        TestUtils.expireTokenToggle = false;
+        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        String conn1ID;
+        String conn2ID;
+
+        System.out.println("HELLOOOOOOO");
+
+        // Callback should provide valid token on connection open for all new connections
+        // When the access token hasn't expired, the connection ID should be the same
+        try (Connection conn1 = pc.getConnection()) {}
+        conn1ID = TestUtils.getConnectionID(pc);
+        try (Connection conn2 = pc.getConnection()) {}
+        conn2ID = TestUtils.getConnectionID(pc);
+        assertEquals(conn1ID, conn2ID);
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
     public void testDSPooledConnectionMergeAccessTokenCallbackProperty() throws Exception {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
 
