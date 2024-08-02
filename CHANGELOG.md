@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.8.0] Stable Release
+### Fixed issues
+- Fixed regression with specifying argument names in callable statement syntax [#2480](https://github.com/microsoft/mssql-jdbc/pull/2480)
+
 ## [12.7.1] Preview Release
 ### Added
 - Added JDK 22 support [#2414](https://github.com/microsoft/mssql-jdbc/pull/2414)
