@@ -8,6 +8,7 @@ import java.util.LinkedList;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
+import com.microsoft.sqlserver.jdbc.SQLServerSortOrder;
 
 
 /**
@@ -44,7 +45,14 @@ class BulkCopyTestWrapper {
      */
     private boolean isUsingColumnMapping = false;
 
+    /**
+     * <code>true</code> if SQLServerBulkCopy should use column order hints
+     */
+    private boolean isUsingColumnOrderHints = false;
+
     public LinkedList<ColumnMap> cm = new LinkedList<>();
+
+    public LinkedList<ColumnOrderHint> coh = new LinkedList<>();
 
     private SQLServerBulkCopyOptions bulkOptions;
 
@@ -167,8 +175,16 @@ class BulkCopyTestWrapper {
         this.isUsingColumnMapping = true;
     }
 
+    public void setUsingColumnOrderHints() {
+        this.isUsingColumnOrderHints = true;
+    }
+
     public boolean isUsingColumnMapping() {
         return isUsingColumnMapping;
+    }
+
+    public boolean isUsingColumnOrderHints() {
+        return isUsingColumnOrderHints;
     }
 
     public void setColumnMapping(int sourceColOrdinal, int destColOrdinal) {
@@ -189,6 +205,11 @@ class BulkCopyTestWrapper {
     public void setColumnMapping(String sourceColName, int destColOrdinal) {
         setUsingColumnMapping();
         cm.add(new ColumnMap(sourceColName, destColOrdinal));
+    }
+
+    public void setColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) {
+        setUsingColumnOrderHints();
+        coh.add(new ColumnOrderHint(columnName, sortOrder));
     }
 
     class ColumnMap {
@@ -230,6 +251,16 @@ class BulkCopyTestWrapper {
 
             this.srcString = src;
             this.destString = dest;
+        }
+    }
+
+    class ColumnOrderHint {
+        String columnName;
+
+        SQLServerSortOrder sortOrder;
+        ColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) {
+            this.columnName = columnName;
+            this.sortOrder = sortOrder;
         }
     }
 }
