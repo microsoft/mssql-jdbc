@@ -1762,6 +1762,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     } finally {
                         DESTINATION_COL_METADATA_LOCK.unlock();
                     }
+                } else {
+                    DESTINATION_COL_METADATA_LOCK.unlock();
                 }
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
