@@ -1133,14 +1133,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    void setByIndex() throws SQLServerException {
-        isSetByIndex = true;
-        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
-        }
-    }
-
     /* ---------------- JDBC API methods ------------------ */
 
     @Override
@@ -1630,17 +1622,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
-<<<<<<< HEAD
-                    // Only read the return value from stored procedure if we are expecting one. Also, check that it is
-                    // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
-                    // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
-                            && inOutParam[0].isReturnValue()) {
-                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
-                        return false;
-                    }
-=======
->>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
                 }
 
                 return true;
@@ -1652,11 +1633,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-<<<<<<< HEAD
-                if (moreResults && null == procedureRetStatToken && status != USER_DEFINED_FUNCTION_RETURN_STATUS) {
-=======
                 if (moreResults && null == procedureRetStatToken) {
->>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);
