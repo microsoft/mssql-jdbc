@@ -513,6 +513,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setMsiTokenCacheTtl");
         verifiedMethodNames.add("getAccessTokenCallbackClass");
         verifiedMethodNames.add("setAccessTokenCallbackClass");
+<<<<<<< HEAD
         verifiedMethodNames.add("getServerMessageHandler");
         verifiedMethodNames.add("setServerMessageHandler");
         verifiedMethodNames.add("getCalcBigDecimalScale");
@@ -525,6 +526,10 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setCalcBigDecimalPrecision");
         verifiedMethodNames.add("registerBeforeReconnectListener");
         verifiedMethodNames.add("removeBeforeReconnectListener");
+=======
+        verifiedMethodNames.add("getCalcBigDecimalScale");
+        verifiedMethodNames.add("setCalcBigDecimalScale");
+>>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
         return verifiedMethodNames;
     }
 }

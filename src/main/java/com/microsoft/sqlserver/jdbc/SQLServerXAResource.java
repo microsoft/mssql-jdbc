@@ -414,8 +414,8 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                             initCS = (SQLServerCallableStatement) controlConnection
                                     .prepareCall("{call master..xp_sqljdbc_xa_init_ex(?, ?,?)}");
                             initCS.registerOutParameter(1, Types.INTEGER); // Return status
-                            initCS.registerOutParameterNonPLP(2, Types.CHAR); // Return error message
-                            initCS.registerOutParameterNonPLP(3, Types.CHAR); // Return version number
+                            initCS.registerOutParameter(2, Types.CHAR); // Return error message
+                            initCS.registerOutParameter(3, Types.CHAR); // Return version number
                             try {
                                 initCS.execute();
                             } catch (SQLServerException eX) {
@@ -525,21 +525,21 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     sContext = "START:";
                     cs = getXACallableStatementHandle(XA_START);
                     cs.registerOutParameter(n++, Types.INTEGER); // Return status
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR); // Return error message
+                    cs.registerOutParameter(n++, Types.CHAR); // Return error message
                     cs.setBytes(n++, gid); // Global XID
                     cs.setBytes(n++, bid); // Branch ID
                     cs.setInt(n++, xaFlags); // XA transaction flags
-                    cs.registerOutParameterNonPLP(n++, Types.BINARY); // Returned OLE transaction cookie
+                    cs.registerOutParameter(n++, Types.BINARY); // Returned OLE transaction cookie
                     cs.setInt(n++, timeoutSeconds); // Transaction timeout in seconds.
                     cs.setInt(n++, formatId); // Format ID
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR); // DLL Version number
+                    cs.registerOutParameter(n++, Types.CHAR); // DLL Version number
                     cs.setInt(n++, Integer.parseInt(version)); // Version of SQL Server
                     cs.setInt(n++, instanceName.length()); // Length of SQL Server instance name
                     cs.setBytes(n++, instanceName.getBytes()); // SQL Server instance name
                     cs.setInt(n++, architectureMSSQL); // Architecture of SQL Server
                     cs.setInt(n++, architectureOS); // Architecture of OS running SQL Server
                     cs.setInt(n++, isTransacrionTimeoutSet); // pass 1 if setTransactionTimeout() is called
-                    cs.registerOutParameterNonPLP(n++, Types.BINARY); // Return UoW
+                    cs.registerOutParameter(n++, Types.BINARY); // Return UoW
 
                     break;
 
@@ -547,12 +547,12 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     sContext = "END:";
                     cs = getXACallableStatementHandle(XA_END);
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setBytes(n++, gid);
                     cs.setBytes(n++, bid);
                     cs.setInt(n++, xaFlags);
                     cs.setInt(n++, formatId);
-                    cs.registerOutParameterNonPLP(n++, Types.BINARY); // Return UoW
+                    cs.registerOutParameter(n++, Types.BINARY); // Return UoW
                     break;
 
                 case XA_PREPARE:
@@ -563,7 +563,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         cs = getXACallableStatementHandle(XA_PREPARE);
 
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setBytes(n++, gid);
                     cs.setBytes(n++, bid);
                     if ((SSTRANSTIGHTLYCPLD & xaFlags) == SSTRANSTIGHTLYCPLD)
@@ -575,7 +575,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     sContext = "COMMIT:";
                     cs = getXACallableStatementHandle(XA_COMMIT);
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setBytes(n++, gid);
                     cs.setBytes(n++, bid);
                     cs.setInt(n++, xaFlags);
@@ -590,7 +590,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         cs = getXACallableStatementHandle(XA_ROLLBACK);
 
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setBytes(n++, gid);
                     cs.setBytes(n++, bid);
                     if ((SSTRANSTIGHTLYCPLD & xaFlags) == SSTRANSTIGHTLYCPLD)
@@ -605,7 +605,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     else
                         cs = getXACallableStatementHandle(XA_FORGET);
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setBytes(n++, gid);
                     cs.setBytes(n++, bid);
                     if ((SSTRANSTIGHTLYCPLD & xaFlags) == SSTRANSTIGHTLYCPLD)
@@ -617,9 +617,9 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     sContext = "RECOVER:";
                     cs = getXACallableStatementHandle(XA_RECOVER);
                     cs.registerOutParameter(n++, Types.INTEGER);
-                    cs.registerOutParameterNonPLP(n++, Types.CHAR);
+                    cs.registerOutParameter(n++, Types.CHAR);
                     cs.setInt(n++, xaFlags);
-                    cs.registerOutParameterNonPLP(n++, Types.BINARY);
+                    cs.registerOutParameter(n++, Types.BINARY);
                     // Format Id need not be sent for recover action
                     break;
                 default:
