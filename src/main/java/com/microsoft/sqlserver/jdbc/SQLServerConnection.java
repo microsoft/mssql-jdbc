@@ -166,14 +166,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** Flag that determines whether the accessToken callback was set **/
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
-
-<<<<<<< HEAD
-    /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
-    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS
-            .getDefaultValue();
-
-=======
->>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
      * info
@@ -2507,18 +2499,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
 
-<<<<<<< HEAD
-                sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null == sPropValue) {
-                    sPropValue = Boolean.toString(
-                            SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
-                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
-                }
-                useFlexibleCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);
-
-=======
->>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
                 if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
                     requestedEncryptionLevel = TDS.ENCRYPT_OFF;
