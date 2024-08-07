@@ -255,11 +255,15 @@ public class BatchExecutionTest extends AbstractTest {
                 }
             };
 
-            try (ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS)) {
+            ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS);
+
+            try {
                 for (int i = 0; i < NUMBER_SIMULTANEOUS_INSERTS; i++) {
                     executor.submit(runnable);
                 }
                 executor.shutdown();
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
     }
