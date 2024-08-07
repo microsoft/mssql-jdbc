@@ -7,8 +7,8 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
@@ -27,8 +27,12 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -39,6 +43,7 @@ import org.opentest4j.TestAbortedException;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -147,8 +152,8 @@ public class BatchExecutionTest extends AbstractTest {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
 
             // Needs to be on a JDK version greater than 8
@@ -203,6 +208,59 @@ public class BatchExecutionTest extends AbstractTest {
 
             // Cache should now have 2 metadata items cached
             assertEquals(2, ((HashMap) bulkcopyCache).size());
+        }
+    }
+
+    @Test
+    public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+        long timeOut = 20000; // 20 seconds
+        int NUMBER_SIMULTANEOUS_INSERTS = 40;
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement()) {
+
+            // Needs to be on a JDK version greater than 8
+            assumeTrue(TestUtils.getJVMVersion() > 8);
+
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            stmt.execute(createSqlTable1);
+
+            TimerTask task = new TimerTask() {
+                public void run() {
+                    fail(TestResource.getResource("R_executionTooLong"));
+                }
+            };
+            Timer timer = new Timer("Timer");
+            timer.schedule(task, timeOut); // Run a timer to help us exit if we get deadlocked
+
+            final CountDownLatch countDownLatch = new CountDownLatch(NUMBER_SIMULTANEOUS_INSERTS);
+            Runnable runnable = () -> {
+                try {
+                    for (int i = 0; i < 5; ++i) {
+                        PreparedStatement preparedStatement = con
+                                .prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)");
+                        Timestamp timestamp = new Timestamp(ms);
+                        preparedStatement.setTimestamp(1, timestamp, gmtCal);
+                        preparedStatement.addBatch();
+                        preparedStatement.executeBatch();
+                    }
+                    countDownLatch.countDown();
+                    countDownLatch.await();
+                } catch (Exception e) {
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                }
+            };
+
+            try (ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS)) {
+                for (int i = 0; i < NUMBER_SIMULTANEOUS_INSERTS; i++) {
+                    executor.submit(runnable);
+                }
+                executor.shutdown();
+            }
         }
     }
 
