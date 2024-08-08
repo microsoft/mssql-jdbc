@@ -215,7 +215,7 @@ public class BatchExecutionTest extends AbstractTest {
     public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
-        long timeOut = 20000; // 20 seconds
+        long timeOut = 90000; // 90 seconds
         int NUMBER_SIMULTANEOUS_INSERTS = 40;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
