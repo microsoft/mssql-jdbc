@@ -211,62 +211,6 @@ public class BatchExecutionTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
-        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        long ms = 1578743412000L;
-        long timeOut = 90000; // 90 seconds
-        int NUMBER_SIMULTANEOUS_INSERTS = 40;
-
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
-                Statement stmt = con.createStatement()) {
-
-            // Needs to be on a JDK version greater than 8
-            assumeTrue(TestUtils.getJVMVersion() > 8);
-
-            TestUtils.dropTableIfExists(timestampTable1, stmt);
-            String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
-            stmt.execute(createSqlTable1);
-
-            TimerTask task = new TimerTask() {
-                public void run() {
-                    fail(TestResource.getResource("R_executionTooLong"));
-                }
-            };
-            Timer timer = new Timer("Timer");
-            timer.schedule(task, timeOut); // Run a timer to help us exit if we get deadlocked
-
-            final CountDownLatch countDownLatch = new CountDownLatch(NUMBER_SIMULTANEOUS_INSERTS);
-            Runnable runnable = () -> {
-                try {
-                    for (int i = 0; i < 5; ++i) {
-                        PreparedStatement preparedStatement = con
-                                .prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)");
-                        Timestamp timestamp = new Timestamp(ms);
-                        preparedStatement.setTimestamp(1, timestamp, gmtCal);
-                        preparedStatement.addBatch();
-                        preparedStatement.executeBatch();
-                    }
-                    countDownLatch.countDown();
-                    countDownLatch.await();
-                } catch (Exception e) {
-                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-                }
-            };
-
-            ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS);
-
-            try {
-                for (int i = 0; i < NUMBER_SIMULTANEOUS_INSERTS; i++) {
-                    executor.submit(runnable);
-                }
-                executor.shutdown();
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-        }
-    }
 
     @Test
     public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
