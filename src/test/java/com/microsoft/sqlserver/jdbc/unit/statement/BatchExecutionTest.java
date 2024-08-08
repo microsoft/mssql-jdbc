@@ -211,6 +211,81 @@ public class BatchExecutionTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+        long timeOut = 90000; // 90 seconds
+        int NUMBER_SIMULTANEOUS_INSERTS = 40;
+
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement()) {
+
+            // Needs to be on a JDK version greater than 8
+            assumeTrue(TestUtils.getJVMVersion() > 8);
+
+            TestUtils.dropTableIfExists(timestampTable1, stmt);
+            String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
+            stmt.execute(createSqlTable1);
+
+            Field bulkcopyMetadataCacheField;
+
+            if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
+                bulkcopyMetadataCacheField = con.getClass().getSuperclass()
+                        .getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            } else {
+                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            }
+
+            bulkcopyMetadataCacheField.setAccessible(true);
+            Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+
+            ((HashMap<?, ?>) bulkcopyCache).clear();
+
+            TimerTask task = new TimerTask() {
+                public void run() {
+                    ((HashMap<?, ?>) bulkcopyCache).clear();
+                    fail(TestResource.getResource("R_executionTooLong"));
+                }
+            };
+            Timer timer = new Timer("Timer");
+            timer.schedule(task, timeOut); // Run a timer to help us exit if we get deadlocked
+
+            final CountDownLatch countDownLatch = new CountDownLatch(NUMBER_SIMULTANEOUS_INSERTS);
+            Runnable runnable = () -> {
+                try {
+                    for (int i = 0; i < 5; ++i) {
+                        PreparedStatement preparedStatement = con
+                                .prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)");
+                        Timestamp timestamp = new Timestamp(ms);
+                        preparedStatement.setTimestamp(1, timestamp, gmtCal);
+                        preparedStatement.addBatch();
+                        preparedStatement.executeBatch();
+                    }
+                    countDownLatch.countDown();
+                    countDownLatch.await();
+                } catch (Exception e) {
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                } finally {
+                    ((HashMap<?, ?>) bulkcopyCache).clear();
+                }
+            };
+
+            ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS);
+
+            try {
+                for (int i = 0; i < NUMBER_SIMULTANEOUS_INSERTS; i++) {
+                    executor.submit(runnable);
+                }
+                executor.shutdown();
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            } finally {
+                ((HashMap<?, ?>) bulkcopyCache).clear();
+            }
+        }
+    }
 
     @Test
     public void testValidTimezoneForTimestampBatchInsertWithBulkCopy() throws Exception {
