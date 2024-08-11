@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package com.microsoft.sqlserver.jdbc.configurableretry;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -20,6 +20,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -53,7 +57,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             try {
                 createTable(s);
                 ps.execute();
-                fail(TestResource.getResource("R_expectedFailPassed"));
+                Assertions.fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLServerException e) {
                 assertTrue(e.getMessage().startsWith("There is already an object"),
                         TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
@@ -165,8 +169,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(15), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(15));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(15),
+                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(15));
         }
 
         timerStart = System.currentTimeMillis();
@@ -180,8 +184,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(8),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(8));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(18), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(18));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(18),
+                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(18));
         }
 
         timerStart = System.currentTimeMillis();
@@ -195,8 +199,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(10),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(10));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(20), "total time: " + totalTime
-                    + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(20));
+            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(20),
+                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(20));
         }
     }
 

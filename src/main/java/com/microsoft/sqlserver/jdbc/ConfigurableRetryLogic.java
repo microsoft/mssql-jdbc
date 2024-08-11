@@ -10,8 +10,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
-import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,8 +19,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 
+/**
+ * Allows configurable statement retry through the use of the 'retryExec' connection property. Each rule read in is
+ * converted to ConfigRetryRule objects, which are stored and referenced during statement retry.
+ *
+ */
 public class ConfigurableRetryLogic {
-    private final static int INTERVAL_BETWEEN_READS = 30000;
+    private final static int INTERVAL_BETWEEN_READS_IN_MS = 30000;
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
     private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
@@ -33,6 +36,11 @@ public class ConfigurableRetryLogic {
     private static String rulesFromConnectionString = "";
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
+    private static final String SEMI_COLON = ";";
+    private static final String COMMA = ",";
+    private static final String FORWARD_SLASH = "/";
+    private static final String EQUALS_SIGN = "=";
+    private static final String RETRY_EXEC = "retryExec";
 
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead = new Date().getTime();
@@ -48,22 +56,26 @@ public class ConfigurableRetryLogic {
      *         an exception
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
-        CRL_LOCK.lock();
-        try {
-            if (driverInstance == null) {
-                driverInstance = new ConfigurableRetryLogic();
-            } else {
-                reread();
+        if (driverInstance == null) {
+            CRL_LOCK.lock();
+            try {
+                if (driverInstance == null) {
+                    driverInstance = new ConfigurableRetryLogic();
+                } else {
+                    refreshRuleSet();
+                }
+            } finally {
+                CRL_LOCK.unlock();
             }
-            return driverInstance;
-        } finally {
-            CRL_LOCK.unlock();
+        } else {
+            refreshRuleSet();
         }
+        return driverInstance;
     }
 
-    private static void reread() throws SQLServerException {
+    private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
-        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS && !compareModified()) {
+        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS && !compareModified()) {
             timeLastRead = currentTime;
             setUpRules();
         }
@@ -100,7 +112,7 @@ public class ConfigurableRetryLogic {
 
         if (!rulesFromConnectionString.isEmpty()) {
             temp = new LinkedList<>();
-            Collections.addAll(temp, rulesFromConnectionString.split(";"));
+            Collections.addAll(temp, rulesFromConnectionString.split(SEMI_COLON));
             rulesFromConnectionString = "";
         } else {
             temp = readFromFile();
@@ -114,8 +126,8 @@ public class ConfigurableRetryLogic {
         for (String potentialRule : listOfRules) {
             ConfigRetryRule rule = new ConfigRetryRule(potentialRule);
 
-            if (rule.getError().contains(",")) {
-                String[] arr = rule.getError().split(",");
+            if (rule.getError().contains(COMMA)) {
+                String[] arr = rule.getError().split(COMMA);
 
                 for (String retryError : arr) {
                     ConfigRetryRule splitRule = new ConfigRetryRule(retryError, rule);
@@ -132,7 +144,7 @@ public class ConfigurableRetryLogic {
             String className = new Object() {}.getClass().getEnclosingClass().getName();
             String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             location = location.substring(0, location.length() - 16);
-            URI uri = new URI(location + "/");
+            URI uri = new URI(location + FORWARD_SLASH);
             return uri.getPath();
         } catch (Exception e) {
             if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
@@ -152,9 +164,9 @@ public class ConfigurableRetryLogic {
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
                 while ((readLine = buffer.readLine()) != null) {
-                    if (readLine.startsWith("retryExec")) {
-                        String value = readLine.split("=")[1];
-                        Collections.addAll(list, value.split(";"));
+                    if (readLine.startsWith(RETRY_EXEC)) {
+                        String value = readLine.split(EQUALS_SIGN)[1];
+                        Collections.addAll(list, value.split(SEMI_COLON));
                     }
                 }
             }
@@ -167,177 +179,12 @@ public class ConfigurableRetryLogic {
     }
 
     ConfigRetryRule searchRuleSet(int ruleToSearch) throws SQLServerException {
-        reread();
+        refreshRuleSet();
         for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {
             if (entry.getKey() == ruleToSearch) {
                 return entry.getValue();
             }
         }
         return null;
-    }
-}
-
-
-class ConfigRetryRule {
-    private String retryError;
-    private String operand = "+";
-    private int initialRetryTime = 0;
-    private int retryChange = 2;
-    private int retryCount = 1;
-    private String retryQueries = "";
-    private ArrayList<Integer> waitTimes = new ArrayList<>();
-
-    public ConfigRetryRule(String rule) throws SQLServerException {
-        addElements(parse(rule));
-        calcWaitTime();
-    }
-
-    public ConfigRetryRule(String rule, ConfigRetryRule base) {
-        copyFromExisting(base);
-        this.retryError = rule;
-    }
-
-    private void copyFromExisting(ConfigRetryRule base) {
-        this.retryError = base.getError();
-        this.operand = base.getOperand();
-        this.initialRetryTime = base.getInitialRetryTime();
-        this.retryChange = base.getRetryChange();
-        this.retryCount = base.getRetryCount();
-        this.retryQueries = base.getRetryQueries();
-        this.waitTimes = base.getWaitTimes();
-    }
-
-    private String[] parse(String rule) {
-        String parsed = rule + " ";
-
-        parsed = parsed.replace(": ", ":0");
-        parsed = parsed.replace("{", "");
-        parsed = parsed.replace("}", "");
-        parsed = parsed.trim();
-
-        return parsed.split(":");
-    }
-
-    private void parameterIsNumeric(String value) throws SQLServerException {
-        if (!StringUtils.isNumeric(value)) {
-            String[] arr = value.split(",");
-            for (String error : arr) {
-                if (!StringUtils.isNumeric(error)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                    throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
-                }
-            }
-        }
-    }
-
-    private void addElements(String[] rule) throws SQLServerException {
-        if (rule.length == 2 || rule.length == 3) {
-            parameterIsNumeric(rule[0]);
-            retryError = rule[0];
-            String[] timings = rule[1].split(",");
-            parameterIsNumeric(timings[0]);
-
-            if (Integer.parseInt(timings[0]) > 0) {
-                retryCount = Integer.parseInt(timings[0]);
-            } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
-            }
-
-            if (timings.length == 2) {
-                if (timings[1].contains("*")) {
-                    String[] initialAndChange = timings[1].split("\\*");
-                    parameterIsNumeric(initialAndChange[0]);
-
-                    initialRetryTime = Integer.parseInt(initialAndChange[0]);
-                    operand = "*";
-                    if (initialAndChange.length > 1) {
-                        parameterIsNumeric(initialAndChange[1]);
-                        retryChange = Integer.parseInt(initialAndChange[1]);
-                    } else {
-                        retryChange = initialRetryTime;
-                    }
-                } else if (timings[1].contains("+")) {
-                    String[] initialAndChange = timings[1].split("\\+");
-                    parameterIsNumeric(initialAndChange[0]);
-
-                    initialRetryTime = Integer.parseInt(initialAndChange[0]);
-                    operand = "+";
-                    if (initialAndChange.length > 1) {
-                        parameterIsNumeric(initialAndChange[1]);
-                        retryChange = Integer.parseInt(initialAndChange[1]);
-                    } else {
-                        retryChange = initialRetryTime;
-                    }
-                } else {
-                    parameterIsNumeric(timings[1]);
-                    initialRetryTime = Integer.parseInt(timings[1]);
-                }
-            } else if (timings.length > 2) {
-                StringBuilder builder = new StringBuilder();
-                for (String string : rule) {
-                    builder.append(string);
-                }
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRuleFormat"));
-                Object[] msgArgs = {builder.toString()};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-            }
-
-            if (rule.length == 3) {
-                retryQueries = (rule[2].equals("0") ? "" : rule[2].toLowerCase());
-            }
-        } else {
-            StringBuilder builder = new StringBuilder();
-            for (String string : rule) {
-                builder.append(string);
-            }
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidRuleFormat"));
-            Object[] msgArgs = {builder.toString()};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-        }
-    }
-
-    private void calcWaitTime() {
-        for (int i = 0; i < retryCount; ++i) {
-            int waitTime = initialRetryTime;
-            if (operand.equals("+")) {
-                for (int j = 0; j < i; ++j) {
-                    waitTime += retryChange;
-                }
-            } else if (operand.equals("*")) {
-                for (int k = 0; k < i; ++k) {
-                    waitTime *= retryChange;
-                }
-            }
-            waitTimes.add(waitTime);
-        }
-    }
-
-    public String getError() {
-        return retryError;
-    }
-
-    public String getOperand() {
-        return operand;
-    }
-
-    public int getInitialRetryTime() {
-        return initialRetryTime;
-    }
-
-    public int getRetryChange() {
-        return retryChange;
-    }
-
-    public int getRetryCount() {
-        return retryCount;
-    }
-
-    public String getRetryQueries() {
-        return retryQueries;
-    }
-
-    public ArrayList<Integer> getWaitTimes() {
-        return waitTimes;
     }
 }

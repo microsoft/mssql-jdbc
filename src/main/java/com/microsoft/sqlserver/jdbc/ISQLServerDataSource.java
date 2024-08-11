@@ -1355,13 +1355,15 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'retryExec' from Connection String.
      *
      * @param retryExec
+     *        Set of rules used for statement (execution) retry
      */
     void setRetryExec(String retryExec);
 
     /**
      * Sets the value for 'retryExec' property
      *
-     * @return retryExec String value
+     * @return retryExec
+     *         String value
      */
     String getRetryExec();
 }

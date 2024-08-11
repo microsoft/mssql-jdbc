@@ -275,22 +275,28 @@ public class SQLServerStatement implements ISQLServerStatement {
                     rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber());
                 }
 
+                // If there is a rule for this error AND we still have retries remaining THEN we can proceed, otherwise
+                // first check for query timeout, and then throw the error if queryTimeout was not reached
                 if (null != rule && retryAttempt < rule.getRetryCount()) {
-                    boolean meetsQueryMatch = true;
+
+                    // Also check if the last executed statement matches the query constraint passed in for the rule.
+                    // Defaults to true, changed to false if the query does NOT match.
+                    boolean matchesDefinedQuery = true;
                     if (!(rule.getRetryQueries().isEmpty())) {
-                        // If query has been defined for the rule, we need to query match
-                        meetsQueryMatch = rule.getRetryQueries()
+
+                        matchesDefinedQuery = rule.getRetryQueries()
                                 .contains(ConfigurableRetryLogic.getInstance().getLastQuery().split(" ")[0]);
                     }
 
-                    if (meetsQueryMatch) {
+                    if (matchesDefinedQuery) {
                         try {
                             int timeToWait = rule.getWaitTimes().get(retryAttempt);
-                            if (connection.getQueryTimeoutSeconds() >= 0
-                                    && timeToWait > connection.getQueryTimeoutSeconds()) {
+                            int queryTimeout = connection.getQueryTimeoutSeconds();
+                            if (queryTimeout >= 0 && timeToWait > queryTimeout) {
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_InvalidRetryInterval"));
-                                throw new SQLServerException(null, form.format(new Object[] {}), null, 0, true);
+                                Object[] msgArgs = {timeToWait, queryTimeout};
+                                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                             }
                             try {
                                 Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));

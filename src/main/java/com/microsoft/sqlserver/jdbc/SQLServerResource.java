@@ -548,9 +548,9 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
         {"R_InvalidScale", "Scale of input value is larger than the maximum allowed by SQL Server."},
         {"R_colCountNotMatchColTypeCount", "Number of provided columns {0} does not match the column data types definition {1}."},
-        {"R_InvalidParameterFormat", "One or more supplied parameters are not correct."},
-        {"R_InvalidRuleFormat", "Wrong number of parameters supplied to rule."},
-        {"R_InvalidRetryInterval", "Current retry interval is longer than queryTimeout."},
+        {"R_InvalidParameterFormat", "One or more supplied parameters is/are not correct: {0}, for the reason: {1}."},
+        {"R_InvalidRuleFormat", "Wrong number of parameters supplied to rule. Number of parameters: {0}, expected: 2 or 3."},
+        {"R_InvalidRetryInterval", "Current retry interval: {0}, is longer than queryTimeout: {1}."},
     };
 }
 // @formatter:on
