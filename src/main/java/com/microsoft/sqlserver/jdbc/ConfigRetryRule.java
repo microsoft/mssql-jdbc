@@ -28,11 +28,29 @@ public class ConfigRetryRule {
 
     private ArrayList<Integer> waitTimes = new ArrayList<>();
 
+    /**
+     * Default constructor
+     *
+     * @param rule
+     *          The rule used to construct the ConfigRetryRule object
+     * @throws SQLServerException
+     *          If there is a problem parsing the rule
+     */
     public ConfigRetryRule(String rule) throws SQLServerException {
         addElements(parse(rule));
         calcWaitTime();
     }
 
+    /**
+     * Allows constructing a ConfigRetryRule object from another ConfigRetryRule object. Used when the first object has
+     * multiple errors provided. We pass in the multi-error object and create 1 new object for each error in the initial
+     * object.
+     *
+     * @param rule
+     *          The rule used to construct the ConfigRetryRule object
+     * @param base
+     *          The ConfigRetryRule object to base the new objects off of
+     */
     public ConfigRetryRule(String rule, ConfigRetryRule base) {
         copyFromExisting(base);
         this.retryError = rule;
@@ -82,6 +100,39 @@ public class ConfigRetryRule {
         }
     }
 
+    /**
+     * Parses the passed in string array, containing all elements from the orignal rule, and assigns the information
+     * to the class variables. The logic is as follows:
+     * <p></p>
+     * The rule array, which was created by splitting the rule string based on ":", must be of length 2 or 3. If not
+     * there are too many parts, and an error is thrown.
+     * <p></p>
+     * If it is of length 2 or 3, the first part is always the retry error (the error to retry on). We check if its
+     * numeric, and if so, assign it to the class variable. The second part are the retry timings, which include
+     * retry count (mandatory), initial retry time (optional), operand (optional), and retry change (optional). A
+     * parameter can only be included, if ALL parameters prior to it are included. Thus, these are the only valid rule
+     * formats:
+     * error; count
+     * error; count, initial retry time
+     * error; count, initial retry time [OPERAND]
+     * error; count, initial retry time [OPERAND] retry change
+     * <p></p>
+     * Next, the second part of the rule is parsed based on "," and each part checked. The retry count is mandatory
+     * and must be numeric and greater than 0, else an error is thrown.
+     * <p></p>
+     * If there is a second part to the retry timings, it includes any of the parameters mentioned above: initial retry
+     * time, operand, and retry change. We first check if there is an operand, if not, then only initial retry time has
+     * been given, and it is assigned. If there is an operand, we split this second part based on the operand.
+     * Whatever was before the operand was the initial retry time, and if there was something after the operand, this
+     * is the retry change. If there are more than 2 parts to the timing, i.e. more than 2 commas, throw an error.
+     * <p></p>
+     * Finally, if the rule has 3 parts, it includes a query specifier, parse this and assign it.
+     *
+     * @param rule
+     *          The passed in rule, as a string array
+     * @throws SQLServerException
+     *          If a rule or parameter has invalid inputs
+     */
     private void addElements(String[] rule) throws SQLServerException {
         if (rule.length == 2 || rule.length == 3) {
             parameterIsNumeric(rule[0]);
@@ -159,30 +210,72 @@ public class ConfigRetryRule {
         }
     }
 
+    /**
+     * Returns the retry error for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry error
+     */
     public String getError() {
         return retryError;
     }
 
+    /**
+     * Returns the retry error for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry error
+     */
     public String getOperand() {
         return operand;
     }
 
+    /**
+     * Returns the retry error (errors to retry on) for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry error
+     */
     public int getInitialRetryTime() {
         return initialRetryTime;
     }
 
+    /**
+     * Returns the retry change (timing change to apply to wait times) for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry change
+     */
     public int getRetryChange() {
         return retryChange;
     }
 
+    /**
+     * Returns the retry count (amount of times to retry) for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry count
+     */
     public int getRetryCount() {
         return retryCount;
     }
 
+    /**
+     * Returns the retry query specifier for this ConfigRetryRule object.
+     *
+     * @return
+     *      The retry query specifier
+     */
     public String getRetryQueries() {
         return retryQueries;
     }
 
+    /**
+     * Returns an array listing the waiting times between each retry, for this ConfigRetryRule object.
+     *
+     * @return
+     *      The list of waiting times
+     */
     public ArrayList<Integer> getWaitTimes() {
         return waitTimes;
     }
