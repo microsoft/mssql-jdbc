@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Date;
@@ -1043,6 +1045,20 @@ final class Util {
             chars[i] = (char) (((0xFF & (bytes[i * 2])) << 8) | (0xFF & bytes[i * 2 + 1]));
         }
         return chars;
+    }
+
+    static String getHashedSecret(String[] secrets) throws SQLServerException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            for (String secret : secrets) {
+                if (null != secret) {
+                    md.update(secret.getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
+                }
+            }
+            return new String(md.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_NoSHA256Algorithm"), e);
+        }
     }
 }
 

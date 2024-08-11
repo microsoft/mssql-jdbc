@@ -3,6 +3,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.8.0] Stable Release
+### Fixed issues
+- Fixed regression with specifying argument names in callable statement syntax [#2480](https://github.com/microsoft/mssql-jdbc/pull/2480)
+
+## [12.7.1] Preview Release
+### Added
+- Added JDK 22 support [#2414](https://github.com/microsoft/mssql-jdbc/pull/2414)
+- Added credential caching for Managed Identity Credential and Default Azure Credential [#2415](https://github.com/microsoft/mssql-jdbc/pull/2415)
+- Added Caching SQLServerBulkCopy object for batch insert [#2435](https://github.com/microsoft/mssql-jdbc/pull/2435)
+- Added connection level bulk copy metadata caching [#2464](https://github.com/microsoft/mssql-jdbc/pull/2464)
+- Added logging to token caching [#2468](https://github.com/microsoft/mssql-jdbc/pull/2468)
+
+### Changed
+- Bump org.bouncycastle:bcprov-jdk18on from 1.77 to 1.78 [#2403](https://github.com/microsoft/mssql-jdbc/pull/2403)
+- Enum SQLServerSortOrder is now public [#2405](https://github.com/microsoft/mssql-jdbc/pull/2405)
+- Bump com.azure:azure-identity from 1.12.1 to 1.12.2 [#2447](https://github.com/microsoft/mssql-jdbc/pull/2447)
+- Bump com.microsoft.azure:msal4j from 1.15.0 to 1.15.1 [#2448](https://github.com/microsoft/mssql-jdbc/pull/2448)
+
+### Fixed issues
+- Execute stored procedures directly for RPC calls [#2410](https://github.com/microsoft/mssql-jdbc/pull/2410)
+- Fix SqlAuthenticationToken constructor accepting unix epoch [#2425](https://github.com/microsoft/mssql-jdbc/pull/2425)
+- TokenCredential class shouldn't be required [#2441](https://github.com/microsoft/mssql-jdbc/pull/2441)
+- Fixed timestamp string conversion error for CallableStatements [#2449](https://github.com/microsoft/mssql-jdbc/pull/2449)
+- Fixed CallableStatements default value regression [#2452](https://github.com/microsoft/mssql-jdbc/pull/2452)
+- Fixed parentheses parsing for stored procedure names and function names [#2467](https://github.com/microsoft/mssql-jdbc/pull/2467)
+
 ## [12.7.0] Preview Release
 ### Added
 - Server Message Handler and SQLException Chaining [#2251](https://github.com/microsoft/mssql-jdbc/pull/2251)
