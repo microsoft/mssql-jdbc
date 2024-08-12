@@ -139,15 +139,7 @@ public class ConfigRetryRule {
             retryError = rule[0];
             String[] timings = rule[1].split(COMMA);
             parameterIsNumeric(timings[0]);
-            int parsedRetryCount = Integer.parseInt(timings[0]);
-
-            if (parsedRetryCount > 0) {
-                retryCount = parsedRetryCount;
-            } else {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                Object[] msgArgs = {parsedRetryCount, NON_POSITIVE_INT};
-                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-            }
+            retryCount = Integer.parseInt(timings[0]);
 
             if (timings.length == 2) {
                 if (timings[1].contains(MULTIPLICATION_SIGN)) {

@@ -263,6 +263,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             // Test length 2
             testStatementRetry("retryExec={2714:1,3;};");
 
+            // Test length 3, but query is empty
+            testStatementRetry("retryExec={2714:1,3:;};");
+
             // Test length 3, also multiple statement errors
             testStatementRetry("retryExec={2714,2716:1,2*2:CREATE};");
 
