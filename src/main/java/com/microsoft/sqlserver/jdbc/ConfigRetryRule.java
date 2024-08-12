@@ -111,7 +111,7 @@ public class ConfigRetryRule {
      * numeric, and if so, assign it to the class variable. The second part are the retry timings, which include
      * retry count (mandatory), initial retry time (optional), operand (optional), and retry change (optional). A
      * parameter can only be included, if ALL parameters prior to it are included. Thus, these are the only valid rule
-     * formats:
+     * formats for rules of length 2:
      * error; count
      * error; count, initial retry time
      * error; count, initial retry time [OPERAND]

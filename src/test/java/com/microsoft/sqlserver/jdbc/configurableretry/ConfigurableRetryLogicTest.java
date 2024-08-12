@@ -16,14 +16,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
+import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -39,6 +36,27 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    @Test
+    public void testRetryExecConnectionStringOption() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement s = conn.createStatement()) {
+            String test = conn.getRetryExec();
+            assertTrue(test.isEmpty());
+            conn.setRetryExec("{2714:3,2*2:CREATE;2715:1,3}");
+            PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
+            try {
+                createTable(s);
+                ps.execute();
+                Assertions.fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (SQLServerException e) {
+                assertTrue(e.getMessage().startsWith("There is already an object"),
+                        TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
+            } finally {
+                dropTable(s);
+            }
+        }
     }
 
     /**
