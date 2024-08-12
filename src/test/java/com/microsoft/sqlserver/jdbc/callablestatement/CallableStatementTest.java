@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -55,6 +56,10 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_setNull_SP"));
     private static String inputParamsProcedureName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_inputParams_SP"));
+    private static String conditionalSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_conditionalSproc"));
+    private static String simpleRetValSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_simpleSproc"));
     private static String getObjectLocalDateTimeProcedureName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("CallableStatementTest_getObjectLocalDateTime_SP"));
     private static String getObjectOffsetDateTimeProcedureName = AbstractSQLGenerator
@@ -65,6 +70,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Table"));
     private static String manyParamProc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_Procedure"));
+    private static String currentTimeProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("currentTime_Procedure"));
     private static String manyParamUserDefinedType = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
@@ -95,6 +102,8 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
+            TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
+            TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
@@ -108,10 +117,13 @@ public class CallableStatementTest extends AbstractTest {
             createUserDefinedType();
             createTableManyParams();
             createProcedureManyParams();
+            createProcedureCurrentTime();
             createGetObjectOffsetDateTimeProcedure(stmt);
             createProcedureZeroParams();
             createOutOfOrderSproc();
             createByParamNameSproc();
+            createConditionalProcedure();
+            createSimpleRetValSproc();
             createUserDefinedFunction();
         }
     }
@@ -377,6 +389,17 @@ public class CallableStatementTest extends AbstractTest {
         try (CallableStatement cs = connection.prepareCall(call)) {
             cs.registerOutParameter(1, Types.INTEGER);
             cs.execute();
+            assertEquals(1, cs.getInt(1));
+        }
+
+        // Test zero parameter sproc with return value with parentheses
+        call = "{? = CALL " + zeroParamSproc + "()}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            // Calling zero parameter sproc with return value with parentheses
+            // should return a value that's not zero
             assertEquals(1, cs.getInt(1));
         }
     }
@@ -1148,6 +1171,53 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    public void testCallableStatementDefaultValues() throws SQLException {
+        String call0 = "{call " + conditionalSproc + " (?, ?, 1)}";
+        String call1 = "{call " + conditionalSproc + " (?, ?, 2)}";
+        int expectedValue = 5; // The sproc should return this value
+
+        try (CallableStatement cstmt = connection.prepareCall(call0)) {
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.execute();
+            ResultSet rs = cstmt.getResultSet();
+            rs.next();
+            fail(TestResource.getResource("R_expectedFailPassed"));
+
+        } catch (Exception e) {
+            String msg = e.getMessage();
+            assertTrue(TestResource
+                    .getResource("R_nullPointerExceptionFromResultSet").equalsIgnoreCase(msg)
+                    || msg == null);
+        }
+
+        try (CallableStatement cstmt = connection.prepareCall(call1)) {
+            cstmt.setInt(1, 1);
+            cstmt.setInt(2, 2);
+            cstmt.execute();
+            ResultSet rs = cstmt.getResultSet();
+            rs.next();
+
+            assertEquals(Integer.toString(expectedValue), rs.getString(1));
+        }
+    }
+
+    @Test
+    public void testCallableStatementSetByAnnotatedArgs() throws SQLException {
+        String call = "{? = call " + simpleRetValSproc + " (@Arg1 = ?)}";
+        int expectedValue = 1; // The sproc should return this value
+
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            cstmt.registerOutParameter(1, Types.INTEGER);
+            cstmt.setInt(1, 2);
+            cstmt.setString(2, "foo");
+            cstmt.execute();
+
+            Assert.assertEquals(expectedValue, cstmt.getInt(1));
+        }
+    }
+
+    @Test
     @Tag(Constants.reqExternalSetup)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
@@ -1224,6 +1294,17 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testTimestampStringConversion() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + currentTimeProc + "(?)}")) {
+            String timestamp = "2024-05-29 15:35:53.461";
+            stmt.setObject(1, timestamp, Types.TIMESTAMP);
+            stmt.registerOutParameter(1, Types.TIMESTAMP);
+            stmt.execute();
+            stmt.getObject("currentTimeStamp");
+        }
+    }
+
     /**
      * Cleanup after test
      *
@@ -1242,6 +1323,9 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(outOfOrderSproc, stmt);
             TestUtils.dropProcedureIfExists(byParamNameSproc, stmt);
+            TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
+            TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
+            TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropFunctionIfExists(userDefinedFunction, stmt);
         }
     }
@@ -1289,6 +1373,29 @@ public class CallableStatementTest extends AbstractTest {
                 + type + ", @p5 " + type + ", @p6 " + type + ", @p7 " + type + ", @p8 " + type + ", @p9 " + type
                 + ", @p10 " + type + " AS INSERT INTO " + manyParamsTable
                 + " VALUES(@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureCurrentTime() throws SQLException {
+        String sql = "CREATE PROCEDURE " + currentTimeProc + " @currentTimeStamp datetime = null OUTPUT " +
+                "AS BEGIN SET @currentTimeStamp = CURRENT_TIMESTAMP; END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createConditionalProcedure() throws SQLException {
+        String sql = "CREATE PROCEDURE " + conditionalSproc + " @param0 INT, @param1 INT, @maybe bigint = 2 " +
+                "AS BEGIN IF @maybe >= 2 BEGIN SELECT 5 END END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createSimpleRetValSproc() throws SQLException {
+        String sql = "CREATE PROCEDURE " + simpleRetValSproc + " (@Arg1 VARCHAR(128)) AS DECLARE @ReturnCode INT RETURN 1";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
