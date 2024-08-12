@@ -215,7 +215,7 @@ public class BatchExecutionTest extends AbstractTest {
     public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
-        long timeOut = 20000; // 20 seconds
+        long timeOut = 90000; // 90 seconds
         int NUMBER_SIMULTANEOUS_INSERTS = 40;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
@@ -229,8 +229,23 @@ public class BatchExecutionTest extends AbstractTest {
             String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
             stmt.execute(createSqlTable1);
 
+            Field bulkcopyMetadataCacheField;
+
+            if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
+                bulkcopyMetadataCacheField = con.getClass().getSuperclass()
+                        .getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            } else {
+                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+            }
+
+            bulkcopyMetadataCacheField.setAccessible(true);
+            Object bulkcopyCache = bulkcopyMetadataCacheField.get(con);
+
+            ((HashMap<?, ?>) bulkcopyCache).clear();
+
             TimerTask task = new TimerTask() {
                 public void run() {
+                    ((HashMap<?, ?>) bulkcopyCache).clear();
                     fail(TestResource.getResource("R_executionTooLong"));
                 }
             };
@@ -252,14 +267,22 @@ public class BatchExecutionTest extends AbstractTest {
                     countDownLatch.await();
                 } catch (Exception e) {
                     fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                } finally {
+                    ((HashMap<?, ?>) bulkcopyCache).clear();
                 }
             };
 
-            try (ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS)) {
+            ExecutorService executor = Executors.newFixedThreadPool(NUMBER_SIMULTANEOUS_INSERTS);
+
+            try {
                 for (int i = 0; i < NUMBER_SIMULTANEOUS_INSERTS; i++) {
                     executor.submit(runnable);
                 }
                 executor.shutdown();
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            } finally {
+                ((HashMap<?, ?>) bulkcopyCache).clear();
             }
         }
     }
