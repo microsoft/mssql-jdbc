@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc.configurableretry;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -249,10 +251,19 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void readFromFile() {
+        File myObj = null;
         try {
+            myObj = new File("mssql-jdbc.properties");
+            FileWriter myWriter = new FileWriter(myObj);
+            myWriter.write("retryExec={2716:1,2*2:CREATE;2714:1,2*2:CREATE};");
+            myWriter.close();
             testStatementRetry("");
         } catch (Exception e) {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        } finally {
+            if (myObj != null) {
+                myObj.delete();
+            }
         }
     }
 
