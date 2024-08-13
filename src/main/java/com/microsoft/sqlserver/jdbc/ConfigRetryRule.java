@@ -32,9 +32,9 @@ public class ConfigRetryRule {
      * Default constructor
      *
      * @param rule
-     *          The rule used to construct the ConfigRetryRule object
+     *        The rule used to construct the ConfigRetryRule object
      * @throws SQLServerException
-     *          If there is a problem parsing the rule
+     *         If there is a problem parsing the rule
      */
     public ConfigRetryRule(String rule) throws SQLServerException {
         addElements(parse(rule));
@@ -47,9 +47,9 @@ public class ConfigRetryRule {
      * object.
      *
      * @param rule
-     *          The rule used to construct the ConfigRetryRule object
+     *        The rule used to construct the ConfigRetryRule object
      * @param base
-     *          The ConfigRetryRule object to base the new objects off of
+     *        The ConfigRetryRule object to base the new objects off of
      */
     public ConfigRetryRule(String rule, ConfigRetryRule base) {
         copyFromExisting(base);
@@ -101,12 +101,14 @@ public class ConfigRetryRule {
     }
 
     /**
-     * Parses the passed in string array, containing all elements from the orignal rule, and assigns the information
+     * Parses the passed in string array, containing all elements from the original rule, and assigns the information
      * to the class variables. The logic is as follows:
-     * <p></p>
+     * <p>
+     * </p>
      * The rule array, which was created by splitting the rule string based on ":", must be of length 2 or 3. If not
      * there are too many parts, and an error is thrown.
-     * <p></p>
+     * <p>
+     * </p>
      * If it is of length 2 or 3, the first part is always the retry error (the error to retry on). We check if its
      * numeric, and if so, assign it to the class variable. The second part are the retry timings, which include
      * retry count (mandatory), initial retry time (optional), operand (optional), and retry change (optional). A
@@ -116,22 +118,25 @@ public class ConfigRetryRule {
      * error; count, initial retry time
      * error; count, initial retry time [OPERAND]
      * error; count, initial retry time [OPERAND] retry change
-     * <p></p>
+     * <p>
+     * </p>
      * Next, the second part of the rule is parsed based on "," and each part checked. The retry count is mandatory
      * and must be numeric and greater than 0, else an error is thrown.
-     * <p></p>
+     * <p>
+     * </p>
      * If there is a second part to the retry timings, it includes any of the parameters mentioned above: initial retry
      * time, operand, and retry change. We first check if there is an operand, if not, then only initial retry time has
      * been given, and it is assigned. If there is an operand, we split this second part based on the operand.
      * Whatever was before the operand was the initial retry time, and if there was something after the operand, this
      * is the retry change. If there are more than 2 parts to the timing, i.e. more than 2 commas, throw an error.
-     * <p></p>
+     * <p>
+     * </p>
      * Finally, if the rule has 3 parts, it includes a query specifier, parse this and assign it.
      *
      * @param rule
-     *          The passed in rule, as a string array
+     *        The passed in rule, as a string array
      * @throws SQLServerException
-     *          If a rule or parameter has invalid inputs
+     *         If a rule or parameter has invalid inputs
      */
     private void addElements(String[] rule) throws SQLServerException {
         if (rule.length == 2 || rule.length == 3) {
@@ -164,7 +169,7 @@ public class ConfigRetryRule {
                         parameterIsNumeric(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
-                        retryChange = initialRetryTime;
+                        retryChange = 2;
                     }
                 } else {
                     parameterIsNumeric(timings[1]);
@@ -206,7 +211,7 @@ public class ConfigRetryRule {
      * Returns the retry error for this ConfigRetryRule object.
      *
      * @return
-     *      The retry error
+     *         The retry error
      */
     public String getError() {
         return retryError;
@@ -216,7 +221,7 @@ public class ConfigRetryRule {
      * Returns the retry error for this ConfigRetryRule object.
      *
      * @return
-     *      The retry error
+     *         The retry error
      */
     public String getOperand() {
         return operand;
@@ -226,7 +231,7 @@ public class ConfigRetryRule {
      * Returns the retry error (errors to retry on) for this ConfigRetryRule object.
      *
      * @return
-     *      The retry error
+     *         The retry error
      */
     public int getInitialRetryTime() {
         return initialRetryTime;
@@ -236,7 +241,7 @@ public class ConfigRetryRule {
      * Returns the retry change (timing change to apply to wait times) for this ConfigRetryRule object.
      *
      * @return
-     *      The retry change
+     *         The retry change
      */
     public int getRetryChange() {
         return retryChange;
@@ -246,7 +251,7 @@ public class ConfigRetryRule {
      * Returns the retry count (amount of times to retry) for this ConfigRetryRule object.
      *
      * @return
-     *      The retry count
+     *         The retry count
      */
     public int getRetryCount() {
         return retryCount;
@@ -256,7 +261,7 @@ public class ConfigRetryRule {
      * Returns the retry query specifier for this ConfigRetryRule object.
      *
      * @return
-     *      The retry query specifier
+     *         The retry query specifier
      */
     public String getRetryQueries() {
         return retryQueries;
@@ -266,7 +271,7 @@ public class ConfigRetryRule {
      * Returns an array listing the waiting times between each retry, for this ConfigRetryRule object.
      *
      * @return
-     *      The list of waiting times
+     *         The list of waiting times
      */
     public ArrayList<Integer> getWaitTimes() {
         return waitTimes;

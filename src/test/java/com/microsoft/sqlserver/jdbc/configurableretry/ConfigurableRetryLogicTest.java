@@ -16,11 +16,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
@@ -38,6 +42,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         setConnection();
     }
 
+    /**
+     * Test that the SQLServerConnection methods getRetryExec and setRetryExec are working.
+     * 
+     * @throws Exception
+     *         if an exception occurs
+     */
     @Test
     public void testRetryExecConnectionStringOption() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
@@ -247,6 +257,20 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
+     * Ensure that CRL properly re-reads rules after INTERVAL_BETWEEN_READS_IN_MS (30 secs).
+     */
+    @Test
+    public void rereadAfterInterval() {
+        try {
+            testStatementRetry("retryExec={2716:1,2*2:CREATE;};");
+            Thread.sleep(30000); // Sleep to ensure it has been INTERVAL_BETWEEN_READS_IN_MS between reads
+            testStatementRetry("retryExec={2714:1,2*2:CREATE;};");
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        }
+    }
+
+    /**
      * Tests that rules of the correct length, and containing valid values, pass
      */
     @Test
@@ -262,6 +286,10 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
             // Test length 2
             testStatementRetry("retryExec={2714:1,3;};");
+
+            // Test length 2, with operand, but no initial-retry-time
+            testStatementRetry("retryExec={2714:1,3+;};");
+            testStatementRetry("retryExec={2714:1,3*;};");
 
             // Test length 3, but query is empty
             testStatementRetry("retryExec={2714:1,3:;};");
@@ -282,6 +310,20 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             testStatementRetry("retryExec={2714,2716:1,2*2:CREATE:4};");
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidRuleFormat")));
+        } catch (Exception e) {
+            Assertions.fail(TestResource.getResource("R_unexpectedException"));
+        }
+    }
+
+    /**
+     * Tests that too many timing parameters (>2) causes InvalidParameterFormat Exception.
+     */
+    @Test
+    public void testTooManyTimings() {
+        try {
+            testStatementRetry("retryExec={2714,2716:1,2*2,1:CREATE};");
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
         } catch (Exception e) {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         }

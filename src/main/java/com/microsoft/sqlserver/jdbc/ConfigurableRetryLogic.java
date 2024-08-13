@@ -33,7 +33,8 @@ public class ConfigurableRetryLogic {
     private static long timeLastModified;
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
-    private static String rulesFromConnectionString = "";
+    private static String newRulesFromConnectionString = ""; // Are their new rules to read?
+    private static String lastRulesFromConnectionString = ""; // Have we read from conn string in the past?
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
     private static final String SEMI_COLON = ";";
@@ -73,27 +74,35 @@ public class ConfigurableRetryLogic {
         return driverInstance;
     }
 
+    /**
+     * If it has been INTERVAL_BETWEEN_READS_IN_MS (30 secs) since last read and EITHER, we're using connection string
+     * props OR the file contents have been updated, reread.
+     *
+     * @throws SQLServerException
+     *         when an exception occurs
+     */
     private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
-        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS && !compareModified()) {
+        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS
+                && ((!lastRulesFromConnectionString.isEmpty()) || rulesHaveBeenChanged())) {
             timeLastRead = currentTime;
             setUpRules();
         }
     }
 
-    private static boolean compareModified() {
+    private static boolean rulesHaveBeenChanged() {
         String inputToUse = getCurrentClassPath() + DEFAULT_PROPS_FILE;
 
         try {
             File f = new File(inputToUse);
-            return f.lastModified() == timeLastModified;
+            return f.lastModified() != timeLastModified;
         } catch (Exception e) {
-            return false;
+            return true;
         }
     }
 
     void setFromConnectionString(String custom) throws SQLServerException {
-        rulesFromConnectionString = custom;
+        newRulesFromConnectionString = custom;
         setUpRules();
     }
 
@@ -110,10 +119,11 @@ public class ConfigurableRetryLogic {
         lastQuery = "";
         LinkedList<String> temp;
 
-        if (!rulesFromConnectionString.isEmpty()) {
+        if (!newRulesFromConnectionString.isEmpty()) {
             temp = new LinkedList<>();
-            Collections.addAll(temp, rulesFromConnectionString.split(SEMI_COLON));
-            rulesFromConnectionString = "";
+            Collections.addAll(temp, newRulesFromConnectionString.split(SEMI_COLON));
+            lastRulesFromConnectionString = newRulesFromConnectionString;
+            newRulesFromConnectionString = "";
         } else {
             temp = readFromFile();
         }
