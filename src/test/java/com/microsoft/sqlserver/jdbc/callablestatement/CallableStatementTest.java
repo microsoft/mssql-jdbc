@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -22,6 +23,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;

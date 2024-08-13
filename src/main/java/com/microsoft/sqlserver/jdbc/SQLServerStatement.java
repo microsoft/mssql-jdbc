@@ -1133,14 +1133,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    void setByIndex() throws SQLServerException {
-        isSetByIndex = true;
-        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
-        }
-    }
-
     /* ---------------- JDBC API methods ------------------ */
 
     @Override

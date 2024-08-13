@@ -210,7 +210,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_sharedTimerStopOnNoRef", "SharedTimer should be stopped after all references are removed."},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
             {"R_failedFedauth", "Failed to acquire fedauth token: "},
-<<<<<<< HEAD
             {"R_noLoginModulesConfiguredForJdbcDriver",
                     "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
             {"R_unexpectedThreadCount", "Thread count is higher than expected."},
@@ -218,8 +217,4 @@ public final class TestResource extends ListResourceBundle {
                     "Expected column class {0} does not match actual column class {1} for column {2}."},
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
             {"R_MInotAvailable", "Managed Identity authentication is not available"},};
-=======
-            {"R_noLoginModulesConfiguredForJdbcDriver", "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
-            {"R_unexpectedThreadCount", "Thread count is higher than expected."}};
->>>>>>> parent of 11680a61 (Execute Stored Procedures Directly (#2154))
 }
