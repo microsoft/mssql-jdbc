@@ -553,7 +553,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidRuleFormat", "Wrong number of parameters supplied to rule. Number of parameters: {0}, expected: 2 or 3."},
         {"R_InvalidRetryInterval", "Current retry interval: {0}, is longer than queryTimeout: {1}."},
         {"R_UnableToFindClass", "Unable to locate specified class: {0}"},
-        {"R_PropertiesFileNotFound", "System cannot find the properties file at the specified path. Verify that the path is correct and you have proper permissions to access it."},
     };
 }
 // @formatter:on

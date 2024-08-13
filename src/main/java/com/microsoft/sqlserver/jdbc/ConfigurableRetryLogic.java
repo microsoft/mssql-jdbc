@@ -5,7 +5,11 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
@@ -26,6 +30,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ConfigurableRetryLogic {
     private final static int INTERVAL_BETWEEN_READS_IN_MS = 30000;
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
+    private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static ConfigurableRetryLogic driverInstance = null;
     private static long timeLastModified;
     private static long timeLastRead;
@@ -194,7 +200,11 @@ public class ConfigurableRetryLogic {
             }
             timeLastModified = f.lastModified();
         } catch (FileNotFoundException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_PropertiesFileNotFound"), null, 0, null);
+            // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
+            // log a message.
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
+                CONFIGURABLE_RETRY_LOGGER.finest("No properties file exists or the file path is incorrect.");
+            }
         } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {e.toString()};
