@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
@@ -70,12 +69,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
-
-    // flag whether is exec escape syntax
-    private boolean isExecEscapeSyntax;
-
-    // flag whether is call escape syntax
-    private boolean isCallEscapeSyntax;
 
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
@@ -134,20 +127,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * boolean value for deciding if the driver should use bulk copy API for batch inserts
      */
     private boolean useBulkCopyForBatchInsert;
-
-    /**
-     * Regex for JDBC 'call' escape syntax
-     *
-     * Matches {[? =] call sproc ([@arg =] ?, [@arg =] ?, [@arg =] ? ...)}
-     */
-    private static final Pattern callEscapePattern = Pattern
-            .compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call [^\\(\\)]+\\s*" +
-                    "((\\(\\s*(.+\\s*=\\s*)?\\?\\s*(,\\s*\\?\\s*)*\\))?|\\(\\))\\s*}");
-
-    /**
-     * Regex for 'exec' escape syntax
-     */
-    private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
 
     /**
      * For caching data related to batch insert with bulkcopy
@@ -291,8 +270,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        isExecEscapeSyntax = isExecEscapeSyntax(sql);
-        isCallEscapeSyntax = isCallEscapeSyntax(sql);
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();

@@ -73,10 +73,12 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("currentTime_Procedure"));
     private static String manyParamUserDefinedType = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
+    private static String zeroParamSproc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
 
     /**
      * Setup before test
-     *
+     * 
      * @throws SQLException
      */
     @BeforeAll
@@ -92,6 +94,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(getObjectOffsetDateTimeProcedureName, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
+            TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
@@ -104,6 +107,7 @@ public class CallableStatementTest extends AbstractTest {
             createUserDefinedType();
             createTableManyParams();
             createProcedureManyParams();
+            createProcedureZeroParams();
             createProcedureCurrentTime();
             createGetObjectOffsetDateTimeProcedure(stmt);
             createConditionalProcedure();
@@ -182,7 +186,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Tests CallableStatement.getString() with uniqueidentifier parameter
-     *
+     * 
      * @throws SQLException
      */
     @Test
@@ -207,7 +211,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * test for setNull(index, varchar) to behave as setNull(index, nvarchar) when SendStringParametersAsUnicode is true
-     *
+     * 
      * @throws SQLException
      */
     @Test
@@ -283,7 +287,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
-     *
+     * 
      * @throws SQLException
      */
     @Test
@@ -313,7 +317,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * recognize parameter names with and without leading '@'
-     *
+     * 
      * @throws SQLException
      */
     @Test
@@ -351,6 +355,28 @@ public class CallableStatementTest extends AbstractTest {
             if (!sse.getMessage().startsWith(form.format(msgArgs))) {
                 fail(TestResource.getResource("R_unexpectedExceptionContent"));
             }
+        }
+    }
+
+    @Test
+    public void testZeroParamSproc() throws SQLException {
+        String call = "{? = CALL " + zeroParamSproc + "}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            assertEquals(1, cs.getInt(1));
+        }
+
+        // Test zero parameter sproc with return value with parentheses
+        call = "{? = CALL " + zeroParamSproc + "()}";
+
+        try (CallableStatement cs = connection.prepareCall(call)) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.execute();
+            // Calling zero parameter sproc with return value with parentheses
+            // should return a value that's not zero
+            assertEquals(1, cs.getInt(1));
         }
     }
 
@@ -574,7 +600,7 @@ public class CallableStatementTest extends AbstractTest {
 
     /**
      * Cleanup after test
-     *
+     * 
      * @throws SQLException
      */
     @AfterAll
@@ -590,6 +616,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(currentTimeProc, stmt);
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
+            TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
         }
     }
 
@@ -670,6 +697,13 @@ public class CallableStatementTest extends AbstractTest {
                 + type + " null, " + "c4 " + type + " null, " + "c5 " + type + " null, " + "c6 " + type + " null, "
                 + "c7 " + type + " null, " + "c8 " + type + " null, " + "c9 " + type + " null, " + "c10 " + type
                 + " null);";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureZeroParams() throws SQLException {
+        String sql = "CREATE PROCEDURE " + zeroParamSproc + " AS RETURN 1";
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
         }
