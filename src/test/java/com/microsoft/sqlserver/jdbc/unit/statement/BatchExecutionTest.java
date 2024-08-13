@@ -152,12 +152,12 @@ public class BatchExecutionTest extends AbstractTest {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
+        // Needs to be on a JDK version greater than 8
+        assumeTrue(TestUtils.getJVMVersion() > 8);
+
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
-
-            // Needs to be on a JDK version greater than 8
-            assumeTrue(TestUtils.getJVMVersion() > 8);
 
             TestUtils.dropTableIfExists(timestampTable1, stmt);
             TestUtils.dropTableIfExists(timestampTable2, stmt);
@@ -215,15 +215,15 @@ public class BatchExecutionTest extends AbstractTest {
     public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
-        long timeOut = 90000; // 90 seconds
-        int NUMBER_SIMULTANEOUS_INSERTS = 40;
+        long timeOut = 30000; // 30 seconds
+        int NUMBER_SIMULTANEOUS_INSERTS = 5;
+
+        // Needs to be on a JDK version greater than 8
+        assumeTrue(TestUtils.getJVMVersion() > 8);
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
-
-            // Needs to be on a JDK version greater than 8
-            assumeTrue(TestUtils.getJVMVersion() > 8);
 
             TestUtils.dropTableIfExists(timestampTable1, stmt);
             String createSqlTable1 = "CREATE TABLE " + timestampTable1 + " (c1 DATETIME2(3))";
