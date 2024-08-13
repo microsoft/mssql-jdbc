@@ -157,11 +157,6 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
 
-    void registerOutParameterNonPLP(int index, int sqlType) throws SQLServerException {
-        registerOutParameter(index, sqlType);
-        inOutParam[index - 1].isNonPLP = true;
-    }
-
     /**
      * Locate any output parameter values returned from the procedure call
      */
@@ -1640,6 +1635,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // this is the number of digits after the decimal point.
         // For all other types, this value will be ignored.
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType) ? decimals : null, null,
+                forceEncrypt, findColumn(parameterName), null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }

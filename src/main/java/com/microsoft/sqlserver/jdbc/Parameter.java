@@ -79,6 +79,15 @@ final class Parameter {
     }
 
     /**
+     * Returns the `inputDTV` instance of the parameter
+     *
+     * @return inputDTV
+     */
+    DTV getInputDTV() {
+        return this.inputDTV;
+    }
+
+    /**
      * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type
      * corresponding to the specified JDBC type.
      */
