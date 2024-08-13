@@ -5,11 +5,10 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,8 +26,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ConfigurableRetryLogic {
     private final static int INTERVAL_BETWEEN_READS_IN_MS = 30000;
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
-    private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static ConfigurableRetryLogic driverInstance = null;
     private static long timeLastModified;
     private static long timeLastRead;
@@ -94,7 +91,7 @@ public class ConfigurableRetryLogic {
         }
     }
 
-    private static boolean rulesHaveBeenChanged() {
+    private static boolean rulesHaveBeenChanged() throws SQLServerException {
         String inputToUse = getCurrentClassPath() + DEFAULT_PROPS_FILE;
 
         try {
@@ -159,22 +156,28 @@ public class ConfigurableRetryLogic {
         }
     }
 
-    private static String getCurrentClassPath() {
+    private static String getCurrentClassPath() throws SQLServerException {
+        String location = "";
+        String className = "";
+
         try {
-            String className = new Object() {}.getClass().getEnclosingClass().getName();
-            String location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
+            className = new Object() {}.getClass().getEnclosingClass().getName();
+            location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             location = location.substring(0, location.length() - 16);
             URI uri = new URI(location + FORWARD_SLASH);
             return uri.getPath();
-        } catch (Exception e) {
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("Unable to get current class path for properties file reading.");
-            }
+        } catch (URISyntaxException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
+            Object[] msgArgs = {location + FORWARD_SLASH};
+            throw new SQLServerException(form.format(msgArgs), null, 0, e);
+        } catch (ClassNotFoundException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
+            Object[] msgArgs = {className};
+            throw new SQLServerException(form.format(msgArgs), null, 0, e);
         }
-        return null;
     }
 
-    private static LinkedList<String> readFromFile() {
+    private static LinkedList<String> readFromFile() throws SQLServerException {
         String filePath = getCurrentClassPath();
         LinkedList<String> list = new LinkedList<>();
 
@@ -190,10 +193,12 @@ public class ConfigurableRetryLogic {
                 }
             }
             timeLastModified = f.lastModified();
+        } catch (FileNotFoundException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_PropertiesFileNotFound"), null, 0, null);
         } catch (IOException e) {
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("No properties file exists or file is badly formatted.");
-            }
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
+            Object[] msgArgs = {e.toString()};
+            throw new SQLServerException(form.format(msgArgs), null, 0, e);
         }
         return list;
     }
