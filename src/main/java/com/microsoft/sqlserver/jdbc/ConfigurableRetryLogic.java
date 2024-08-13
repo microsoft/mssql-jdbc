@@ -33,8 +33,7 @@ public class ConfigurableRetryLogic {
     private static long timeLastModified;
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
-    private static String newRulesFromConnectionString = ""; // Are their new rules to read?
-    private static String lastRulesFromConnectionString = ""; // Have we read from conn string in the past?
+    private static String prevRulesFromConnectionString = "";
     private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
     private static final String SEMI_COLON = ";";
@@ -45,7 +44,7 @@ public class ConfigurableRetryLogic {
 
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead = new Date().getTime();
-        setUpRules();
+        setUpRules(null);
     }
 
     /**
@@ -75,18 +74,23 @@ public class ConfigurableRetryLogic {
     }
 
     /**
-     * If it has been INTERVAL_BETWEEN_READS_IN_MS (30 secs) since last read and EITHER, we're using connection string
-     * props OR the file contents have been updated, reread.
+     * If it has been INTERVAL_BETWEEN_READS_IN_MS (30 secs) since last read, see if we last did a file read, if so
+     * only reread if the file has been modified. If no file read, set up rules using the prev. connection string rules.
      *
      * @throws SQLServerException
      *         when an exception occurs
      */
     private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
-        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS
-                && ((!lastRulesFromConnectionString.isEmpty()) || rulesHaveBeenChanged())) {
+        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS) {
+            // If it has been 30 secs, reread
             timeLastRead = currentTime;
-            setUpRules();
+            if (timeLastModified != 0 && rulesHaveBeenChanged()) {
+                // If timeLastModified has been set, we have previously read from a file
+                setUpRules(null);
+            } else {
+                setUpRules(prevRulesFromConnectionString);
+            }
         }
     }
 
@@ -102,8 +106,8 @@ public class ConfigurableRetryLogic {
     }
 
     void setFromConnectionString(String custom) throws SQLServerException {
-        newRulesFromConnectionString = custom;
-        setUpRules();
+        prevRulesFromConnectionString = custom;
+        setUpRules(prevRulesFromConnectionString);
     }
 
     void storeLastQuery(String sql) {
@@ -114,18 +118,24 @@ public class ConfigurableRetryLogic {
         return lastQuery;
     }
 
-    private static void setUpRules() throws SQLServerException {
+    /**
+     * Sets up rules based on either connection string option or file read.
+     *
+     * @param cxnStrRules
+     *        If null, rules are constructed from file, else, this parameter is used to construct rules
+     * @throws SQLServerException
+     *         If an exception occurs
+     */
+    private static void setUpRules(String cxnStrRules) throws SQLServerException {
         stmtRules = new HashMap<>();
         lastQuery = "";
         LinkedList<String> temp;
 
-        if (!newRulesFromConnectionString.isEmpty()) {
-            temp = new LinkedList<>();
-            Collections.addAll(temp, newRulesFromConnectionString.split(SEMI_COLON));
-            lastRulesFromConnectionString = newRulesFromConnectionString;
-            newRulesFromConnectionString = "";
-        } else {
+        if (cxnStrRules == null || cxnStrRules.isEmpty()) {
             temp = readFromFile();
+        } else {
+            temp = new LinkedList<>();
+            Collections.addAll(temp, cxnStrRules.split(SEMI_COLON));
         }
         createRules(temp);
     }
@@ -170,7 +180,6 @@ public class ConfigurableRetryLogic {
 
         try {
             File f = new File(filePath + DEFAULT_PROPS_FILE);
-            timeLastModified = f.lastModified();
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
                 while ((readLine = buffer.readLine()) != null) {
@@ -180,6 +189,7 @@ public class ConfigurableRetryLogic {
                     }
                 }
             }
+            timeLastModified = f.lastModified();
         } catch (IOException e) {
             if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINEST)) {
                 CONFIGURABLE_RETRY_LOGGER.finest("No properties file exists or file is badly formatted.");
