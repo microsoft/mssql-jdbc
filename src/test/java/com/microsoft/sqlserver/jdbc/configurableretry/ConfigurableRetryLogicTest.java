@@ -256,8 +256,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             propsFile = new File("mssql-jdbc.properties");
             FileWriter propFileWriter = new FileWriter(propsFile);
             propFileWriter.write("retryExec={2716:1,2*2:CREATE;2714:1,2*2:CREATE};");
-            testStatementRetry("");
             propFileWriter.close();
+            testStatementRetry("");
+
         } catch (Exception e) {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         } finally {
