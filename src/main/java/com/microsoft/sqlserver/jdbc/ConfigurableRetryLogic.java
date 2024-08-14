@@ -88,33 +88,26 @@ public class ConfigurableRetryLogic {
         if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS) {
             // If it has been 30 secs, reread
             timeLastRead = currentTime;
-            if (timeLastModified != 0 && rulesHaveBeenChanged()) {
-                // If timeLastModified has been set, we have previously read from a file
-                setUpRules(null);
+            if (timeLastModified != 0) {
+                // If timeLastModified has been set, we have previously read from a file, so we setUpRules
+                // reading from file
+                File f = new File(getCurrentClassPath());
+                if (f.lastModified() != timeLastModified) {
+                    setUpRules(null);
+                }
             } else {
                 setUpRules(prevRulesFromConnectionString);
             }
         }
     }
 
-    private static boolean rulesHaveBeenChanged() throws SQLServerException {
-        String inputToUse = getCurrentClassPath() + DEFAULT_PROPS_FILE;
-
-        try {
-            File f = new File(inputToUse);
-            return f.lastModified() != timeLastModified;
-        } catch (Exception e) {
-            return true;
-        }
-    }
-
-    void setFromConnectionString(String custom) throws SQLServerException {
-        prevRulesFromConnectionString = custom;
+    void setFromConnectionString(String newRules) throws SQLServerException {
+        prevRulesFromConnectionString = newRules;
         setUpRules(prevRulesFromConnectionString);
     }
 
-    void storeLastQuery(String sql) {
-        lastQuery = sql.toLowerCase();
+    void storeLastQuery(String newQueryToStore) {
+        lastQuery = newQueryToStore.toLowerCase();
     }
 
     String getLastQuery() {
@@ -171,7 +164,7 @@ public class ConfigurableRetryLogic {
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             location = location.substring(0, location.length() - 16);
             URI uri = new URI(location + FORWARD_SLASH);
-            return uri.getPath();
+            return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
             Object[] msgArgs = {location + FORWARD_SLASH};
@@ -188,7 +181,7 @@ public class ConfigurableRetryLogic {
         LinkedList<String> list = new LinkedList<>();
 
         try {
-            File f = new File(filePath + DEFAULT_PROPS_FILE);
+            File f = new File(filePath);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
                 while ((readLine = buffer.readLine()) != null) {
@@ -213,10 +206,10 @@ public class ConfigurableRetryLogic {
         return list;
     }
 
-    ConfigRetryRule searchRuleSet(int ruleToSearch) throws SQLServerException {
+    ConfigRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
         refreshRuleSet();
         for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {
-            if (entry.getKey() == ruleToSearch) {
+            if (entry.getKey() == ruleToSearchFor) {
                 return entry.getValue();
             }
         }

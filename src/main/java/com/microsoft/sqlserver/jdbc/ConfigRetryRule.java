@@ -17,18 +17,13 @@ import java.util.ArrayList;
 public class ConfigRetryRule {
     private String retryError;
     private String operand = "+";
-    private final String PLUS_SIGN = "+";
-    private final String MULTIPLICATION_SIGN = "*";
     private int initialRetryTime = 0;
     private int retryChange = 2;
     private int retryCount = 1;
     private String retryQueries = "";
-    private final String NON_POSITIVE_INT = "Not a positive number";
-    private final String TOO_MANY_ARGS = "Too many arguments";
-    private final String OPEN_BRACE = "{";
-    private final String CLOSING_BRACE = "}";
+    private final String PLUS_SIGN = "+";
+    private final String MULTIPLICATION_SIGN = "*";
     private final String COMMA = ",";
-    private final String COLON = ":";
     private final String ZERO = "0";
 
     private ArrayList<Integer> waitTimes = new ArrayList<>();
@@ -43,7 +38,7 @@ public class ConfigRetryRule {
      */
     public ConfigRetryRule(String rule) throws SQLServerException {
         addElements(parse(rule));
-        calcWaitTime();
+        calculateWaitTimes();
     }
 
     /**
@@ -72,15 +67,15 @@ public class ConfigRetryRule {
     }
 
     private String[] parse(String rule) {
-        if (rule.endsWith(COLON)) {
+        if (rule.endsWith(":")) {
             rule = rule + ZERO; // Add a zero to make below parsing easier
         }
 
-        rule = rule.replace(OPEN_BRACE, "");
-        rule = rule.replace(CLOSING_BRACE, "");
+        rule = rule.replace("{", "");
+        rule = rule.replace("}", "");
         rule = rule.trim();
 
-        return rule.split(COLON);
+        return rule.split(":"); // Split on colon
     }
 
     /**
@@ -92,13 +87,13 @@ public class ConfigRetryRule {
      * @throws SQLServerException
      *         if a non-numeric value is passed in
      */
-    private void parameterIsNumeric(String value) throws SQLServerException {
+    private void checkParameterIsNumeric(String value) throws SQLServerException {
         if (!StringUtils.isNumeric(value)) {
             String[] arr = value.split(COMMA);
             for (String error : arr) {
                 if (!StringUtils.isNumeric(error)) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                    Object[] msgArgs = {error, NON_POSITIVE_INT};
+                    Object[] msgArgs = {error, "Not a positive number"};
                     throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                 }
             }
@@ -145,44 +140,44 @@ public class ConfigRetryRule {
      */
     private void addElements(String[] rule) throws SQLServerException {
         if (rule.length == 2 || rule.length == 3) {
-            parameterIsNumeric(rule[0]);
+            checkParameterIsNumeric(rule[0]);
             retryError = rule[0];
             String[] timings = rule[1].split(COMMA);
-            parameterIsNumeric(timings[0]);
+            checkParameterIsNumeric(timings[0]);
             retryCount = Integer.parseInt(timings[0]);
 
             if (timings.length == 2) {
                 if (timings[1].contains(MULTIPLICATION_SIGN)) {
                     String[] initialAndChange = timings[1].split("\\*");
-                    parameterIsNumeric(initialAndChange[0]);
+                    checkParameterIsNumeric(initialAndChange[0]);
 
                     initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = MULTIPLICATION_SIGN;
                     if (initialAndChange.length > 1) {
-                        parameterIsNumeric(initialAndChange[1]);
+                        checkParameterIsNumeric(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
                         retryChange = initialRetryTime;
                     }
                 } else if (timings[1].contains(PLUS_SIGN)) {
                     String[] initialAndChange = timings[1].split("\\+");
-                    parameterIsNumeric(initialAndChange[0]);
+                    checkParameterIsNumeric(initialAndChange[0]);
 
                     initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = PLUS_SIGN;
                     if (initialAndChange.length > 1) {
-                        parameterIsNumeric(initialAndChange[1]);
+                        checkParameterIsNumeric(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
                         retryChange = 2;
                     }
                 } else {
-                    parameterIsNumeric(timings[1]);
+                    checkParameterIsNumeric(timings[1]);
                     initialRetryTime = Integer.parseInt(timings[1]);
                 }
             } else if (timings.length > 2) {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                Object[] msgArgs = {rule[1], TOO_MANY_ARGS};
+                Object[] msgArgs = {rule[1], "Too many arguments"};
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
             }
 
@@ -196,7 +191,7 @@ public class ConfigRetryRule {
         }
     }
 
-    private void calcWaitTime() {
+    private void calculateWaitTimes() {
         for (int i = 0; i < retryCount; ++i) {
             int waitTime = initialRetryTime;
             if (operand.equals(PLUS_SIGN)) {

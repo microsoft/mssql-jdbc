@@ -251,18 +251,18 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void readFromFile() {
-        File myObj = null;
+        File propsFile = null;
         try {
-            myObj = new File("mssql-jdbc.properties");
-            FileWriter myWriter = new FileWriter(myObj);
-            myWriter.write("retryExec={2716:1,2*2:CREATE;2714:1,2*2:CREATE};");
-            myWriter.close();
+            propsFile = new File("mssql-jdbc.properties");
+            FileWriter propFileWriter = new FileWriter(propsFile);
+            propFileWriter.write("retryExec={2716:1,2*2:CREATE;2714:1,2*2:CREATE};");
             testStatementRetry("");
+            propFileWriter.close();
         } catch (Exception e) {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         } finally {
-            if (myObj != null) {
-                myObj.delete();
+            if (propsFile != null && !propsFile.delete()) { // If unable to delete, fail test
+                Assertions.fail(TestResource.getResource("R_unexpectedException"));
             }
         }
     }

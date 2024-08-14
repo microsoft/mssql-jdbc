@@ -289,26 +289,18 @@ public class SQLServerStatement implements ISQLServerStatement {
                     }
 
                     if (matchesDefinedQuery) {
-                        try {
-                            int timeToWait = rule.getWaitTimes().get(retryAttempt);
-                            int queryTimeout = connection.getQueryTimeoutSeconds();
-                            if (queryTimeout >= 0 && timeToWait > queryTimeout) {
-                                MessageFormat form = new MessageFormat(
-                                        SQLServerException.getErrString("R_InvalidRetryInterval"));
-                                Object[] msgArgs = {timeToWait, queryTimeout};
-                                throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
-                            }
-                            try {
-                                Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
-                            } catch (InterruptedException ex) {
-                                Thread.currentThread().interrupt();
-                            }
-                        } catch (IndexOutOfBoundsException exc) {
+                        int timeToWait = rule.getWaitTimes().get(retryAttempt);
+                        int queryTimeout = connection.getQueryTimeoutSeconds();
+                        if (queryTimeout >= 0 && timeToWait > queryTimeout) {
                             MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_indexOutOfRange"));
-                            Object[] msgArgs = {retryAttempt};
-                            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-
+                                    SQLServerException.getErrString("R_InvalidRetryInterval"));
+                            Object[] msgArgs = {timeToWait, queryTimeout};
+                            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+                        }
+                        try {
+                            Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
                         }
                         cont = true;
                         retryAttempt++;
