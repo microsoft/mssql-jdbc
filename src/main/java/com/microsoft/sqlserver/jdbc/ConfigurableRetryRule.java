@@ -14,7 +14,7 @@ import java.util.ArrayList;
  * ConfigRetryRule object allows for one rule.
  *
  */
-public class ConfigRetryRule {
+class ConfigurableRetryRule {
     private String retryError;
     private String operand = "+";
     private int initialRetryTime = 0;
@@ -29,15 +29,15 @@ public class ConfigRetryRule {
     private ArrayList<Integer> waitTimes = new ArrayList<>();
 
     /**
-     * Default constructor
+     * Construct a ConfigurableRetryRule object from a String rule.
      *
      * @param rule
      *        The rule used to construct the ConfigRetryRule object
      * @throws SQLServerException
      *         If there is a problem parsing the rule
      */
-    public ConfigRetryRule(String rule) throws SQLServerException {
-        addElements(parse(rule));
+    public ConfigurableRetryRule(String rule) throws SQLServerException {
+        addElements(removeExtraElementsAndSplitRule(rule));
         calculateWaitTimes();
     }
 
@@ -46,27 +46,33 @@ public class ConfigRetryRule {
      * multiple errors provided. We pass in the multi-error object and create 1 new object for each error in the initial
      * object.
      *
-     * @param rule
+     * @param newRule
      *        The rule used to construct the ConfigRetryRule object
-     * @param base
+     * @param baseRule
      *        The ConfigRetryRule object to base the new objects off of
      */
-    public ConfigRetryRule(String rule, ConfigRetryRule base) {
-        copyFromExisting(base);
-        this.retryError = rule;
+    public ConfigurableRetryRule(String newRule, ConfigurableRetryRule baseRule) {
+        copyFromRule(baseRule);
+        this.retryError = newRule;
     }
 
-    private void copyFromExisting(ConfigRetryRule base) {
-        this.retryError = base.getError();
-        this.operand = base.getOperand();
-        this.initialRetryTime = base.getInitialRetryTime();
-        this.retryChange = base.getRetryChange();
-        this.retryCount = base.getRetryCount();
-        this.retryQueries = base.getRetryQueries();
-        this.waitTimes = base.getWaitTimes();
+    private void copyFromRule(ConfigurableRetryRule baseRule) {
+        this.retryError = baseRule.retryError;
+        this.operand = baseRule.operand;
+        this.initialRetryTime = baseRule.initialRetryTime;
+        this.retryChange = baseRule.retryChange;
+        this.retryCount = baseRule.retryCount;
+        this.retryQueries = baseRule.retryQueries;
+        this.waitTimes = baseRule.waitTimes;
     }
 
-    private String[] parse(String rule) {
+    /**
+     * Removes extra elements in the rule (e.g. '{') and splits the rule based on ':' (colon).
+     *
+     * @param rule
+     * @return
+     */
+    private String[] removeExtraElementsAndSplitRule(String rule) {
         if (rule.endsWith(":")) {
             rule = rule + ZERO; // Add a zero to make below parsing easier
         }
@@ -87,7 +93,7 @@ public class ConfigRetryRule {
      * @throws SQLServerException
      *         if a non-numeric value is passed in
      */
-    private void checkParameterIsNumeric(String value) throws SQLServerException {
+    private void checkParameter(String value) throws SQLServerException {
         if (!StringUtils.isNumeric(value)) {
             String[] arr = value.split(COMMA);
             for (String error : arr) {
@@ -140,39 +146,39 @@ public class ConfigRetryRule {
      */
     private void addElements(String[] rule) throws SQLServerException {
         if (rule.length == 2 || rule.length == 3) {
-            checkParameterIsNumeric(rule[0]);
+            checkParameter(rule[0]);
             retryError = rule[0];
             String[] timings = rule[1].split(COMMA);
-            checkParameterIsNumeric(timings[0]);
+            checkParameter(timings[0]);
             retryCount = Integer.parseInt(timings[0]);
 
             if (timings.length == 2) {
                 if (timings[1].contains(MULTIPLICATION_SIGN)) {
                     String[] initialAndChange = timings[1].split("\\*");
-                    checkParameterIsNumeric(initialAndChange[0]);
+                    checkParameter(initialAndChange[0]);
 
                     initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = MULTIPLICATION_SIGN;
                     if (initialAndChange.length > 1) {
-                        checkParameterIsNumeric(initialAndChange[1]);
+                        checkParameter(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
                         retryChange = initialRetryTime;
                     }
                 } else if (timings[1].contains(PLUS_SIGN)) {
                     String[] initialAndChange = timings[1].split("\\+");
-                    checkParameterIsNumeric(initialAndChange[0]);
+                    checkParameter(initialAndChange[0]);
 
                     initialRetryTime = Integer.parseInt(initialAndChange[0]);
                     operand = PLUS_SIGN;
                     if (initialAndChange.length > 1) {
-                        checkParameterIsNumeric(initialAndChange[1]);
+                        checkParameter(initialAndChange[1]);
                         retryChange = Integer.parseInt(initialAndChange[1]);
                     } else {
                         retryChange = 2;
                     }
                 } else {
-                    checkParameterIsNumeric(timings[1]);
+                    checkParameter(timings[1]);
                     initialRetryTime = Integer.parseInt(timings[1]);
                 }
             } else if (timings.length > 2) {
@@ -191,6 +197,10 @@ public class ConfigRetryRule {
         }
     }
 
+    /**
+     * Calculates all the 'wait times', i.e. how long the driver waits between re-execution of statement, based
+     * on the parameters in the rule. Saves all these times in "waitTimes" to be referenced during statement re-execution.
+     */
     private void calculateWaitTimes() {
         for (int i = 0; i < retryCount; ++i) {
             int waitTime = initialRetryTime;
@@ -213,38 +223,8 @@ public class ConfigRetryRule {
      * @return
      *         The retry error
      */
-    public String getError() {
+    String getError() {
         return retryError;
-    }
-
-    /**
-     * Returns the retry error for this ConfigRetryRule object.
-     *
-     * @return
-     *         The retry error
-     */
-    public String getOperand() {
-        return operand;
-    }
-
-    /**
-     * Returns the retry error (errors to retry on) for this ConfigRetryRule object.
-     *
-     * @return
-     *         The retry error
-     */
-    public int getInitialRetryTime() {
-        return initialRetryTime;
-    }
-
-    /**
-     * Returns the retry change (timing change to apply to wait times) for this ConfigRetryRule object.
-     *
-     * @return
-     *         The retry change
-     */
-    public int getRetryChange() {
-        return retryChange;
     }
 
     /**
@@ -253,7 +233,7 @@ public class ConfigRetryRule {
      * @return
      *         The retry count
      */
-    public int getRetryCount() {
+    int getRetryCount() {
         return retryCount;
     }
 
@@ -263,7 +243,7 @@ public class ConfigRetryRule {
      * @return
      *         The retry query specifier
      */
-    public String getRetryQueries() {
+    String getRetryQueries() {
         return retryQueries;
     }
 
@@ -273,7 +253,7 @@ public class ConfigRetryRule {
      * @return
      *         The list of waiting times
      */
-    public ArrayList<Integer> getWaitTimes() {
+    ArrayList<Integer> getWaitTimes() {
         return waitTimes;
     }
 }

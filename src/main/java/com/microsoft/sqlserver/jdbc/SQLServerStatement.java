@@ -261,6 +261,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         boolean cont;
         int retryAttempt = 0;
+        ConfigurableRetryLogic crl = ConfigurableRetryLogic.getInstance();
 
         do {
             cont = false;
@@ -269,10 +270,10 @@ public class SQLServerStatement implements ISQLServerStatement {
                 executeCommand(newStmtCmd);
             } catch (SQLServerException e) {
                 SQLServerError sqlServerError = e.getSQLServerError();
-                ConfigRetryRule rule = null;
+                ConfigurableRetryRule rule = null;
 
                 if (null != sqlServerError) {
-                    rule = ConfigurableRetryLogic.getInstance().searchRuleSet(e.getSQLServerError().getErrorNumber());
+                    rule = crl.searchRuleSet(e.getSQLServerError().getErrorNumber());
                 }
 
                 // If there is a rule for this error AND we still have retries remaining THEN we can proceed, otherwise
@@ -284,8 +285,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                     boolean matchesDefinedQuery = true;
                     if (!(rule.getRetryQueries().isEmpty())) {
 
-                        matchesDefinedQuery = rule.getRetryQueries()
-                                .contains(ConfigurableRetryLogic.getInstance().getLastQuery().split(" ")[0]);
+                        matchesDefinedQuery = rule.getRetryQueries().contains(crl.getLastQuery().split(" ")[0]);
                     }
 
                     if (matchesDefinedQuery) {

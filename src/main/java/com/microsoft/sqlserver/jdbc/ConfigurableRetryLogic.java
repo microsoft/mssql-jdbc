@@ -32,12 +32,12 @@ public class ConfigurableRetryLogic {
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
     private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
-    private static ConfigurableRetryLogic driverInstance = null;
+    private static ConfigurableRetryLogic singleInstance = null;
     private static long timeLastModified;
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
     private static String prevRulesFromConnectionString = "";
-    private static HashMap<Integer, ConfigRetryRule> stmtRules = new HashMap<>();
+    private static HashMap<Integer, ConfigurableRetryRule> stmtRules = new HashMap<>();
     private static final Lock CRL_LOCK = new ReentrantLock();
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
@@ -59,11 +59,11 @@ public class ConfigurableRetryLogic {
      *         an exception
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
-        if (driverInstance == null) {
+        if (singleInstance == null) {
             CRL_LOCK.lock();
             try {
-                if (driverInstance == null) {
-                    driverInstance = new ConfigurableRetryLogic();
+                if (singleInstance == null) {
+                    singleInstance = new ConfigurableRetryLogic();
                 } else {
                     refreshRuleSet();
                 }
@@ -73,7 +73,7 @@ public class ConfigurableRetryLogic {
         } else {
             refreshRuleSet();
         }
-        return driverInstance;
+        return singleInstance;
     }
 
     /**
@@ -86,7 +86,6 @@ public class ConfigurableRetryLogic {
     private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
         if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS) {
-            // If it has been 30 secs, reread
             timeLastRead = currentTime;
             if (timeLastModified != 0) {
                 // If timeLastModified has been set, we have previously read from a file, so we setUpRules
@@ -140,13 +139,13 @@ public class ConfigurableRetryLogic {
         stmtRules = new HashMap<>();
 
         for (String potentialRule : listOfRules) {
-            ConfigRetryRule rule = new ConfigRetryRule(potentialRule);
+            ConfigurableRetryRule rule = new ConfigurableRetryRule(potentialRule);
 
             if (rule.getError().contains(COMMA)) {
                 String[] arr = rule.getError().split(COMMA);
 
                 for (String retryError : arr) {
-                    ConfigRetryRule splitRule = new ConfigRetryRule(retryError, rule);
+                    ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
                     stmtRules.put(Integer.parseInt(splitRule.getError()), splitRule);
                 }
             } else {
@@ -206,9 +205,9 @@ public class ConfigurableRetryLogic {
         return list;
     }
 
-    ConfigRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
+    ConfigurableRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
         refreshRuleSet();
-        for (Map.Entry<Integer, ConfigRetryRule> entry : stmtRules.entrySet()) {
+        for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.entrySet()) {
             if (entry.getKey() == ruleToSearchFor) {
                 return entry.getValue();
             }

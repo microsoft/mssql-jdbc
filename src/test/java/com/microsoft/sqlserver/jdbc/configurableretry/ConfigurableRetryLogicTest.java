@@ -45,7 +45,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Test that the SQLServerConnection methods getRetryExec and setRetryExec are working.
+     * Test that the SQLServerConnection methods getRetryExec and setRetryExec correctly get the existing retryExec, and
+     * set the retryExec connection parameter respectively.
      * 
      * @throws Exception
      *         if an exception occurs
@@ -57,8 +58,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             String test = conn.getRetryExec();
             assertTrue(test.isEmpty());
             conn.setRetryExec("{2714:3,2*2:CREATE;2715:1,3}");
-            PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
             try {
+                PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
                 createTable(s);
                 ps.execute();
                 Assertions.fail(TestResource.getResource("R_expectedFailPassed"));
@@ -72,7 +73,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that statement retry works with prepared statements.
+     * Tests that statement retry with prepared statements correctly retries given the provided retryExec rule.
      * 
      * @throws Exception
      *         if unable to connect or execute against db
@@ -82,8 +83,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
                 "{2714:3,2*2:CREATE;2715:1,3}");
 
-        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement()) {
-            PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
+        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);")) {
             try {
                 createTable(s);
                 ps.execute();
@@ -98,7 +99,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that statement retry works with callable statements.
+     * Tests that statement retry with callable statements correctly retries given the provided retryExec rule.
      * 
      * @throws Exception
      *         if unable to connect or execute against db
@@ -125,7 +126,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that statement retry works with statements. Used in below negative testing.
+     * Tests that statement retry with SQL server statements correctly retries given the provided retryExec rule.
      * 
      * @throws Exception
      *         if unable to connect or execute against db
@@ -148,8 +149,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that statement retry works with statements. A different error is expected here than the test above.
-     * 
+     * Tests that statement retry with SQL server statements correctly attempts to retry, but eventually cancels due
+     * to the retry wait interval being longer than queryTimeout.
+     *
      * @throws Exception
      *         if unable to connect or execute against db
      */
@@ -235,7 +237,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that CRL works with multiple rules provided at once.
+     * Tests that configurable retry logic correctly parses, and retries using, multiple rules provided at once.
      */
     @Test
     public void multipleRules() {

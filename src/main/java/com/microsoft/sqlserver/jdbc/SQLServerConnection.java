@@ -1074,10 +1074,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private String retryExec = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
 
+    /**
+     * Returns the set of configurable statement retry rules set in retryExec
+     * 
+     * @return
+     *         A string containing statement retry rules.
+     */
     public String getRetryExec() {
         return retryExec;
     }
 
+    /**
+     * Sets the list of configurable statement retry rules, for the given connection, in retryExec.
+     *
+     * @param retryExec
+     *        The list of retry rules to set, as a string.
+     */
     public void setRetryExec(String retryExec) {
         this.retryExec = retryExec;
     }
