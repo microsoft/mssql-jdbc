@@ -149,15 +149,15 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
-        // Needs to be on a JDK version greater than 8
-        assumeTrue(TestUtils.getJVMVersion() > 8);
-
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
+
+            // Needs to be on a JDK version greater than 8
+            assumeTrue(TestUtils.getJVMVersion() > 8);
 
             TestUtils.dropTableIfExists(timestampTable1, stmt);
             TestUtils.dropTableIfExists(timestampTable2, stmt);

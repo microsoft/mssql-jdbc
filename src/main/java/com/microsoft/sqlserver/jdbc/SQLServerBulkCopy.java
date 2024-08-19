@@ -1744,6 +1744,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 DESTINATION_COL_METADATA_LOCK.lock();
                 try {
                     destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+
                     if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                         setDestinationColumnMetadata(escapedDestinationTableName);
 
