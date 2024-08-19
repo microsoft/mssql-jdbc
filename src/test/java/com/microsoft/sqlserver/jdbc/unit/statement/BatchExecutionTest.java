@@ -149,11 +149,11 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testSqlServerBulkCopyCachingConnectionLevel() throws Exception {
-        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        long ms = 1578743412000L;
-
         // Needs to be on a JDK version greater than 8
         assumeTrue(TestUtils.getJVMVersion() > 8);
+
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
@@ -213,13 +213,13 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testSqlServerBulkCopyCachingConnectionLevelMultiThreaded() throws Exception {
-        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-        long ms = 1578743412000L;
-        long timeOut = 30000; // 30 seconds
-        int NUMBER_SIMULTANEOUS_INSERTS = 5;
-
         // Needs to be on a JDK version greater than 8
         assumeTrue(TestUtils.getJVMVersion() > 8);
+
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        long ms = 1578743412000L;
+        long timeOut = 30000;
+        int NUMBER_SIMULTANEOUS_INSERTS = 5;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
