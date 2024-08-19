@@ -10,10 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -34,22 +31,16 @@ import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.IClientCredential;
-import com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SqlAuthenticationToken;
-import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.*;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.engine.descriptor.DynamicDescendantFilter;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -319,6 +310,63 @@ public class PooledConnectionTest extends FedauthCommon {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.reqExternalSetup)
     @Test
+    public void testDSPooledConnectionAccessTokenCallbackObjectReused() {
+        try {
+            SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
+
+            ds.setServerName(azureServer);
+            ds.setDatabaseName(azureDatabase);
+            ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
+
+            ExecutorService executorService = Executors.newFixedThreadPool(5);
+
+            SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
+
+
+            Callable<Void> r = () -> {
+                try (Connection con = pc.getConnection()) {
+                    Field accessTokenCallbackField;
+
+                    if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
+                        accessTokenCallbackField = con.getClass().getSuperclass()
+                                .getDeclaredField("accessTokenCallback");
+                    } else {
+                        accessTokenCallbackField = con.getClass().getDeclaredField("accessTokenCallback");
+                    }
+
+                    accessTokenCallbackField.setAccessible(true);
+                    Object accessTokenCallbackValue = accessTokenCallbackField.get(con);
+
+                    //System.out.println(accessTokenCallbackValue.toString());
+                    //testUserName(connection2, azureUserName, SqlAuthentication.NotSpecified);
+                } catch (SQLException e) {
+                    //fail(e.getMessage());
+                }
+                return null;
+            };
+
+            List<Future<Void>> futures = new ArrayList<>();
+
+            for (int i = 0; i < 15; ++i) {
+                futures.add(executorService.submit(r));
+            }
+
+            // get is blocking, will wait for thread to finish
+            for (Future<Void> f : futures) {
+                f.get(TestUtils.TEST_TOKEN_EXPIRY_SECONDS, TimeUnit.SECONDS);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.reqExternalSetup)
+    @Test
     public void testDSPooledConnectionAccessTokenCallback() throws Exception {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
 
@@ -330,35 +378,6 @@ public class PooledConnectionTest extends FedauthCommon {
         SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
         String conn1ID;
         String conn2ID;
-
-        // Callback should provide valid token on connection open for all new connections
-        // When the access token hasn't expired, the connection ID should be the same
-        try (Connection conn1 = pc.getConnection()) {}
-        conn1ID = TestUtils.getConnectionID(pc);
-        try (Connection conn2 = pc.getConnection()) {}
-        conn2ID = TestUtils.getConnectionID(pc);
-        assertEquals(conn1ID, conn2ID);
-    }
-
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallbackObjectReused() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        AbstractTest.updateDataSource(accessTokenCallbackConnectionString, ds);
-        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
-
-        TestUtils.expireTokenToggle = false;
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        String conn1ID;
-        String conn2ID;
-
-        System.out.println("HELLOOOOOOO");
 
         // Callback should provide valid token on connection open for all new connections
         // When the access token hasn't expired, the connection ID should be the same

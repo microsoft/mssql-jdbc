@@ -165,7 +165,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean hasAccessTokenCallbackClass = false;
 
     /** Flag that determines whether the accessToken callback was set **/
-    private transient SQLServerAccessTokenCallback accessTokenCallback = null;
+    private static transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
     /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
     private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS
@@ -5992,17 +5992,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         attemptRefreshTokenLocked = true;
 
+        //System.out.println(accessTokenCallback);
         if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                 && null != accessTokenCallback) {
+            System.out.println("Reused old");
             fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
         } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString()) && null != accessTokenCallbackClass
                 && !accessTokenCallbackClass.isEmpty()) {
             try {
+                System.out.println("Created new");
                 Object[] msgArgs = {"accessTokenCallbackClass",
                         "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
                 SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class,
                         accessTokenCallbackClass, null, msgArgs);
                 fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                accessTokenCallback = callbackInstance;
             } catch (Exception e) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_InvalidAccessTokenCallbackClass"));

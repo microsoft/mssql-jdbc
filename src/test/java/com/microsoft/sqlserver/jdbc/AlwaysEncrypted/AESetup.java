@@ -153,7 +153,7 @@ public class AESetup extends AbstractTest {
             "PlainDecimal decimal(30)", "PlainNumeric numeric(30)"};
 
     // junit test parameters: serverName, enclaveAttestationUrl, enclaveAttestationProtocol
-    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 0
+    static String[][] param = new String[(null == AbstractTest.enclaveServer ? 1
                                                                              : AbstractTest.enclaveServer.length)][3];
 
     /**
@@ -190,9 +190,9 @@ public class AESetup extends AbstractTest {
             // remove the password in connection string
             // this is necessary as updateDataSource will only use 1st occurrence
             String password = getConfiguredProperty("enclaveServerPassword");
-            AETestConnectionString = TestUtils.removeProperty(AETestConnectionString, Constants.PASSWORD);
-            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.PASSWORD,
-                    password);
+            //AETestConnectionString = TestUtils.removeProperty(AETestConnectionString, Constants.PASSWORD);
+            //AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.PASSWORD,
+                    //password);
         } else {
             AETestConnectionString = connectionString + ";sendTimeAsDateTime=false;columnEncryptionSetting=enabled;";
         }
