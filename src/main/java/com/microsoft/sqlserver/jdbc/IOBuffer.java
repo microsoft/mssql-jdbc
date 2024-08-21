@@ -4884,7 +4884,6 @@ final class TDSWriter {
         if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(nValueLen, // Length
                     bValueNull, // Is null?
                     collation);
@@ -5482,7 +5481,6 @@ final class TDSWriter {
                     // Use PLP encoding on Yukon and later with long values
                     if (!isShortValue) // PLP
                     {
-                        // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                         con.getDatabaseCollation().writeCollation(this);
                     } else // non PLP
@@ -5500,7 +5498,6 @@ final class TDSWriter {
                     isShortValue = pair.getValue().precision <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
                     if (!isShortValue) // PLP
-                        // Handle Yukon v*max type header here.
                         writeShort((short) 0xFFFF);
                     else // non PLP
                         writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5683,7 +5680,6 @@ final class TDSWriter {
         writeRPCNameValType(sName, bOut, tdsType);
 
         if (usePLP) {
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(nValueLen, bValueNull, collation);
 
             // Send the data.
@@ -6464,7 +6460,6 @@ final class TDSWriter {
 
             writeRPCNameValType(sName, bOut, jdbcType.isTextual() ? TDSType.BIGVARCHAR : TDSType.BIGVARBINARY);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(streamLength, false, jdbcType.isTextual() ? collation : null);
         }
 
@@ -6604,7 +6599,6 @@ final class TDSWriter {
 
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
-            // Handle Yukon v*max type header here.
             writeVMaxHeader(
                     (DataTypes.UNKNOWN_STREAM_LENGTH == reLength) ? DataTypes.UNKNOWN_STREAM_LENGTH : 2 * reLength, // Length
                                                                                                                     // (in

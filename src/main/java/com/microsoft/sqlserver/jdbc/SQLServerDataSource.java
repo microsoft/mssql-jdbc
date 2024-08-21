@@ -1296,6 +1296,23 @@ public class SQLServerDataSource
     }
 
     /**
+     * useFlexibleCallableStatements is temporarily removed.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Override
+    public void setUseFlexibleCallableStatements(boolean enable) {}
+
+
+    /**
+     * useFlexibleCallableStatements is temporarily removed.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Override
+    public boolean getUseFlexibleCallableStatements() {
+        return true;
+    }
+
+    /**
      * Sets the {@link SQLServerAccessTokenCallback} delegate.
      *
      * @param accessTokenCallback
