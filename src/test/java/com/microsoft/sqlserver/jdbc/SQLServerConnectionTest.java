@@ -206,9 +206,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(booleanPropValue, ds.getUseDefaultGSSCredential(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        ds.setUseFlexibleCallableStatements(booleanPropValue);
-        assertEquals(booleanPropValue, ds.getUseFlexibleCallableStatements(),
-                TestResource.getResource("R_valuesAreDifferent"));
         ds.setCalcBigDecimalPrecision(booleanPropValue);
         assertEquals(booleanPropValue, ds.getCalcBigDecimalPrecision(),
                 TestResource.getResource("R_valuesAreDifferent"));
