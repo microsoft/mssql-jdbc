@@ -99,6 +99,11 @@
 			<version>${msal.version}</version>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>msal4j-brokers</artifactId>
+			<version>1.0.3-beta</version>
+		</dependency>
 		<!-- dependencies for ANTLR -->
 		<dependency>
 			<groupId>org.antlr</groupId>

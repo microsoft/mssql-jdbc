@@ -6096,75 +6096,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             } else if (authenticationString
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
-                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (isWindows && AuthenticationJNI.isDllLoaded()) {
-                    try {
-                        FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
-                                fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
-                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
+                if (isWindows) {
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIWam(fedAuthInfo, authenticationString);
+                } else {
+                    // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
+                    // so we don't need to check the
+                    // OS version here.
 
-                        // AccessToken should not be null.
-                        assert null != dllInfo.accessTokenBytes;
-                        byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
-                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-                        Date now = new Date();
-                        now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
-                        fedAuthToken = new SqlAuthenticationToken(accessToken, now);
-
-                        // Break out of the retry loop in successful case.
-                        break;
-                    } catch (DLLException adalException) {
-
-                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
-                        int errorCategory = adalException.getCategory();
-                        if (-1 == errorCategory) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                            Object[] msgArgs = {Integer.toHexString(adalException.getState())};
-                            throw new SQLServerException(form.format(msgArgs), null);
-                        }
-
-                        int millisecondsRemaining = timerRemaining(timerExpire);
-                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
-                                || timerHasExpired(timerExpire) || (fedauthSleepInterval >= millisecondsRemaining)) {
-
-                            String errorStatus = Integer.toHexString(adalException.getStatus());
-
-                            if (connectionlogger.isLoggable(Level.FINER)) {
-                                connectionlogger.fine(
-                                        toString() + " SQLServerConnection.getFedAuthToken.AdalException category:"
-                                                + errorCategory + " error: " + errorStatus);
-                            }
-
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                            String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
-                            Object[] msgArgs1 = {errorCode, adalException.getState()};
-                            SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
-                                    adalException);
-
-                            form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-                            Object[] msgArgs = {user, authenticationString};
-                            throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
-                        }
-
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
-                                    + fedauthSleepInterval + " milliseconds.");
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
-                                    + millisecondsRemaining + " milliseconds.");
-                        }
-
-                        sleepForInterval(fedauthSleepInterval);
-                        fedauthSleepInterval = (fedauthSleepInterval < 500) ? fedauthSleepInterval * 2 : 1000;
-
-                    }
-                }
-                // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
-                // so we don't need to check the
-                // OS version here.
-                else {
                     // Check if MSAL4J library is available
                     if (!msalContextExists()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALMissing"));

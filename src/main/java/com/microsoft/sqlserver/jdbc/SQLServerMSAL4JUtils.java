@@ -52,7 +52,7 @@ import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.aad.msal4j.SystemBrowserOptions;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
-
+import com.microsoft.aad.msal4jbrokers.Broker;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 
@@ -368,6 +368,52 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (IOException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
+        } finally {
+            lock.unlock();
+            executorService.shutdown();
+        }
+    }
+
+    static SqlAuthenticationToken getSqlFedAuthTokenIWam(SqlFedAuthInfo fedAuthInfo,
+            String authenticationString) throws SQLServerException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token integrated");
+        }
+
+        lock.lock();
+
+        try {
+            // Create broker, indicating that you want it to be used when the app is running on a Windows OS
+            Broker broker = new Broker.Builder().supportWindows(true).build();
+
+            PublicClientApplication pca = PublicClientApplication
+                    .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
+                    .authority(fedAuthInfo.stsurl).broker(broker) // Add the broker when creating your PublicClientApplication
+                    .build();
+
+            SilentParameters parameters = SilentParameters
+                    .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
+
+            final CompletableFuture<IAuthenticationResult> future = pca.acquireTokenSilently(parameters);
+
+            final IAuthenticationResult authenticationResult = future.get();
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
+                        LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
+                                + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
+            }
+
+            return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (IOException | ExecutionException e) {
+            throw getCorrectedException(e, "", authenticationString);
         } finally {
             lock.unlock();
             executorService.shutdown();
