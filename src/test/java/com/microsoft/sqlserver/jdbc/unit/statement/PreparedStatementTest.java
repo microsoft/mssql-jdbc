@@ -517,12 +517,12 @@ public class PreparedStatementTest extends AbstractTest {
 
             selectStatement.setInt(1, id);
 
-            ResultSet result = selectStatement.executeQuery();
-            result.next();
-
-            Assertions.assertEquals(id, result.getInt("id"));
-            Assertions.assertEquals(createdDate, new Date(result.getTimestamp("created_date").getTime()));
-            Assertions.assertEquals(deletedDate, new Date(result.getTimestamp("deleted_date").getTime()));
+            try (ResultSet result = selectStatement.executeQuery()) {
+                result.next();
+                Assertions.assertEquals(id, result.getInt("id"));
+                Assertions.assertEquals(createdDate, new Date(result.getTimestamp("created_date").getTime()));
+                Assertions.assertEquals(deletedDate, new Date(result.getTimestamp("deleted_date").getTime()));
+            }
         }
     }
 
