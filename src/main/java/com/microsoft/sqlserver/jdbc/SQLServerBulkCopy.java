@@ -1742,10 +1742,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
             if (connection.getcacheBulkCopyMetadata()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
-                destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+                try {
+                    destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
 
-                if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
-                    try {
+                    if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                         setDestinationColumnMetadata(escapedDestinationTableName);
 
                         // We are caching the following metadata about the table:
@@ -1759,9 +1759,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         // scenario, we can't detect this without making an additional metadata query, which would
                         // defeat the purpose of caching.
                         BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
-                    } finally {
-                        DESTINATION_COL_METADATA_LOCK.unlock();
                     }
+                } finally {
+                    DESTINATION_COL_METADATA_LOCK.unlock();
                 }
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
