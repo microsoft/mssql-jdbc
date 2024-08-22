@@ -13,9 +13,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -31,6 +36,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -51,6 +57,7 @@ public class PreparedStatementTest extends AbstractTest {
     final static String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
     final static String tableName3 = RandomUtil.getIdentifier("tableTestPreparedStatementWithSpPrepare");
     final static String tableName4 = RandomUtil.getIdentifier("tableTestPreparedStatementWithMultipleParams");
+    final static String tableName5 = RandomUtil.getIdentifier("tableTestPreparedStatementWithTimestamp");
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -482,6 +489,43 @@ public class PreparedStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testTimestampStringTimeZoneFormat() throws SQLException {
+        String SELECT_SQL = "SELECT id, created_date, deleted_date FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableName5) + " WHERE id = ?";
+        String INSERT_SQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName5)
+                + " (id, created_date, deleted_date) VALUES (?, ?, ?)";
+        String DATE_FORMAT_WITH_Z = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_WITH_Z);
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName5)
+                    + "(id int, created_date datetime2, deleted_date datetime2)");
+        }
+
+        try (PreparedStatement selectStatement = connection.prepareCall(SELECT_SQL);
+                PreparedStatement insertStatement = connection.prepareCall(INSERT_SQL);) {
+            Date createdDate = Date.from(Instant.parse("2024-01-16T05:12:00Z"));
+            Date deletedDate = Date.from(Instant.parse("2024-01-16T06:34:00Z"));
+            int id = 1;
+
+            insertStatement.setInt(1, id);
+            insertStatement.setObject(2, sdf.format(createdDate.getTime()), Types.TIMESTAMP);
+            insertStatement.setObject(3, sdf.format(deletedDate.getTime()), Types.TIMESTAMP);
+
+            insertStatement.executeUpdate();
+
+            selectStatement.setInt(1, id);
+
+            try (ResultSet result = selectStatement.executeQuery()) {
+                result.next();
+                Assertions.assertEquals(id, result.getInt("id"));
+                Assertions.assertEquals(createdDate, new Date(result.getTimestamp("created_date").getTime()));
+                Assertions.assertEquals(deletedDate, new Date(result.getTimestamp("deleted_date").getTime()));
+            }
+        }
+    }
+
     /**
      * Test handling of the two configuration knobs related to prepared statement handling.
      * 
@@ -880,6 +924,7 @@ public class PreparedStatementTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName3), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName4), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName5), stmt);
         }
     }
 
