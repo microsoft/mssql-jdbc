@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.8.1] Hotfix & Stable Release
+### Changed
+- Changed MSAL logging from FINER to FINEST [#2491](https://github.com/microsoft/mssql-jdbc/pull/2491)
+
+### Fixed issues
+- Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2492](https://github.com/microsoft/mssql-jdbc/pull/2492)
+- Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature. [#2493](https://github.com/microsoft/mssql-jdbc/pull/2493)
+- Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2494](https://github.com/microsoft/mssql-jdbc/pull/2494)
+
 ## [12.8.0] Stable Release
 ### Fixed issues
 - Fixed regression with specifying argument names in callable statement syntax [#2480](https://github.com/microsoft/mssql-jdbc/pull/2480)
