@@ -1614,8 +1614,6 @@ final class DTV {
                         op.execute(this, ((Geometry) value).serialize());
                     } else if (JDBCType.GEOGRAPHY == jdbcType) {
                         op.execute(this, ((Geography) value).serialize());
-                    } else if (JDBCType.TIMESTAMP == jdbcType) {
-                        op.execute(this, Timestamp.valueOf((String) value));
                     } else {
                         if (null != cryptoMeta) {
                             // if streaming types check for allowed data length in AE
