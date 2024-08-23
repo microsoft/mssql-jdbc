@@ -60,16 +60,7 @@ public class ConfigurableRetryLogic {
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
         if (singleInstance == null) {
-            CRL_LOCK.lock();
-            try {
-                if (singleInstance == null) {
-                    singleInstance = new ConfigurableRetryLogic();
-                } else {
-                    refreshRuleSet();
-                }
-            } finally {
-                CRL_LOCK.unlock();
-            }
+            singleInstance = new ConfigurableRetryLogic();
         } else {
             refreshRuleSet();
         }
