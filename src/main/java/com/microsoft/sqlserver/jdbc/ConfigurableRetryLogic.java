@@ -18,8 +18,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -38,7 +36,6 @@ public class ConfigurableRetryLogic {
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
     private static String prevRulesFromConnectionString = "";
     private static HashMap<Integer, ConfigurableRetryRule> stmtRules = new HashMap<>();
-    private static final Lock CRL_LOCK = new ReentrantLock();
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
     private static final String FORWARD_SLASH = "/";
@@ -59,6 +56,7 @@ public class ConfigurableRetryLogic {
      *         an exception
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
+        // No need for lock; static initializer singleInstance is thread-safe
         if (singleInstance == null) {
             singleInstance = new ConfigurableRetryLogic();
         } else {
