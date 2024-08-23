@@ -1662,7 +1662,7 @@ public class StatementTest extends AbstractTest {
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
-        public void testResultSetErrors() throws Exception {
+        public void testRetrievingRegisteredOutParamWhenResultSetDoesNotExists() throws Exception {
             try (Connection con = getConnection();
                     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
 
@@ -1679,7 +1679,10 @@ public class StatementTest extends AbstractTest {
 
                     try (ResultSet rs = cstmt.executeQuery()) {} catch (Exception ex) {} ;
 
-                    assertEquals(null, cstmt.getString(2), TestResource.getResource("R_valueNotMatch"));
+                    try {
+                        cstmt.getString(2);
+                        fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+                    } catch (Exception e) {}
                 }
             }
         }
