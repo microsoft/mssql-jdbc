@@ -370,8 +370,8 @@ public class BatchExecutionTest extends AbstractTest {
             }
 
             // Insert Timestamp using bulkcopy for batch insert
-            try (Connection con = DriverManager.getConnection(
-                    connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+            try (Connection con = DriverManager.getConnection(connectionString
+                    + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
                 Timestamp timestamp = new Timestamp(ms);
@@ -418,8 +418,9 @@ public class BatchExecutionTest extends AbstractTest {
         long ms = 1578743412000L;
 
         // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
-        try (Connection con = DriverManager.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;"); Statement stmt = con.createStatement();
+        try (Connection con = DriverManager.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = con.createStatement();
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)")) {
 
             TestUtils.dropTableIfExists(timestampTable2, stmt);

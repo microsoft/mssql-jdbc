@@ -467,6 +467,7 @@ final class TDS {
     final static int COLINFO_STATUS_DIFFERENT_NAME = 0x20;
 
     final static int MAX_FRACTIONAL_SECONDS_SCALE = 7;
+    final static int DEFAULT_FRACTIONAL_SECONDS_SCALE = 3;
 
     final static Timestamp MAX_TIMESTAMP = Timestamp.valueOf("2079-06-06 23:59:59");
     final static Timestamp MIN_TIMESTAMP = Timestamp.valueOf("1900-01-01 00:00:00");
@@ -4853,7 +4854,7 @@ final class TDSWriter {
      * Utility for internal writeRPCString calls
      */
     void writeRPCStringUnicode(String sValue) throws SQLServerException {
-        writeRPCStringUnicode(null, sValue, false, null);
+        writeRPCStringUnicode(null, sValue, false, null, false);
     }
 
     /**
@@ -4868,8 +4869,8 @@ final class TDSWriter {
      * @param collation
      *        the collation of the data value
      */
-    void writeRPCStringUnicode(String sName, String sValue, boolean bOut,
-            SQLCollation collation) throws SQLServerException {
+    void writeRPCStringUnicode(String sName, String sValue, boolean bOut, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (sValue == null);
         int nValueLen = bValueNull ? 0 : (2 * sValue.length());
         // Textual RPC requires a collation. If none is provided, as is the case when
@@ -4881,7 +4882,7 @@ final class TDSWriter {
          * Use PLP encoding if either OUT params were specified or if the user query exceeds
          * DataTypes.SHORT_VARTYPE_MAX_BYTES
          */
-        if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
+        if ((nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) && !isNonPLP) {
             writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
 
             writeVMaxHeader(nValueLen, // Length
@@ -5632,8 +5633,8 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
-            SQLCollation collation) throws SQLServerException {
+    void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType, SQLCollation collation,
+            boolean isNonPLP) throws SQLServerException {
         boolean bValueNull = (bValue == null);
         int nValueLen = bValueNull ? 0 : bValue.length;
         boolean isShortValue = (nValueLen <= DataTypes.SHORT_VARTYPE_MAX_BYTES);
@@ -5679,7 +5680,7 @@ final class TDSWriter {
 
         writeRPCNameValType(sName, bOut, tdsType);
 
-        if (usePLP) {
+        if (usePLP && !isNonPLP) {
             writeVMaxHeader(nValueLen, bValueNull, collation);
 
             // Send the data.
@@ -7056,6 +7057,35 @@ final class TDSReader implements Serializable {
         }
 
         return 0;
+    }
+
+    final int peekReturnValueStatus() throws SQLServerException {
+        // Ensure that we have a packet to read from.
+        if (!ensurePayload()) {
+            throwInvalidTDS();
+        }
+
+        // In order to parse the 'status' value, we need to skip over the following properties in the TDS packet
+        // payload: TDS token type (1 byte value), ordinal/length (2 byte value), parameter name length value (1 byte value) and
+        // the number of bytes that make the parameter name (need to be calculated).
+        //
+        // 'offset' starts at 4 because tdsTokenType + ordinal/length + parameter name length value is 4 bytes. So, we
+        // skip 4 bytes immediateley.
+        int offset = 4;
+        int paramNameLength = currentPacket.payload[payloadOffset + 3];
+
+        // Check if parameter name is set. If it's set, it should be > 0. In which case, we add the
+        // additional bytes to skip.
+        if (paramNameLength > 0) {
+            // Each character in unicode is 2 bytes
+            offset += 2 * paramNameLength;
+        }
+
+        if (payloadOffset + offset <= currentPacket.payloadLength) {
+            return currentPacket.payload[payloadOffset + offset] & 0xFF;
+        }
+
+        return -1;
     }
 
     final int readUnsignedByte() throws SQLServerException {
