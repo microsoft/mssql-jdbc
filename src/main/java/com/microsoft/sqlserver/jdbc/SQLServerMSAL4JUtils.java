@@ -99,12 +99,12 @@ class SQLServerMSAL4JUtils {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
 
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": cache token for user: " + user);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": cache token for user: " + user);
                 }
             } else {
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": retrieved cached token for user: " + user);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": retrieved cached token for user: " + user);
                 }
             }
 
@@ -118,8 +118,8 @@ class SQLServerMSAL4JUtils {
 
             final IAuthenticationResult authenticationResult = future.get();
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
                         LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
                                 + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
             }
@@ -165,12 +165,12 @@ class SQLServerMSAL4JUtils {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
 
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
                 }
             } else {
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
                 }
             }
 
@@ -183,8 +183,8 @@ class SQLServerMSAL4JUtils {
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
                         LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
                                 + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
             }
@@ -232,12 +232,12 @@ class SQLServerMSAL4JUtils {
                 persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
                 TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
 
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
                 }
             } else {
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": retrieved cached token for principal id: " + aadPrincipalID);
                 }
             }
 
@@ -270,8 +270,8 @@ class SQLServerMSAL4JUtils {
                         0, null);
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + "Error loading PKCS12 certificate: " + e.getMessage());
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + "Error loading PKCS12 certificate: " + e.getMessage());
                 }
             }
 
@@ -279,12 +279,12 @@ class SQLServerMSAL4JUtils {
                 // try loading X509 cert
                 X509Certificate cert = (X509Certificate) SQLServerCertificateUtils.loadCertificate(certFile);
 
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(LOGCONTEXT + "certificate type: " + cert.getType());
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + "certificate type: " + cert.getType());
 
                     // we don't really need to do this, MSAL will fail if cert is not valid, but good to check here and throw with proper error message
                     cert.checkValidity();
-                    logger.finest(LOGCONTEXT + "certificate: " + cert.toString());
+                    logger.finer(LOGCONTEXT + "certificate: " + cert.toString());
                 }
 
                 PrivateKey privateKey = SQLServerCertificateUtils.loadPrivateKey(certKey, certKeyPassword);
@@ -299,8 +299,8 @@ class SQLServerMSAL4JUtils {
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
             final IAuthenticationResult authenticationResult = future.get();
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
                         LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
                                 + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
             }
@@ -335,8 +335,8 @@ class SQLServerMSAL4JUtils {
         KerberosPrincipal kerberosPrincipal = new KerberosPrincipal("username");
         String user = kerberosPrincipal.getName();
 
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(LOGCONTEXT + authenticationString + ": get FedAuth token integrated, user: " + user
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token integrated, user: " + user
                     + "realm name:" + kerberosPrincipal.getRealm());
         }
 
@@ -354,8 +354,8 @@ class SQLServerMSAL4JUtils {
 
             final IAuthenticationResult authenticationResult = future.get();
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
                         LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
                                 + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
             }
@@ -378,8 +378,8 @@ class SQLServerMSAL4JUtils {
             String authenticationString) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
+        if (logger.isLoggable(Level.FINER)) {
+            logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
         lock.lock();
@@ -406,8 +406,10 @@ class SQLServerMSAL4JUtils {
                             acc.append(account.username());
                         }
                     }
-                    logger.finest(LOGCONTEXT + "Accounts in cache = " + acc + ", size = "
-                            + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.finest(LOGCONTEXT + "Accounts in cache = " + acc + ", size = "
+                                + (accountsInCache == null ? null : accountsInCache.size()) + ", user = " + user);
+                    }
                 }
                 if (null != accountsInCache && !accountsInCache.isEmpty() && null != user && !user.isEmpty()) {
                     IAccount account = getAccountByUsername(accountsInCache, user);
@@ -445,8 +447,8 @@ class SQLServerMSAL4JUtils {
                 authenticationResult = future.get();
             }
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(
                         LOGCONTEXT + (authenticationResult.account() != null ? authenticationResult.account().username()
                                 + ": " : "" + ACCESS_TOKEN_EXPIRE + authenticationResult.expiresOnDate()));
             }
@@ -526,8 +528,8 @@ class SQLServerMSAL4JUtils {
 
                     tokenCacheMap.put(key, persistentTokenCacheAccessAspect);
 
-                    if (logger.isLoggable(Level.FINEST)) {
-                        logger.finest(LOGCONTEXT + ": entry expired for: " + value + " new entry will expire in: "
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.finer(LOGCONTEXT + ": entry expired for: " + value + " new entry will expire in: "
                                 + TimeUnit.MILLISECONDS.toSeconds(PersistentTokenCacheAccessAspect.TIME_TO_LIVE) + "s");
                     }
                 }
@@ -539,8 +541,8 @@ class SQLServerMSAL4JUtils {
         void addEntry(String key, PersistentTokenCacheAccessAspect value) {
             value.setExpiryTime(System.currentTimeMillis() + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
             tokenCacheMap.put(key, value);
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(LOGCONTEXT + ": add entry for: " + value + ", will expire in: "
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(LOGCONTEXT + ": add entry for: " + value + ", will expire in: "
                         + TimeUnit.MILLISECONDS.toSeconds(PersistentTokenCacheAccessAspect.TIME_TO_LIVE) + "s");
             }
         }
