@@ -64,15 +64,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** response buffer adaptive flag */
-    boolean isResponseBufferingAdaptive = false;
-
-    /** TDS token return value status **/
-    int returnValueStatus;
-
-    /** Check if statement contains TVP Type */
-    boolean isTVPType = false;
-
-    protected static final int USER_DEFINED_FUNCTION_RETURN_STATUS = 2;
+    private boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -120,13 +112,10 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != tdsReader;
     }
 
-    /** Return parameter for stored procedure calls */
-    transient Parameter returnParam;
-
     /**
      * The input and out parameters for statement execution.
      */
-    transient Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
+    transient Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
 
     /**
      * The statement's connection.
@@ -148,12 +137,6 @@ public class SQLServerStatement implements ISQLServerStatement {
      * closed
      */
     boolean isCloseOnCompletion = false;
-
-    /** Checks if the callable statement's parameters are set by name **/
-    protected boolean isSetByName = false;
-
-    /** Checks if the prepared statement's parameters were set by index **/
-    protected boolean isSetByIndex = false;
 
     /**
      * Currently executing or most recently executed TDSCommand (statement cmd, server cursor cmd, ...) subject to
@@ -1150,14 +1133,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
-    void setByIndex() throws SQLServerException {
-        isSetByIndex = true;
-        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
-        }
-    }
-
     /* ---------------- JDBC API methods ------------------ */
 
     @Override
@@ -1647,14 +1622,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
-                    // Only read the return value from stored procedure if we are expecting one. Also, check that it is
-                    // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
-                    // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
-                            && inOutParam[0].isReturnValue()) {
-                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
-                        return false;
-                    }
                 }
 
                 return true;
@@ -1662,21 +1629,11 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
-                // Status: A value of 0x01 means the return value corresponds to an output parameter from
-                // a stored procedure. If it's 0x02 then the value corresponds to a return value from a
-                // user defined function.
-                //
-                // If it's a return value from a user defined function, we need to return false from this method
-                // so that the return value is not skipped.
-                int status = tdsReader.peekReturnValueStatus();
-
-                SQLServerStatement.this.returnValueStatus = status;
-
                 // We are only interested in return values that are statement OUT parameters,
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-                if (moreResults && null == procedureRetStatToken && status != USER_DEFINED_FUNCTION_RETURN_STATUS) {
+                if (moreResults && null == procedureRetStatToken) {
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);

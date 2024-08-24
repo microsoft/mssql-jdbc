@@ -1837,10 +1837,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
             if (connection.getcacheBulkCopyMetadata()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
-                destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+                try {
+                    destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
 
-                if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
-                    try {
+                    if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                         setDestinationColumnMetadata(escapedDestinationTableName);
 
                         // We are caching the following metadata about the table:
@@ -1854,9 +1854,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         // scenario, we can't detect this without making an additional metadata query, which would
                         // defeat the purpose of caching.
                         BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
-                    } finally {
-                        DESTINATION_COL_METADATA_LOCK.unlock();
                     }
+                } finally {
+                    DESTINATION_COL_METADATA_LOCK.unlock();
                 }
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
@@ -2224,8 +2224,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void writeColumnToTdsWriter(TDSWriter tdsWriter, int bulkPrecision, int bulkScale, int bulkJdbcType,
             boolean bulkNullable, // should it be destNullable instead?
-            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue,
-            Calendar cal) throws SQLServerException {
+            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue, Calendar cal) throws SQLServerException {
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType,
@@ -3142,8 +3141,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Reads the given column from the result set current row and writes the data to tdsWriter.
      */
-    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal, Object colValue,
-            Calendar cal) throws SQLServerException {
+    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
+            Object colValue, Calendar cal) throws SQLServerException {
         String destName = destColumnMetadata.get(destColOrdinal).columnName;
         int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
@@ -3795,8 +3794,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
                 for (ColumnMapping columnMapping : columnMappings) {
-                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
-                            null, null // cell
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal, null,
+                            null // cell
                     // value is
                     // retrieved
                     // inside
