@@ -521,12 +521,12 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setMsiTokenCacheTtl");
         verifiedMethodNames.add("getAccessTokenCallbackClass");
         verifiedMethodNames.add("setAccessTokenCallbackClass");
-        verifiedMethodNames.add("getUseFlexibleCallableStatements");
-        verifiedMethodNames.add("setUseFlexibleCallableStatements");
         verifiedMethodNames.add("getCalcBigDecimalPrecision");
         verifiedMethodNames.add("setCalcBigDecimalPrecision");
         verifiedMethodNames.add("registerBeforeReconnectListener");
         verifiedMethodNames.add("removeBeforeReconnectListener");
+        verifiedMethodNames.add("getUseFlexibleCallableStatements");
+        verifiedMethodNames.add("setUseFlexibleCallableStatements");
         return verifiedMethodNames;
     }
 }
