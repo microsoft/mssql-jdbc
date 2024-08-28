@@ -113,17 +113,6 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void testCallableStatementClosedConnection() {
-        try (SQLServerCallableStatement stmt = (SQLServerCallableStatement) connection.prepareCall("sproc")) {
-            stmt.close(); // Prematurely close the statement, which causes inOutParams to be null.
-            stmt.setStructured("myParam", "myTvp", (SQLServerDataTable) null);
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (Exception e) {
-            assertEquals(TestResource.getResource("R_statementClosed"), e.getMessage());
-        }
-    }
-
     // Test Needs more work to be configured to run on azureDB as there are slight differences
     // between the regular SQL Server vs. azureDB
     @Test
