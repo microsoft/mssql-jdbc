@@ -22,8 +22,8 @@ import java.time.LocalTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.testframework.PrepUtil;
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -121,9 +121,6 @@ public class CallableStatementTest extends AbstractTest {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (Exception e) {
             assertEquals(TestResource.getResource("R_statementClosed"), e.getMessage());
-=======
-            createSimpleRetValSproc();
->>>>>>> 4c6227ab (Revert Execute Stored Procedure directly feature (#2488))
         }
     }
 
