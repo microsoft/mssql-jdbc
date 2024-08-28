@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.6.4] Hotfix & Stable Release
+### Fixed issues
+- Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature. [#2500](https://github.com/microsoft/mssql-jdbc/pull/2500)
+
 ## [12.6.3] Hotfix & Stable Release
 ### Fixed issues
 - Fixed issue where TokenCredential class was required to be imported [#2453](https://github.com/microsoft/mssql-jdbc/pull/2453)
