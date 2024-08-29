@@ -56,6 +56,8 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.reqExternalSetup)
 public class CallableStatementTest extends AESetup {
 
+    private static String okay = "";
+
     private static String multiStatementsProcedure = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("multiStatementsProcedure"));
     private static String inputProcedure = AbstractSQLGenerator
