@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.8.0.jre11</version>
+	<version>12.8.1.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). For driver version 12.1.0 and greater, please use the jre11 version when using Java 11 or greater, and the jre8 version when using Java 8.
@@ -94,7 +94,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.8.0.jre11</version>
+	<version>12.8.1.jre11</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.8.0.jre11</version>
+	<version>12.8.1.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -147,7 +147,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.8.0.jre11</version>
+	<version>12.8.1.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -174,7 +174,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.8.0.jre11</version>
+	<version>12.8.1.jre11</version>
 </dependency>
 
 <dependency>
@@ -214,7 +214,7 @@ Preview releases happen approximately monthly between stable releases. This give
 You can see what is going into a future release by monitoring [Milestones](https://github.com/Microsoft/mssql-jdbc/milestones) in the repository.
 
 ### Version conventions
-Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4, 10.2, 11.2, 12.2, 12.4, 12.6, 12.8. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, 12.1, 12.3, 12.5, 12.7, and so on.
+Starting with 6.0, stable versions have an even minor version. For example, 6.0, 6.2, 6.4, 7.0, 7.2, 7.4, 8.2, 8.4, 9.2, 9.4, 10.2, 11.2, 12.2, 12.4, 12.6, 12.8. Preview versions have an odd minor version. For example, 6.1, 6.3, 6.5, 7.1, 7.3, 8.1, 9.1, 10.1, 11.1, 12.1, 12.3, 12.5, 12.7, 12.9, and so on.
 
 ## Contributors 
 Special thanks to everyone who has contributed to the project. 
