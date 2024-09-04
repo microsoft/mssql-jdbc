@@ -6,8 +6,7 @@ import java.sql.SQLException;
 /**
  * Test jdbc driver's performance
  */
-public interface PerformanceTest
-{
+public interface PerformanceTest {
 
     /**
      * @return -- the name of the test

@@ -6,12 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.concurrent.TimeUnit;
 
-//import com.google.common.base.Stopwatch;
-
-public class PerfTablePerformanceTest implements PerformanceTest
-{
+public class PerfTablePerformanceTest implements PerformanceTest {
     private final int fetchSize;
     public PerfTablePerformanceTest(int fetchSize)
     {
@@ -23,20 +19,29 @@ public class PerfTablePerformanceTest implements PerformanceTest
         return "PERF_TABLE(" + fetchSize + ")";
     }
 
+    long intTimes = 0;
+    long string1Times = 0;
+    long string2Times = 0;
+    long longTimes = 0;
+    long doubleTimes = 0;
+    long decimalTimes = 0;
+    long timestampTimes = 0;
+    long totalCount = 0;
+
     @Override
     public String getDescription() {
         return "SELECT * FROM PERF_TABLE(" + (fetchSize == 0 ? "default" : String.valueOf(fetchSize)) + ")";
     }
 
     @Override
-    public PerformanceResult run(Connection conn, int resultSetType) throws SQLException
-    {
-        //Stopwatch stopwatch = Stopwatch.createStarted();
+    public PerformanceResult run(Connection conn, int resultSetType) throws SQLException {
+        long stopwatch = System.currentTimeMillis();
+
         int numberOfRecords = 0;
         long totalBytes = 0L;
         int nullColumnCount = 0;
-        int columns = 0;
-        int rsFetchSize = 0;
+        int columns;
+        int rsFetchSize;
         try (Statement stmt = conn.createStatement(resultSetType, ResultSet.CONCUR_READ_ONLY)) {
             if (fetchSize != 0) {
                 int stmtFetchSize = stmt.getFetchSize();
@@ -57,53 +62,50 @@ public class PerfTablePerformanceTest implements PerformanceTest
                 while (rs.next()) {
                     numberOfRecords++;
                     int columnIndex = 1;
+                    long intTimer = System.currentTimeMillis();
                     int id = rs.getInt(columnIndex++);
+                    intTimes += System.currentTimeMillis() - intTimer;
+                    totalCount++;
+
                     totalBytes += 4;
                     for (int repeat = 0; repeat < PreparePerfTables.COLUMN_REPEAT_COUNT; repeat++) {
+                        long string1Timer = System.currentTimeMillis();
                         String indicatorValue = rs.getString(columnIndex++);
-                        if (indicatorValue == null) {
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += 1;
-                        }
+                        string1Times += System.currentTimeMillis() - string1Timer;
+
+                        long string2Timer = System.currentTimeMillis();
                         String stringValue = rs.getString(columnIndex++);
-                        if (stringValue == null) {
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += stringValue.length();
-                        }
-                        long longValue = rs.getLong(columnIndex++);
-                        if (rs.wasNull()) {
-                            longValue = Long.MIN_VALUE;
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += 8;
-                        }
-                        double doubleValue = rs.getDouble(columnIndex++);
-                        if (rs.wasNull()) {
-                            doubleValue = Double.NaN;
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += 8;
-                        }
-                        BigDecimal decimalValue = rs.getBigDecimal(columnIndex++);
-                        if (decimalValue == null) {
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += 12;
-                        }
+                        string2Times += System.currentTimeMillis() - string2Timer;
+
+                        long longTimer = System.currentTimeMillis();
+                        long longValue = rs.getLong(columnIndex++); /**/
+                        longTimes += System.currentTimeMillis() - longTimer;
+
+                        long doubleTimer = System.currentTimeMillis();
+                        double doubleValue = rs.getDouble(columnIndex++); /**/
+                        doubleTimes += System.currentTimeMillis() - doubleTimer;
+
+                        long decimalTimer = System.currentTimeMillis();
+                        BigDecimal decimalValue = rs.getBigDecimal(columnIndex++); /**/
+                        decimalTimes += System.currentTimeMillis() - decimalTimer;
+
+                        long timestampTimer = System.currentTimeMillis();
                         Timestamp timestampValue = rs.getTimestamp(columnIndex++);
-                        if (timestampValue == null) {
-                            nullColumnCount++;
-                        } else {
-                            totalBytes += 12;
-                        }
+                        timestampTimes += System.currentTimeMillis() - timestampTimer;
                     }
                 }
             }
         }
-        final long elapsed = System.currentTimeMillis();
-        System.out.println("Retrieved " + numberOfRecords + " rows in " + elapsed + " ms.");
+        final long elapsed = System.currentTimeMillis() - stopwatch;
+        //System.out.println("Retrieved " + numberOfRecords + " rows in " + elapsed + " ms.");
+        System.out.println("int times: " + intTimes + " ms");
+        System.out.println("string1 times: " + string1Times + " ms");
+        System.out.println("string2 times: " + string2Times + " ms");
+        System.out.println("long times: " + longTimes + " ms");
+        System.out.println("double times: " + doubleTimes + " ms");
+        System.out.println("big decimal times: " + decimalTimes + " ms");
+        System.out.println("timestamp times: " + timestampTimes + " ms");
+
         return new PerformanceResult(elapsed, numberOfRecords, totalBytes, nullColumnCount, columns, rsFetchSize);
     }
 }

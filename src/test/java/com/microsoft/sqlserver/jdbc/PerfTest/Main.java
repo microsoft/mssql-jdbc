@@ -21,10 +21,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-//import com.crd.data.wrapper.jtds.CrdJtdsConnection;
-//import com.google.common.base.Stopwatch;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 
 /**
@@ -49,12 +46,11 @@ public class Main {
      * Usage: {@code Main <URL> <userName> [<password>]}
      * @param args program arguments
      */
-    public static void main(String... args) {
+    public static void main(String... args) throws Exception {
         new Main().readArgs(args).runTest();
     }
 
-    public Main readArgs(String[] args)
-    {
+    public Main readArgs(String[] args) {
         if (args.length < 2) {
             System.err.println("Usage: Main <URL> <userName> [<password>]");
             System.exit(2);
@@ -71,12 +67,13 @@ public class Main {
         driverType = driverUrl.startsWith("jdbc:jtds:sqlserver") ? DriverType.jTDS : DriverType.Microsoft;
         return this;
     }
-    private void runTest()
-    {
-        System.out.println("------------------------------------------------------------");
-        System.out.println(Main.class.getName() + " started at "+ new Date() + " for driver " + driverType);
-        System.out.println("------------------------------------------------------------");
-        //Stopwatch stopwatch = Stopwatch.createStarted();
+
+    private void runTest() throws Exception {
+        //        System.out.println("------------------------------------------------------------");
+        //        System.out.println(Main.class.getName() + " started at "+ new Date() + " for driver " + driverType);
+        //        System.out.println("------------------------------------------------------------");
+        long stopwatch = System.currentTimeMillis();
+
         try {
             Map<String, PerformanceTest.PerformanceResult> testResults = executeTest();
             printResults(testResults);
@@ -86,12 +83,12 @@ public class Main {
         }
 
         System.out.println("------------------------------------------------------------");
-        //System.out.println(Main.class.getName() + " finished at "+ new Date() + " for driver " + driverType + " (total elapsed = " + stopwatch.elapsed(TimeUnit.SECONDS) + " seconds)");
+        System.out.println(Main.class.getName() + " finished at "+ new Date() + " for driver " + driverType
+                + " (total elapsed = " + (System.currentTimeMillis() - stopwatch) / 1000 + " seconds)");
         System.out.println("------------------------------------------------------------");
     }
 
-    private Map<String, PerformanceTest.PerformanceResult> executeTest() throws SQLException
-    {
+    private Map<String, PerformanceTest.PerformanceResult> executeTest() throws SQLException, InterruptedException {
         try (Connection conn = createConnection()) {
             PreparePerfTables.preparePerfMultiplier(conn);
             PreparePerfTables.preparePerfTable(conn);
@@ -100,16 +97,16 @@ public class Main {
             Map<String, PerformanceTest.PerformanceResult> testResults = new LinkedHashMap<>();
             for (PerformanceTest test : tests) {
                 testNumber++;
-                System.out.println("running " + test.getDescription() + "... (" + testNumber + "/" + tests.size() + ")");
+                //System.out.println("running " + test.getDescription() + "... (" + testNumber + "/" + tests.size() + ")");
                 PerformanceTest.PerformanceResult result = test.run(conn, driverType.getResultSetType());
                 testResults.put(test.getDescription(), result);
             }
+            //Thread.sleep(1000000000);
             return testResults;
         }
     }
 
-    private List<PerformanceTest> getTests()
-    {
+    private List<PerformanceTest> getTests() {
         return List.of(
                 new PerfTablePerformanceTest(0)
                 //new PerfTablePerformanceTest(512)
@@ -124,8 +121,8 @@ public class Main {
         }
         return conn;
     }
-    private void printResults(Map<String, PerformanceTest.PerformanceResult> testResults)
-    {
+
+    private void printResults(Map<String, PerformanceTest.PerformanceResult> testResults) {
         System.out.println();
         System.out.printf("T# %-75s%-15s%-13s%-15s%-15s%-12s%-6s%n", "Performance Test", "Result Count", "Time(ms)", "Size", "nullCount", "columnCount", "fsize");
         int index = 1;
