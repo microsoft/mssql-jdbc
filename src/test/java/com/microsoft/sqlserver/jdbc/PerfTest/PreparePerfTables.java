@@ -12,6 +12,7 @@ import java.sql.Types;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+
 /**
  * Prepare PERF_MULTIPLIER, and PERF_TABLE
  */
@@ -29,26 +30,24 @@ public class PreparePerfTables {
 
     private final static String SELECT_PERF_TABLE_COUNT = "IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PERF_TABLE]')) SELECT COUNT(*) FROM [dbo].[PERF_TABLE] ELSE SELECT 0";
     private final static String DROP_PERF_TABLE = "DROP TABLE IF EXISTS [dbo].[PERF_TABLE]";
-    private final static String CREATE_PERF_TABLE
-            = """
+    private final static String CREATE_PERF_TABLE = """
             CREATE TABLE [dbo].[PERF_TABLE](
             	[ID] int NOT NULL PRIMARY KEY,
             """;
 
     private final static String INSERT_INTO_PERF_TABLE = "INSERT INTO [dbo].[PERF_TABLE] VALUES (?";
+
     public static void preparePerfMultiplier(Connection conn) throws SQLException {
         try (PreparedStatement preparedStatement = conn.prepareStatement(SELECT_PERF_MULTIPLIER_COUNT);
                 ResultSet rs = preparedStatement.executeQuery()) {
-            while(rs.next()) {
+            while (rs.next()) {
                 if (rs.getInt(1) == MULTIPLIER_MAX) {
-                    //System.out.println("PERF_MULTIPLIER table already created.");
                     return;
                 }
             }
         }
-        //System.out.println("prepare PERF_MULTIPLIER table......");
 
-        try(Statement stmt = conn.createStatement()) {
+        try (Statement stmt = conn.createStatement()) {
             stmt.execute(DROP_PERF_MULTIPLIER);
         }
 
@@ -73,16 +72,14 @@ public class PreparePerfTables {
     public static void preparePerfTable(Connection conn) throws SQLException {
         try (PreparedStatement preparedStatement = conn.prepareStatement(SELECT_PERF_TABLE_COUNT);
                 ResultSet rs = preparedStatement.executeQuery()) {
-            while(rs.next()) {
+            while (rs.next()) {
                 if (rs.getInt(1) == ROW_COUNT) {
-                    //System.out.println("PERF_TABLE table already created.");
                     return;
                 }
             }
         }
-        //System.out.println("prepare PERF_TABLE table......");
 
-        try(Statement stmt = conn.createStatement()) {
+        try (Statement stmt = conn.createStatement()) {
             stmt.execute(DROP_PERF_TABLE);
         }
         StringBuilder createTableSql = new StringBuilder(CREATE_PERF_TABLE);
@@ -123,7 +120,8 @@ public class PreparePerfTables {
                         stmt.setLong(columnIndex++, random.nextLong(1, 1_000_000_000_000L));
                         final double doubleValue = random.nextDouble(1.0d, 1_000_000_000.0d);
                         stmt.setDouble(columnIndex++, doubleValue);
-                        stmt.setBigDecimal(columnIndex++, BigDecimal.valueOf(doubleValue).setScale(4, RoundingMode.HALF_UP));
+                        stmt.setBigDecimal(columnIndex++,
+                                BigDecimal.valueOf(doubleValue).setScale(4, RoundingMode.HALF_UP));
                         stmt.setTimestamp(columnIndex++, new Timestamp(random.nextLong(timeStart, timeEnd)));
                     }
                 }
@@ -132,4 +130,3 @@ public class PreparePerfTables {
         }
     }
 }
-

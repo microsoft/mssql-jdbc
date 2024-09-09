@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.PerfTest;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+
 /**
  * Test jdbc driver's performance
  */
@@ -20,12 +21,17 @@ public interface PerformanceTest {
 
     /**
      * run the test
-     * @param conn connection
-     * @param resultSetType result set type
-     * @return -- the first captures execution time,  while the second is result count
-     * @throws SQLException if an error occurs
+     * 
+     * @param conn
+     *        connection
+     * @param resultSetType
+     *        result set type
+     * @return -- the first captures execution time, while the second is result count
+     * @throws SQLException
+     *         if an error occurs
      */
     PerformanceResult run(Connection conn, int resultSetType) throws SQLException;
 
-    record PerformanceResult(long elapsedMilliseconds, int numberOfRecords, long totalBytes, int nullColumnCount, int columnCount, int rsFetchSize) {}
+    record PerformanceResult(long elapsedMilliseconds, int numberOfRecords, long totalBytes, int nullColumnCount,
+            int columnCount, int rsFetchSize) {}
 }

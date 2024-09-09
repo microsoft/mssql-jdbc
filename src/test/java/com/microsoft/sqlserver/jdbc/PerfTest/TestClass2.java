@@ -1,8 +1,13 @@
 package com.microsoft.sqlserver.jdbc.PerfTest;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
-import java.sql.*;
 
 public class TestClass2 {
     static long jtdsString1 = 0;

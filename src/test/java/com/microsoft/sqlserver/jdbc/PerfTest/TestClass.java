@@ -45,8 +45,6 @@ public class TestClass {
                 timerNow = System.currentTimeMillis();
                 rs.getTimestamp(columnIndex);
                 System.out.println("Time for getTimestamp() jTDS: " + (System.currentTimeMillis() - timerNow) + " ms");
-
-                break;
             }
 
         } catch (SQLException e) {
@@ -82,8 +80,6 @@ public class TestClass {
                 timerNow = System.currentTimeMillis();
                 rs.getTimestamp(columnIndex);
                 System.out.println("Time for getTimestamp() JDBC: " + (System.currentTimeMillis() - timerNow) + " ms");
-
-                break;
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);

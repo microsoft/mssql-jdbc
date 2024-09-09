@@ -1,21 +1,19 @@
 package com.microsoft.sqlserver.jdbc.PerfTest;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
+
 
 public class PerfTablePerformanceTest implements PerformanceTest {
     private final int fetchSize;
-    public PerfTablePerformanceTest(int fetchSize)
-    {
+
+    public PerfTablePerformanceTest(int fetchSize) {
         this.fetchSize = fetchSize;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return "PERF_TABLE(" + fetchSize + ")";
     }
 
@@ -63,41 +61,40 @@ public class PerfTablePerformanceTest implements PerformanceTest {
                     numberOfRecords++;
                     int columnIndex = 1;
                     long intTimer = System.currentTimeMillis();
-                    int id = rs.getInt(columnIndex++);
+                    rs.getInt(columnIndex++);
                     intTimes += System.currentTimeMillis() - intTimer;
                     totalCount++;
 
                     totalBytes += 4;
                     for (int repeat = 0; repeat < PreparePerfTables.COLUMN_REPEAT_COUNT; repeat++) {
                         long string1Timer = System.currentTimeMillis();
-                        String indicatorValue = rs.getString(columnIndex++);
+                        rs.getString(columnIndex++);
                         string1Times += System.currentTimeMillis() - string1Timer;
 
                         long string2Timer = System.currentTimeMillis();
-                        String stringValue = rs.getString(columnIndex++);
+                        rs.getString(columnIndex++);
                         string2Times += System.currentTimeMillis() - string2Timer;
 
                         long longTimer = System.currentTimeMillis();
-                        long longValue = rs.getLong(columnIndex++); /**/
+                        rs.getLong(columnIndex++);
                         longTimes += System.currentTimeMillis() - longTimer;
 
                         long doubleTimer = System.currentTimeMillis();
-                        double doubleValue = rs.getDouble(columnIndex++); /**/
+                        rs.getDouble(columnIndex++);
                         doubleTimes += System.currentTimeMillis() - doubleTimer;
 
                         long decimalTimer = System.currentTimeMillis();
-                        BigDecimal decimalValue = rs.getBigDecimal(columnIndex++); /**/
+                        rs.getBigDecimal(columnIndex++);
                         decimalTimes += System.currentTimeMillis() - decimalTimer;
 
                         long timestampTimer = System.currentTimeMillis();
-                        Timestamp timestampValue = rs.getTimestamp(columnIndex++);
+                        rs.getTimestamp(columnIndex++);
                         timestampTimes += System.currentTimeMillis() - timestampTimer;
                     }
                 }
             }
         }
         final long elapsed = System.currentTimeMillis() - stopwatch;
-        //System.out.println("Retrieved " + numberOfRecords + " rows in " + elapsed + " ms.");
         System.out.println("int times: " + intTimes + " ms");
         System.out.println("string1 times: " + string1Times + " ms");
         System.out.println("string2 times: " + string2Times + " ms");
