@@ -610,6 +610,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultGSSCredential();
 
     /**
+     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
+     *
+     * @param useFlexibleCallableStatements
+     *        When set to false, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements. This eliminates a round trip to the server but imposes limitations
+     *        on how parameters are set. When set to false, applications must either reference
+     *        parameters by name or by index, not both. Parameters must also be set in the same
+     *        order as the stored procedure definition.
+     */
+    void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
+
+    /**
+     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
+     *
+     * @return useFlexibleCallableStatements
+     */
+    boolean getUseFlexibleCallableStatements();
+
+    /**
      * Sets the GSSCredential.
      *
      * @param userCredential
@@ -1346,27 +1365,4 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
-
-    /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
-     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
-     *
-     * @param useFlexibleCallableStatements
-     *        When set to false, sp_sproc_columns is not used for parameter name lookup
-     *        in callable statements. This eliminates a round trip to the server but imposes limitations
-     *        on how parameters are set. When set to false, applications must either reference
-     *        parameters by name or by index, not both. Parameters must also be set in the same
-     *        order as the stored procedure definition.
-     */
-    void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
-
-    /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
-     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
-     *
-     * @return useFlexibleCallableStatements
-     */
-    boolean getUseFlexibleCallableStatements();
 }

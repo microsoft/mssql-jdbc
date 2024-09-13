@@ -135,6 +135,8 @@ final class DTV {
     int valueLength = 0;
     boolean sendStringParametersAsUnicode = true;
 
+    boolean isNonPLP = false;
+
     /**
      * Sets a DTV value from a Java object.
      *
@@ -295,7 +297,7 @@ final class DTV {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
             } else {
-                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, dtv.isNonPLP);
             }
         }
 
@@ -318,7 +320,7 @@ final class DTV {
             if (null != collation && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType
                     || JDBCType.LONGVARCHAR == jdbcType || JDBCType.CLOB == jdbcType)) {
                 if (null == clobReader) {
-                    tdsWriter.writeRPCByteArray(name, null, isOutParam, jdbcType, collation);
+                    tdsWriter.writeRPCByteArray(name, null, isOutParam, jdbcType, collation, false);
                 } else {
                     ReaderInputStream clobStream = new ReaderInputStream(clobReader, collation.getCharset(),
                             clobLength);
@@ -329,7 +331,7 @@ final class DTV {
             } else // Send CLOB value as Unicode
             {
                 if (null == clobReader) {
-                    tdsWriter.writeRPCStringUnicode(name, null, isOutParam, collation);
+                    tdsWriter.writeRPCStringUnicode(name, null, isOutParam, collation, false);
                 } else {
                     tdsWriter.writeRPCReaderUnicode(name, clobReader, clobLength, isOutParam, collation);
                 }
@@ -852,14 +854,40 @@ final class DTV {
 
                     switch (jdbcType) {
                         case DATETIME:
+                            if (null != cryptoMeta) {
+                                tdsWriter.writeEncryptedRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam, jdbcType, statement);
+                            } else {
+                                if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME2.toString())) {
+                                    tdsWriter.writeRPCDateTime2(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, TDS.DEFAULT_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                                } else if (conn.getDatetimeParameterType().equals(DatetimeType.DATETIME.toString())) {
+                                    tdsWriter.writeRPCDateTime(name,
+                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                            subSecondNanos, isOutParam);
+                                }
+                            }
+
+                            break;
+
                         case SMALLDATETIME:
+                            if (null != cryptoMeta) {
+                                tdsWriter.writeEncryptedRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam, jdbcType, statement);
+                            } else {
+                                tdsWriter.writeRPCDateTime(name,
+                                        timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
+                                        subSecondNanos, isOutParam);
+                            }
+
+                            break;
+
                         case TIMESTAMP:
                             if (null != cryptoMeta) {
-                                if ((JDBCType.DATETIME == jdbcType) || (JDBCType.SMALLDATETIME == jdbcType)) {
-                                    tdsWriter.writeEncryptedRPCDateTime(name,
-                                            timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
-                                            subSecondNanos, isOutParam, jdbcType, statement);
-                                } else if (0 == valueLength) {
+                                if (0 == valueLength) {
                                     tdsWriter.writeEncryptedRPCDateTime2(name,
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, outScale, isOutParam, statement);
@@ -868,10 +896,11 @@ final class DTV {
                                             timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                             subSecondNanos, (valueLength), isOutParam, statement);
                                 }
-                            } else
+                            } else {
                                 tdsWriter.writeRPCDateTime2(name,
                                         timestampNormalizedCalendar(calendar, javaType, conn.baseYear()),
                                         subSecondNanos, TDS.MAX_FRACTIONAL_SECONDS_SCALE, isOutParam);
+                            }
 
                             break;
 
@@ -1081,7 +1110,7 @@ final class DTV {
                             DriverError.NOT_SET, null);
                 } else {
                     String strValue = bigDecimalValue.toString();
-                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
+                    tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation, false);
                 }
             } else {
                 tdsWriter.writeRPCBigDecimal(name, bigDecimalValue, outScale, isOutParam);
@@ -1136,7 +1165,8 @@ final class DTV {
                 }
 
             } else
-                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
+                tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation,
+                        dtv.isNonPLP);
 
         }
 
@@ -1389,7 +1419,7 @@ final class DTV {
             }
 
             if (null == blobStream) {
-                tdsWriter.writeRPCByteArray(name, null, isOutParam, dtv.getJdbcType(), collation);
+                tdsWriter.writeRPCByteArray(name, null, isOutParam, dtv.getJdbcType(), collation, false);
             } else {
                 tdsWriter.writeRPCInputStream(name, blobStream, blobLength, isOutParam, dtv.getJdbcType(), collation);
             }
@@ -2338,8 +2368,10 @@ final class AppDTVImpl extends DTVImpl {
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
         // Client side type conversion is not supported
-        if (this.jdbcType != jdbcType)
+        // Checking for sql_variant here since the check will be performed elsewhere.
+        if (this.jdbcType != jdbcType && jdbcType != JDBCType.SQL_VARIANT) {
             DataTypes.throwConversionError(this.jdbcType.toString(), jdbcType.toString());
+        }
 
         return value;
     }

@@ -167,6 +167,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** Flag that determines whether the accessToken callback was set **/
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
 
+    /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
+    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS
+            .getDefaultValue();
+
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
      * info
@@ -556,6 +560,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 returnValueSyntax);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
+    }
+
+    static int countParams(String sql) {
+        return locateParams(sql).length;
     }
 
     /** Default size for prepared statement caches */
@@ -2499,6 +2507,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(
+                            SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useFlexibleCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
                 if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
@@ -7680,7 +7697,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int paramIndex = 0;
         while (true) {
-            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
+            int srcEnd = ParameterUtils.scanSQLForChar('?', sqlSrc, srcBegin);
             sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
             dstBegin += srcEnd - srcBegin;
 
@@ -8114,19 +8131,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
      * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
      *
      * @return useFlexibleCallableStatements
      */
     public boolean getUseFlexibleCallableStatements() {
-        return true;
+        return this.useFlexibleCallableStatements;
     }
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
      * @param useFlexibleCallableStatements
@@ -8136,7 +8149,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        parameters by name or by index, not both. Parameters must also be set in the same
      *        order as the stored procedure definition.
      */
-    public void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements) {}
+    public void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements) {
+        this.useFlexibleCallableStatements = useFlexibleCallableStatements;
+    }
 
     /**
      * Cleans up discarded prepared statement handles on the server using batched un-prepare actions if the batching
