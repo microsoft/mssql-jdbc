@@ -403,12 +403,12 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre22</id>
+			<id>jre23</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre22${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre23${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -418,8 +418,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>22</source>
-							<target>22</target>
+							<source>23</source>
+							<target>23</target>
 						</configuration>
 					</plugin>
 					<plugin>
