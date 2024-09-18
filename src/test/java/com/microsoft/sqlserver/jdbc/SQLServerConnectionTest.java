@@ -470,8 +470,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
      * that connection is retried the proper number of times.
      */
-    @Test
-    public void testConnectCountInLoginAndCorrectRetryCount(int connectRetryCount) {
+    private void testConnectCountInLoginAndCorrectRetryCount(int connectRetryCount) {
         long timerStart = 0;
 
         int connectRetryInterval = 60;
