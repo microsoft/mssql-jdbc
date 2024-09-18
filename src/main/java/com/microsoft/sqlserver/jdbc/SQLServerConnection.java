@@ -1955,6 +1955,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         long start = System.currentTimeMillis();
         for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
             try {
+                System.out.println("---------------------Entered main loop---------------------");
+                System.out.println("(1) connectRetryCount=" + connectRetryCount);
                 if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
                     if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1971,6 +1973,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     return connectInternal(propsIn, pooledConnection);
                 }
             } catch (SQLServerException e) {
+                System.out.println("---------------------Caught Exception---------------------");
                 elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
 
                 // special case for TLS intermittent failures: no wait retries
@@ -1983,6 +1986,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     tlsRetryAttempt++;
                 } else {
+                    System.out.println("---------------------Entered else(1)---------------------");
                     // TLS max retry exceeded
                     if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1990,6 +1994,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
                         }
                     }
+                    System.out.println("(2) connectRetryCount=" + connectRetryCount);
 
                     if (0 == connectRetryCount) {
                         // connection retry disabled
@@ -2002,6 +2007,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
+                        System.out.println("---------------------Entered else(2)---------------------");
                         // only retry if transient error
                         SQLServerError sqlServerError = e.getSQLServerError();
                         if (!TransientError.isTransientError(sqlServerError)) {
