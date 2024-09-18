@@ -1994,7 +1994,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (0 == connectRetryCount) {
                         // connection retry disabled
                         throw e;
-                    } else if (connectRetryAttempt++ > connectRetryCount) {
+                    } else if (connectRetryAttempt++ >= connectRetryCount) {
                         // maximum connection retry count reached
                         if (connectionlogger.isLoggable(Level.FINE)) {
                             connectionlogger.fine("Connection failed. Maximum connection retry count "
@@ -2026,8 +2026,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
                                     + connectRetryInterval + ")s before retry.");
                         }
-
-                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        if (connectRetryAttempt > 1) {
+                            // We do not sleep for first retry; first retry is immediate
+                            sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        }
                     }
                 }
             }
@@ -3482,7 +3484,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         || timerHasExpired(timerExpire) // no time left
                         || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
                                 + 2 * timeForFirstTry) // not enough time for another retry
-                        || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
+                        || (connectRetryCount == 0 && !(isDBMirroring || useTnir)) // retries disabled
                         // retry at least once for TNIR and failover
                         || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
                         || (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
@@ -3542,7 +3544,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + attemptNumber);
                     }
 
-                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+
+                    sleepForInterval(fedauthRetryInterval);
+                    fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
                 }
             }
 
