@@ -502,6 +502,8 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
             // We should at least take as long as the retry interval between all retries past the first.
             int minTimeInSecs = connectRetryInterval * (connectRetryCount - 1);
+            System.out.println("totalTime: " + totalTime);
+            System.out.println("minTimeInSecs: " + minTimeInSecs);
             assertTrue(totalTime > (minTimeInSecs * 1000L), TestResource.getResource("R_executionNotLong"));
         }
     }
