@@ -337,7 +337,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={2714,2716:1,2*2,1:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         } catch (Exception e) {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         }
@@ -355,14 +355,14 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={TEST:TEST};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
 
         // Test empty error
         try {
             testStatementRetry("retryExec={:1,2*2:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
     }
 
@@ -378,7 +378,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={2714,2716:-1,2+2:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
 
         // Test max (query timeout)
@@ -401,7 +401,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={2714,2716:4,-1+1:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
 
         // Test max
@@ -424,7 +424,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={2714,2716:1,2AND2:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
     }
 
@@ -440,7 +440,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         try {
             testStatementRetry("retryExec={2714,2716:1,2+2:CREATE};");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidParameterFormat")));
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterNumber")));
         }
     }
 

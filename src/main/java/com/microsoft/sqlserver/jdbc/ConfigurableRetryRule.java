@@ -36,7 +36,7 @@ class ConfigurableRetryRule {
      * @throws SQLServerException
      *         If there is a problem parsing the rule
      */
-    public ConfigurableRetryRule(String rule) throws SQLServerException {
+    ConfigurableRetryRule(String rule) throws SQLServerException {
         addElements(removeExtraElementsAndSplitRule(rule));
         calculateWaitTimes();
     }
@@ -51,7 +51,7 @@ class ConfigurableRetryRule {
      * @param baseRule
      *        The ConfigRetryRule object to base the new objects off of
      */
-    public ConfigurableRetryRule(String newRule, ConfigurableRetryRule baseRule) {
+    ConfigurableRetryRule(String newRule, ConfigurableRetryRule baseRule) {
         copyFromRule(baseRule);
         this.retryError = newRule;
     }
@@ -98,8 +98,8 @@ class ConfigurableRetryRule {
             String[] arr = value.split(COMMA);
             for (String error : arr) {
                 if (!StringUtils.isNumeric(error)) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                    Object[] msgArgs = {error, "Not a positive number"};
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
+                    Object[] msgArgs = {error};
                     throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                 }
             }
@@ -182,8 +182,8 @@ class ConfigurableRetryRule {
                     initialRetryTime = Integer.parseInt(timings[1]);
                 }
             } else if (timings.length > 2) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidParameterFormat"));
-                Object[] msgArgs = {rule[1], "Too many arguments"};
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterNumber"));
+                Object[] msgArgs = {rule[1]};
                 throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
             }
 
