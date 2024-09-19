@@ -3545,8 +3545,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + attemptNumber);
                     }
 
-                    sleepForInterval(fedauthRetryInterval);
-                    fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
+                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                 }
             }
 
