@@ -2009,11 +2009,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         throw e;
                     } else {
                         System.out.println("---------------------Entered else(2)---------------------");
+
+                        System.out.println("--------------------Error info--------------------------");
+                        System.out.println(e.getSQLServerError());
+                        System.out.println(e.getMessage());
+                        System.out.println(e.getDriverErrorCode());
+                        System.out.println(e.toString());
+
                         // only retry if transient error
                         SQLServerError sqlServerError = e.getSQLServerError();
                         if (!TransientError.isTransientError(sqlServerError)) {
-                            System.out.println("----------------------THROW ON NON-TRANSIENT ERROR--------------------");
-                            System.out.println(e.getSQLServerError());
+                            System.out.println("----------------------ABOVE IS NON-TRANSIENT ERROR--------------------");
                             throw e;
                         }
 
