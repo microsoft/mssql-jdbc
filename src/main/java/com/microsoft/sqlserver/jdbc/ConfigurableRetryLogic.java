@@ -184,11 +184,11 @@ public class ConfigurableRetryLogic {
             // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
             // log a message.
             if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("File not found at path - " + filePath);
+                CONFIGURABLE_RETRY_LOGGER.finest("File not found at path - \"" + filePath + "\"");
             }
         } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
-            Object[] msgArgs = {e.toString()};
+            Object[] msgArgs = {e.getMessage() + ", from path - \"" + filePath + "\""};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         }
         return list;
