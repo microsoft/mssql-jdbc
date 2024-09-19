@@ -2026,6 +2026,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
                                     + connectRetryInterval + ")s before retry.");
                         }
+
                         if (connectRetryAttempt > 1) {
                             // We do not sleep for first retry; first retry is immediate
                             sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));

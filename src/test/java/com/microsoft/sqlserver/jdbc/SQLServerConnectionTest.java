@@ -5,9 +5,9 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -174,7 +174,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
-        // verify enrypt=true options
+        // verify encrypt=true options
         ds.setEncrypt(EncryptOption.MANDATORY.toString());
         assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
