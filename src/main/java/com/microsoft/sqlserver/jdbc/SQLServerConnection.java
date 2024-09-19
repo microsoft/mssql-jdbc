@@ -2002,7 +2002,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
-
                         // only retry if transient error
                         SQLServerError sqlServerError = e.getSQLServerError();
                         if (!TransientError.isTransientError(sqlServerError)) {

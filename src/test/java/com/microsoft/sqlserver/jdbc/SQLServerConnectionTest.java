@@ -5,10 +5,9 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -194,7 +193,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals("False", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
 
-        // verify encrypt=strict options
+        // verify enrypt=strict options
         ds.setEncrypt(EncryptOption.STRICT.toString());
         assertEquals("Strict", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
@@ -486,7 +485,7 @@ public class SQLServerConnectionTest extends AbstractTest {
             timerStart = System.currentTimeMillis();
 
             try (Connection con = ds.getConnection()) {
-                assertNull(con, TestResource.getResource("R_shouldNotConnect"));
+                assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
             }
         } catch (Exception e) {
             assertTrue(

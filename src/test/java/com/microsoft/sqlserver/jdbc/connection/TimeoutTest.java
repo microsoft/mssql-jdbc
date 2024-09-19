@@ -49,11 +49,8 @@ public class TimeoutTest extends AbstractTest {
     /*
      * TODO:
      * The tests below uses a simple interval counting logic to determine whether there was at least 1 retry.
-     * Given the interval is long enough, then 1 retry should take at least 1 interval long, so if it took < 1 interval,
-     * then it assumes there were no retry. However, this only works if TNIR or failover is not enabled since those cases
-     * should retry but no wait interval in between. So this interval counting can not detect these cases.
-     * Note a better and more reliable way would be to check attemptNumber using reflection to
-     * determine the number of retries.
+     * Given the interval is long enough, then 1 retry should take at least 1 interval long, so if it took < 1 interval, then it assumes there were no retry. However, this only works if TNIR or failover is not enabled since those cases should retry but no wait interval in between. So this interval counting can not detect these cases.
+     * Note a better and more reliable way would be to check attemptNumber using reflection to determine the number of retries.
      */
 
     // test default loginTimeout used if not specified in connection string
@@ -80,7 +77,7 @@ public class TimeoutTest extends AbstractTest {
 
         // time should be < default loginTimeout
         assertTrue(totalTime < TimeUnit.SECONDS.toMillis(defaultTimeout),
-                "total time: " + totalTime + " default logintimeout: " + TimeUnit.SECONDS.toMillis(defaultTimeout));
+                "total time: " + totalTime + " default loginTimout: " + TimeUnit.SECONDS.toMillis(defaultTimeout));
     }
 
     // test setting loginTimeout value
@@ -92,7 +89,7 @@ public class TimeoutTest extends AbstractTest {
         long timerStart = System.currentTimeMillis();
 
         // non existing server and set loginTimeout
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";loginTimout=" + timeout)) {
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";logintimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             totalTime = System.currentTimeMillis() - timerStart;
@@ -205,7 +202,7 @@ public class TimeoutTest extends AbstractTest {
                 "total time: " + totalTime + " interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
-    // Test connect retry for non existent server with loginTimeout
+    // Test connect retry for non-existent server with loginTimeout
     @Test
     public void testConnectRetryBadServer() {
         long totalTime = 0;
