@@ -1063,8 +1063,8 @@ public class SQLServerConnectionTest extends AbstractTest {
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(30);
-                ds.setConnectRetryCount(3);
-                ds.setConnectRetryInterval(10);
+                ds.setConnectRetryCount(6);
+                ds.setConnectRetryInterval(20);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
