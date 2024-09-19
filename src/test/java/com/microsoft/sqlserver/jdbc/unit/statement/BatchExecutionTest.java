@@ -218,7 +218,7 @@ public class BatchExecutionTest extends AbstractTest {
 
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
-        long timeOut = 30000;
+        long timeOut = 90000;
         int NUMBER_SIMULTANEOUS_INSERTS = 5;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString

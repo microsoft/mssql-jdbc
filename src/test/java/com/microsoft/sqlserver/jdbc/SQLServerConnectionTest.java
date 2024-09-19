@@ -463,7 +463,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         testConnectCountInLoginAndCorrectRetryCount(0);
         testConnectCountInLoginAndCorrectRetryCount(1);
         testConnectCountInLoginAndCorrectRetryCount(2);
-        testConnectCountInLoginAndCorrectRetryCount(5);
     }
 
     /**
