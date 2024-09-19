@@ -517,7 +517,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.reqExternalSetup)
-    public void testConnectTnir() {
+    public void testConnectTnirWithZeroRetry() {
         org.junit.Assume.assumeTrue(isWindows);
 
         // no retries but should connect to TNIR (this assumes host is defined in host file
@@ -528,17 +528,59 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test connect retry > 0 but should still connect to TNIR
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectTnirWithNonZeroRetry() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries but should connect to TNIR (this assumes host is defined in host file
+        try (Connection con = PrepUtil
+                .getConnection(connectionString + ";transparentNetworkIPResolution=true;connectRetryCount=2;serverName="
+                        + tnirHost);) {} catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
     // Test connect retry 0 and TNIR disabled
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.reqExternalSetup)
-    public void testConnectNoTnir() {
+    public void testConnectNoTnirWithZeroRetry() {
         org.junit.Assume.assumeTrue(isWindows);
 
         // no retries no TNIR should fail even tho host is defined in host file
         try (Connection con = PrepUtil.getConnection(connectionString
                 + ";transparentNetworkIPResolution=false;connectRetryCount=0;serverName=" + tnirHost);) {
+            assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
+        } catch (Exception e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))
+                    || ((isSqlAzure() || isSqlAzureDW())
+                                                         ? e.getMessage().contains(
+                                                                 TestResource.getResource("R_connectTimedOut"))
+                                                         : false),
+                    e.getMessage());
+        }
+    }
+
+    /**
+     * Test connect retry > 0 and TNIR disabled
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.reqExternalSetup)
+    public void testConnectNoTnirWithNonzeroRetry() {
+        org.junit.Assume.assumeTrue(isWindows);
+
+        // no retries no TNIR should fail even tho host is defined in host file
+        try (Connection con = PrepUtil.getConnection(connectionString
+                + ";transparentNetworkIPResolution=false;connectRetryCount=2;serverName=" + tnirHost);) {
             assertTrue(con == null, TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_tcpipConnectionFailed"))
