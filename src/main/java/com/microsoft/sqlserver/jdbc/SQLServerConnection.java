@@ -2027,10 +2027,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + connectRetryInterval + ")s before retry.");
                         }
 
-                        if (connectRetryAttempt > 1) {
-                            // We do not sleep for first retry; first retry is immediate
-                            sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
-                        }
+                        // We do not sleep for first retry; first retry is immediate
+                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+
                     }
                 }
             }
@@ -3545,7 +3544,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + attemptNumber);
                     }
 
-                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                    sleepForInterval(fedauthRetryInterval);
+                    fedauthRetryInterval = (fedauthRetryInterval < 500) ? fedauthRetryInterval * 2 : 1000;
                 }
             }
 
