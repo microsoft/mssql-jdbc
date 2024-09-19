@@ -645,7 +645,7 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
                     }
                 }
             } catch (URISyntaxException e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
                 Object[] msgArgs = {masterKeyPath};
                 throw new SQLServerException(form.format(msgArgs), null, 0, e);
             }

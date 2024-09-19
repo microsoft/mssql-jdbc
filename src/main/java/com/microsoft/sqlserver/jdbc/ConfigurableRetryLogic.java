@@ -154,7 +154,7 @@ public class ConfigurableRetryLogic {
             URI uri = new URI(location + FORWARD_SLASH);
             return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
         } catch (URISyntaxException e) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_AKVURLInvalid"));
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
             Object[] msgArgs = {location + FORWARD_SLASH};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (ClassNotFoundException e) {
