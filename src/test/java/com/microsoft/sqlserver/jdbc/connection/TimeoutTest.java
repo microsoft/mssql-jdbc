@@ -62,7 +62,7 @@ public class TimeoutTest extends AbstractTest {
         long totalTime = 0;
         long timerStart = System.currentTimeMillis();
 
-        // non-existing server and default values to see if took default timeout
+        // non existing server and default values to see if took default timeout
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class TimeoutTest extends AbstractTest {
 
         // time should be < default loginTimeout
         assertTrue(totalTime < TimeUnit.SECONDS.toMillis(defaultTimeout),
-                "total time: " + totalTime + " default loginTimeout: " + TimeUnit.SECONDS.toMillis(defaultTimeout));
+                "total time: " + totalTime + " default logintimeout: " + TimeUnit.SECONDS.toMillis(defaultTimeout));
     }
 
     // test setting loginTimeout value
@@ -91,8 +91,8 @@ public class TimeoutTest extends AbstractTest {
 
         long timerStart = System.currentTimeMillis();
 
-        // non-existing server and set loginTimeout
-        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
+        // non existing server and set loginTimeout
+        try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";loginTimout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             totalTime = System.currentTimeMillis() - timerStart;
@@ -183,7 +183,7 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non-existent server with long loginTimeout, should return fast if no retries at all
+        // non existent server with long loginTimeout, should return fast if no retries at all
         try (Connection con = PrepUtil.getConnection(
                 "jdbc:sqlserver://" + randomServer + ";transparentNetworkIPResolution=false;loginTimeout=" + timeout
                         + ";connectRetryCount=0;connectInterval=" + interval)) {
@@ -205,14 +205,14 @@ public class TimeoutTest extends AbstractTest {
                 "total time: " + totalTime + " interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
-    // Test connect retry for non-existent server with loginTimeout
+    // Test connect retry for non existent server with loginTimeout
     @Test
     public void testConnectRetryBadServer() {
         long totalTime = 0;
         long timerStart = System.currentTimeMillis();
         int timeout = 15;
 
-        // non-existent server with very short loginTimeout, no retry will happen as not a transient error
+        // non existent server with very short loginTimeout, no retry will happen as not a transient error
         try (Connection con = PrepUtil.getConnection("jdbc:sqlserver://" + randomServer + ";loginTimeout=" + timeout)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
@@ -245,7 +245,7 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non-existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + ";loginTimeout=" + timeout + ";connectRetryCount=" + 1 + ";connectRetryInterval=" + interval
@@ -283,10 +283,10 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long loginTimeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non-existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
+        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
         SQLServerDataSource ds = new SQLServerDataSource();
         String connectStr = TestUtils.addOrOverrideProperty(connectionString, "database",
-                RandomUtil.getIdentifier("database")) + ";loginTimeout=" + loginTimeout + ";connectRetryCount=1"
+                RandomUtil.getIdentifier("database")) + ";logintimeout=" + loginTimeout + ";connectRetryCount=1"
                 + ";connectRetryInterval=" + interval;
         updateDataSource(connectStr, ds);
 
@@ -319,7 +319,7 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         int loginTimeout = 2;
 
-        // non-existent database with very short loginTimeout so there is no time to do any retry
+        // non existent database with very short loginTimeout so there is no time to do any retry
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
                         + "connectRetryCount=" + (new Random().nextInt(256)) + ";connectRetryInterval=" + interval
@@ -361,23 +361,23 @@ public class TimeoutTest extends AbstractTest {
     public void testAzureEndpointRetry() {
 
         try (Connection con = PrepUtil.getConnection(connectionString)) {
-            Field[] fields = con.getClass().getSuperclass().getDeclaredFields();
+            Field fields[] = con.getClass().getSuperclass().getDeclaredFields();
             for (Field f : fields) {
                 if (f.getName().equals("connectRetryCount")) {
                     f.setAccessible(true);
                     int retryCount = f.getInt(con);
 
                     if (TestUtils.isAzureSynapseOnDemand(con)) {
-                        assertEquals(5, retryCount); // AZURE_SYNAPSE_ON_DEMAND_ENDPOINT_RETRY_COUNT_DEFAULT
+                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAULT
                     } else if (TestUtils.isAzure(con)) {
-                        assertEquals(2, retryCount); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAULT
+                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
                     } else {
                         // default retryCount is 1 if not set in connection string
                         String retryCountFromConnStr = TestUtils.getProperty(connectionString, "connectRetryCount");
                         int expectedRetryCount = (retryCountFromConnStr != null) ? Integer
                                 .parseInt(retryCountFromConnStr) : 1;
 
-                        assertEquals(retryCount, expectedRetryCount); // default connectRetryCount
+                        assertTrue(retryCount == expectedRetryCount); // default connectRetryCount
                     }
                 }
             }
@@ -390,14 +390,13 @@ public class TimeoutTest extends AbstractTest {
      * When query timeout occurs, the connection is still usable.
      * 
      * @throws Exception
-     *         when an exception occurs
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
-            createWaitForDelayProcedure(conn);
+            createWaitForDelayPreocedure(conn);
         }
 
         try (Connection conn = PrepUtil.getConnection(
@@ -428,14 +427,13 @@ public class TimeoutTest extends AbstractTest {
      * Tests sanity of connection property.
      * 
      * @throws Exception
-     *         when an exception occurs
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
-            createWaitForDelayProcedure(conn);
+            createWaitForDelayPreocedure(conn);
         }
 
         try (Connection conn = PrepUtil.getConnection(connectionString + ";queryTimeout=" + (waitForDelaySeconds / 2)
@@ -466,14 +464,13 @@ public class TimeoutTest extends AbstractTest {
      * Tests sanity of connection property.
      * 
      * @throws Exception
-     *         when an exception occurs
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testCancelQueryTimeoutOnStatement() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
-            createWaitForDelayProcedure(conn);
+            createWaitForDelayPreocedure(conn);
         }
 
         try (Connection conn = PrepUtil.getConnection(connectionString + Constants.SEMI_COLON)) {
@@ -505,14 +502,13 @@ public class TimeoutTest extends AbstractTest {
      * When socketTimeout occurs, the connection will be marked as closed.
      * 
      * @throws Exception
-     *         when an exception occurs
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSocketTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             dropWaitForDelayProcedure(conn);
-            createWaitForDelayProcedure(conn);
+            createWaitForDelayPreocedure(conn);
         }
 
         try (Connection conn = PrepUtil.getConnection(
@@ -540,7 +536,7 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
-    private static void dropWaitForDelayProcedure(Connection conn) {
+    private static void dropWaitForDelayProcedure(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName), stmt);
         } catch (Exception e) {
@@ -548,7 +544,7 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
-    private void createWaitForDelayProcedure(Connection conn) {
+    private void createWaitForDelayPreocedure(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(waitForDelaySPName) + " AS"
                     + " BEGIN" + " WAITFOR DELAY '00:00:" + waitForDelaySeconds + "';" + " END";
@@ -556,6 +552,16 @@ public class TimeoutTest extends AbstractTest {
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }
+    }
+
+    static Field[] getConnectionFields(Connection c) {
+        Class<? extends Connection> cls = c.getClass();
+        // SQLServerConnection43 is returned for Java >=9 so need to get super class
+        if (cls.getName() == "com.microsoft.sqlserver.jdbc.SQLServerConnection43") {
+            return cls.getSuperclass().getDeclaredFields();
+        }
+
+        return cls.getDeclaredFields();
     }
 
     @AfterAll

@@ -175,7 +175,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setTrustStorePassword(stringPropValue);
         assertEquals(stringPropValue, ds.getTrustStorePassword(), TestResource.getResource("R_valuesAreDifferent"));
 
-        // verify encrypt=true options
+        // verify enrypt=true options
         ds.setEncrypt(EncryptOption.MANDATORY.toString());
         assertEquals("True", EncryptOption.valueOfString(ds.getEncrypt()).toString(),
                 TestResource.getResource("R_valuesAreDifferent"));
@@ -494,20 +494,19 @@ public class SQLServerConnectionTest extends AbstractTest {
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && (e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())
                                     || e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_MINotAvailable").toLowerCase()))),
+                                            .contains(TestResource.getResource("R_MInotAvailable").toLowerCase()))),
                     e.getMessage());
             long totalTime = System.currentTimeMillis() - timerStart;
 
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
 
-            int minTimeInSecs = connectRetryInterval * (connectRetryCount - 1);
-            System.out.println("totalTime: " + totalTime);
-            System.out.println("minTimeInSecs: " + minTimeInSecs);
             // We should at least take as long as the retry interval between all retries past the first.
-            // Only measure minimum if error is R_cannotOpenDatabase, as that is guaranteed to follow retry interval sleeps
+            // Of the above acceptable errors (R_cannotOpenDatabase, R_loginFailedMI, R_MInotAvailable), only
+            // R_cannotOpenDatabase is transient, and can be used to measure multiple retries with retry interval. The
+            // others will exit before they have a chance to wait, and min will be too low.
             if (e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))) {
-
+                int minTimeInSecs = connectRetryInterval * (connectRetryCount - 1);
                 assertTrue(totalTime > (minTimeInSecs * 1000L), TestResource.getResource("R_executionNotLong"));
             }
 
@@ -784,7 +783,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         // Non-existent host, ClientConnectionId should not be available in error message
         try (Connection conn = PrepUtil.getConnection(
-                connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";loginTimeout=5;")) {
+                connectionString + ";instanceName=" + RandomUtil.getIdentifier("Instance") + ";logintimeout=5;")) {
             conn.close();
 
         } catch (SQLException e) {
@@ -1301,7 +1300,7 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         String[] serverNameAndPort = connectionString.substring(subProtocol.length(), indexOfFirstDelimiter).split(":");
         String connectionProperties = connectionString.substring(indexOfFirstDelimiter, indexOfLastDelimiter + 1);
-        String loginTimeout = "loginTimeout=15";
+        String loginTimeout = "loginTimout=15";
 
         // Server name field is empty but serverName connection property is set, should pass
         String emptyServerNameField = subProtocol + connectionProperties + "serverName=" + serverNameAndPort[0] + ";";

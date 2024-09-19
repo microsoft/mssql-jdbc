@@ -1955,8 +1955,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         long start = System.currentTimeMillis();
         for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
             try {
-                System.out.println("---------------------Entered main loop---------------------");
-                System.out.println("\t(1) connectRetryCount=" + connectRetryCount);
                 if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
                     if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1973,7 +1971,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     return connectInternal(propsIn, pooledConnection);
                 }
             } catch (SQLServerException e) {
-                System.out.println("---------------------Caught Exception---------------------");
                 elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
 
                 // special case for TLS intermittent failures: no wait retries
@@ -1986,7 +1983,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                     tlsRetryAttempt++;
                 } else {
-                    System.out.println("---------------------Entered else(1)---------------------");
                     // TLS max retry exceeded
                     if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
@@ -1994,8 +1990,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
                         }
                     }
-                    System.out.println("\t(2) connectRetryCount=" + connectRetryCount);
-                    System.out.println("\tconnectRetryAttempt: " + connectRetryAttempt);
 
                     if (0 == connectRetryCount) {
                         // connection retry disabled
@@ -2008,18 +2002,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
-                        System.out.println("---------------------Entered else(2)---------------------");
-
-                        System.out.println("--------------------Error info--------------------------");
-                        System.out.println(e.getSQLServerError());
-                        System.out.println(e.getMessage());
-                        System.out.println(e.getDriverErrorCode());
-                        System.out.println(e.toString());
 
                         // only retry if transient error
                         SQLServerError sqlServerError = e.getSQLServerError();
                         if (!TransientError.isTransientError(sqlServerError)) {
-                            System.out.println("----------------------ABOVE IS NON-TRANSIENT ERROR--------------------");
                             throw e;
                         }
 
@@ -2032,9 +2018,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                 + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
                                                 + ")s");
                             }
-                            System.out.println("----------------------THROW ON NO TIME TO RETRY--------------------");
-                            System.out.println("(elapsedSeconds + connectRetryInterval): " + (elapsedSeconds + connectRetryInterval));
-                            System.out.println("loginTimeout: " + loginTimeoutSeconds);
                             throw e;
                         }
 
@@ -2046,12 +2029,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         if (connectRetryAttempt > 1) {
                             // We do not sleep for first retry; first retry is immediate
-                            System.out.println("\tSleeping for: " + TimeUnit.SECONDS.toMillis(connectRetryInterval) + " ms");
                             sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                         }
-                        System.out.println("\tEND OF ELSE (2)");
                     }
-                    System.out.println("\tEND OF ELSE (1)");
                 }
             }
         }

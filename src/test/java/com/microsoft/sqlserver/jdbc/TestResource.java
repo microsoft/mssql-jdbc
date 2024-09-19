@@ -30,7 +30,7 @@ public final class TestResource extends ListResourceBundle {
     // the keys must be prefixed with R_ to denote they are resource strings and their names should follow the
     // camelCasing
     // convention and be descriptive
-    static final Object[][] contents = {{"R_wrongEnv", "Aborting test: As this is not the right environment: "},
+    static final Object[][] contents = {{"R_wrongEnv", "Aborting test: As this is not the right environement: "},
             {"R_fipsPropertyNotSet", "Aborting test case as FIPS_ENV property is not set."},
             {"R_invalidTrustCert", "Invalid TrustServerCertificate value."},
             {"R_invalidEncrypt", "Invalid encrypt value."}, {"R_notImplemented", "not implemented"},
@@ -42,11 +42,9 @@ public final class TestResource extends ListResourceBundle {
             {"R_givenValueType", "The given value of type"},
             {"R_lengthTruncated", " The inserted length is truncated or not correct!"},
             {"R_timeValueTruncated", " The time value is truncated or not correct!"},
-            {"R_nullPointerExceptionFromResultSet",
-                    "Cannot invoke \"java.sql.ResultSet.next()\" because \"rs\" is null"},
+            {"R_nullPointerExceptionFromResultSet", "Cannot invoke \"java.sql.ResultSet.next()\" because \"rs\" is null"},
             {"R_invalidErrorMessage", "Invalid Error Message: "},
-            {"R_kerberosNativeGSSFailure",
-                    "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
+            {"R_kerberosNativeGSSFailure", "No valid credentials provided (Mechanism level: Failed to find any Kerberos tgt)"},
             {"R_expectedFailPassed", "Expected failure did not fail"}, {"R_dataTypeNotFound", "Cannot find data type"},
             {"R_illegalCharWktPosition", "Illegal character in Well-Known text at position {0}."},
             {"R_illegalCharWkt", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
@@ -218,5 +216,5 @@ public final class TestResource extends ListResourceBundle {
             {"R_expectedClassDoesNotMatchActualClass",
                     "Expected column class {0} does not match actual column class {1} for column {2}."},
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
-            {"R_MINotAvailable", "Managed Identity authentication is not available"},};
+            {"R_MInotAvailable", "Managed Identity authentication is not available"},};
 }
