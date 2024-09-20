@@ -5,9 +5,9 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -508,7 +508,6 @@ public class SQLServerConnectionTest extends AbstractTest {
                 int minTimeInSecs = connectRetryInterval * (connectRetryCount - 1);
                 assertTrue(totalTime > (minTimeInSecs * 1000L), TestResource.getResource("R_executionNotLong"));
             }
-
         }
     }
 
@@ -819,8 +818,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                                || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                    && e.getMessage().toLowerCase()
+                                        .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -851,8 +851,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                                || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                    && e.getMessage().toLowerCase()
+                                        .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -883,8 +884,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                && e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
