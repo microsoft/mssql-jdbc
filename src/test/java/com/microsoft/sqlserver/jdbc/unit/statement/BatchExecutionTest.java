@@ -243,14 +243,6 @@ public class BatchExecutionTest extends AbstractTest {
 
             ((HashMap<?, ?>) bulkcopyCache).clear();
 
-            TimerTask task = new TimerTask() {
-                public void run() {
-                    ((HashMap<?, ?>) bulkcopyCache).clear();
-                    fail(TestResource.getResource("R_executionTooLong"));
-                }
-            };
-            Timer timer = new Timer("Timer");
-            timer.schedule(task, timeOut); // Run a timer to help us exit if we get deadlocked
 
             final CountDownLatch countDownLatch = new CountDownLatch(NUMBER_SIMULTANEOUS_INSERTS);
             Runnable runnable = () -> {
