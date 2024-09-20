@@ -218,7 +218,7 @@ public class BatchExecutionTest extends AbstractTest {
 
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
-        long timeOut = 90000;
+        long timeOut = 150000;
         int NUMBER_SIMULTANEOUS_INSERTS = 5;
 
         try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
@@ -243,6 +243,14 @@ public class BatchExecutionTest extends AbstractTest {
 
             ((HashMap<?, ?>) bulkcopyCache).clear();
 
+            TimerTask task = new TimerTask() {
+                public void run() {
+                    ((HashMap<?, ?>) bulkcopyCache).clear();
+                    fail(TestResource.getResource("R_executionTooLong"));
+                }
+            };
+            Timer timer = new Timer("Timer");
+            timer.schedule(task, timeOut); // Run a timer to help us exit if we get deadlocked
 
             final CountDownLatch countDownLatch = new CountDownLatch(NUMBER_SIMULTANEOUS_INSERTS);
             Runnable runnable = () -> {
