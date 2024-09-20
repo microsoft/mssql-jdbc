@@ -59,7 +59,7 @@ public class ConfigurableRetryLogic {
      *         an exception
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
-        // No need for lock; static initializer singleInstance is thread-safe]
+        // No need for lock; static initializer singleInstance is thread-safe
         if (singleInstance == null) {
             CRL_LOCK.lock();
             try {
