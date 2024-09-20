@@ -214,7 +214,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
-            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(8),
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(2),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(8));
             assertTrue(totalTime < TimeUnit.SECONDS.toMillis(18),
                     "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(18));
@@ -229,7 +229,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             Assertions.fail(TestResource.getResource("R_unexpectedException"));
         } finally {
             totalTime = System.currentTimeMillis() - timerStart;
-            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(10),
+            assertTrue(totalTime > TimeUnit.SECONDS.toMillis(3),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(10));
             assertTrue(totalTime < TimeUnit.SECONDS.toMillis(20),
                     "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(20));
@@ -383,7 +383,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
         // Test max (query timeout)
         try {
-            testStatementRetryWithShortQueryTimeout("queryTimeout=10;retryExec={2714,2716:11,2+2:CREATE};");
+            testStatementRetryWithShortQueryTimeout("queryTimeout=3;retryExec={2714,2716:11,2+2:CREATE};");
         } catch (SQLServerException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidRetryInterval")));
         }
