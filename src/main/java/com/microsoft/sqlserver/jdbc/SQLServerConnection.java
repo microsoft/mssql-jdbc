@@ -3551,8 +3551,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     int retryIntervalSecs = (int) TimeUnit.SECONDS.toMillis(connectRetryInterval);
 
                     // Double each time to a max of connectRetryInterval
-                    fedauthRetryInterval = (fedauthRetryInterval >= retryIntervalSecs)
-                            ? retryIntervalSecs : fedauthRetryInterval * 2;
+                    fedauthRetryInterval = (fedauthRetryInterval >= retryIntervalSecs) ? retryIntervalSecs
+                                                                                       : fedauthRetryInterval * 2;
                 }
             }
 
