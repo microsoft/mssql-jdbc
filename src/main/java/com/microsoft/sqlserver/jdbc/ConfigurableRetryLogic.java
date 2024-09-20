@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -28,9 +30,10 @@ import java.util.Map;
 public class ConfigurableRetryLogic {
     private final static int INTERVAL_BETWEEN_READS_IN_MS = 30000;
     private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
+    private static final Lock CRL_LOCK = new ReentrantLock();
     private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
-    private static ConfigurableRetryLogic singleInstance = null;
+    private static ConfigurableRetryLogic singleInstance;
     private static long timeLastModified;
     private static long timeLastRead;
     private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
@@ -56,12 +59,22 @@ public class ConfigurableRetryLogic {
      *         an exception
      */
     public static ConfigurableRetryLogic getInstance() throws SQLServerException {
-        // No need for lock; static initializer singleInstance is thread-safe
+        // No need for lock; static initializer singleInstance is thread-safe]
         if (singleInstance == null) {
-            singleInstance = new ConfigurableRetryLogic();
+            CRL_LOCK.lock();
+            try {
+                if (singleInstance == null) {
+                    singleInstance = new ConfigurableRetryLogic();
+                } else {
+                    refreshRuleSet();
+                }
+            } finally {
+                CRL_LOCK.unlock();
+            }
         } else {
             refreshRuleSet();
         }
+
         return singleInstance;
     }
 
