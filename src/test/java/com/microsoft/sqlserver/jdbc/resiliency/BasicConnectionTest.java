@@ -68,7 +68,7 @@ public class BasicConnectionTest extends AbstractTest {
 
                 basicReconnect("jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
                         + azureUserName + ";password=" + azurePassword
-                        + ";loginTimeout=90;Authentication=ActiveDirectoryPassword;");
+                        + ";loginTimeout=90;Authentication=ActiveDirectoryPassword");
                 retry = THROTTLE_RETRY_COUNT + 1;
             } catch (Exception e) {
                 if (e.getMessage().matches(TestUtils.formatErrorMsg("R_crClientAllRecoveryAttemptsFailed"))) {
