@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -28,25 +30,28 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  */
 public class ConfigurableRetryLogic {
-    private final static int INTERVAL_BETWEEN_READS_IN_MS = 30000;
-    private final static String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
+    private static final int INTERVAL_BETWEEN_READS_IN_MS = 30000;
+    private static final String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
     private static final Lock CRL_LOCK = new ReentrantLock();
     private static final java.util.logging.Logger CONFIGURABLE_RETRY_LOGGER = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
-    private static ConfigurableRetryLogic singleInstance;
-    private static long timeLastModified;
-    private static long timeLastRead;
-    private static String lastQuery = ""; // The last query executed (used when rule is process-dependent)
-    private static String prevRulesFromConnectionString = "";
-    private static HashMap<Integer, ConfigurableRetryRule> stmtRules = new HashMap<>();
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
     private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
     private static final String RETRY_EXEC = "retryExec";
+    private static final AtomicLong timeLastModified = new AtomicLong(0);
+    private static final AtomicLong timeLastRead = new AtomicLong(0);
+    private static final AtomicReference<String> lastQuery
+            = new AtomicReference<>(""); // The last query executed (used when rule is process-dependent)
+    private static final AtomicReference<String> prevRulesFromConnectionString = new AtomicReference<>("");
+    private static final AtomicReference<HashMap<Integer, ConfigurableRetryRule>> stmtRules
+            = new AtomicReference<>(new HashMap<>());
+    private static ConfigurableRetryLogic singleInstance;
+
 
     private ConfigurableRetryLogic() throws SQLServerException {
-        timeLastRead = new Date().getTime();
+        timeLastRead.compareAndSet(0, new Date().getTime());
         setUpRules(null);
     }
 
@@ -86,32 +91,32 @@ public class ConfigurableRetryLogic {
      */
     private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
-        if ((currentTime - timeLastRead) >= INTERVAL_BETWEEN_READS_IN_MS) {
-            timeLastRead = currentTime;
-            if (timeLastModified != 0) {
+        if ((currentTime - timeLastRead.get()) >= INTERVAL_BETWEEN_READS_IN_MS) {
+            timeLastRead.set(currentTime);
+            if (timeLastModified.get() != 0) {
                 // If timeLastModified has been set, we have previously read from a file, so we setUpRules
                 // reading from file
                 File f = new File(getCurrentClassPath());
-                if (f.lastModified() != timeLastModified) {
+                if (f.lastModified() != timeLastModified.get()) {
                     setUpRules(null);
                 }
             } else {
-                setUpRules(prevRulesFromConnectionString);
+                setUpRules(prevRulesFromConnectionString.get());
             }
         }
     }
 
     void setFromConnectionString(String newRules) throws SQLServerException {
-        prevRulesFromConnectionString = newRules;
-        setUpRules(prevRulesFromConnectionString);
+        prevRulesFromConnectionString.set(newRules);
+        setUpRules(prevRulesFromConnectionString.get());
     }
 
     void storeLastQuery(String newQueryToStore) {
-        lastQuery = newQueryToStore.toLowerCase();
+        lastQuery.set(newQueryToStore.toLowerCase());
     }
 
     String getLastQuery() {
-        return lastQuery;
+        return lastQuery.get();
     }
 
     /**
@@ -123,8 +128,8 @@ public class ConfigurableRetryLogic {
      *         If an exception occurs
      */
     private static void setUpRules(String cxnStrRules) throws SQLServerException {
-        stmtRules = new HashMap<>();
-        lastQuery = "";
+        stmtRules.set(new HashMap<>());
+        lastQuery.set("");
         LinkedList<String> temp;
 
         if (cxnStrRules == null || cxnStrRules.isEmpty()) {
@@ -137,7 +142,7 @@ public class ConfigurableRetryLogic {
     }
 
     private static void createRules(LinkedList<String> listOfRules) throws SQLServerException {
-        stmtRules = new HashMap<>();
+        stmtRules.set(new HashMap<>());
 
         for (String potentialRule : listOfRules) {
             ConfigurableRetryRule rule = new ConfigurableRetryRule(potentialRule);
@@ -147,10 +152,10 @@ public class ConfigurableRetryLogic {
 
                 for (String retryError : arr) {
                     ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
-                    stmtRules.put(Integer.parseInt(splitRule.getError()), splitRule);
+                    stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
                 }
             } else {
-                stmtRules.put(Integer.parseInt(rule.getError()), rule);
+                stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
             }
         }
     }
@@ -191,7 +196,7 @@ public class ConfigurableRetryLogic {
                     }
                 }
             }
-            timeLastModified = f.lastModified();
+            timeLastModified.set(f.lastModified());
         } catch (FileNotFoundException e) {
             // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
             // log a message.
@@ -208,7 +213,7 @@ public class ConfigurableRetryLogic {
 
     ConfigurableRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
         refreshRuleSet();
-        for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.entrySet()) {
+        for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.get().entrySet()) {
             if (entry.getKey() == ruleToSearchFor) {
                 return entry.getValue();
             }
