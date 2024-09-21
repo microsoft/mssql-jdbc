@@ -2024,10 +2024,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
-                        // only retry if transient error
+                        // Only retry if matches configured CRL rules, or transient error (if CRL is not in use)
                         SQLServerError sqlServerError = e.getSQLServerError();
-                        if (!TransientError.isTransientError(sqlServerError)) {
+                        if (null == sqlServerError) {
                             throw e;
+                        } else {
+                            ConfigRetryRule rule = ConfigurableRetryLogic.getInstance()
+                                    .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
+
+                            if (null == rule) {
+                                if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
+                                    throw e;
+                                } else {
+                                    if (!TransientError.isTransientError(sqlServerError)) {
+                                        throw e;
+                                    }
+                                }
+                            }
                         }
 
                         // check if there's time to retry, no point to wait if no time left
