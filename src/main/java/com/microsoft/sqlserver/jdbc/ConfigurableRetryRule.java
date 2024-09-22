@@ -15,16 +15,16 @@ import java.util.ArrayList;
  *
  */
 class ConfigurableRetryRule {
-    private String retryError;
+    private final String PLUS_SIGN = "+";
+    private final String MULTIPLICATION_SIGN = "*";
+    private final String COMMA = ",";
+    private final String ZERO = "0";
     private String operand = "+";
     private int initialRetryTime = 0;
     private int retryChange = 2;
     private int retryCount = 1;
     private String retryQueries = "";
-    private final String PLUS_SIGN = "+";
-    private final String MULTIPLICATION_SIGN = "*";
-    private final String COMMA = ",";
-    private final String ZERO = "0";
+    private String retryError;
 
     private ArrayList<Integer> waitTimes = new ArrayList<>();
 
@@ -32,9 +32,9 @@ class ConfigurableRetryRule {
      * Construct a ConfigurableRetryRule object from a String rule.
      *
      * @param rule
-     *        The rule used to construct the ConfigRetryRule object
+     *        the rule used to construct the ConfigRetryRule object
      * @throws SQLServerException
-     *         If there is a problem parsing the rule
+     *         if there is a problem parsing the rule
      */
     ConfigurableRetryRule(String rule) throws SQLServerException {
         addElements(removeExtraElementsAndSplitRule(rule));
@@ -47,15 +47,21 @@ class ConfigurableRetryRule {
      * object.
      *
      * @param newRule
-     *        The rule used to construct the ConfigRetryRule object
+     *        the rule used to construct the ConfigRetryRule object
      * @param baseRule
-     *        The ConfigRetryRule object to base the new objects off of
+     *        the ConfigRetryRule object to base the new objects off of
      */
     ConfigurableRetryRule(String newRule, ConfigurableRetryRule baseRule) {
         copyFromRule(baseRule);
         this.retryError = newRule;
     }
 
+    /**
+     * Copy elements from the base rule to this rule.
+     *
+     * @param baseRule
+     *        the rule to copy elements from
+     */
     private void copyFromRule(ConfigurableRetryRule baseRule) {
         this.retryError = baseRule.retryError;
         this.operand = baseRule.operand;
@@ -70,7 +76,8 @@ class ConfigurableRetryRule {
      * Removes extra elements in the rule (e.g. '{') and splits the rule based on ':' (colon).
      *
      * @param rule
-     * @return
+     *        the rule to format and split
+     * @return the split rule as a string array
      */
     private String[] removeExtraElementsAndSplitRule(String rule) {
         if (rule.endsWith(":")) {
@@ -89,7 +96,7 @@ class ConfigurableRetryRule {
      * multi-error value, e.g. 2714,2716. This must be separated, and each error checked separately.
      *
      * @param value
-     *        The value to be checked
+     *        the value to be checked
      * @throws SQLServerException
      *         if a non-numeric value is passed in
      */
@@ -140,9 +147,9 @@ class ConfigurableRetryRule {
      * Finally, if the rule has 3 parts, it includes a query specifier, parse this and assign it.
      *
      * @param rule
-     *        The passed in rule, as a string array
+     *        the passed in rule, as a string array
      * @throws SQLServerException
-     *         If a rule or parameter has invalid inputs
+     *         if a rule or parameter has invalid inputs
      */
     private void addElements(String[] rule) throws SQLServerException {
         if (rule.length == 2 || rule.length == 3) {
@@ -220,8 +227,7 @@ class ConfigurableRetryRule {
     /**
      * Returns the retry error for this ConfigRetryRule object.
      *
-     * @return
-     *         The retry error
+     * @return the retry error
      */
     String getError() {
         return retryError;
@@ -230,8 +236,7 @@ class ConfigurableRetryRule {
     /**
      * Returns the retry count (amount of times to retry) for this ConfigRetryRule object.
      *
-     * @return
-     *         The retry count
+     * @return the retry count
      */
     int getRetryCount() {
         return retryCount;
@@ -240,8 +245,7 @@ class ConfigurableRetryRule {
     /**
      * Returns the retry query specifier for this ConfigRetryRule object.
      *
-     * @return
-     *         The retry query specifier
+     * @return the retry query specifier
      */
     String getRetryQueries() {
         return retryQueries;
@@ -250,8 +254,7 @@ class ConfigurableRetryRule {
     /**
      * Returns an array listing the waiting times between each retry, for this ConfigRetryRule object.
      *
-     * @return
-     *         The list of waiting times
+     * @return the list of waiting times
      */
     ArrayList<Integer> getWaitTimes() {
         return waitTimes;

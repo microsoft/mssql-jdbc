@@ -32,13 +32,21 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 /**
- * Test statement retry for configurable retry logic
+ * Test statement retry for configurable retry logic.
  */
 public class ConfigurableRetryLogicTest extends AbstractTest {
-    private static String connectionStringCRL = null;
-    private static final String tableName = AbstractSQLGenerator
+    /**
+     * The table used throughout the tests.
+     */
+    private static final String CRLTestTable = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("crlTestTable"));
 
+    /**
+     * Sets up tests.
+     *
+     * @throws Exception
+     *         if an exception occurs
+     */
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
@@ -59,7 +67,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             assertTrue(test.isEmpty());
             conn.setRetryExec("{2714:3,2*2:CREATE;2715:1,3}");
             try {
-                PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);");
+                PreparedStatement ps = conn.prepareStatement("create table " + CRLTestTable + " (c1 int null);");
                 createTable(s);
                 ps.execute();
                 Assertions.fail(TestResource.getResource("R_expectedFailPassed"));
@@ -80,11 +88,10 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void testStatementRetryPreparedStatement() throws Exception {
-        connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
-                "{2714:3,2*2:CREATE;2715:1,3}");
-
-        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement();
-                PreparedStatement ps = conn.prepareStatement("create table " + tableName + " (c1 int null);")) {
+        try (Connection conn = DriverManager.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "retryExec", "{2714:3,2*2:CREATE;2715:1,3}"));
+                Statement s = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("create table " + CRLTestTable + " (c1 int null);")) {
             try {
                 createTable(s);
                 ps.execute();
@@ -106,12 +113,10 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void testStatementRetryCallableStatement() throws Exception {
-        connectionStringCRL = TestUtils.addOrOverrideProperty(connectionString, "retryExec",
-                "{2714:3,2*2:CREATE;2715:1,3}");
-        String call = "create table " + tableName + " (c1 int null);";
-
-        try (Connection conn = DriverManager.getConnection(connectionStringCRL); Statement s = conn.createStatement();
-                CallableStatement cs = conn.prepareCall(call)) {
+        try (Connection conn = DriverManager.getConnection(
+                TestUtils.addOrOverrideProperty(connectionString, "retryExec", "{2714:3,2*2:CREATE;2715:1,3}"));
+                Statement s = conn.createStatement();
+                CallableStatement cs = conn.prepareCall("create table " + CRLTestTable + " (c1 int null);")) {
             try {
                 createTable(s);
                 cs.execute();
@@ -132,12 +137,11 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      *         if unable to connect or execute against db
      */
     public void testStatementRetry(String addedRetryParams) throws Exception {
-        String cxnString = connectionString + addedRetryParams;
-
-        try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(connectionString + addedRetryParams);
+                Statement s = conn.createStatement()) {
             try {
                 createTable(s);
-                s.execute("create table " + tableName + " (c1 int null);");
+                s.execute("create table " + CRLTestTable + " (c1 int null);");
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLServerException e) {
                 assertTrue(e.getMessage().startsWith("There is already an object"),
@@ -156,12 +160,11 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      *         if unable to connect or execute against db
      */
     public void testStatementRetryWithShortQueryTimeout(String addedRetryParams) throws Exception {
-        String cxnString = connectionString + addedRetryParams;
-
-        try (Connection conn = DriverManager.getConnection(cxnString); Statement s = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(connectionString + addedRetryParams);
+                Statement s = conn.createStatement()) {
             try {
                 createTable(s);
-                s.execute("create table " + tableName + " (c1 int null);");
+                s.execute("create table " + CRLTestTable + " (c1 int null);");
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } finally {
                 dropTable(s);
@@ -285,7 +288,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     }
 
     /**
-     * Tests that rules of the correct length, and containing valid values, pass
+     * Tests that rules of the correct length, and containing valid values, pass.
      */
     @Test
     public void testCorrectlyFormattedRules() {
@@ -420,7 +423,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void testOperand() throws Exception {
-        // Test incorrect
         try {
             testStatementRetry("retryExec={2714,2716:1,2AND2:CREATE};");
         } catch (SQLServerException e) {
@@ -436,7 +438,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void testRetryChange() throws Exception {
-        // Test incorrect
         try {
             testStatementRetry("retryExec={2714,2716:1,2+2:CREATE};");
         } catch (SQLServerException e) {
@@ -444,12 +445,28 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
     }
 
+    /**
+     * Creates table for use in ConfigurableRetryLogic tests.
+     *
+     * @param stmt
+     *        the SQL statement to use to create the table
+     * @throws SQLException
+     *         if unable to execute statement
+     */
     private static void createTable(Statement stmt) throws SQLException {
-        String sql = "create table " + tableName + " (c1 int null);";
+        String sql = "create table " + CRLTestTable + " (c1 int null);";
         stmt.execute(sql);
     }
 
+    /**
+     * Drops the table used in ConfigurableRetryLogic tests.
+     *
+     * @param stmt
+     *        the SQL statement to use to drop the table
+     * @throws SQLException
+     *         if unable to execute statement
+     */
     private static void dropTable(Statement stmt) throws SQLException {
-        TestUtils.dropTableIfExists(tableName, stmt);
+        TestUtils.dropTableIfExists(CRLTestTable, stmt);
     }
 }

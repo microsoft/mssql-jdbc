@@ -27,7 +27,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Allows configurable statement retry through the use of the 'retryExec' connection property. Each rule read in is
  * converted to ConfigRetryRule objects, which are stored and referenced during statement retry.
- *
  */
 public class ConfigurableRetryLogic {
     private static final int INTERVAL_BETWEEN_READS_IN_MS = 30000;
@@ -40,26 +39,45 @@ public class ConfigurableRetryLogic {
     private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
     private static final String RETRY_EXEC = "retryExec";
+    /**
+     * The time the properties file was last modified.
+     */
     private static final AtomicLong timeLastModified = new AtomicLong(0);
+    /**
+     * The time we last read the properties file.
+     */
     private static final AtomicLong timeLastRead = new AtomicLong(0);
-    private static final AtomicReference<String> lastQuery
-            = new AtomicReference<>(""); // The last query executed (used when rule is process-dependent)
+    /**
+     * The last query executed (used when rule is process-dependent).
+     */
+    private static final AtomicReference<String> lastQuery = new AtomicReference<>("");
+    /**
+     * The previously read rules from the connection string.
+     */
     private static final AtomicReference<String> prevRulesFromConnectionString = new AtomicReference<>("");
-    private static final AtomicReference<HashMap<Integer, ConfigurableRetryRule>> stmtRules
-            = new AtomicReference<>(new HashMap<>());
+    /**
+     * The list of statement retry rules.
+     */
+    private static final AtomicReference<HashMap<Integer, ConfigurableRetryRule>> stmtRules = new AtomicReference<>(
+            new HashMap<>());
     private static ConfigurableRetryLogic singleInstance;
 
-
+    /**
+     * Constructs the ConfigurableRetryLogic object reading rules from available sources.
+     *
+     * @throws SQLServerException
+     *         if unable to construct
+     */
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead.compareAndSet(0, new Date().getTime());
         setUpRules(null);
     }
 
     /**
-     * Fetches the static instance of ConfigurableRetryLogic, instantiating it if it hasn't already been.
-     * Each time the instance is fetched, we check if a re-read is needed, and do so if properties should be re-read.
+     * Fetches the static instance of ConfigurableRetryLogic, instantiating it if it hasn't already been. Each time the
+     * instance is fetched, we check if a re-read is needed, and do so if properties should be re-read.
      *
-     * @return The static instance of ConfigurableRetryLogic
+     * @return the static instance of ConfigurableRetryLogic
      * @throws SQLServerException
      *         an exception
      */
@@ -91,11 +109,11 @@ public class ConfigurableRetryLogic {
      */
     private static void refreshRuleSet() throws SQLServerException {
         long currentTime = new Date().getTime();
+
         if ((currentTime - timeLastRead.get()) >= INTERVAL_BETWEEN_READS_IN_MS) {
             timeLastRead.set(currentTime);
             if (timeLastModified.get() != 0) {
-                // If timeLastModified has been set, we have previously read from a file, so we setUpRules
-                // reading from file
+                // If timeLastModified is set, we previously read from file, so we setUpRules also reading from file
                 File f = new File(getCurrentClassPath());
                 if (f.lastModified() != timeLastModified.get()) {
                     setUpRules(null);
@@ -106,15 +124,34 @@ public class ConfigurableRetryLogic {
         }
     }
 
+    /**
+     * Sets rules given from connection string.
+     *
+     * @param newRules
+     *        the new rules to use
+     * @throws SQLServerException
+     *         when an exception occurs
+     */
     void setFromConnectionString(String newRules) throws SQLServerException {
         prevRulesFromConnectionString.set(newRules);
         setUpRules(prevRulesFromConnectionString.get());
     }
 
+    /**
+     * Stores last query executed.
+     *
+     * @param newQueryToStore
+     *        the new query to store
+     */
     void storeLastQuery(String newQueryToStore) {
         lastQuery.set(newQueryToStore.toLowerCase());
     }
 
+    /**
+     * Gets last query.
+     *
+     * @return the last query
+     */
     String getLastQuery() {
         return lastQuery.get();
     }
@@ -123,14 +160,15 @@ public class ConfigurableRetryLogic {
      * Sets up rules based on either connection string option or file read.
      *
      * @param cxnStrRules
-     *        If null, rules are constructed from file, else, this parameter is used to construct rules
+     *        if null, rules are constructed from file, else, this parameter is used to construct rules
      * @throws SQLServerException
-     *         If an exception occurs
+     *         if an exception occurs
      */
     private static void setUpRules(String cxnStrRules) throws SQLServerException {
+        LinkedList<String> temp;
+
         stmtRules.set(new HashMap<>());
         lastQuery.set("");
-        LinkedList<String> temp;
 
         if (cxnStrRules == null || cxnStrRules.isEmpty()) {
             temp = readFromFile();
@@ -141,6 +179,14 @@ public class ConfigurableRetryLogic {
         createRules(temp);
     }
 
+    /**
+     * Creates and stores rules based on the inputted list of rules.
+     *
+     * @param listOfRules
+     *        the list of rules, as a String LinkedList
+     * @throws SQLServerException
+     *         if unable to create rules from the inputted list
+     */
     private static void createRules(LinkedList<String> listOfRules) throws SQLServerException {
         stmtRules.set(new HashMap<>());
 
@@ -160,6 +206,13 @@ public class ConfigurableRetryLogic {
         }
     }
 
+    /**
+     * Gets the current class path (for use in file reading).
+     *
+     * @return the current class path, as a String
+     * @throws SQLServerException
+     *         if unable to retrieve the current class path
+     */
     private static String getCurrentClassPath() throws SQLServerException {
         String location = "";
         String className = "";
@@ -181,6 +234,13 @@ public class ConfigurableRetryLogic {
         }
     }
 
+    /**
+     * Attempts to read rules from the properties file.
+     *
+     * @return the list of rules as a LinkedList<String>
+     * @throws SQLServerException
+     *         if unable to read from the file
+     */
     private static LinkedList<String> readFromFile() throws SQLServerException {
         String filePath = getCurrentClassPath();
         LinkedList<String> list = new LinkedList<>();
@@ -211,6 +271,15 @@ public class ConfigurableRetryLogic {
         return list;
     }
 
+    /**
+     * Searches rule set for the given rule.
+     *
+     * @param ruleToSearchFor
+     *        the rule to search for
+     * @return the configurable retry rule
+     * @throws SQLServerException
+     *         when an exception occurs
+     */
     ConfigurableRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
         refreshRuleSet();
         for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.get().entrySet()) {
