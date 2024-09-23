@@ -313,7 +313,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey("http:///^[!#$&-;=?-[]_a-", "", null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_URLInvalid")), e.getMessage());
         }
 
         // null encryptedColumnEncryptionKey

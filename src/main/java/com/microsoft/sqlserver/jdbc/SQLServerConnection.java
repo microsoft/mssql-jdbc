@@ -1064,6 +1064,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
+    private String retryExec = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
+
+    /**
+     * Returns the set of configurable statement retry rules set in retryExec
+     * 
+     * @return
+     *         A string containing statement retry rules.
+     */
+    public String getRetryExec() {
+        return retryExec;
+    }
+
+    /**
+     * Sets the list of configurable statement retry rules, for the given connection, in retryExec.
+     *
+     * @param retryExec
+     *        The list of retry rules to set, as a string.
+     */
+    public void setRetryExec(String retryExec) {
+        this.retryExec = retryExec;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2337,6 +2359,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey,
                             IPAddressPreference.valueOfString(sPropValue).toString());
                 }
+
+                sPropKey = SQLServerDriverStringProperty.RETRY_EXEC.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                retryExec = sPropValue;
+                ConfigurableRetryLogic.getInstance().setFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);

@@ -370,8 +370,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ForceEncryptionTrue_HonorAEFalseRS", "Cannot set Force Encryption to true for parameter {0} because encryption is not enabled for the statement or procedure."},
         {"R_ForceEncryptionTrue_HonorAETrue_UnencryptedColumnRS", "Cannot execute update because Force Encryption was set as true for parameter {0} and the database expects this parameter to be sent as plaintext. This may be due to a configuration error."},
         {"R_NullValue", "{0} cannot be null."},
+        {"R_URLInvalid", "Invalid URL specified: {0}."},
         {"R_AKVPathNull", "Azure Key Vault key path cannot be null."},
-        {"R_AKVURLInvalid", "Invalid URL specified: {0}."},
         {"R_AKVMasterKeyPathInvalid", "Invalid Azure Key Vault key path specified: {0}."},
         {"R_ManagedIdentityInitFail", "Failed to initialize package to get Managed Identity token for Azure Key Vault."},
         {"R_EmptyCEK", "Empty column encryption key specified."},
@@ -517,6 +517,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
         {"R_calcBigDecimalPrecisionPropertyDescription", "Indicates whether the driver should calculate precision for big decimal values."},
+        {"R_retryExecPropertyDescription", "List of rules to follow for configurable retry logic."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
@@ -545,6 +546,9 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidSqlQuery", "Invalid SQL Query: {0}"},
         {"R_InvalidScale", "Scale of input value is larger than the maximum allowed by SQL Server."},
         {"R_colCountNotMatchColTypeCount", "Number of provided columns {0} does not match the column data types definition {1}."},
+        {"R_InvalidRuleFormat", "Wrong number of parameters supplied to rule. Number of parameters: {0}, expected: 2 or 3."},
+        {"R_InvalidRetryInterval", "Current retry interval: {0}, is longer than queryTimeout: {1}."},
+        {"R_UnableToFindClass", "Unable to locate specified class: {0}"},
     };
 }
 // @formatter:on
