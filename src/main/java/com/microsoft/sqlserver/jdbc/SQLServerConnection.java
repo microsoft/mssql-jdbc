@@ -3531,7 +3531,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // the network with requests, then update sleep interval for next iteration (max 1 second interval)
             // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
             // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
-
             // Make sure there's enough time to do another retry
             if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
                     && (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
