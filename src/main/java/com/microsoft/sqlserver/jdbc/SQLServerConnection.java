@@ -1064,6 +1064,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
+    /**
+     * Retry exec
+     */
     private String retryExec = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
 
     /**
@@ -1783,10 +1786,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private List<ReconnectListener> reconnectListeners = new ArrayList<>();
 
+    /**
+     * Register before reconnect listener
+     * 
+     * @param reconnectListener
+     *        reconnect listener
+     */
     public void registerBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.add(reconnectListener);
     }
 
+    /**
+     * Remove before reconnect listener
+     * 
+     * @param reconnectListener
+     *        reconnect listener
+     */
     public void removeBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.remove(reconnectListener);
     }

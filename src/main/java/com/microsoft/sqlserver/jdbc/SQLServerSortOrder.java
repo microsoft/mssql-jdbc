@@ -11,8 +11,11 @@ package com.microsoft.sqlserver.jdbc;
  *
  */
 public enum SQLServerSortOrder {
+    /** ascending order */
     ASCENDING(0),
+    /** descending order */
     DESCENDING(1),
+    /** unspecified order */
     UNSPECIFIED(-1);
 
     final int value;
