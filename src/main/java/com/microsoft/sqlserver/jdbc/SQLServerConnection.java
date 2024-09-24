@@ -132,7 +132,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Back off interval in ms for retries
      */
-    static final int BACKOFF_INTERVAL = 500;
+    static final int BACKOFF_INTERVAL = 100;
 
     /** Current limit for this particular connection. */
     private Boolean enablePrepareOnFirstPreparedStatementCall = null;
@@ -3528,10 +3528,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             // We only get here when we failed to connect, but are going to re-try
             // After trying to connect to both servers fails, sleep for a bit to prevent clogging
-            // the network with requests, then update sleep interval for next iteration (to a maximum specified by
-            // connectRetryInterval [default 10]). We have to sleep for every attempt in case of non-dbMirroring
-            // scenarios (including multisubnetfailover), whereas for dbMirroring, we sleep for every two attempts
-            // as each attempt is to a different server.
+            // the network with requests, then update sleep interval for next iteration (max 1 second interval)
+            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
+            // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
 
             // Make sure there's enough time to do another retry
             if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
@@ -3547,12 +3546,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 + attemptNumber);
                     }
 
-                    sleepForInterval(fedauthRetryInterval);
-                    int retryIntervalSecs = (int) TimeUnit.SECONDS.toMillis(connectRetryInterval);
-
-                    // Double each time to a max of connectRetryInterval
-                    fedauthRetryInterval = (fedauthRetryInterval >= retryIntervalSecs) ? retryIntervalSecs
-                                                                                       : fedauthRetryInterval * 2;
+                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
                 }
             }
 
