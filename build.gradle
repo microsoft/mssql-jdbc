@@ -33,17 +33,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre22")) {
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre23")) {
 
-	jreVersion = "jre22"
+	jreVersion = "jre23"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 22
-	targetCompatibility = 22
+	sourceCompatibility = 23
+	targetCompatibility = 23
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre21") {

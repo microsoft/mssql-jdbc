@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -241,22 +242,66 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         execProps = new ExecuteProperties(this);
 
-        try {
-            // (Re)execute this Statement with the new command
-            executeCommand(newStmtCmd);
-        } catch (SQLServerException e) {
-            if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
-                if (e.getCause() == null) {
-                    throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+        boolean cont;
+        int retryAttempt = 0;
+        ConfigurableRetryLogic crl = ConfigurableRetryLogic.getInstance();
+
+        do {
+            cont = false;
+            try {
+                // (Re)execute this Statement with the new command
+                executeCommand(newStmtCmd);
+            } catch (SQLServerException e) {
+                SQLServerError sqlServerError = e.getSQLServerError();
+                ConfigurableRetryRule rule = null;
+
+                if (null != sqlServerError) {
+                    rule = crl.searchRuleSet(e.getSQLServerError().getErrorNumber());
                 }
-                throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
-            } else {
-                throw e;
+
+                // If there is a rule for this error AND we still have retries remaining THEN we can proceed, otherwise
+                // first check for query timeout, and then throw the error if queryTimeout was not reached
+                if (null != rule && retryAttempt < rule.getRetryCount()) {
+
+                    // Also check if the last executed statement matches the query constraint passed in for the rule.
+                    // Defaults to true, changed to false if the query does NOT match.
+                    boolean matchesDefinedQuery = true;
+                    if (!(rule.getRetryQueries().isEmpty())) {
+
+                        matchesDefinedQuery = rule.getRetryQueries().contains(crl.getLastQuery().split(" ")[0]);
+                    }
+
+                    if (matchesDefinedQuery) {
+                        int timeToWait = rule.getWaitTimes().get(retryAttempt);
+                        int queryTimeout = connection.getQueryTimeoutSeconds();
+                        if (queryTimeout >= 0 && timeToWait > queryTimeout) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_InvalidRetryInterval"));
+                            Object[] msgArgs = {timeToWait, queryTimeout};
+                            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+                        }
+                        try {
+                            Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                        cont = true;
+                        retryAttempt++;
+                    }
+                } else if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
+                    if (e.getCause() == null) {
+                        throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+                    }
+                    throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
+                } else {
+                    throw e;
+                }
+            } finally {
+                if (newStmtCmd.wasExecuted()) {
+                    lastStmtExecCmd = newStmtCmd;
+                }
             }
-        } finally {
-            if (newStmtCmd.wasExecuted())
-                lastStmtExecCmd = newStmtCmd;
-        }
+        } while (cont);
     }
 
     /**
@@ -793,6 +838,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        ConfigurableRetryLogic.getInstance().storeLastQuery(sql);
         executeStatement(new StmtExecCmd(this, sql, EXECUTE, NO_GENERATED_KEYS));
         loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
