@@ -39,6 +39,10 @@ public class ConfigurableRetryLogic {
     private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
     private static final String RETRY_EXEC = "retryExec";
+    private static final String RETRY_CONN = "retryConn";
+    private static final String STATEMENT = "statement";
+    private static final String CONNECTION = "connection";
+    private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
     /**
      * The time the properties file was last modified.
      */
@@ -52,13 +56,22 @@ public class ConfigurableRetryLogic {
      */
     private static final AtomicReference<String> lastQuery = new AtomicReference<>("");
     /**
-     * The previously read rules from the connection string.
+     * The previously read statement rules from the connection string.
      */
-    private static final AtomicReference<String> prevRulesFromConnectionString = new AtomicReference<>("");
+    private static final AtomicReference<String> prevStmtRulesFromConnString = new AtomicReference<>("");
+    /**
+     * The previously read connection rules from the connection string.
+     */
+    private static final AtomicReference<String> prevConnRulesFromConnString = new AtomicReference<>("");
     /**
      * The list of statement retry rules.
      */
     private static final AtomicReference<HashMap<Integer, ConfigurableRetryRule>> stmtRules = new AtomicReference<>(
+            new HashMap<>());
+    /**
+     * The list of connection retry rules.
+     */
+    private static final AtomicReference<HashMap<Integer, ConfigurableRetryRule>> connRules = new AtomicReference<>(
             new HashMap<>());
     private static ConfigurableRetryLogic singleInstance;
 
@@ -70,7 +83,8 @@ public class ConfigurableRetryLogic {
      */
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead.compareAndSet(0, new Date().getTime());
-        setUpRules(null);
+        setUpRules(null, STATEMENT);
+        setUpRules(null, CONNECTION);
     }
 
     /**
@@ -102,7 +116,8 @@ public class ConfigurableRetryLogic {
 
     /**
      * If it has been INTERVAL_BETWEEN_READS_IN_MS (30 secs) since last read, see if we last did a file read, if so
-     * only reread if the file has been modified. If no file read, set up rules using the prev. connection string rules.
+     * only reread if the file has been modified. If no file read, set up rules using the previous connection
+     * string (statement and connection) rules
      *
      * @throws SQLServerException
      *         when an exception occurs
@@ -116,10 +131,12 @@ public class ConfigurableRetryLogic {
                 // If timeLastModified is set, we previously read from file, so we setUpRules also reading from file
                 File f = new File(getCurrentClassPath());
                 if (f.lastModified() != timeLastModified.get()) {
-                    setUpRules(null);
+                    setUpRules(null, STATEMENT);
+                    setUpRules(null, CONNECTION);
                 }
             } else {
-                setUpRules(prevRulesFromConnectionString.get());
+                setUpRules(prevStmtRulesFromConnString.get(), STATEMENT);
+                setUpRules(prevConnRulesFromConnString.get(), CONNECTION);
             }
         }
     }
@@ -133,8 +150,10 @@ public class ConfigurableRetryLogic {
      *         when an exception occurs
      */
     void setFromConnectionString(String newRules) throws SQLServerException {
-        prevRulesFromConnectionString.set(newRules);
-        setUpRules(prevRulesFromConnectionString.get());
+        prevStmtRulesFromConnString.set(newRules);
+        prevConnRulesFromConnString.set(newRules);
+        setUpRules(prevStmtRulesFromConnString.get(), STATEMENT);
+        setUpRules(prevConnRulesFromConnString.get(), CONNECTION);
     }
 
     /**
@@ -160,23 +179,28 @@ public class ConfigurableRetryLogic {
      * Sets up rules based on either connection string option or file read.
      *
      * @param cxnStrRules
-     *        if null, rules are constructed from file, else, this parameter is used to construct rules
+     *          if null, rules are constructed from file, else, this parameter is used to construct rules
+     * @param ruleType
+     *          either "statement" or "connection" for statement or connection rules respectively
      * @throws SQLServerException
-     *         if an exception occurs
+     *          if an exception occurs
      */
-    private static void setUpRules(String cxnStrRules) throws SQLServerException {
+    private static void setUpRules(String cxnStrRules, String ruleType) throws SQLServerException {
         LinkedList<String> temp;
-
-        stmtRules.set(new HashMap<>());
         lastQuery.set("");
 
         if (cxnStrRules == null || cxnStrRules.isEmpty()) {
-            temp = readFromFile();
+            if (ruleType.equals(STATEMENT)) {
+                temp = readFromFile(RETRY_EXEC);
+            } else {
+                temp = readFromFile(RETRY_CONN);
+            }
+
         } else {
             temp = new LinkedList<>();
             Collections.addAll(temp, cxnStrRules.split(SEMI_COLON));
         }
-        createRules(temp);
+        createRules(temp, ruleType);
     }
 
     /**
@@ -184,10 +208,13 @@ public class ConfigurableRetryLogic {
      *
      * @param listOfRules
      *        the list of rules, as a String LinkedList
+     * @param ruleType
+     *          the type of rule; either "statement" or "connection
      * @throws SQLServerException
      *         if unable to create rules from the inputted list
      */
-    private static void createRules(LinkedList<String> listOfRules) throws SQLServerException {
+    private static void createRules(LinkedList<String> listOfRules, String ruleType) throws SQLServerException {
+        connRules.set(new HashMap<>());
         stmtRules.set(new HashMap<>());
 
         for (String potentialRule : listOfRules) {
@@ -198,10 +225,29 @@ public class ConfigurableRetryLogic {
 
                 for (String retryError : arr) {
                     ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
-                    stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
+                    if (rule.isConnection) {
+//                        if (rule.replaceExisting) {
+//                            if (!replaceFlag) {
+//                                connRules.set(new HashMap<>());
+//                            }
+//                            replaceFlag = true;
+//                        }
+                        connRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
+                    } else {
+                        stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
+                    }
+
                 }
             } else {
-                stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
+                if (rule.isConnection) {
+//                    if (rule.replaceExisting) {
+//                        connRules.set(new HashMap<>());
+//                        replaceFlag = true;
+//                    }
+                    connRules.get().put(Integer.parseInt(rule.getError()), rule);
+                } else {
+                    stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
+                }
             }
         }
     }
@@ -241,7 +287,7 @@ public class ConfigurableRetryLogic {
      * @throws SQLServerException
      *         if unable to read from the file
      */
-    private static LinkedList<String> readFromFile() throws SQLServerException {
+    private static LinkedList<String> readFromFile(String connectionStringProperty) throws SQLServerException {
         String filePath = getCurrentClassPath();
         LinkedList<String> list = new LinkedList<>();
 
@@ -250,7 +296,7 @@ public class ConfigurableRetryLogic {
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
                 while ((readLine = buffer.readLine()) != null) {
-                    if (readLine.startsWith(RETRY_EXEC)) {
+                    if (readLine.startsWith(connectionStringProperty)) { // Either "retryExec" or "retryConn"
                         String value = readLine.split(EQUALS_SIGN)[1];
                         Collections.addAll(list, value.split(SEMI_COLON));
                     }
@@ -280,13 +326,25 @@ public class ConfigurableRetryLogic {
      * @throws SQLServerException
      *         when an exception occurs
      */
-    ConfigurableRetryRule searchRuleSet(int ruleToSearchFor) throws SQLServerException {
+    ConfigurableRetryRule searchRuleSet(int ruleToSearchFor, String ruleSet) throws SQLServerException {
         refreshRuleSet();
-        for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.get().entrySet()) {
-            if (entry.getKey() == ruleToSearchFor) {
-                return entry.getValue();
+        if (ruleSet.equals(STATEMENT)) {
+            for (Map.Entry<Integer, ConfigurableRetryRule> entry : stmtRules.get().entrySet()) {
+                if (entry.getKey() == ruleToSearchFor) {
+                    return entry.getValue();
+                }
+            }
+        } else {
+            for (Map.Entry<Integer, ConfigurableRetryRule> entry : connRules.get().entrySet()) {
+                if (entry.getKey() == ruleToSearchFor) {
+                    return entry.getValue();
+                }
             }
         }
         return null;
+    }
+
+    boolean getReplaceFlag() {
+        return replaceFlag;
     }
 }

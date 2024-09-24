@@ -32,7 +32,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 /**
- * Test statement retry for configurable retry logic.
+ * Test connection and statement retry for configurable retry logic.
  */
 public class ConfigurableRetryLogicTest extends AbstractTest {
     /**
