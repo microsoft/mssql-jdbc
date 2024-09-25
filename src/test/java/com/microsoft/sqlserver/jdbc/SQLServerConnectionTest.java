@@ -457,16 +457,25 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     /**
+     * Runs the `testConnectCountInLoginAndCorrectRetryCount` test several times with different values of
+     * connectRetryCount.
+     */
+    @Test
+    public void testConnectCountInLoginAndCorrectRetryCountForMultipleValues() {
+        testConnectCountInLoginAndCorrectRetryCount(0);
+        testConnectCountInLoginAndCorrectRetryCount(1);
+        testConnectCountInLoginAndCorrectRetryCount(2);
+    }
+
+    /**
      * Tests whether connectRetryCount and connectRetryInterval are properly respected in the login loop. As well, tests
      * that connection is retried the proper number of times.
      */
-    @Test
-    public void testConnectCountInLoginAndCorrectRetryCount() {
+    private void testConnectCountInLoginAndCorrectRetryCount(int connectRetryCount) {
         long timerStart = 0;
 
-        int connectRetryCount = 0;
         int connectRetryInterval = 60;
-        int longLoginTimeout = loginTimeOutInSeconds * 3; // 90 seconds
+        int longLoginTimeout = loginTimeOutInSeconds * 9; // 90 seconds
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
@@ -492,6 +501,15 @@ public class SQLServerConnectionTest extends AbstractTest {
 
             // Maximum is unknown, but is needs to be less than longLoginTimeout or else this is an issue.
             assertTrue(totalTime < (longLoginTimeout * 1000L), TestResource.getResource("R_executionTooLong"));
+
+            // We should at least take as long as the retry interval between all retries past the first.
+            // Of the above acceptable errors (R_cannotOpenDatabase, R_loginFailedMI, R_MInotAvailable), only
+            // R_cannotOpenDatabase is transient, and can be used to measure multiple retries with retry interval. The
+            // others will exit before they have a chance to wait, and min will be too low.
+            if (e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))) {
+                int minTimeInSecs = connectRetryInterval * (connectRetryCount - 1);
+                assertTrue(totalTime > (minTimeInSecs * 1000L), TestResource.getResource("R_executionNotLong"));
+            }
         }
     }
 
@@ -802,9 +820,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                || (TestUtils.getProperty(connectionString, "msiClientId") != null
                                     && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                                        .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -835,9 +853,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                || (TestUtils.getProperty(connectionString, "msiClientId") != null
                                     && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                                        .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -869,8 +887,8 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_loginFailed"))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null
-                                    && e.getMessage().toLowerCase()
-                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                                && e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
@@ -1049,8 +1067,8 @@ public class SQLServerConnectionTest extends AbstractTest {
                 ds.setURL(connectionString);
                 ds.setServerName("invalidServerName" + UUID.randomUUID());
                 ds.setLoginTimeout(30);
-                ds.setConnectRetryCount(3);
-                ds.setConnectRetryInterval(10);
+                ds.setConnectRetryCount(6);
+                ds.setConnectRetryInterval(20);
                 try (Connection con = ds.getConnection()) {} catch (SQLException e) {}
             }
         };
