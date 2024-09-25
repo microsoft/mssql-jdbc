@@ -22,8 +22,11 @@ public class SQLServerWarning extends SQLWarning {
     /** SQL server error */
     private SQLServerError sqlServerError;
 
-    /*
+    /**
      * Create a SQLWarning from an SQLServerError object
+     * 
+     * @param sqlServerError
+     *        SQL Server error
      */
     public SQLServerWarning(SQLServerError sqlServerError) {
         super(sqlServerError.getErrorMessage(), SQLServerException.generateStateCode(null,

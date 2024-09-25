@@ -179,6 +179,12 @@ public final class SQLServerException extends java.sql.SQLException {
         logException(obj, errText, bStack);
     }
 
+    /**
+     * Constructs a new SQLServerException from SQL Server error
+     * 
+     * @param sqlServerError
+     *        SQL Server error
+     */
     public SQLServerException(SQLServerError sqlServerError) {
         super(sqlServerError.getErrorMessage(),
                 generateStateCode(null, sqlServerError.getErrorNumber(), sqlServerError.getErrorState()),

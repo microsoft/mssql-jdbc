@@ -10,6 +10,9 @@ package com.microsoft.sqlserver.jdbc;
 @FunctionalInterface
 public interface ReconnectListener {
 
+    /**
+     * called before reconnect
+     */
     void beforeReconnect();
 
 }
