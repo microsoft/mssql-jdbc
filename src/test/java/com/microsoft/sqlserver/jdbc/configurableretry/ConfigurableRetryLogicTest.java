@@ -5,9 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc.configurableretry;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.sql.CallableStatement;
@@ -29,6 +26,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
@@ -66,6 +65,31 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             String test = conn.getRetryExec();
             assertTrue(test.isEmpty());
             conn.setRetryExec("{2714:3,2*2:CREATE;2715:1,3}");
+            test = conn.getRetryExec();
+            assertFalse(test.isEmpty());
+            try {
+                PreparedStatement ps = conn.prepareStatement("create table " + CRLTestTable + " (c1 int null);");
+                createTable(s);
+                ps.execute();
+                Assertions.fail(TestResource.getResource("R_expectedFailPassed"));
+            } catch (SQLServerException e) {
+                assertTrue(e.getMessage().startsWith("There is already an object"),
+                        TestResource.getResource("R_unexpectedExceptionContent") + ": " + e.getMessage());
+            } finally {
+                dropTable(s);
+            }
+        }
+    }
+
+    @Test
+    public void testRetryConnConnectionStringOption() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+                Statement s = conn.createStatement()) {
+            String test = conn.getRetryConn();
+            assertTrue(test.isEmpty());
+            conn.setRetryConn("{4060}");
+            test = conn.getRetryConn();
+            assertFalse(test.isEmpty());
             try {
                 PreparedStatement ps = conn.prepareStatement("create table " + CRLTestTable + " (c1 int null);");
                 createTable(s);
