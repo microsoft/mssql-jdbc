@@ -56,6 +56,10 @@ final class SQLCollation implements java.io.Serializable {
         return encoding.hasAsciiCompatibleSBCS();
     }
 
+    boolean isUtf8Encoding() {
+        return encoding.equals(Encoding.UTF8);
+    }
+
     static final int tdsLength() {
         return TDS_LENGTH;
     } // Length of collation in TDS (in bytes)
