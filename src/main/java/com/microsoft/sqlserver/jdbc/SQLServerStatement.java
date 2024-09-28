@@ -256,7 +256,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 ConfigurableRetryRule rule = null;
 
                 if (null != sqlServerError) {
-                    rule = crl.searchRuleSet(e.getSQLServerError().getErrorNumber());
+                    rule = crl.searchRuleSet(e.getSQLServerError().getErrorNumber(), "statement");
                 }
 
                 // If there is a rule for this error AND we still have retries remaining THEN we can proceed, otherwise
