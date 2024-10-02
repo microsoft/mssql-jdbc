@@ -5,6 +5,10 @@
 
 package com.microsoft.sqlserver.jdbc.configurableretry;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.sql.CallableStatement;
@@ -26,8 +30,6 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
@@ -511,13 +513,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
 
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+            if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
                 // Only check the timing if the correct error, "cannot open database", is returned.
                 totalTime = System.currentTimeMillis() - timerStart;
                 assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
@@ -537,13 +538,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
 
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+            if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
                 // Only check the timing if the correct error, "cannot open database", is returned.
                 totalTime = System.currentTimeMillis() - timerStart;
                 assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime
@@ -563,13 +563,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
 
-            if (e.getMessage().toLowerCase()
-                    .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
+            if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
                 // Only check the timing if the correct error, "cannot open database", is returned.
                 totalTime = System.currentTimeMillis() - timerStart;
                 assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime

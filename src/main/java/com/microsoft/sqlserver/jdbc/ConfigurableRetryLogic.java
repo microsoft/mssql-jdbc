@@ -189,9 +189,9 @@ public class ConfigurableRetryLogic {
      * Sets up rules based on either connection string option or file read.
      *
      * @param cxnStrRules
-     *          if null, rules are constructed from file, else, this parameter is used to construct rules
+     *        if null, rules are constructed from file, else, this parameter is used to construct rules
      * @throws SQLServerException
-     *          if an exception occurs
+     *         if an exception occurs
      */
     private static void setUpStatementRules(String cxnStrRules) throws SQLServerException {
         LinkedList<String> temp;
@@ -243,7 +243,7 @@ public class ConfigurableRetryLogic {
                 for (String retryError : arr) {
                     ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
                     stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
-                    }
+                }
             } else {
                 stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
             }
