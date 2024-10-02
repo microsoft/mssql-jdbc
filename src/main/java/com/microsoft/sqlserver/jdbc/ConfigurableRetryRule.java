@@ -76,7 +76,7 @@ class ConfigurableRetryRule {
     }
 
     private String appendOrReplace(String retryError) {
-        if (retryError.charAt(0) == '+') {
+        if (retryError.startsWith(PLUS_SIGN)) {
             replaceExisting = false;
             StringUtils.isNumeric(retryError.substring(1));
             return retryError.substring(1);

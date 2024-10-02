@@ -41,7 +41,6 @@ public class ConfigurableRetryLogic {
     private static final String RETRY_EXEC = "retryExec";
     private static final String RETRY_CONN = "retryConn";
     private static final String STATEMENT = "statement";
-    private static final String CONNECTION = "connection";
     private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
     /**
      * The time the properties file was last modified.
@@ -83,8 +82,8 @@ public class ConfigurableRetryLogic {
      */
     private ConfigurableRetryLogic() throws SQLServerException {
         timeLastRead.compareAndSet(0, new Date().getTime());
-        setUpRules(null, STATEMENT);
-        setUpRules(null, CONNECTION);
+        setUpStatementRules(null);
+        setUpConnectionRules(null);
     }
 
     /**
@@ -131,12 +130,12 @@ public class ConfigurableRetryLogic {
                 // If timeLastModified is set, we previously read from file, so we setUpRules also reading from file
                 File f = new File(getCurrentClassPath());
                 if (f.lastModified() != timeLastModified.get()) {
-                    setUpRules(null, STATEMENT);
-                    setUpRules(null, CONNECTION);
+                    setUpStatementRules(null);
+                    setUpConnectionRules(null);
                 }
             } else {
-                setUpRules(prevStmtRulesFromConnString.get(), STATEMENT);
-                setUpRules(prevConnRulesFromConnString.get(), CONNECTION);
+                setUpStatementRules(prevStmtRulesFromConnString.get());
+                setUpConnectionRules(prevConnRulesFromConnString.get());
             }
         }
     }
@@ -151,7 +150,7 @@ public class ConfigurableRetryLogic {
      */
     void setStatementRulesFromConnectionString(String newRules) throws SQLServerException {
         prevStmtRulesFromConnString.set(newRules);
-        setUpRules(prevStmtRulesFromConnString.get(), STATEMENT);
+        setUpStatementRules(prevStmtRulesFromConnString.get());
     }
 
     /**
@@ -164,7 +163,7 @@ public class ConfigurableRetryLogic {
      */
     void setConnectionRulesFromConnectionString(String newRules) throws SQLServerException {
         prevConnRulesFromConnString.set(newRules);
-        setUpRules(prevConnRulesFromConnString.get(), CONNECTION);
+        setUpConnectionRules(prevConnRulesFromConnString.get());
     }
 
     /**
@@ -191,27 +190,37 @@ public class ConfigurableRetryLogic {
      *
      * @param cxnStrRules
      *          if null, rules are constructed from file, else, this parameter is used to construct rules
-     * @param ruleType
-     *          either "statement" or "connection" for statement or connection rules respectively
      * @throws SQLServerException
      *          if an exception occurs
      */
-    private static void setUpRules(String cxnStrRules, String ruleType) throws SQLServerException {
+    private static void setUpStatementRules(String cxnStrRules) throws SQLServerException {
         LinkedList<String> temp;
+
+        stmtRules.set(new HashMap<>());
         lastQuery.set("");
 
         if (cxnStrRules == null || cxnStrRules.isEmpty()) {
-            if (ruleType.equals(STATEMENT)) {
-                temp = readFromFile(RETRY_EXEC);
-            } else {
-                temp = readFromFile(RETRY_CONN);
-            }
-
+            temp = readFromFile(RETRY_EXEC);
         } else {
             temp = new LinkedList<>();
             Collections.addAll(temp, cxnStrRules.split(SEMI_COLON));
         }
-        createRules(temp, ruleType);
+        createStatementRules(temp);
+    }
+
+    private static void setUpConnectionRules(String cxnStrRules) throws SQLServerException {
+        LinkedList<String> temp;
+
+        connRules.set(new HashMap<>());
+        lastQuery.set("");
+
+        if (cxnStrRules == null || cxnStrRules.isEmpty()) {
+            temp = readFromFile(RETRY_CONN);
+        } else {
+            temp = new LinkedList<>();
+            Collections.addAll(temp, cxnStrRules.split(SEMI_COLON));
+        }
+        createConnectionRules(temp);
     }
 
     /**
@@ -219,13 +228,10 @@ public class ConfigurableRetryLogic {
      *
      * @param listOfRules
      *        the list of rules, as a String LinkedList
-     * @param ruleType
-     *          the type of rule; either "statement" or "connection
      * @throws SQLServerException
      *         if unable to create rules from the inputted list
      */
-    private static void createRules(LinkedList<String> listOfRules, String ruleType) throws SQLServerException {
-        connRules.set(new HashMap<>());
+    private static void createStatementRules(LinkedList<String> listOfRules) throws SQLServerException {
         stmtRules.set(new HashMap<>());
 
         for (String potentialRule : listOfRules) {
@@ -236,25 +242,33 @@ public class ConfigurableRetryLogic {
 
                 for (String retryError : arr) {
                     ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
-                    if (rule.isConnection) {
-                        if (rule.replaceExisting) {
-                            replaceFlag = true;
-                        }
-                        connRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
-                    } else {
-                        stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
+                    stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
                     }
+            } else {
+                stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
+            }
+        }
+    }
 
+    private static void createConnectionRules(LinkedList<String> listOfRules) throws SQLServerException {
+        connRules.set(new HashMap<>());
+        replaceFlag = false;
+
+        for (String potentialRule : listOfRules) {
+            ConfigurableRetryRule rule = new ConfigurableRetryRule(potentialRule);
+            if (rule.replaceExisting) {
+                replaceFlag = true;
+            }
+
+            if (rule.getError().contains(COMMA)) {
+                String[] arr = rule.getError().split(COMMA);
+
+                for (String retryError : arr) {
+                    ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
+                    connRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
                 }
             } else {
-                if (rule.isConnection) {
-                    if (rule.replaceExisting) {
-                        replaceFlag = true;
-                    }
-                    connRules.get().put(Integer.parseInt(rule.getError()), rule);
-                } else {
-                    stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
-                }
+                connRules.get().put(Integer.parseInt(rule.getError()), rule);
             }
         }
     }
