@@ -2402,7 +2402,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 retryExec = sPropValue;
-                ConfigurableRetryLogic.getInstance().setFromConnectionString(sPropValue);
+                ConfigurableRetryLogic.getInstance().setStatementRulesFromConnectionString(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.RETRY_CONN.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.RETRY_CONN.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                retryConn = sPropValue;
+                ConfigurableRetryLogic.getInstance().setConnectionRulesFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);

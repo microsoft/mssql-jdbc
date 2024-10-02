@@ -142,17 +142,28 @@ public class ConfigurableRetryLogic {
     }
 
     /**
-     * Sets rules given from connection string.
+     * Sets statement rules given from connection string.
      *
      * @param newRules
      *        the new rules to use
      * @throws SQLServerException
      *         when an exception occurs
      */
-    void setFromConnectionString(String newRules) throws SQLServerException {
+    void setStatementRulesFromConnectionString(String newRules) throws SQLServerException {
         prevStmtRulesFromConnString.set(newRules);
-        prevConnRulesFromConnString.set(newRules);
         setUpRules(prevStmtRulesFromConnString.get(), STATEMENT);
+    }
+
+    /**
+     * Sets connection rules given from connection string.
+     *
+     * @param newRules
+     *        the new rules to use
+     * @throws SQLServerException
+     *         when an exception occurs
+     */
+    void setConnectionRulesFromConnectionString(String newRules) throws SQLServerException {
+        prevConnRulesFromConnString.set(newRules);
         setUpRules(prevConnRulesFromConnString.get(), CONNECTION);
     }
 
@@ -226,12 +237,9 @@ public class ConfigurableRetryLogic {
                 for (String retryError : arr) {
                     ConfigurableRetryRule splitRule = new ConfigurableRetryRule(retryError, rule);
                     if (rule.isConnection) {
-//                        if (rule.replaceExisting) {
-//                            if (!replaceFlag) {
-//                                connRules.set(new HashMap<>());
-//                            }
-//                            replaceFlag = true;
-//                        }
+                        if (rule.replaceExisting) {
+                            replaceFlag = true;
+                        }
                         connRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
                     } else {
                         stmtRules.get().put(Integer.parseInt(splitRule.getError()), splitRule);
@@ -240,10 +248,9 @@ public class ConfigurableRetryLogic {
                 }
             } else {
                 if (rule.isConnection) {
-//                    if (rule.replaceExisting) {
-//                        connRules.set(new HashMap<>());
-//                        replaceFlag = true;
-//                    }
+                    if (rule.replaceExisting) {
+                        replaceFlag = true;
+                    }
                     connRules.get().put(Integer.parseInt(rule.getError()), rule);
                 } else {
                     stmtRules.get().put(Integer.parseInt(rule.getError()), rule);
