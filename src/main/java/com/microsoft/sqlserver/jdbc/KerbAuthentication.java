@@ -10,6 +10,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 import javax.security.auth.Subject;
@@ -96,8 +97,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 Subject currentSubject;
                 KerbCallback callback = new KerbCallback(con);
                 try {
-                    AccessControlContext context = AccessController.getContext();
-                    currentSubject = Subject.getSubject(context);
+                    currentSubject = Subject.current();
                     if (null == currentSubject) {
                         if (useDefaultJaas) {
                             lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
@@ -176,7 +176,10 @@ final class KerbAuthentication extends SSPIAuthentication {
         // TO support java 5, 6 we have to do this
         // The signature for Java 5 returns an object 6 returns GSSCredential, immediate casting throws
         // warning in Java 6.
-        Object credential = Subject.doAs(subject, action);
+        Object credential = Subject.callAs(subject, (Callable<Object>) () -> {
+            return action.run(); // Assuming action is a PrivilegedAction
+        });
+
         return (GSSCredential) credential;
     }
 
