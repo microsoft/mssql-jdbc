@@ -1364,6 +1364,22 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getRetryExec();
 
     /**
+     * Returns value of 'retryConn' from Connection String.
+     *
+     * @param retryConn
+     *          Set of rules used for connection retry
+     */
+    void setRetryConn(String retryConn);
+
+    /**
+     * Sets the value for 'retryConn' property
+     *
+     * @return retryConn
+     *         String value
+     */
+    String getRetryConn();
+
+    /**
      * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
      *
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.

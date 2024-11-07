@@ -611,7 +611,8 @@ enum SQLServerDriverStringProperty {
     SERVER_CERTIFICATE("serverCertificate", ""),
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
-    RETRY_EXEC("retryExec", "");
+    RETRY_EXEC("retryExec", ""),
+    RETRY_CONN("retryConn", "");
 
     private final String name;
     private final String defaultValue;
@@ -855,6 +856,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_EXEC.toString(),
                     SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_CONN.toString(),
+                    SQLServerDriverStringProperty.RETRY_CONN.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.REPLICATION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.REPLICATION.getDefaultValue()), false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.SEND_TIME_AS_DATETIME.toString(),

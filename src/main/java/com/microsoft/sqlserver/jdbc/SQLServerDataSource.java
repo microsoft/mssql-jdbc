@@ -1383,14 +1383,46 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
     }
 
+    /**
+     * Sets the 'retryExec' setting.
+     *
+     * @param retryExec
+     *        String property giving the custom statement retry rules to use for configurable retry logic
+     */
     @Override
     public void setRetryExec(String retryExec) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), retryExec);
     }
 
+    /**
+     * Returns the value for 'retryExec'.
+     *
+     * @return retryExec String value
+     */
     @Override
     public String getRetryExec() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), null);
+    }
+
+    /**
+     * Sets the 'retryConn' setting.
+     *
+     * @param retryConn
+     *        String property giving the custom connection retry rules to use for configurable retry logic
+     */
+    @Override
+    public void setRetryConn(String retryConn) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_CONN.toString(), retryConn);
+    }
+
+    /**
+     * Returns the value for 'retryConn'.
+     *
+     * @return retryConn String value
+     */
+    @Override
+    public String getRetryConn() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_CONN.toString(), null);
     }
 
     /**
