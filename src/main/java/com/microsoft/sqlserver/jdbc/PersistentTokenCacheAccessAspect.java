@@ -28,6 +28,13 @@ public class PersistentTokenCacheAccessAspect implements ITokenCacheAccessAspect
     static final long TIME_TO_LIVE = 86400000L; // Token cache time to live (24 hrs).
     private long expiryTime;
 
+    /**
+     * default constructor
+     */
+    public PersistentTokenCacheAccessAspect() {
+        // default constructor
+    }
+
     static PersistentTokenCacheAccessAspect getInstance() {
         if (instance == null) {
             instance = new PersistentTokenCacheAccessAspect();
