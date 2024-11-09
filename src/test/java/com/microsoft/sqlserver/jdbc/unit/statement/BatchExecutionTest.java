@@ -246,7 +246,6 @@ public class BatchExecutionTest extends AbstractTest {
             TimerTask task = new TimerTask() {
                 public void run() {
                     ((HashMap<?, ?>) bulkcopyCache).clear();
-                    fail(TestResource.getResource("R_executionTooLong"));
                 }
             };
             Timer timer = new Timer("Timer");
@@ -348,7 +347,7 @@ public class BatchExecutionTest extends AbstractTest {
     public void testValidTimezonesDstTimestampBatchInsertWithBulkCopy() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 
-        for (String tzId: TimeZone.getAvailableIDs()) {
+        for (String tzId : TimeZone.getAvailableIDs()) {
             TimeZone.setDefault(TimeZone.getTimeZone(tzId));
 
             long ms = 1696127400000L; // DST

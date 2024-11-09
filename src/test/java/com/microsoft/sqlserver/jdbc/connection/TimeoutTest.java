@@ -172,7 +172,9 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
-    // Test connect retry set to 0 (disabled)
+    /**
+     * Test connect retry set to 0 (disabled)
+     */
     @Test
     public void testConnectRetryDisable() {
         long totalTime = 0;
@@ -180,10 +182,10 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent server with long loginTimeout, should return fast if no retries at all
+        // non-existent server with long loginTimeout, should return fast if no retries at all
         try (Connection con = PrepUtil.getConnection(
                 "jdbc:sqlserver://" + randomServer + ";transparentNetworkIPResolution=false;loginTimeout=" + timeout
-                        + ";connectRetryCount=0;connectInterval=" + interval)) {
+                        + ";connectRetryCount=0;connectRetryInterval=" + interval)) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
             totalTime = System.currentTimeMillis() - timerStart;
@@ -230,7 +232,9 @@ public class TimeoutTest extends AbstractTest {
                 "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
-    // Test connect retry for database error
+    /**
+     * Test connect retry, with one retry interval, for database error
+     */
     @Test
     public void testConnectRetryServerError() {
         String auth = TestUtils.getProperty(connectionString, "authentication");
@@ -242,10 +246,10 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long timeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
+        // non-existent database with interval < loginTimeout this will generate a 4060 transient error and retry 2 times
         try (Connection con = PrepUtil.getConnection(
                 TestUtils.addOrOverrideProperty(connectionString, "database", RandomUtil.getIdentifier("database"))
-                        + ";loginTimeout=" + timeout + ";connectRetryCount=" + 1 + ";connectRetryInterval=" + interval
+                        + ";loginTimeout=" + timeout + ";connectRetryCount=" + 2 + ";connectRetryInterval=" + interval
                         + ";transparentNetworkIPResolution=false")) {
             fail(TestResource.getResource("R_shouldNotConnect"));
         } catch (Exception e) {
@@ -261,14 +265,16 @@ public class TimeoutTest extends AbstractTest {
                     e.getMessage());
         }
 
-        // 1 retry should be at least 1 interval long but < 2 intervals
+        // 2 retries should be at least 1 interval long but < 2 intervals (no interval between initial attempt and retry 1)
         assertTrue(TimeUnit.SECONDS.toMillis(interval) < totalTime,
                 "interval: " + TimeUnit.SECONDS.toMillis(interval) + " total time: " + totalTime);
         assertTrue(totalTime < TimeUnit.SECONDS.toMillis(2 * interval),
                 "total time: " + totalTime + " 2 * interval: " + TimeUnit.SECONDS.toMillis(interval));
     }
 
-    // Test connect retry for database error using Datasource
+    /**
+     * Test connect retry, with one retry interval, for database error using Datasource
+     */
     @Test
     public void testConnectRetryServerErrorDS() {
         String auth = TestUtils.getProperty(connectionString, "authentication");
@@ -280,10 +286,10 @@ public class TimeoutTest extends AbstractTest {
         int interval = defaultTimeout; // long interval so we can tell if there was a retry
         long loginTimeout = defaultTimeout * 2; // long loginTimeout to accommodate the long interval
 
-        // non existent database with interval < loginTimeout this will generate a 4060 transient error and retry 1 time
+        // non-existent database with interval < loginTimeout this will generate a 4060 transient error and retry 2 times
         SQLServerDataSource ds = new SQLServerDataSource();
         String connectStr = TestUtils.addOrOverrideProperty(connectionString, "database",
-                RandomUtil.getIdentifier("database")) + ";logintimeout=" + loginTimeout + ";connectRetryCount=1"
+                RandomUtil.getIdentifier("database")) + ";loginTimeout=" + loginTimeout + ";connectRetryCount=2"
                 + ";connectRetryInterval=" + interval;
         updateDataSource(connectStr, ds);
 
@@ -301,7 +307,7 @@ public class TimeoutTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
         }
 
-        // 1 retry should be at least 1 interval long but < 2 intervals
+        // 2 retries should be at least 1 interval long but < 2 intervals (no interval between initial attempt and retry 1)
         assertTrue(TimeUnit.SECONDS.toMillis(interval) < totalTime,
                 "interval: " + TimeUnit.SECONDS.toMillis(interval) + " total time: " + totalTime);
         assertTrue(totalTime < TimeUnit.SECONDS.toMillis(2 * interval),

@@ -1064,6 +1064,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.calcBigDecimalPrecision = calcBigDecimalPrecision;
     }
 
+    /**
+     * Retry exec
+     */
     private String retryExec = SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue();
 
     /**
@@ -1783,10 +1786,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private List<ReconnectListener> reconnectListeners = new ArrayList<>();
 
+    /**
+     * Register before reconnect listener
+     * 
+     * @param reconnectListener
+     *        reconnect listener
+     */
     public void registerBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.add(reconnectListener);
     }
 
+    /**
+     * Remove before reconnect listener
+     * 
+     * @param reconnectListener
+     *        reconnect listener
+     */
     public void removeBeforeReconnectListener(ReconnectListener reconnectListener) {
         reconnectListeners.remove(reconnectListener);
     }
@@ -2016,7 +2031,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (0 == connectRetryCount) {
                         // connection retry disabled
                         throw e;
-                    } else if (connectRetryAttempt++ > connectRetryCount) {
+                    } else if (connectRetryAttempt++ >= connectRetryCount) {
                         // maximum connection retry count reached
                         if (connectionlogger.isLoggable(Level.FINE)) {
                             connectionlogger.fine("Connection failed. Maximum connection retry count "
@@ -2049,7 +2064,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + connectRetryInterval + ")s before retry.");
                         }
 
-                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        if (connectRetryAttempt > 1) {
+                            // We do not sleep for first retry; first retry is immediate
+                            sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                        }
                     }
                 }
             }
