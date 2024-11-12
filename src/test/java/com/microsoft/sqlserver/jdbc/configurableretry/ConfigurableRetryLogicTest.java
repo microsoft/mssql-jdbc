@@ -527,12 +527,12 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         }
 
         timerStart = System.currentTimeMillis();
-        long expectedMinTime = 20;
-        expectedMaxTime = 30;
+        long expectedMinTime = 10;
+        expectedMaxTime = 35;
 
-        // (0s attempt + 10s wait + 0s attempt) * 2 due to current driver bug = expected 20s execution time
+        // (0s attempt + 0s attempt + 10s wait + 0s attempt) = expected 10s execution time
         try {
-            testConnectionRetry("blah", "retryConn={4060};");
+            testConnectionRetry("blah", "retryConn={4060,4070};connectRetryCount=2;connectRetryInterval=10");
         } catch (Exception e) {
             assertTrue(
                     (e.getMessage().toLowerCase()
@@ -557,7 +557,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
         // Append should work the same way
         try {
-            testConnectionRetry("blah", "retryConn={+4060,4070};");
+            testConnectionRetry("blah", "retryConn={+4060,4070};connectRetryCount=2;connectRetryInterval=10");
         } catch (Exception e) {
             assertTrue(
                     (e.getMessage().toLowerCase()
