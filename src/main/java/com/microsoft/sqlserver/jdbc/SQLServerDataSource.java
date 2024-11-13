@@ -1397,8 +1397,8 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setQuotedIdentifier(String quotedIdentifer) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(), quotedIdentifer);
+    public void setQuotedIdentifier(String quotedIdentifier) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(), quotedIdentifier);
     }
 
     @Override
