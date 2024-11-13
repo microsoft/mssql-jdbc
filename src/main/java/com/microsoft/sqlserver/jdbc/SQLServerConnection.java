@@ -3269,6 +3269,38 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
+            // check QUOTED_IDENTIFIER property
+            String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
+            String quotedIdentiferValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
+            if (null == quotedIdentiferValue) {
+                quotedIdentiferValue = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue();
+                activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentiferValue);
+            }
+            String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentiferValue).toString();
+            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");           
+            } else if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
+
+            }
+
+            // check CONCAT_NULL_YIELDS_NULL property
+            String concatNullYieldsProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
+            String concatNullYieldsValue = activeConnectionProperties.getProperty(concatNullYieldsProperty);
+            if (null == concatNullYieldsValue) {
+                quotedIdentiferValue = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue();
+                activeConnectionProperties.setProperty(concatNullYieldsProperty, concatNullYieldsValue);
+            }
+            String concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsValue).toString();
+
+            if (concatNullYieldsOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
+
+            } else if (concatNullYieldsOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYields");
+
+            }
+
             state = State.OPENED;
 
             // Socket timeout is bounded by loginTimeout during the login phase.
@@ -3278,18 +3310,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
-        } catch (SocketException e) {
-            throw new SQLServerException(e.getMessage(), null);
-        } finally {
-            // once we exit the connect function, the connection can be only in one of two
-            // states, Opened or Closed(if an exception occurred)
-            if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
-                this.close();
-            }
+        }catch(
 
-            activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+    SocketException e)
+    {
+        throw new SQLServerException(e.getMessage(), null);
+    }finally
+    {
+        // once we exit the connect function, the connection can be only in one of two
+        // states, Opened or Closed(if an exception occurred)
+        if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
+            this.close();
         }
-        return this;
+
+        activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
+    }return this;
     }
 
     // log open connection failures
