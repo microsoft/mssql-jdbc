@@ -4,24 +4,32 @@
  */
 package com.microsoft.sqlserver.jdbc.fedauth;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.IClientCredential;
+import com.microsoft.aad.msal4j.ITokenCacheAccessAspect;
+import com.microsoft.aad.msal4j.ITokenCacheAccessContext;
 import com.microsoft.aad.msal4j.MsalThrottlingException;
-import com.microsoft.aad.msal4j.PublicClientApplication;
-import com.microsoft.aad.msal4j.UserNamePasswordParameters;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -35,6 +43,51 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @Tag(Constants.fedAuth)
+class FedauthTokenCache implements ITokenCacheAccessAspect {
+    private static FedauthTokenCache instance = new FedauthTokenCache();
+    private final Lock lock = new ReentrantLock();
+
+    private FedauthTokenCache() {}
+
+    static FedauthTokenCache getInstance() {
+        return instance;
+    }
+
+    private String cache = null;
+
+    @Override
+    public void beforeCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+        lock.lock();
+        try {
+            if (null != cache && null != iTokenCacheAccessContext && null != iTokenCacheAccessContext.tokenCache()) {
+                iTokenCacheAccessContext.tokenCache().deserialize(cache);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void afterCacheAccess(ITokenCacheAccessContext iTokenCacheAccessContext) {
+        lock.lock();
+        try {
+            if (null != iTokenCacheAccessContext && iTokenCacheAccessContext.hasCacheChanged()
+                    && null != iTokenCacheAccessContext.tokenCache())
+                cache = iTokenCacheAccessContext.tokenCache().serialize();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    static void clearUserTokenCache() {
+        if (null != instance.cache && !instance.cache.isEmpty()) {
+            instance.cache = null;
+        }
+    }
+}
+
+
+@Tag(Constants.fedAuth)
 public class FedauthCommon extends AbstractTest {
 
     static String azureServer = null;
@@ -42,8 +95,6 @@ public class FedauthCommon extends AbstractTest {
     static String azureUserName = null;
     static String azurePassword = null;
     static String azureGroupUserName = null;
-    static String azureAADPrincipalId = null;
-    static String azureAADPrincipalSecret = null;
 
     static boolean enableADIntegrated = false;
 
@@ -55,6 +106,7 @@ public class FedauthCommon extends AbstractTest {
     static String fedauthClientId = null;
     static long secondsBeforeExpiration = -1;
     static String accessToken = null;
+    static String certificatePassword = null;
     static String[] fedauthJksPaths = null;
     static String[] fedauthJksPathsLinux = null;
     static String[] fedauthJavaKeyAliases = null;
@@ -75,6 +127,8 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_HAS_CLOSED = TestResource.getResource("R_hasClosed");
     static final String ERR_MSG_HAS_BEEN_CLOSED = TestResource.getResource("R_hasBeenClosed");
     static final String ERR_MSG_SIGNIN_TOO_MANY = TestResource.getResource("R_signinTooManyTimes");
+    static final String ERR_FAULT_ID3342 = "FaultMessage: ID3242";
+    static final String ERR_FAULT_AUTH_FAIL = "FaultMessage: Authentication Failure";
     static final String ERR_MSG_NOT_AUTH_AND_IS = TestUtils.R_BUNDLE
             .getString("R_SetAuthenticationWhenIntegratedSecurityTrue");
     static final String ERR_MSG_NOT_AUTH_AND_USER_PASSWORD = TestUtils.R_BUNDLE
@@ -91,7 +145,8 @@ public class FedauthCommon extends AbstractTest {
         SqlPassword,
         ActiveDirectoryPassword,
         ActiveDirectoryIntegrated,
-        ActiveDirectoryServicePrincipal;
+        ActiveDirectoryServicePrincipal,
+        ActiveDirectoryServicePrincipalCertificate;
 
         static SqlAuthentication valueOfString(String value) throws SQLServerException {
             SqlAuthentication method = null;
@@ -124,8 +179,9 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
-        azureAADPrincipalId = getConfiguredProperty("AADSecurePrincipalId");
-        azureAADPrincipalSecret = getConfiguredProperty("AADSecurePrincipalSecret");
+
+        // password for service principal certificate
+        certificatePassword = getConfiguredProperty("certificatePassword");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
@@ -162,30 +218,34 @@ public class FedauthCommon extends AbstractTest {
         long interval = THROTTLE_RETRY_INTERVAL;
         while (retry <= THROTTLE_RETRY_COUNT) {
             try {
-                if (null == fedauthPcaApp) {
-                    fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
-                            .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                Set<String> scopes = new HashSet<>();
+                scopes.add(spn + "/.default");
+                if (null == fedauthClientApp) {
+                    IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
+                    fedauthClientApp = ConfidentialClientApplication.builder(applicationClientID, credential)
+                            .executorService(Executors.newFixedThreadPool(1))
+                            .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
                 }
 
-                final CompletableFuture<IAuthenticationResult> future = fedauthPcaApp
-                        .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
-                                azureUserName, azurePassword.toCharArray()).build());
+                final CompletableFuture<IAuthenticationResult> future = fedauthClientApp
+                        .acquireToken(ClientCredentialParameters.builder(scopes).build());
 
                 final IAuthenticationResult authenticationResult = future.get();
 
                 secondsBeforeExpiration = TimeUnit.MILLISECONDS
                         .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
                 accessToken = authenticationResult.accessToken();
+
                 retry = THROTTLE_RETRY_COUNT + 1;
             } catch (MsalThrottlingException te) {
                 interval = te.retryInMs();
                 if (!checkForRetry(te, retry++, interval)) {
+                    te.printStackTrace();
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
                 }
             } catch (Exception e) {
-                if (!checkForRetry(e, retry++, interval)) {
-                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + e.getMessage());
-                }
+                e.printStackTrace();
+                fail(ERR_FAILED_FEDAUTH + e.getMessage());
             }
         }
     }
@@ -195,8 +255,6 @@ public class FedauthCommon extends AbstractTest {
             return false;
         }
         try {
-            System.out
-                    .println(e.getMessage() + "Get FedAuth token failed, retry #" + retry + " in " + interval + " ms");
             Thread.sleep(interval);
         } catch (InterruptedException ex) {
             e.printStackTrace();
@@ -209,11 +267,12 @@ public class FedauthCommon extends AbstractTest {
     void testUserName(Connection conn, String user, SqlAuthentication authentication) throws SQLException {
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SUSER_SNAME()")) {
             rs.next();
-            if (SqlAuthentication.ActiveDirectoryIntegrated != authentication) {
-                assertTrue(user.equals(rs.getString(1)));
-            } else {
+            if (SqlAuthentication.ActiveDirectoryPassword == authentication
+                    || SqlAuthentication.SqlPassword == authentication) {
+                assertTrue(user.equals(rs.getString(1)), rs.getString(1));
+            } else if (SqlAuthentication.ActiveDirectoryIntegrated == authentication) {
                 if (isWindows) {
-                    assertTrue(rs.getString(1).contains(System.getProperty("user.name")));
+                    assertTrue(rs.getString(1).contains(System.getProperty("user.name")), rs.getString(1));
                 } else {
                     // cannot verify user in kerberos tickets so just check it's not empty
                     assertTrue(!rs.getString(1).isEmpty());
