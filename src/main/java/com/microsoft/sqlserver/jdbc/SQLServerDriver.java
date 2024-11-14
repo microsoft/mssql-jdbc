@@ -612,8 +612,8 @@ enum SQLServerDriverStringProperty {
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
     RETRY_EXEC("retryExec", ""),
-    QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.OFF.toString()),
-    CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.OFF.toString());
+    QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
+    CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString());
 
     private final String name;
     private final String defaultValue;
