@@ -319,6 +319,12 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyStorePrincipalId(stringPropValue);
         assertTrue(ds.getKeyStorePrincipalId().equals(stringPropValue));
+        
+        ds.setQuotedIdentifier(stringPropValue);
+        assertTrue(ds.getQuotedIdentifier().equals(stringPropValue));
+        
+        ds.setConcatNullYieldsNull(stringPropValue);
+        assertTrue(ds.getConcatNullYieldsNull().equals(stringPropValue));
     }
 
     @Test
