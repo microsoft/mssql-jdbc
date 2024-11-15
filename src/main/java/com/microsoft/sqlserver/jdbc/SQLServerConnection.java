@@ -3280,12 +3280,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
-            try (SQLServerStatement stmt = (SQLServerStatement) this.createStatement()) {
-                stmt.executeQueryInternal("SET QUOTED_IDENTIFIER "
-                        + ((quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) ? "OFF"
-                                                                                                         : "ON"));
-            } catch (Exception e) {
-                throw new SQLServerException(e.getMessage(), null);
+            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+            } else if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
             }
 
             // check CONCAT_NULL_YIELDS_NULL property
@@ -3296,12 +3294,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
             }
             String concatNullYieldsNullOption = OnOffOption.valueOfString(concatNullYieldsNullValue).toString();
-            try (SQLServerStatement stmt = (SQLServerStatement) this.createStatement()) {
-                stmt.executeQueryInternal("SET CONCAT_NULL_YIELDS_NULL "
-                        + ((concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) ? "OFF"
-                                                                                                             : "ON"));
-            } catch (Exception e) {
-                throw new SQLServerException(e.getMessage(), null);
+            if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYieldsNull");
+
+            } else if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYieldsNull");
             }
 
             // Socket timeout is bounded by loginTimeout during the login phase.
@@ -4557,6 +4554,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              */
             boolean commandComplete = false;
             try {
+                newCommand.createCounter(null, activeConnectionProperties);
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
                 /*
