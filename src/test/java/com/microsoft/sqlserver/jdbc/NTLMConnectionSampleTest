@@ -1,0 +1,31 @@
+package com.microsoft.sqlserver.jdbc;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import org.junit.Test;
+
+/**
+ * Added only for understanding the PR pipelines run.
+ */
+public class NTLMSampleTest {
+	
+	private static String connectionString = "jdbc:sqlserver://localhost;databaseName=mydatabase;"
+            + "authenticationScheme=NTLM;integratedSecurity=true;domain=mydomain;user=myuser;";
+
+    @Test
+    public void testNtlmAuthenticationString() {
+        try {
+            assertNotNull(connectionString, "Connection string should not be null");
+
+            if (connectionString.contains("NTLM") && connectionString.contains("integratedSecurity=true")) {
+                System.out.println("NTLM Authentication setup appears correct.");
+            } else {
+                fail("Connection string does not contain NTLM authentication properties.");
+            }
+
+        } catch (Exception e) {
+            fail("Unexpected error during NTLM authentication string verification: " + e.getMessage());
+        }
+    }
+}
