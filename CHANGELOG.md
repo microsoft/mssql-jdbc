@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.9.0] Preview Release
 ### Added
-- Added statement portion of configurable retry logic feature [#2396](https://github.com/microsoft/mssql-jdbc/pull/2396)
+- Added configurable retry logic feature, supporting both statement, and connection, retry [#2396](https://github.com/microsoft/mssql-jdbc/pull/2396)[#2519](https://github.com.mcas.ms/microsoft/mssql-jdbc/pull/2519)
 - Added JDK 23 support [#2515](https://github.com/microsoft/mssql-jdbc/pull/2515)
 
 ### Changed
@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Fixed issues
 - Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2482](https://github.com/microsoft/mssql-jdbc/pull/2482)
 - Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2484](https://github.com/microsoft/mssql-jdbc/pull/2484)
+- Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com.mcas.ms/microsoft/mssql-jdbc/pull/2513)
 
 ## [12.8.0] Stable Release
 ### Fixed issues
