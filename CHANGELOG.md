@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature [#2488](https://github.com/microsoft/mssql-jdbc/pull/2488)
-- Changed MSAL logging from FINER to FINEST [#2489](https://github.com/microsoft/mssql-jdbc/pull/2489)
+- Changed MSAL logging from FINEST to FINER [#2489](https://github.com/microsoft/mssql-jdbc/pull/2489)
 - Updated project pom file to pull dependencies from public Azure Artifacts Feed [#2504](https://github.com/microsoft/mssql-jdbc/pull/2504)
 - Changed how Kerberos authentication acquires subject to provide compatibility for Kerberos with Java 23 and above [#2539](https://github.com/microsoft/mssql-jdbc/pull/2539)
 
