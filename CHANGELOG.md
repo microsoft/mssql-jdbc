@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2482](https://github.com/microsoft/mssql-jdbc/pull/2482)
 - Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2484](https://github.com/microsoft/mssql-jdbc/pull/2484)
 - Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com/microsoft/mssql-jdbc/pull/2513)
+- Resolved JavaDoc warnings that would appear during project build [#2521](https://github.com/microsoft/mssql-jdbc/pull/2521)
 
 ## [12.8.0] Stable Release
 ### Fixed issues
