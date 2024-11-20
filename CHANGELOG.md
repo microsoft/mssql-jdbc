@@ -5,17 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.9.0] Preview Release
 ### Added
-- Added configurable retry logic feature, supporting both statement, and connection, retry [#2396](https://github.com/microsoft/mssql-jdbc/pull/2396)[#2519](https://github.com.mcas.ms/microsoft/mssql-jdbc/pull/2519)
+- Added configurable retry logic feature, supporting both statement, and connection, retry [#2396](https://github.com/microsoft/mssql-jdbc/pull/2396)[#2519](https://github.com/microsoft/mssql-jdbc/pull/2519)
 - Added JDK 23 support [#2515](https://github.com/microsoft/mssql-jdbc/pull/2515)
 
 ### Changed
 - Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature [#2488](https://github.com/microsoft/mssql-jdbc/pull/2488)
 - Changed MSAL logging from FINER to FINEST [#2489](https://github.com/microsoft/mssql-jdbc/pull/2489)
+- Updated project pom file to pull dependencies from public Azure Artifacts Feed [#2504](https://github.com/microsoft/mssql-jdbc/pull/2504)
+- Changed how Kerberos authentication acquires subject to provide compatibility for Kerberos with Java 23 and above [#2539](https://github.com/microsoft/mssql-jdbc/pull/2539)
 
 ### Fixed issues
 - Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2482](https://github.com/microsoft/mssql-jdbc/pull/2482)
 - Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2484](https://github.com/microsoft/mssql-jdbc/pull/2484)
-- Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com.mcas.ms/microsoft/mssql-jdbc/pull/2513)
+- Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com/microsoft/mssql-jdbc/pull/2513)
 
 ## [12.8.0] Stable Release
 ### Fixed issues
