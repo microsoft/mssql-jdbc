@@ -56,7 +56,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     /**
      * Test that the SQLServerConnection methods getRetryExec and setRetryExec correctly get the existing retryExec, and
      * set the retryExec connection parameter respectively.
-     *
+     * 
      * @throws Exception
      *         if an exception occurs
      */
@@ -108,7 +108,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry with prepared statements correctly retries given the provided retryExec rule.
-     *
+     * 
      * @throws Exception
      *         if unable to connect or execute against db
      */
@@ -133,7 +133,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry with callable statements correctly retries given the provided retryExec rule.
-     *
+     * 
      * @throws Exception
      *         if unable to connect or execute against db
      */
@@ -158,7 +158,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry with SQL server statements correctly retries given the provided retryExec rule.
-     *
+     * 
      * @throws Exception
      *         if unable to connect or execute against db
      */
@@ -391,7 +391,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry error correctly fail.
-     *
+     * 
      * @throws Exception
      *         for the invalid parameter
      */
@@ -414,7 +414,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry count correctly fail.
-     *
+     * 
      * @throws Exception
      *         for the invalid parameter
      */
@@ -437,7 +437,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid initial retry time correctly fail.
-     *
+     * 
      * @throws Exception
      *         for the invalid parameter
      */
@@ -460,7 +460,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid operand correctly fail.
-     *
+     * 
      * @throws Exception
      *         for the invalid parameter
      */
@@ -475,7 +475,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that rules with an invalid retry change correctly fail.
-     *
+     * 
      * @throws Exception
      *         for the invalid parameter
      */
