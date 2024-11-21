@@ -506,9 +506,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
         }
 
@@ -523,9 +523,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
 
             if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
@@ -546,9 +546,9 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                                    .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
+                                    .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
 
             if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
