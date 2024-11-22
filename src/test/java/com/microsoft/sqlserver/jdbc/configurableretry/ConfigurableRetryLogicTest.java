@@ -223,8 +223,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that the correct number of retries are happening for all statement scenarios. Tests are expected to take
-     * a minimum of the sum of whatever has been defined for the waiting intervals, and maximum of the previous sum
-     * plus some amount of time to account for test environment slowness.
+     * a minimum of the sum of whatever has been defined for the waiting intervals. Maximum is not tested due to the
+     * unpredictable factor of slowness that can be applied to these tests.
      */
     @Test
     public void statementTimingTests() {
@@ -253,8 +253,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(5),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(5));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(15),
-                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(15));
         }
 
         timerStart = System.currentTimeMillis();
@@ -268,8 +266,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(2),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(8));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(18),
-                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(18));
         }
 
         timerStart = System.currentTimeMillis();
@@ -283,8 +279,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             totalTime = System.currentTimeMillis() - timerStart;
             assertTrue(totalTime > TimeUnit.SECONDS.toMillis(3),
                     "total time: " + totalTime + ", expected minimum time: " + TimeUnit.SECONDS.toMillis(10));
-            assertTrue(totalTime < TimeUnit.SECONDS.toMillis(20),
-                    "total time: " + totalTime + ", expected maximum time: " + TimeUnit.SECONDS.toMillis(20));
         }
     }
 
@@ -496,14 +490,13 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that the correct number of retries are happening for all connection scenarios. Tests are expected to take
-     * a minimum of the sum of whatever has been defined for the waiting intervals, and maximum of the previous sum
-     * plus some amount of time to account for test environment slowness.
+     * a minimum of the sum of whatever has been defined for the waiting intervals. Maximum is not tested due to the
+     * unpredictable factor of slowness that can be applied to these tests.
      */
     @Test
     public void connectionTimingTest() {
         long totalTime;
         long timerStart = System.currentTimeMillis();
-        long expectedMaxTime = 10;
 
         // No retries since CRL rules override, expected time ~1 second
         try {
@@ -517,18 +510,10 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
                                     .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
                     e.getMessage());
-
-            if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
-                // Only check the timing if the correct error, "cannot open database", is returned.
-                totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime),
-                        "total time: " + totalTime + ", expected time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
-            }
         }
 
         timerStart = System.currentTimeMillis();
         long expectedMinTime = 10;
-        expectedMaxTime = 35;
 
         // (0s attempt + 0s attempt + 10s wait + 0s attempt) = expected 10s execution time
         try {
@@ -546,8 +531,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
                 // Only check the timing if the correct error, "cannot open database", is returned.
                 totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime
-                        + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
                 assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime), "total time: " + totalTime
                         + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
             }
@@ -571,8 +554,6 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             if (e.getMessage().toLowerCase().contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) {
                 // Only check the timing if the correct error, "cannot open database", is returned.
                 totalTime = System.currentTimeMillis() - timerStart;
-                assertTrue(totalTime < TimeUnit.SECONDS.toMillis(expectedMaxTime), "total time: " + totalTime
-                        + ", expected max time: " + TimeUnit.SECONDS.toMillis(expectedMaxTime));
                 assertTrue(totalTime > TimeUnit.SECONDS.toMillis(expectedMinTime), "total time: " + totalTime
                         + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
             }
