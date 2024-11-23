@@ -98,7 +98,9 @@ public class BatchExecutionWithNullTest extends AbstractTest {
     @Tag(Constants.xSQLv11)
     @Tag(Constants.xSQLv12)
     public void testAddbatch2AEOnConnection() throws SQLException {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";columnEncryptionSetting=Enabled;")) {
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "columnEncryptionSetting", "Enabled");
+        cs = TestUtils.addOrOverrideProperty(cs, "sendStringParametersAsUnicode", "false");
+        try (Connection connection = PrepUtil.getConnection(cs)) {
             testAddBatch2(connection);
         }
     }
