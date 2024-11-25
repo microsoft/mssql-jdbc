@@ -7640,7 +7640,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private volatile SQLWarning originalSqlWarnings;
 
     /** open statements */
-    private List<ISQLServerStatement> openStatements;
+    private volatile List<ISQLServerStatement> openStatements;
 
     /** original usesFmtOnly flag */
     private boolean originalUseFmtOnly;
@@ -7740,9 +7740,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
                     while (!openStatements.isEmpty()) {
-                        try (Statement st = openStatements.get(0)) {}
+                        Statement st = openStatements.get(0);
+                        st.close();
+                        removeOpenStatement((SQLServerStatement) st);
                     }
-                    openStatements.clear();
                 }
                 requestStarted = false;
             }
