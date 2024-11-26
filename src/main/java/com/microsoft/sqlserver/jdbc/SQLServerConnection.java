@@ -7598,7 +7598,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** request started flag */
-    private boolean requestStarted = false;
+    private volatile boolean requestStarted = false;
 
     /** original database autocommit mode */
     private boolean originalDatabaseAutoCommitMode;
@@ -7640,7 +7640,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private volatile SQLWarning originalSqlWarnings;
 
     /** open statements */
-    private volatile List<ISQLServerStatement> openStatements;
+    private List<ISQLServerStatement> openStatements;
 
     /** original usesFmtOnly flag */
     private boolean originalUseFmtOnly;
