@@ -7741,8 +7741,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != openStatements) {
                     while (!openStatements.isEmpty()) {
                         Statement st = openStatements.get(0);
-                        st.close();
-                        removeOpenStatement((SQLServerStatement) st);
+                        try {
+                            st.close();
+                        } finally {
+                            removeOpenStatement((SQLServerStatement) st);
+                        }
                     }
                 }
                 requestStarted = false;
