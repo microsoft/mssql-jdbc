@@ -7598,7 +7598,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** request started flag */
-    private boolean requestStarted = false;
+    private volatile boolean requestStarted = false;
 
     /** original database autocommit mode */
     private boolean originalDatabaseAutoCommitMode;
@@ -7740,9 +7740,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
                     while (!openStatements.isEmpty()) {
-                        try (Statement st = openStatements.get(0)) {}
+                        Statement st = openStatements.get(0);
+                        try {
+                            st.close();
+                        } finally {
+                            removeOpenStatement((SQLServerStatement) st);
+                        }
                     }
-                    openStatements.clear();
                 }
                 requestStarted = false;
             }

@@ -541,7 +541,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * True is the statement is closed
      */
-    boolean bIsClosed;
+    volatile boolean bIsClosed;
 
     /**
      * True if the user requested to driver to generate insert keys
