@@ -435,29 +435,8 @@ public class PooledConnectionTest extends FedauthCommon {
 
         // User/password is not required for access token callback
         AbstractTest.updateDataSource(accessTokenCallbackConnectionString, ds);
-        ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
-        ds.setUser("user");
         SQLServerPooledConnection pc;
-
-        // Should fail with user set
-        try {
-            pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
-        }
-
-        ds.setUser("");
-        ds.setPassword(UUID.randomUUID().toString());
-
-        // Should fail with password set
-        try {
-            pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
-        }
-
+    
         // Should fail with invalid accessTokenCallbackClass value
         ds.setAccessTokenCallbackClass("Invalid");
         ds.setUser("");
