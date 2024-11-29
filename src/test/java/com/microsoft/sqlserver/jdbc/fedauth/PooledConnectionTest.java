@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -435,27 +436,15 @@ public class PooledConnectionTest extends FedauthCommon {
 
         // User/password is not required for access token callback
         AbstractTest.updateDataSource(accessTokenCallbackConnectionString, ds);
+
         ds.setAccessTokenCallbackClass(AccessTokenCallbackClass.class.getName());
         ds.setUser("user");
+        ds.setPassword(UUID.randomUUID().toString());
         SQLServerPooledConnection pc;
 
-        // Should fail with user set
-        try {
-            pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
-        }
-
-        ds.setUser("");
-        ds.setPassword(UUID.randomUUID().toString());
-
-        // Should fail with password set
-        try {
-            pc = (SQLServerPooledConnection) ds.getPooledConnection();
-            fail(TestResource.getResource("R_expectedFailPassed"));
-        } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AccessTokenCallbackWithUserPassword")));
+        pc = (SQLServerPooledConnection) ds.getPooledConnection();
+        try (Connection conn1 = pc.getConnection()) {
+            assertNotNull(conn1);
         }
 
         // Should fail with invalid accessTokenCallbackClass value

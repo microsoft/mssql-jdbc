@@ -2802,13 +2802,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         && !activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
                                 .isEmpty();
-                if ((null != accessTokenCallback || hasAccessTokenCallbackClass) && (!activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty())) {
-                    throw new SQLServerException(
-                            SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
-                }
 
                 sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
