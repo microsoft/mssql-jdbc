@@ -116,6 +116,9 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
                 pstmt.addBatch();
 
                 pstmt.executeBatch();
+
+                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+
             }
         } catch (SQLException e) {
             if (!e.getMessage().contains("CHECK")) {
