@@ -33,153 +33,157 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
-    private static final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BatchInsertWithBCOptions"));
+    private static final String tableName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("BatchInsertWithBCOptions"));
 
     /**
-     * Test with useBulkCopyBatchInsert=true without passing SQLServerBulkCopyOptions
-     * 
+     * Test with useBulkCopyBatchInsert=true without passing
+     * SQLServerBulkCopyOptions
+     *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertNoOptions() throws Exception {
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-			try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-				pstmt.setInt(1, 1);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 2);
-				pstmt.setInt(2, 2);
-				pstmt.addBatch();
+                pstmt.setInt(1, 2);
+                pstmt.setInt(2, 2);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 3);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+                pstmt.setInt(1, 3);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 4);
-				pstmt.setInt(2, 4);
-				pstmt.addBatch();
+                pstmt.setInt(1, 4);
+                pstmt.setInt(2, 4);
+                pstmt.addBatch();
 
-				pstmt.executeBatch();
-				
-				try (Statement stmt = connection.createStatement()) {
-					try(ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
-						if (rs.next()) {
-							int cnt = rs.getInt(1);
-							assertEquals(cnt, 4, "row count should have been 4");
-						}
-					}
-				}
-			}
-    	} catch (SQLException e) {
+                pstmt.executeBatch();
+
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
+                        if (rs.next()) {
+                            int cnt = rs.getInt(1);
+                            assertEquals(cnt, 4, "row count should have been 4");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-    	}
+        }
     }
 
     /**
-     * Test with useBulkCopyBatchInsert=true passing SQLServerBulkCopyOptions with constraint check enabled
-     * 
+     * Test with useBulkCopyBatchInsert=true passing SQLServerBulkCopyOptions with
+     * constraint check enabled
+     *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithConstraintCheckEnabled() throws Exception {
-		// Set BulkCopy options
-		SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
-		//options.setKeepIdentity(true); // Preserve identity values from the source
-		options.setCheckConstraints(true); // enable constraint checks 
-		//options.setTableLock(true); // Lock the destination table for faster insert
-		//options.setBatchSize(1000); // Batch size for the bulk copy
-		//options.setTimeout(60); // Timeout in seconds
+        // Set BulkCopy options
+        SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+        // options.setKeepIdentity(true); // Preserve identity values from the source
+        options.setCheckConstraints(true); // enable constraint checks
+        // options.setTableLock(true); // Lock the destination table for faster insert
+        // options.setBatchSize(1000); // Batch size for the bulk copy
+        // options.setTimeout(60); // Timeout in seconds
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-			try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-				
-				((SQLServerPreparedStatement) pstmt).setBulkCopyOptions(options);
-				
-				pstmt.setInt(1, 1);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
-				pstmt.setInt(1, 2);
-				pstmt.setInt(2, 2);
-				pstmt.addBatch();
+                ((SQLServerPreparedStatement) pstmt).setBulkCopyOptions(options);
 
-				pstmt.setInt(1, 3);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 4);
-				pstmt.setInt(2, 4);
-				pstmt.addBatch();
+                pstmt.setInt(1, 2);
+                pstmt.setInt(2, 2);
+                pstmt.addBatch();
 
-				pstmt.executeBatch();
-			}
-    	} catch (SQLException e) {
-    		if (!e.getMessage().contains("CHECK")) {
+                pstmt.setInt(1, 3);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 4);
+                pstmt.setInt(2, 4);
+                pstmt.addBatch();
+
+                pstmt.executeBatch();
+            }
+        } catch (SQLException e) {
+            if (!e.getMessage().contains("CHECK")) {
                 fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-    		}
-    	}
+            }
+        }
     }
 
     /**
-     * Test with useBulkCopyBatchInsert=true passing SQLServerBulkCopyOptions with constraint check disabled
-     * 
+     * Test with useBulkCopyBatchInsert=true passing SQLServerBulkCopyOptions with
+     * constraint check disabled
+     *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithConstraintCheckDisabled() throws Exception {
-		// Set BulkCopy options
-		SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
-		//options.setKeepIdentity(true); // Preserve identity values from the source
-		options.setCheckConstraints(false); // enable constraint checks 
-		//options.setTableLock(true); // Lock the destination table for faster insert
-		//options.setBatchSize(1000); // Batch size for the bulk copy
-		//options.setTimeout(60); // Timeout in seconds
+        // Set BulkCopy options
+        SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+        // options.setKeepIdentity(true); // Preserve identity values from the source
+        options.setCheckConstraints(false); // enable constraint checks
+        // options.setTableLock(true); // Lock the destination table for faster insert
+        // options.setBatchSize(1000); // Batch size for the bulk copy
+        // options.setTimeout(60); // Timeout in seconds
 
-    	try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-			try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
-				((SQLServerPreparedStatement) pstmt).setBulkCopyOptions(options);
+                ((SQLServerPreparedStatement) pstmt).setBulkCopyOptions(options);
 
-				pstmt.setInt(1, 1);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 2);
-				pstmt.setInt(2, 2);
-				pstmt.addBatch();
+                pstmt.setInt(1, 2);
+                pstmt.setInt(2, 2);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 3);
-				pstmt.setInt(2, 0);
-				pstmt.addBatch();
+                pstmt.setInt(1, 3);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
 
-				pstmt.setInt(1, 4);
-				pstmt.setInt(2, 4);
-				pstmt.addBatch();
+                pstmt.setInt(1, 4);
+                pstmt.setInt(2, 4);
+                pstmt.addBatch();
 
-				pstmt.executeBatch();
-				
-				try (Statement stmt = connection.createStatement()) {
-					try(ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
-						if (rs.next()) {
-							int cnt = rs.getInt(1);
-							assertEquals(cnt, 4, "row count should have been 4");
-						}
-					}
-				}
-			}
-    	} catch (SQLException e) {
+                pstmt.executeBatch();
+
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
+                        if (rs.next()) {
+                            int cnt = rs.getInt(1);
+                            assertEquals(cnt, 4, "row count should have been 4");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
             fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-    	}
+        }
     }
-   
+
     @BeforeEach
     public void init() throws Exception {
         try (Connection con = getConnection()) {
             con.setAutoCommit(false);
             try (Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
-    			String sql1 = "create table " + tableName + "(a INT PRIMARY KEY, b INT CHECK (b > 0))";
+                String sql1 = "create table " + tableName + "(a INT PRIMARY KEY, b INT CHECK (b > 0))";
                 stmt.executeUpdate(sql1);
             }
             con.commit();
@@ -190,12 +194,12 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
     @AfterEach
     public void terminate() throws Exception {
         try (Connection con = getConnection()) {
-	        try (Statement stmt = con.createStatement()) {
-	            TestUtils.dropTableIfExists(tableName, stmt);
-	        }
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
-    
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
