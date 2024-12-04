@@ -67,6 +67,7 @@ enum TDSType {
     UDT(0xF0), // -16
     XML(0xF1), // -15
     VECTOR(0xF5), // 245
+    JSON(0xF4), // -12
 
     // LONGLEN types
     SQL_VARIANT(0x62); // 98
@@ -151,7 +152,8 @@ enum SSType {
     TIMESTAMP(Category.TIMESTAMP, "timestamp", JDBCType.BINARY),
     GEOMETRY(Category.UDT, "geometry", JDBCType.GEOMETRY),
     GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY),
-    VECTOR(Category.VECTOR, "vector", JDBCType.VECTOR);
+    VECTOR(Category.VECTOR, "vector", JDBCType.VECTOR),
+    JSON(Category.JSON, "json", JDBCType.LONGNVARCHAR);
 
     final Category category;
     private final String name;
@@ -208,7 +210,8 @@ enum SSType {
         UDT,
         SQL_VARIANT,
         XML,
-        VECTOR;
+        VECTOR,
+        JSON;
 
         private static final Category[] VALUES = values();
     }
@@ -272,7 +275,11 @@ enum SSType {
                 JDBCType.Category.NUMERIC, JDBCType.Category.DATE, JDBCType.Category.TIME, JDBCType.Category.BINARY,
                 JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID)),
 
-        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));    
+        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR)),    
+        JSON(SSType.Category.JSON, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER,
+                JDBCType.Category.CLOB, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
+                JDBCType.Category.NCLOB, JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
+                JDBCType.Category.BLOB, JDBCType.Category.JSON));    
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -457,6 +464,7 @@ enum JavaType {
                     case NVARCHAR:
                     case NVARCHARMAX:
                     case NTEXT:
+                    case JSON://FIXME: is JSON textual or binary? 
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
                     case VECTOR:
@@ -686,7 +694,8 @@ enum JDBCType {
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
     GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
     LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName()),
-    VECTOR(Category.VECTOR, microsoft.sql.Types.VECTOR, microsoft.sql.Vector.class.getName());
+    VECTOR(Category.VECTOR, microsoft.sql.Types.VECTOR, microsoft.sql.Vector.class.getName()),
+    JSON(Category.JSON, 2012, Object.class.getName()); //FIXME: type code value for JSON
 
     final Category category;
     private final int intValue;
@@ -736,7 +745,8 @@ enum JDBCType {
         SQL_VARIANT,
         GEOMETRY,
         GEOGRAPHY,
-        VECTOR;
+        VECTOR,
+        JSON;
 
         private static final Category[] VALUES = values();
     }
@@ -811,7 +821,8 @@ enum JDBCType {
 
         GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
 
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR)),
+        JSON(JDBCType.Category.JSON, EnumSet.of(JDBCType.Category.JSON));    
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -914,7 +925,8 @@ enum JDBCType {
         SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT)),
 
         VECTOR(JDBCType.Category.VECTOR, EnumSet.of(SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER, 
-                SSType.Category.VECTOR));
+                SSType.Category.VECTOR)),
+        JSON(JDBCType.Category.JSON, EnumSet.of(SSType.Category.JSON));
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
@@ -989,7 +1001,7 @@ enum JDBCType {
      * @return true if the JDBC type is textual
      */
     private final static EnumSet<Category> textualCategories = EnumSet.of(Category.CHARACTER, Category.LONG_CHARACTER,
-            Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB);
+            Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB, Category.JSON); //FIXME: JSON is textual?
 
     boolean isTextual() {
         return textualCategories.contains(category);
