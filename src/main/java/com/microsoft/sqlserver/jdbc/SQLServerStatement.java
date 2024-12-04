@@ -1601,9 +1601,15 @@ public class SQLServerStatement implements ISQLServerStatement {
                         if (null != procedureName)
                             return false;
 
+                        //For Insert, we must fetch additional TDS_DONE token that comes with the actual update count
+                        if (doneToken.cmdIsInsert() &&  (-1 != doneToken.getUpdateCount()) && EXECUTE == executeMethod) {
+                            return true;
+                        }
+
                         // Always return all update counts from statements executed through Statement.execute()
-                        if (EXECUTE == executeMethod)
-                            return false;
+                        if (EXECUTE == executeMethod) {
+                           return false;
+                        }
 
                         // Statement.executeUpdate() may or may not return this update count depending on the
                         // setting of the lastUpdateCount connection property:

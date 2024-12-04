@@ -231,8 +231,12 @@ class StreamDone extends StreamPacket {
         }
     }
 
+    final boolean cmdIsInsert() {
+        return (CMD_INSERT == curCmd);
+    }
+    
     final boolean cmdIsDMLOrDDL() {
-        switch (curCmd) {
+    	switch (curCmd) {
             case CMD_INSERT:
             case CMD_BULKINSERT:
             case CMD_DELETE:
