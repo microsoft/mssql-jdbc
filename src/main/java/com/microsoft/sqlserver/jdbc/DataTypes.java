@@ -65,6 +65,7 @@ enum TDSType {
     NTEXT(0x63), // 99
     UDT(0xF0), // -16
     XML(0xF1), // -15
+    JSON(0xF4), // -12
 
     // LONGLEN types
     SQL_VARIANT(0x62); // 98
@@ -148,7 +149,8 @@ enum SSType {
     XML(Category.XML, "xml", JDBCType.LONGNVARCHAR),
     TIMESTAMP(Category.TIMESTAMP, "timestamp", JDBCType.BINARY),
     GEOMETRY(Category.UDT, "geometry", JDBCType.GEOMETRY),
-    GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY);
+    GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY),
+    JSON(Category.JSON, "json", JDBCType.LONGNVARCHAR);
 
     final Category category;
     private final String name;
@@ -204,7 +206,8 @@ enum SSType {
         TIMESTAMP,
         UDT,
         SQL_VARIANT,
-        XML;
+        XML,
+        JSON;
 
         private static final Category[] VALUES = values();
     }
@@ -266,7 +269,12 @@ enum SSType {
 
         SQL_VARIANT(SSType.Category.SQL_VARIANT, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.SQL_VARIANT,
                 JDBCType.Category.NUMERIC, JDBCType.Category.DATE, JDBCType.Category.TIME, JDBCType.Category.BINARY,
-                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID));
+                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID)),
+
+        JSON(SSType.Category.JSON, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER,
+                JDBCType.Category.CLOB, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
+                JDBCType.Category.NCLOB, JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
+                JDBCType.Category.BLOB, JDBCType.Category.JSON));    
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -450,6 +458,7 @@ enum JavaType {
                     case NVARCHAR:
                     case NVARCHARMAX:
                     case NTEXT:
+                    case JSON://FIXME: is JSON textual or binary? 
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
 
@@ -673,7 +682,8 @@ enum JDBCType {
     SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, Object.class.getName()),
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
     GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
-    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName());
+    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName()),
+    JSON(Category.JSON, 2012, Object.class.getName()); //FIXME: type code value for JSON
 
     final Category category;
     private final int intValue;
@@ -722,7 +732,8 @@ enum JDBCType {
         GUID,
         SQL_VARIANT,
         GEOMETRY,
-        GEOGRAPHY;
+        GEOGRAPHY,
+        JSON;
 
         private static final Category[] VALUES = values();
     }
@@ -795,7 +806,8 @@ enum JDBCType {
 
         GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
 
-        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
+        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
+        JSON(JDBCType.Category.JSON, EnumSet.of(JDBCType.Category.JSON));    
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -895,7 +907,9 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER)),
 
-        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT));
+        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT)),
+
+        JSON(JDBCType.Category.JSON, EnumSet.of(SSType.Category.JSON));
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
@@ -970,7 +984,7 @@ enum JDBCType {
      * @return true if the JDBC type is textual
      */
     private final static EnumSet<Category> textualCategories = EnumSet.of(Category.CHARACTER, Category.LONG_CHARACTER,
-            Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB);
+            Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB, Category.JSON); //FIXME: JSON is textual?
 
     boolean isTextual() {
         return textualCategories.contains(category);
