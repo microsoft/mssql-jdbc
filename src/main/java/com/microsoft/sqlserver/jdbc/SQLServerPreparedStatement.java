@@ -132,6 +132,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
+    
+    /**
+     * Bulk Copy Options to be used for bulkcopy
+     */
+    private SQLServerBulkCopyOptions bcCopyOptions = null;
 
     /**
      * Bulkcopy operation table name
@@ -181,6 +186,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
 
+    public void setBulkCopyOptions(SQLServerBulkCopyOptions options) {
+    	this.bcCopyOptions = options;
+    }
+    
     @Override
     public int getPreparedStatementHandle() throws SQLServerException {
         checkClosed();
@@ -2215,7 +2224,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = null;
+                            if (this.bcCopyOptions == null) {
+                            	option = new SQLServerBulkCopyOptions();
+                            } else {
+                                option = this.bcCopyOptions;
+                            }
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
@@ -2396,7 +2410,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = null;
+                            if (this.bcCopyOptions == null) {
+                            	option = new SQLServerBulkCopyOptions();
+                            } else {
+                                option = this.bcCopyOptions;
+                            }
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
