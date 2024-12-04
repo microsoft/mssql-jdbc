@@ -24,6 +24,7 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -2734,20 +2735,22 @@ public class StatementTest extends AbstractTest {
 		 */
 		@Test
 		public void testExecuteUpdateInsertAndGenKeys() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
-					stmt.executeUpdate(sql, List.of("ID").toArray(String[]::new));
-					try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-						if (generatedKeys.next()) {
-							int id = generatedKeys.getInt(1);
-							assertEquals(id, 4, "id should have been 4, but received : " + id);
-						}
-					}
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
+		    try (Connection con = getConnection()) {
+		        try(Statement stmt = con.createStatement()) {
+		            String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
+		            List<String> lst = Arrays.asList("ID");
+		            String[] arr = lst.toArray(new String[0]);
+		            stmt.executeUpdate(sql, arr);
+		            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+		                if (generatedKeys.next()) {
+		                    int id = generatedKeys.getInt(1);
+		                    assertEquals(id, 4, "id should have been 4, but received : " + id);
+		                }
+		            }
+		        }
+		    } catch (SQLException e) {
+		        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+		    }
 		}
 
 		/**
@@ -2757,20 +2760,22 @@ public class StatementTest extends AbstractTest {
 		 */
 		@Test
 		public void testExecuteInsertAndGenKeys() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
-					stmt.execute(sql, List.of("ID").toArray(String[]::new));
-					try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-						if (generatedKeys.next()) {
-							int id = generatedKeys.getInt(1);
-							assertEquals(id, 4, "generated key should have been 4");
-						}
-					}
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
+		    try (Connection con = getConnection()) {
+		        try(Statement stmt = con.createStatement()) {
+		            String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
+		            List<String> lst = Arrays.asList("ID");
+		            String[] arr = lst.toArray(new String[0]);
+		            stmt.execute(sql, arr);
+		            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+		                if (generatedKeys.next()) {
+		                    int id = generatedKeys.getInt(1);
+		                    assertEquals(id, 4, "generated key should have been 4");
+		                }
+		            }
+		        }
+		    } catch (SQLException e) {
+		        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+		    }
 		}
 
 		/**
