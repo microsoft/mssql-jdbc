@@ -186,6 +186,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
 
+    /**
+     * Sets SQLServerBulkCopyOptions in preapred statement.
+     * 
+     * @param options
+     *        the user supplied SQLServerBulkCopyOptions value
+     */
     public void setBulkCopyOptions(SQLServerBulkCopyOptions options) {
     	this.bcCopyOptions = options;
     }
