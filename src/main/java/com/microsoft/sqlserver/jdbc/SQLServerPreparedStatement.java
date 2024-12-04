@@ -136,7 +136,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Bulk Copy Options to be used for bulkcopy
      */
-    private SQLServerBulkCopyOptions bcCopyOptions = null;
+    private SQLServerBulkCopyOptions bcOptions = null;
 
     /**
      * Bulkcopy operation table name
@@ -193,7 +193,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *        the user supplied SQLServerBulkCopyOptions value
      */
     public void setBulkCopyOptions(SQLServerBulkCopyOptions options) {
-    	this.bcCopyOptions = options;
+    	this.bcOptions = options;
     }
     
     @Override
@@ -2231,10 +2231,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = null;
-                            if (this.bcCopyOptions == null) {
+                            if (this.bcOptions == null) {
                             	option = new SQLServerBulkCopyOptions();
                             } else {
-                                option = this.bcCopyOptions;
+                                option = this.bcOptions;
                             }
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
@@ -2417,10 +2417,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = null;
-                            if (this.bcCopyOptions == null) {
+                            if (this.bcOptions == null) {
                             	option = new SQLServerBulkCopyOptions();
                             } else {
-                                option = this.bcCopyOptions;
+                                option = this.bcOptions;
                             }
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
