@@ -2696,323 +2696,322 @@ public class StatementTest extends AbstractTest {
     }
     
     
-	@Nested
-	@Tag(Constants.xAzureSQLDW)
-	public class TCGenKeys {
-		private final String tableName = AbstractSQLGenerator
-				.escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeys"));
-		private final String idTableName = AbstractSQLGenerator
-				.escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeysIDs"));
+    @Nested
+    @Tag(Constants.xAzureSQLDW)
+    public class TCGenKeys {
+        private final String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeys"));
+        private final String idTableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeysIDs"));
 
-		private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
-		private final int NUM_ROWS = 3;
+        private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
+        private final int NUM_ROWS = 3;
 
-		@BeforeEach
-		public void setup() throws Exception {
-			try (Connection con = getConnection()) {
-				con.setAutoCommit(false);
-				try (Statement stmt = con.createStatement()) {
-					TestUtils.dropTriggerIfExists(triggerName, stmt);
-					stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32));");
+        @BeforeEach
+        public void setup() throws Exception {
+            try (Connection con = getConnection()) {
+                con.setAutoCommit(false);
+                try (Statement stmt = con.createStatement()) {
+                    TestUtils.dropTriggerIfExists(triggerName, stmt);
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32));");
 
-					stmt.executeUpdate("CREATE TABLE " + idTableName  + "(ID int NOT NULL IDENTITY(1,1) PRIMARY KEY);");
+                    stmt.executeUpdate("CREATE TABLE " + idTableName  + "(ID int NOT NULL IDENTITY(1,1) PRIMARY KEY);");
 
-					stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + tableName + " FOR INSERT AS INSERT INTO " + idTableName + " DEFAULT VALUES;");
+                    stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + tableName + " FOR INSERT AS INSERT INTO " + idTableName + " DEFAULT VALUES;");
 
-					for (int i = 0; i < NUM_ROWS; i++) {
-						stmt.executeUpdate("INSERT INTO " + tableName + " (NAME) VALUES ('test')");
-					}
+                    for (int i = 0; i < NUM_ROWS; i++) {
+                        stmt.executeUpdate("INSERT INTO " + tableName + " (NAME) VALUES ('test')");
+                    }
 
-				}
-				con.commit();
-			}
-		}
+                }
+                con.commit();
+            }
+        }
 
-		/**
-		 * Tests executeUpdate for Insert followed by getGenerateKeys
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteUpdateInsertAndGenKeys() throws Exception {
-		    try (Connection con = getConnection()) {
-		        try(Statement stmt = con.createStatement()) {
-		            String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
-		            List<String> lst = Arrays.asList("ID");
-		            String[] arr = lst.toArray(new String[0]);
-		            stmt.executeUpdate(sql, arr);
-		            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-		                if (generatedKeys.next()) {
-		                    int id = generatedKeys.getInt(1);
-		                    assertEquals(id, 4, "id should have been 4, but received : " + id);
-		                }
-		            }
-		        }
-		    } catch (SQLException e) {
-		        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-		    }
-		}
+        /**
+         * Tests executeUpdate for Insert followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteUpdateInsertAndGenKeys() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
+                    List<String> lst = Arrays.asList("ID");
+                    String[] arr = lst.toArray(new String[0]);
+                    stmt.executeUpdate(sql, arr);
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "id should have been 4, but received : " + id);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
 
-		/**
-		 * Tests execute for Insert followed by getGenerateKeys
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteInsertAndGenKeys() throws Exception {
-		    try (Connection con = getConnection()) {
-		        try(Statement stmt = con.createStatement()) {
-		            String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
-		            List<String> lst = Arrays.asList("ID");
-		            String[] arr = lst.toArray(new String[0]);
-		            stmt.execute(sql, arr);
-		            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-		                if (generatedKeys.next()) {
-		                    int id = generatedKeys.getInt(1);
-		                    assertEquals(id, 4, "generated key should have been 4");
-		                }
-		            }
-		        }
-		    } catch (SQLException e) {
-		        fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-		    }
-		}
+        /**
+         * Tests execute for Insert followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteInsertAndGenKeys() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
+                    List<String> lst = Arrays.asList("ID");
+                    String[] arr = lst.toArray(new String[0]);
+                    stmt.execute(sql, arr);
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "generated key should have been 4");
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
 
-		/**
-		 * Tests execute for Insert followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteInsertAndSelect() throws Exception {
+        /**
+         * Tests execute for Insert followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteInsertAndSelect() throws Exception {
 
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("INSERT INTO " + tableName +" (NAME) VALUES('test') SELECT NAME FROM " + tableName + " WHERE ID = 1");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 1, "update count should have been 1");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
-
-
-		/**
-		 * Tests execute for Merge followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteMergeAndSelect() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("MERGE INTO " + tableName + " AS target USING (VALUES ('test1')) AS source (name) ON target.name  = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES ('test1');  SELECT NAME FROM " + tableName + " WHERE ID = 1");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 1, "update count should have been 1");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
-
-		/**
-		 * Tests execute for Insert multiple rows followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteInsertManyRowsAndSelect() throws Exception {
-			try (Connection con = getConnection()) {
-				try (Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("INSERT INTO " + tableName + " SELECT NAME FROM " + tableName + " SELECT NAME FROM " + tableName + " WHERE ID = 1");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 3, "update count should have been 6");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
-
-		/**
-		 * Tests execute two Inserts followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteTwoInsertsRowsAndSelect() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("INSERT INTO " + tableName + " (NAME) VALUES('test') INSERT INTO " + tableName + " (NAME) VALUES('test') SELECT NAME from " + tableName + " WHERE ID = 1");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 1, "update count should have been 2");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("INSERT INTO " + tableName +" (NAME) VALUES('test') SELECT NAME FROM " + tableName + " WHERE ID = 1");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
 
 
-		/**
-		 * Tests execute for Update followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteUpdAndSelect() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("UPDATE " + tableName +" SET NAME = 'test' SELECT NAME FROM " + tableName + " WHERE ID = 1");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 3, "update count should have been 3");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
+        /**
+         * Tests execute for Merge followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteMergeAndSelect() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("MERGE INTO " + tableName + " AS target USING (VALUES ('test1')) AS source (name) ON target.name  = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES ('test1');  SELECT NAME FROM " + tableName + " WHERE ID = 1");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
 
-		/**
-		 * Tests execute for Update followed by select
-		 *
-		 * @throws Exception
-		 */
-		@Test
-		public void testExecuteDelAndSelect() throws Exception {
-			try (Connection con = getConnection()) {
-				try(Statement stmt = con.createStatement()) {
-					boolean retval = stmt.execute("DELETE FROM " + tableName +" WHERE ID = 1 SELECT NAME FROM " + tableName + " WHERE ID = 2");
-					do {
-						if (retval == false) {
-							int count = stmt.getUpdateCount();
-							if (count == -1) {
-								// no more results
-								break;
-							} else {
-								assertEquals(count, 1, "update count should have been 1");
-							}
-						} else {
-							// process ResultSet
-							try (ResultSet rs = stmt.getResultSet()) {
-								if (rs.next()) {
-									String val = rs.getString(1);
-									assertEquals(val, "test", "read value should have been 'test'");
-								}
-							}
-						}
-						retval = stmt.getMoreResults();
-					} while (true);
-				}
-			} catch (SQLException e) {
-				fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-			}
-		}
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
 
-		@AfterEach
-		public void terminate() throws Exception {
-			try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-				try {
-					TestUtils.dropTriggerIfExists(triggerName, stmt);
-					TestUtils.dropTableIfExists(idTableName, stmt);
-					TestUtils.dropTableIfExists(tableName, stmt);
-				} catch (SQLException e) {
-					fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-				}
-			}
-		}
-	}
+        /**
+         * Tests execute for Insert multiple rows followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteInsertManyRowsAndSelect() throws Exception {
+            try (Connection con = getConnection()) {
+                try (Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("INSERT INTO " + tableName + " SELECT NAME FROM " + tableName + " SELECT NAME FROM " + tableName + " WHERE ID = 1");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 3, "update count should have been 6");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
 
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests execute two Inserts followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteTwoInsertsRowsAndSelect() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("INSERT INTO " + tableName + " (NAME) VALUES('test') INSERT INTO " + tableName + " (NAME) VALUES('test') SELECT NAME from " + tableName + " WHERE ID = 1");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 2");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+
+        /**
+         * Tests execute for Update followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteUpdAndSelect() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("UPDATE " + tableName +" SET NAME = 'test' SELECT NAME FROM " + tableName + " WHERE ID = 1");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 3, "update count should have been 3");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests execute for Update followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteDelAndSelect() throws Exception {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    boolean retval = stmt.execute("DELETE FROM " + tableName +" WHERE ID = 1 SELECT NAME FROM " + tableName + " WHERE ID = 2");
+                    do {
+                        if (retval == false) {
+                            int count = stmt.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        @AfterEach
+        public void terminate() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(triggerName, stmt);
+                    TestUtils.dropTableIfExists(idTableName, stmt);
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                } catch (SQLException e) {
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                }
+            }
+        }
+    }
     
 }
