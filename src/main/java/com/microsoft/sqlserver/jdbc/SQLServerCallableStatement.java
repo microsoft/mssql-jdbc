@@ -154,11 +154,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             case java.sql.Types.DECIMAL:
                 ParameterMetaData parameterMetaData = this.getParameterMetaData();
                 if (parameterMetaData != null) {
-                    try {
-                        // Fetch scale from metadata for DECIMAL type
-                        int scale = parameterMetaData.getScale(index);
-                        param.setOutScale(scale);
-                    }
+                    // Fetch scale from metadata for DECIMAL type
+                    int scale = parameterMetaData.getScale(index);
+                    param.setOutScale(scale);
                 } 
                 break;
             default:
