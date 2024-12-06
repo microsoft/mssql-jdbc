@@ -122,23 +122,6 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
-    public void testActiveDirectoryIntegratedDS() throws Exception {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAuthentication(SqlAuthentication.ActiveDirectoryIntegrated.toString());
-
-        try (Connection conn = ds.getConnection()) {
-            testUserName(conn, azureUserName, SqlAuthentication.ActiveDirectoryIntegrated);
-            testCharTable(conn);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
     public void testGroupAuthentication() throws SQLException {
         // connection string with userName
         String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(adPasswordConnectionStr, "user"),
@@ -189,14 +172,6 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
-    public void testNotValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
-        testNotValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
-    }
-
-    @Test
     public void testNotValidActiveDirectoryPassword() throws SQLException {
         testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.FALSE, true);
         testNotValid(SqlAuthentication.ActiveDirectoryPassword.toString(), Constants.TRUE, true);
@@ -213,14 +188,6 @@ public class FedauthTest extends FedauthCommon {
     public void testValidSqlPassword() throws SQLException {
         testValid(SqlAuthentication.SqlPassword.toString(), Constants.FALSE, true);
         testValid(SqlAuthentication.SqlPassword.toString(), Constants.TRUE, true);
-    }
-
-    @Test
-    public void testValidActiveDirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.FALSE, true);
-        testValid(SqlAuthentication.ActiveDirectoryIntegrated.toString(), Constants.TRUE, true);
     }
 
     @Test
@@ -366,8 +333,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
         // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
 
         // Should fail on invalid cert field values
         String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
@@ -428,8 +395,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuth() {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
 
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -450,7 +417,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName="
+                + servicePrincipalCertificateApplicationClientId;
 
         // no certificate provided.
         String url = baseUrl;
@@ -469,8 +437,8 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
-        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
-                + "clientPassword=wrongPassword";
+        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate
+                + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
 
