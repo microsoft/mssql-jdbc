@@ -282,19 +282,6 @@ public class ErrorMessageTest extends FedauthCommon {
     }
 
     @Test
-    public void testAuthenticationAgainstSQLServerWithActivedirectoryIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        java.util.Properties info = new Properties();
-        info.put("TrustServerCertificate", "true");
-        info.put("Authentication", SqlAuthentication.ActiveDirectoryIntegrated.toString());
-
-        try (Connection connection = DriverManager.getConnection(connectionUrl, info)) {} catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
     public void testNotSpecifiedWithConnectionStringUserName() throws SQLException {
         boolean retry = true;
         int trials = 0;

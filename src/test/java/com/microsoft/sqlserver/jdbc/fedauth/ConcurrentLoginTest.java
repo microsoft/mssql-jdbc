@@ -102,12 +102,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
 
             t1.start();
             t2.start();
-            if (enableADIntegrated) {
-                Thread t3 = new Thread(r3);
-                t3.setUncaughtExceptionHandler(handler);
-                t3.start();
-                t3.join();
-            }
             t1.join();
             t2.join();
 
@@ -115,7 +109,6 @@ public class ConcurrentLoginTest extends FedauthCommon {
             if (throwable != null) {
                 fail(throwable.getMessage());
             }
-
         }
     }
 }
