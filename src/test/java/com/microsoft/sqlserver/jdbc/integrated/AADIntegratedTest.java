@@ -52,7 +52,6 @@ public class AADIntegratedTest extends AbstractTest {
                 + "ActiveDirectoryIntegrated";
 
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate", "true");
-        setConnection();
     }
 
     @Test
