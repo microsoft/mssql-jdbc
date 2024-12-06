@@ -1195,15 +1195,14 @@ public class StatementTest extends AbstractTest {
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00",
                             cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
 
-                    // BigDecimal#equals considers the number of decimal places (OutParams always return 4 decimal
-                    // digits rounded up)
-                    assertEquals(0, cstmt.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    // BigDecimal#equals considers the number of decimal places (OutParams always return full precision as specified in the DB schema)
+                    assertEquals(0, cstmt.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
                     assertEquals(0,
-                            cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                            cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
 
-                    assertEquals(0, cstmt.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    assertEquals(0, cstmt.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.1234567890123456789012345678901234567")));
                     assertEquals(0,
-                            cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                            cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1234567890123456789012345678901234567")));
                 }
             }
         }
