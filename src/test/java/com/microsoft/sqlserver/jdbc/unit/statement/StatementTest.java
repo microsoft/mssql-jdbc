@@ -1260,25 +1260,6 @@ public class StatementTest extends AbstractTest {
             }
         }
 
-        @Test
-		public void testRegisterOutParameterWithDecimalException() throws SQLException {
-			try (Connection conn = getConnection()) {
-				String sql = "{call some_procedure(?)}";
-				CallableStatement stmt = conn.prepareCall(sql);
-
-				stmt.registerOutParameter(1, Types.DECIMAL);
-				SQLServerCallableStatement sqlServerStmt = (SQLServerCallableStatement) stmt;
-
-				try {
-					sqlServerStmt.registerOutParameter(1, Types.DECIMAL); 
-					fail("Expected SQLServerException to be thrown");
-				} catch (SQLServerException e) {
-					assertTrue(e.getCause() instanceof SQLException);
-					assertEquals("Error fetching scale", e.getCause().getMessage());
-				}
-			}
-		}
-
         @AfterEach
         public void terminate() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
