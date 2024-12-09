@@ -1209,16 +1209,14 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testBigDecimalPrecision() throws SQLException {
-            try (Connection connection = getConnection()) {
-                String createProceduresSQL = """
-                    create procedure test_bigdecimal_3
-                        @big_decimal_type      decimal(15, 3),
-                        @big_decimal_type_o    decimal(15, 3) output
-                    as
-                    begin
-                        set @big_decimal_type_o = @big_decimal_type;
-                    end;
-                    """;
+                String createProceduresSQL = "create procedure test_bigdecimal_3\n" +
+                "    @big_decimal_type      decimal(15, 3),\n" +
+                "    @big_decimal_type_o    decimal(15, 3) output\n" +
+                "as\n" +
+                "begin\n" +
+                "    set @big_decimal_type_o = @big_decimal_type;\n" +
+                "end;\n";
+
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute(createProceduresSQL);
                 }
@@ -1232,15 +1230,13 @@ public class StatementTest extends AbstractTest {
                     assertEquals(new BigDecimal("100.241"), actual1);
                 }
 
-                createProceduresSQL = """
-            	 create procedure test_bigdecimal_5
-                        @big_decimal_type      decimal(15, 5),
-                        @big_decimal_type_o    decimal(15, 5) output
-                    as
-                    begin
-                        set @big_decimal_type_o = @big_decimal_type;
-                    end;
-            		""";
+                createProceduresSQL = "create procedure test_bigdecimal_5\n" +
+                "    @big_decimal_type      decimal(15, 5),\n" +
+                "    @big_decimal_type_o    decimal(15, 5) output\n" +
+                "as\n" +
+                "begin\n" +
+                "    set @big_decimal_type_o = @big_decimal_type;\n" +
+                "end;\n";
                 try (Statement stmt = connection.createStatement()) {
     	            stmt.execute(createProceduresSQL);
     	        }
