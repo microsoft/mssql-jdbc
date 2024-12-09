@@ -159,7 +159,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                         int scale = parameterMetaData.getScale(index);
                         param.setOutScale(scale);
                     } catch (SQLException e) {
-                       loggerExternal.warning("Failed to fetch scale for DECIMAL type parameter at index " + index + ": " + e.getMessage());
+                        loggerExternal.warning("Failed to fetch scale for DECIMAL type parameter at index " + index + ": " + e.getMessage());
+                        SQLServerException.makeFromDriverError(connection, this, e.getMessage(), null, false);
                     }
                 } 
                 break;
