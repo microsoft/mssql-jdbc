@@ -1209,6 +1209,7 @@ public class StatementTest extends AbstractTest {
 
         @Test
         public void testBigDecimalPrecision() throws SQLException {
+            try (Connection connection = getConnection()) {
                 String createProceduresSQL = "create procedure test_bigdecimal_3\n" +
                 "    @big_decimal_type      decimal(15, 3),\n" +
                 "    @big_decimal_type_o    decimal(15, 3) output\n" +
