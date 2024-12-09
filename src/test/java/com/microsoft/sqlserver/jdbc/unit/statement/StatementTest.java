@@ -41,6 +41,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -1195,15 +1196,66 @@ public class StatementTest extends AbstractTest {
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00",
                             cstmt.getObject("col14Value", microsoft.sql.DateTimeOffset.class).toString());
 
-                    // BigDecimal#equals considers the number of decimal places (OutParams always return 4 decimal
-                    // digits rounded up)
-                    assertEquals(0, cstmt.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    // BigDecimal#equals considers the number of decimal places (OutParams always return full precision as specified in the DB schema)
+                    assertEquals(0, cstmt.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
                     assertEquals(0,
-                            cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                            cstmt.getObject("col15Value", BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
 
-                    assertEquals(0, cstmt.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                    assertEquals(0, cstmt.getObject(16, BigDecimal.class).compareTo(new BigDecimal("0.1234567890123456789012345678901234567")));
                     assertEquals(0,
-                            cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1235")));
+                            cstmt.getObject("col16Value", BigDecimal.class).compareTo(new BigDecimal("0.1234567890123456789012345678901234567")));
+                }
+            }
+        }
+
+        @Test
+        public void testBigDecimalPrecision() throws SQLException {
+            try (Connection connection = getConnection()) {
+                String createProceduresSQL = "create procedure test_bigdecimal_3\n" +
+                "    @big_decimal_type      decimal(15, 3),\n" +
+                "    @big_decimal_type_o    decimal(15, 3) output\n" +
+                "as\n" +
+                "begin\n" +
+                "    set @big_decimal_type_o = @big_decimal_type;\n" +
+                "end;\n";
+
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(createProceduresSQL);
+                }
+                
+             // Test for DECIMAL(15, 3)
+                String callSQL1 = "{call test_bigdecimal_3(100.241, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL1)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual1 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.241"), actual1);
+                }
+
+                createProceduresSQL = "create procedure test_bigdecimal_5\n" +
+                "    @big_decimal_type      decimal(15, 5),\n" +
+                "    @big_decimal_type_o    decimal(15, 5) output\n" +
+                "as\n" +
+                "begin\n" +
+                "    set @big_decimal_type_o = @big_decimal_type;\n" +
+                "end;\n";
+                try (Statement stmt = connection.createStatement()) {
+    	            stmt.execute(createProceduresSQL);
+    	        }
+                
+             // Test for DECIMAL(15, 5)
+                String callSQL2 = "{call test_bigdecimal_5(100.24112, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL2)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual2 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.24112"), actual2);
+                }
+
+                // Clean up: Drop the stored procedures after the test
+                String dropProcedureSQL = "DROP PROCEDURE IF EXISTS test_bigdecimal_3, test_bigdecimal_5";
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(dropProcedureSQL);
                 }
             }
         }
