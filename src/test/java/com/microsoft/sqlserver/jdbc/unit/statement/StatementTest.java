@@ -1207,6 +1207,61 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        @Test
+        public void testBigDecimalPrecision() throws SQLException {
+            try (Connection connection = getConnection()) {
+                String createProceduresSQL = """
+                    create procedure test_bigdecimal_3
+                        @big_decimal_type      decimal(15, 3),
+                        @big_decimal_type_o    decimal(15, 3) output
+                    as
+                    begin
+                        set @big_decimal_type_o = @big_decimal_type;
+                    end;
+                    """;
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(createProceduresSQL);
+                }
+                
+             // Test for DECIMAL(15, 3)
+                String callSQL1 = "{call test_bigdecimal_3(100.241, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL1)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual1 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.241"), actual1);
+                }
+
+                createProceduresSQL = """
+            	 create procedure test_bigdecimal_5
+                        @big_decimal_type      decimal(15, 5),
+                        @big_decimal_type_o    decimal(15, 5) output
+                    as
+                    begin
+                        set @big_decimal_type_o = @big_decimal_type;
+                    end;
+            		""";
+                try (Statement stmt = connection.createStatement()) {
+    	            stmt.execute(createProceduresSQL);
+    	        }
+                
+             // Test for DECIMAL(15, 5)
+                String callSQL2 = "{call test_bigdecimal_5(100.24112, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL2)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual2 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.24112"), actual2);
+                }
+
+                // Clean up: Drop the stored procedures after the test
+                String dropProcedureSQL = "DROP PROCEDURE IF EXISTS test_bigdecimal_3, test_bigdecimal_5";
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(dropProcedureSQL);
+                }
+            }
+        }
+
         @AfterEach
         public void terminate() throws Exception {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
