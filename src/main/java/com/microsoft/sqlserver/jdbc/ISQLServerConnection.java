@@ -12,7 +12,7 @@ import java.util.UUID;
 
 
 /**
- * Provides an interface to the {@link SQLServerConnection} and {@link SQLServerConnectionPoolProxy} classes.
+ * Provides an interface to the {@link SQLServerConnection} class.
  */
 public interface ISQLServerConnection extends java.sql.Connection {
 
