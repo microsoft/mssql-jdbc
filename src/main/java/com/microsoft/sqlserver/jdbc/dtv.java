@@ -115,6 +115,7 @@ abstract class DTVExecuteOp {
     abstract void execute(DTV dtv, TVP tvpValue) throws SQLServerException;
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
+
 }
 
 
@@ -1518,6 +1519,7 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
+                case JSON:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -2989,6 +2991,25 @@ final class TypeInfo implements Serializable {
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
             }
+        }),
+
+        JSON(TDSType.JSON, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; //FIXME - need to validate JSON strategy
+                typeInfo.ssType = SSType.JSON;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
+                typeInfo.charset = Encoding.UNICODE.charset();
+            }
         });
 
         private final TDSType tdsType;
@@ -3766,6 +3787,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case BINARY:
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
+                case JSON:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,
