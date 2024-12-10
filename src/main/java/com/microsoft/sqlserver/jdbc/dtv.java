@@ -117,7 +117,10 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
 
+<<<<<<< HEAD
     abstract void execute(DTV dtv, Vector vectorValue) throws SQLServerException;
+=======
+>>>>>>> 1f2b95b0 (JSON startegy in DTV)
 }
 
 
@@ -300,6 +303,8 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else if (dtv.getJdbcType() == JDBCType.JSON) {
+                tdsWriter.writeRPCJson(name, strValue, isOutParam);
             } else {
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
@@ -1527,6 +1532,7 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
+                case JSON:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -3020,6 +3026,18 @@ final class TypeInfo implements Serializable {
         }),
         
         VECTOR(TDSType.VECTOR, new Strategy() {
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
+                typeInfo.maxLength = tdsReader.readUnsignedShort();
+                typeInfo.displaySize = typeInfo.maxLength;
+                typeInfo.ssType = SSType.VECTOR;
+                int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
+                typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
+            }
+        }),
+
+        JSON(TDSType.JSON, new Strategy() {
             /**
              * Sets the fields of typeInfo to the correct values
              * 
@@ -3031,14 +3049,10 @@ final class TypeInfo implements Serializable {
              *         when an error occurs
              */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
-                typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
-                typeInfo.maxLength = tdsReader.readUnsignedShort();
-                typeInfo.displaySize = typeInfo.maxLength;
-                typeInfo.ssType = SSType.VECTOR;
-                int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
-                typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
-
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; //FIXME - need to validate JSON strategy
+                typeInfo.ssType = SSType.JSON;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
+                typeInfo.charset = Encoding.UNICODE.charset();
             }
         });
 
@@ -3819,6 +3833,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
                 case VECTOR:
+                case JSON:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,
