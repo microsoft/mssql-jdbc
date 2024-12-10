@@ -13,12 +13,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Changed MSAL logging from FINEST to FINER [#2489](https://github.com/microsoft/mssql-jdbc/pull/2489)
 - Updated project pom file to pull dependencies from public Azure Artifacts Feed [#2504](https://github.com/microsoft/mssql-jdbc/pull/2504)
 - Changed how Kerberos authentication acquires subject to provide compatibility for Kerberos with Java 23 and above [#2539](https://github.com/microsoft/mssql-jdbc/pull/2539)
+- Removed user and password check for AccessTokenCallback [#2549](https://github.com/microsoft/mssql-jdbc/pull/2549)
 
 ### Fixed issues
 - Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2482](https://github.com/microsoft/mssql-jdbc/pull/2482)
 - Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2484](https://github.com/microsoft/mssql-jdbc/pull/2484)
 - Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com/microsoft/mssql-jdbc/pull/2513)
 - Resolved JavaDoc warnings that would appear during project build [#2521](https://github.com/microsoft/mssql-jdbc/pull/2521)
+- Fixed infinite loop when removing open statement [#2547](https://github.com/microsoft/mssql-jdbc/pull/2547)
 
 ## [12.8.0] Stable Release
 ### Fixed issues
