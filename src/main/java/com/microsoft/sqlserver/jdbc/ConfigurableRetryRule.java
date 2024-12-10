@@ -25,6 +25,8 @@ class ConfigurableRetryRule {
     private int retryCount = 1;
     private String retryQueries = "";
     private String retryError;
+    boolean isConnection = false;
+    boolean replaceExisting = false;
 
     private ArrayList<Integer> waitTimes = new ArrayList<>();
 
@@ -70,6 +72,18 @@ class ConfigurableRetryRule {
         this.retryCount = baseRule.retryCount;
         this.retryQueries = baseRule.retryQueries;
         this.waitTimes = baseRule.waitTimes;
+        this.isConnection = baseRule.isConnection;
+    }
+
+    private String appendOrReplace(String retryError) {
+        if (retryError.startsWith(PLUS_SIGN)) {
+            replaceExisting = false;
+            StringUtils.isNumeric(retryError.substring(1));
+            return retryError.substring(1);
+        } else {
+            replaceExisting = true;
+            return retryError;
+        }
     }
 
     /**
@@ -152,7 +166,12 @@ class ConfigurableRetryRule {
      *         if a rule or parameter has invalid inputs
      */
     private void addElements(String[] rule) throws SQLServerException {
-        if (rule.length == 2 || rule.length == 3) {
+        if (rule.length == 1) {
+            String errorWithoutOptionalPrefix = appendOrReplace(rule[0]);
+            checkParameter(errorWithoutOptionalPrefix);
+            isConnection = true;
+            retryError = errorWithoutOptionalPrefix;
+        } else if (rule.length == 2 || rule.length == 3) {
             checkParameter(rule[0]);
             retryError = rule[0];
             String[] timings = rule[1].split(COMMA);

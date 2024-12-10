@@ -1089,6 +1089,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.retryExec = retryExec;
     }
 
+    private String retryConn = SQLServerDriverStringProperty.RETRY_CONN.getDefaultValue();
+
+    /**
+     * Returns the set of configurable connection retry rules set in retryConn
+     *
+     * @return
+     *         A string containing statement retry rules.
+     */
+    public String getRetryConn() {
+        return retryConn;
+    }
+
+    /**
+     * Sets the list of configurable connection retry rules, for the given connection, in retryConn.
+     *
+     * @param retryConn
+     *        The list of retry rules to set, as a string.
+     */
+    public void setRetryConn(String retryConn) {
+        this.retryConn = retryConn;
+    }
+
     /** Session Recovery Object */
     private transient IdleConnectionResiliency sessionRecovery = new IdleConnectionResiliency(this);
 
@@ -2039,10 +2061,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
                         throw e;
                     } else {
-                        // only retry if transient error
+                        // Only retry if matches configured CRL rules, or transient error (if CRL is not in use)
                         SQLServerError sqlServerError = e.getSQLServerError();
-                        if (!TransientError.isTransientError(sqlServerError)) {
+                        if (null == sqlServerError) {
                             throw e;
+                        } else {
+                            ConfigurableRetryRule rule = ConfigurableRetryLogic.getInstance()
+                                    .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
+
+                            if (null == rule) {
+                                if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
+                                    throw e;
+                                } else {
+                                    if (!TransientError.isTransientError(sqlServerError)) {
+                                        throw e;
+                                    }
+                                }
+                            }
                         }
 
                         // check if there's time to retry, no point to wait if no time left
@@ -2385,7 +2420,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 retryExec = sPropValue;
-                ConfigurableRetryLogic.getInstance().setFromConnectionString(sPropValue);
+                ConfigurableRetryLogic.getInstance().setStatementRulesFromConnectionString(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.RETRY_CONN.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.RETRY_CONN.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                retryConn = sPropValue;
+                ConfigurableRetryLogic.getInstance().setConnectionRulesFromConnectionString(sPropValue);
 
                 sPropKey = SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2758,13 +2802,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         && !activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
                                 .isEmpty();
-                if ((null != accessTokenCallback || hasAccessTokenCallbackClass) && (!activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty())) {
-                    throw new SQLServerException(
-                            SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
-                }
 
                 sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -7554,7 +7591,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** request started flag */
-    private boolean requestStarted = false;
+    private volatile boolean requestStarted = false;
 
     /** original database autocommit mode */
     private boolean originalDatabaseAutoCommitMode;
@@ -7696,9 +7733,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
                     while (!openStatements.isEmpty()) {
-                        try (Statement st = openStatements.get(0)) {}
+                        Statement st = openStatements.get(0);
+                        try {
+                            st.close();
+                        } finally {
+                            removeOpenStatement((SQLServerStatement) st);
+                        }
                     }
-                    openStatements.clear();
                 }
                 requestStarted = false;
             }
