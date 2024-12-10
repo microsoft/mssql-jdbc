@@ -96,8 +96,6 @@ public class FedauthCommon extends AbstractTest {
     static String azurePassword = null;
     static String azureGroupUserName = null;
 
-    static boolean enableADIntegrated = false;
-
     static String hostNameInCertificate = null;
     static String applicationName = null;
     static String kustoServer = null;
@@ -182,9 +180,6 @@ public class FedauthCommon extends AbstractTest {
 
         // password for service principal certificate
         certificatePassword = getConfiguredProperty("certificatePassword");
-
-        String prop = getConfiguredProperty("enableADIntegrated");
-        enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
 
         adPasswordConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";user="
                 + azureUserName + ";password=" + azurePassword + ";Authentication="
