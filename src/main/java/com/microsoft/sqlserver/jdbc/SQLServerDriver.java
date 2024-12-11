@@ -1240,6 +1240,21 @@ public final class SQLServerDriver implements java.sql.Driver {
             "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
             "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
             "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
+    
+    /**
+     * This method retrieves the OS name and architecture using Java system properties
+     * and logs this information.
+     */
+    private void logClientOSAndArchInfo() {
+        try {
+            String osName = System.getProperty("os.name");
+            String osArch = System.getProperty("os.arch");
+            
+            loggerExternal.log(Level.FINE, "Client OS: " + osName + ", Architecture: " + osArch);
+        } catch (Exception e) {
+            loggerExternal.warning("Unable to capture client OS and architecture information.");
+        }
+    }
 
     @Override
     public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
@@ -1251,6 +1266,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
                             + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
+            logClientOSAndArchInfo();
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);
