@@ -1,6 +1,8 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -79,6 +81,22 @@ public class BigDecimalPrecisionTest extends AbstractTest {
                 call.execute();
                 BigDecimal actual2 = call.getBigDecimal(1);
                 assertEquals(new BigDecimal("100.24112"), actual2);
+            }
+        }
+    }
+    
+    @Test
+    @Tag("BigDecimalFailure")
+    public void testBigDecimalPrecisionFailure() throws SQLException {
+        try (Connection connection = getConnection()) {
+            String callSQL1 = "{call " + procName1 + "(100.241, ?)}";
+            try (CallableStatement call = connection.prepareCall(callSQL1)) {
+                call.registerOutParameter(1, Types.DECIMAL);
+                SQLException thrownException = assertThrows(SQLException.class, () -> {
+                    call.execute();
+                    call.getBigDecimal(1);
+                });
+                assertTrue(thrownException.getMessage().contains("R_metaDataErrorForParameter"));
             }
         }
     }
