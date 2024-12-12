@@ -753,4 +753,181 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
         wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
+    
+    /** 
+     * The default batch size for bulk copy operations.
+     */
+    private int bulkCopyOptionDefaultsBatchSize = 0;
+
+    /**
+     * Returns the bulkCopyOptionDefaultsBatchSize value.
+     * 
+     * @return the bulkCopyOptionDefaultsBatchSize value.
+     */
+    public int getBulkCopyOptionDefaultsBatchSize() {
+        return wrappedConnection.getBulkCopyOptionDefaultsBatchSize();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsBatchSize value.
+     * 
+     * @param bulkCopyOptionDefaultsBatchSize
+     *        the bulkCopyOptionDefaultsBatchSize value to set.
+     */
+    public void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize) {
+    	wrappedConnection.setBulkCopyOptionDefaultsBatchSize(bulkCopyOptionDefaultsBatchSize);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsTimeout value.
+     * 
+     * @return the bulkCopyOptionDefaultsTimeout value.
+     */
+    public int getBulkCopyOptionDefaultsTimeout() {
+        return wrappedConnection.getBulkCopyOptionDefaultsTimeout();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsTimeout value.
+     * 
+     * @param bulkCopyOptionDefaultsTimeout
+     *        the bulkCopyOptionDefaultsTimeout value to set.
+     */
+    public void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout) {
+         wrappedConnection.setBulkCopyOptionDefaultsTimeout(bulkCopyOptionDefaultsTimeout);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsCheckConstraints value.
+     * 
+     * @return the bulkCopyOptionDefaultsCheckConstraints value.
+     */
+    public boolean getBulkCopyOptionDefaultsCheckConstraints() {
+        return wrappedConnection.getBulkCopyOptionDefaultsCheckConstraints();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsCheckConstraints value.
+     * 
+     * @param bulkCopyOptionDefaultsCheckConstraints
+     *        the bulkCopyOptionDefaultsCheckConstraints value to set.
+     */
+    public void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints) {
+        wrappedConnection.setBulkCopyOptionDefaultsCheckConstraints(bulkCopyOptionDefaultsCheckConstraints);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsFireTriggers value.
+     * 
+     * @return the bulkCopyOptionDefaultsFireTriggers value.
+     */
+    public boolean getBulkCopyOptionDefaultsFireTriggers() {
+        return wrappedConnection.getBulkCopyOptionDefaultsFireTriggers();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsFireTriggers value.
+     * 
+     * @param bulkCopyOptionDefaultsFireTriggers
+     *        the bulkCopyOptionDefaultsFireTriggers value to set.
+     */
+    public void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers) {
+        wrappedConnection.setBulkCopyOptionDefaultsFireTriggers(bulkCopyOptionDefaultsFireTriggers);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsKeepIdentity value.
+     * 
+     * @return the bulkCopyOptionDefaultsKeepIdentity value.
+     */
+    public boolean getBulkCopyOptionDefaultsKeepIdentity() {
+        return wrappedConnection.getBulkCopyOptionDefaultsKeepIdentity();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsKeepIdentity value.
+     * 
+     * @param bulkCopyOptionDefaultsKeepIdentity
+     *        the bulkCopyOptionDefaultsKeepIdentity value to set.
+     */
+    public void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity) {
+        wrappedConnection.setBulkCopyOptionDefaultsKeepIdentity(bulkCopyOptionDefaultsKeepIdentity);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsKeepNulls value.
+     * 
+     * @return the bulkCopyOptionDefaultsKeepNulls value.
+     */
+    public boolean getBulkCopyOptionDefaultsKeepNulls() {
+        return wrappedConnection.getBulkCopyOptionDefaultsKeepNulls();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsKeepNulls value.
+     * 
+     * @param bulkCopyOptionDefaultsKeepNulls
+     *        the bulkCopyOptionDefaultsKeepNulls value to set.
+     */
+    public void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls) {
+        wrappedConnection.setBulkCopyOptionDefaultsKeepNulls(bulkCopyOptionDefaultsKeepNulls);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsTableLock value.
+     * 
+     * @return the bulkCopyOptionDefaultsTableLock value.
+     */
+    public boolean getBulkCopyOptionDefaultsTableLock() {
+        return wrappedConnection.getBulkCopyOptionDefaultsTableLock();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsTableLock value.
+     * 
+     * @param bulkCopyOptionDefaultsTableLock
+     *        the bulkCopyOptionDefaultsTableLock value to set.
+     */
+    public void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock) {
+    	wrappedConnection.setBulkCopyOptionDefaultsTableLock(bulkCopyOptionDefaultsTableLock);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * 
+     * @return the bulkCopyOptionDefaultsUseInternalTransaction value.
+     */
+    public boolean getBulkCopyOptionDefaultsUseInternalTransaction() {
+        return wrappedConnection.getBulkCopyOptionDefaultsUseInternalTransaction();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * 
+     * @param bulkCopyOptionDefaultsUseInternalTransaction
+     *        the bulkCopyOptionDefaultsUseInternalTransaction value to set.
+     */
+    public void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction) {
+    	wrappedConnection.setBulkCopyOptionDefaultsUseInternalTransaction(bulkCopyOptionDefaultsUseInternalTransaction);
+    }
+
+    /**
+     * Returns the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * 
+     * @return the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     */
+    public boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications() {
+    	return wrappedConnection.getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
+    }
+
+    /**
+     * Sets the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * 
+     * @param bulkCopyOptionDefaultsAllowEncryptedValueModifications
+     *        the bulkCopyOptionDefaultsAllowEncryptedValueModifications value to set.
+     */
+    public void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) {
+        wrappedConnection.setBulkCopyOptionDefaultsAllowEncryptedValueModifications(bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+    }
+
 }

@@ -1025,6 +1025,122 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
     }
 
+    @Override
+    public void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString(),
+                bulkCopyOptionDefaultsBatchSize);
+    }
+
+    @Override
+    public int getBulkCopyOptionDefaultsBatchSize() {
+        return getIntProperty(connectionProps,
+                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString(),
+                bulkCopyOptionDefaultsTimeout);
+    }
+
+    @Override
+    public int getBulkCopyOptionDefaultsTimeout() {
+        return getIntProperty(connectionProps,
+                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString(),
+                bulkCopyOptionDefaultsCheckConstraints);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsCheckConstraints() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString(),
+                bulkCopyOptionDefaultsFireTriggers);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsFireTriggers() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.toString(),
+                bulkCopyOptionDefaultsKeepIdentity);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsKeepIdentity() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.toString(),
+                bulkCopyOptionDefaultsKeepNulls);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsKeepNulls() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.toString(),
+                bulkCopyOptionDefaultsTableLock);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsTableLock() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.toString(),
+                bulkCopyOptionDefaultsUseInternalTransaction);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsUseInternalTransaction() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+    }
+
+    @Override
+    public boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
+    }    
     /**
      * @deprecated
      */

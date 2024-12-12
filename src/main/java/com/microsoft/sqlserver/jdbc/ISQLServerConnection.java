@@ -547,4 +547,139 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
+
+    /**
+     * Specifies the default batch size for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsBatchSize
+     *        integer value for bulkCopyOptionDefaultsBatchSize.
+     */
+    void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize);
+
+    /**
+     * Returns the default batch size for bulk copy operations.
+     * 
+     * @return integer value for bulkCopyOptionDefaultsBatchSize.
+     */
+    int getBulkCopyOptionDefaultsBatchSize();
+
+    /**
+     * Specifies the default timeout for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsTimeout
+     *        integer value for bulkCopyOptionDefaultsTimeout.
+     */
+    void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout);
+
+    /**
+     * Returns the default timeout for bulk copy operations.
+     * 
+     * @return integer value for bulkCopyOptionDefaultsTimeout.
+     */
+    int getBulkCopyOptionDefaultsTimeout();
+
+    /**
+     * Specifies the default check constraints option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsCheckConstraints
+     *        boolean value for bulkCopyOptionDefaultsCheckConstraints.
+     */
+    void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints);
+
+    /**
+     * Returns the default check constraints option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsCheckConstraints.
+     */
+    boolean getBulkCopyOptionDefaultsCheckConstraints();
+
+    /**
+     * Specifies the default fire triggers option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsFireTriggers
+     *        boolean value for bulkCopyOptionDefaultsFireTriggers.
+     */
+    void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers);
+
+    /**
+     * Returns the default fire triggers option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsFireTriggers.
+     */
+    boolean getBulkCopyOptionDefaultsFireTriggers();
+
+    /**
+     * Specifies the default keep identity option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsKeepIdentity
+     *        boolean value for bulkCopyOptionDefaultsKeepIdentity.
+     */
+    void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity);
+
+    /**
+     * Returns the default keep identity option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsKeepIdentity.
+     */
+    boolean getBulkCopyOptionDefaultsKeepIdentity();
+
+    /**
+     * Specifies the default keep nulls option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsKeepNulls
+     *        boolean value for bulkCopyOptionDefaultsKeepNulls.
+     */
+    void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls);
+
+    /**
+     * Returns the default keep nulls option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsKeepNulls.
+     */
+    boolean getBulkCopyOptionDefaultsKeepNulls();
+
+    /**
+     * Specifies the default table lock option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsTableLock
+     *        boolean value for bulkCopyOptionDefaultsTableLock.
+     */
+    void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock);
+
+    /**
+     * Returns the default table lock option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsTableLock.
+     */
+    boolean getBulkCopyOptionDefaultsTableLock();
+
+    /**
+     * Specifies the default use internal transaction option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsUseInternalTransaction
+     *        boolean value for bulkCopyOptionDefaultsUseInternalTransaction.
+     */
+    void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction);
+
+    /**
+     * Returns the default use internal transaction option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsUseInternalTransaction.
+     */
+    boolean getBulkCopyOptionDefaultsUseInternalTransaction();
+
+    /**
+     * Specifies the default allow encrypted value modifications option for bulk copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsAllowEncryptedValueModifications
+     *        boolean value for bulkCopyOptionDefaultsAllowEncryptedValueModifications.
+     */
+    void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+
+    /**
+     * Returns the default allow encrypted value modifications option for bulk copy operations.
+     * 
+     * @return boolean value for bulkCopyOptionDefaultsAllowEncryptedValueModifications.
+     */
+    boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
 }

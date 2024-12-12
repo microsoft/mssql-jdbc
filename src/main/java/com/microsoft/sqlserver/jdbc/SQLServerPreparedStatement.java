@@ -2232,7 +2232,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = null;
                             if (this.bcOptions == null) {
-                            	option = new SQLServerBulkCopyOptions();
+                            	option = new SQLServerBulkCopyOptions(connection);
                             } else {
                                 option = this.bcOptions;
                             }
@@ -2418,7 +2418,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = null;
                             if (this.bcOptions == null) {
-                            	option = new SQLServerBulkCopyOptions();
+                            	option = new SQLServerBulkCopyOptions(connection);
                             } else {
                                 option = this.bcOptions;
                             }
