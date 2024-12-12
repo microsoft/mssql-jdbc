@@ -563,7 +563,7 @@ enum PrepareMethod {
 
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
-    APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
+    APPLICATION_NAME("applicationName", SQLServerDriver.APP_NAME),
     PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
@@ -731,6 +731,32 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
+
+    // Helper method to fetch system properties and return null if the value is empty
+    private static String getSystemProperty(String propertyName) {
+        String value = System.getProperty(propertyName);
+        return (value != null && !value.isEmpty()) ? value : null; 
+    }
+
+    // Fetch system properties for OS, architecture, and JVM details
+    String osName = getSystemProperty("os.name");        
+    String osArch = getSystemProperty("os.arch");        
+    String javaVmName = getSystemProperty("java.vm.name"); 
+    String javaVmVersion = getSystemProperty("java.vm.version"); 
+    
+    String platform = (javaVmName != null) 
+            ? javaVmName + (javaVmVersion != null ? " " + javaVmVersion : "") 
+            : null;  
+    String os = (osName != null) ? osName : null;           
+    String architecture = (osArch != null) ? osArch : null; 
+
+    String appName = (os != null || platform != null || architecture != null) 
+        ? String.format("Microsoft JDBC - {%s}, {%s} - {%s}", 
+                        (os != null ? os : ""),  
+                        (platform != null ? platform : ""), 
+                        (architecture != null ? architecture : ""))
+        : DEFAULT_APP_NAME;  
+    String APP_NAME = appName.trim().isEmpty() ? DEFAULT_APP_NAME : appName;
 
     private static final String[] TRUE_FALSE = {"true", "false"};
 
@@ -1240,21 +1266,6 @@ public final class SQLServerDriver implements java.sql.Driver {
             "java.specification.version", "java.class.path", "java.class.version", "java.runtime.name",
             "java.runtime.version", "java.vendor", "java.version", "java.vm.name", "java.vm.vendor", "java.vm.version",
             "java.vm.specification.vendor", "java.vm.specification.version", "os.name", "os.version", "os.arch"};
-    
-    /**
-     * This method retrieves the OS name and architecture using Java system properties
-     * and logs this information.
-     */
-    private void logClientOSAndArchInfo() {
-        try {
-            String osName = System.getProperty("os.name");
-            String osArch = System.getProperty("os.arch");
-            
-            loggerExternal.log(Level.FINE, "Client OS: " + osName + ", Architecture: " + osArch);
-        } catch (Exception e) {
-            loggerExternal.warning("Unable to capture client OS and architecture information.");
-        }
-    }
 
     @Override
     public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
@@ -1266,7 +1277,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
                             + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
-            logClientOSAndArchInfo();
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);
