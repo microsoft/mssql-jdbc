@@ -731,32 +731,55 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
-
-    // Helper method to fetch system properties and return null if the value is empty
-    private static String getSystemProperty(String propertyName) {
-        String value = System.getProperty(propertyName);
-        return (value != null && !value.isEmpty()) ? value : null; 
-    }
-
-    // Fetch system properties for OS, architecture, and JVM details
-    String osName = getSystemProperty("os.name");        
-    String osArch = getSystemProperty("os.arch");        
-    String javaVmName = getSystemProperty("java.vm.name"); 
-    String javaVmVersion = getSystemProperty("java.vm.version"); 
+    static String APP_NAME = getAppNameWithProperties();
     
-    String platform = (javaVmName != null) 
-            ? javaVmName + (javaVmVersion != null ? " " + javaVmVersion : "") 
-            : null;  
-    String os = (osName != null) ? osName : null;           
-    String architecture = (osArch != null) ? osArch : null; 
+    /**
+     * Constructs the application name using system properties for OS, platform, and architecture.
+     * If any of the properties cannot be fetched, it falls back to the default application name.
+     * Format -> Microsoft JDBC - {OS}, {Platform} - {architecture}
+     *
+     * @return the constructed application name or the default application name if properties are not available
+     */
+    public static String getAppNameWithProperties() {
+        String osName = null;
+        String osArch = null;
+        String javaVmName = null;
+        String javaVmVersion = null;
 
-    String appName = (os != null || platform != null || architecture != null) 
-        ? String.format("Microsoft JDBC - {%s}, {%s} - {%s}", 
-                        (os != null ? os : ""),  
-                        (platform != null ? platform : ""), 
-                        (architecture != null ? architecture : ""))
-        : DEFAULT_APP_NAME;  
-    String APP_NAME = appName.trim().isEmpty() ? DEFAULT_APP_NAME : appName;
+        try {
+            osName = System.getProperty("os.name");
+        } catch (Exception e) {
+        	loggerExternal.warning("Unable to capture os.name: " + e.getMessage());
+            osName = null; 
+        }
+        try {
+            osArch = System.getProperty("os.arch");
+        } catch (Exception e) {
+        	loggerExternal.warning("Unable to capture os.arch: " + e.getMessage());
+            osArch = null;
+        }
+        try {
+            javaVmName = System.getProperty("java.vm.name");
+        } catch (Exception e) {
+        	loggerExternal.warning("Unable to capture java.vm.name: " + e.getMessage());
+            javaVmName = null;
+        }
+        try {
+            javaVmVersion = System.getProperty("java.vm.version");
+        } catch (Exception e) {
+        	loggerExternal.warning("Unable to capture java.vm.version: " + e.getMessage());
+            javaVmVersion = null;
+        }
+
+        String platform = (javaVmName != null) ? javaVmName + (javaVmVersion != null ? " " + javaVmVersion : "") : null;
+        String appName = (osName != null || platform != null || osArch != null)
+            ? String.format("Microsoft JDBC - {%s}, {%s} - {%s}", 
+                            (osName != null ? osName : ""), 
+                            (platform != null ? platform : ""), 
+                            (osArch != null ? osArch : ""))
+            : DEFAULT_APP_NAME;
+        return appName.trim().isEmpty() ? DEFAULT_APP_NAME : appName;
+    }
 
     private static final String[] TRUE_FALSE = {"true", "false"};
 
@@ -1277,6 +1300,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
                             + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
+            loggerExternal.log(Level.FINE, "Application Name: " + APP_NAME);
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);
