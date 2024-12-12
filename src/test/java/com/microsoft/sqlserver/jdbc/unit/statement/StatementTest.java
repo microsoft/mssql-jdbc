@@ -2697,7 +2697,6 @@ public class StatementTest extends AbstractTest {
     
     
     @Nested
-    @Tag(Constants.xAzureSQLDW)
     public class TCGenKeys {
         private final String tableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeys"));
