@@ -134,7 +134,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);         
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
             lock.unlock();
             executorService.shutdown();
@@ -201,7 +201,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);         
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
             lock.unlock();
             executorService.shutdown();
@@ -469,7 +469,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | URISyntaxException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);        
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
             lock.unlock();
             executorService.shutdown();

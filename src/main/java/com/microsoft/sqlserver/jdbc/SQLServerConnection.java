@@ -6110,7 +6110,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         while (true) {
-        	int millisecondsRemaining = timerRemaining(timerExpire);
+            int millisecondsRemaining = timerRemaining(timerExpire);
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
