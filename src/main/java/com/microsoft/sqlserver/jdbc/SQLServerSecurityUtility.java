@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
@@ -408,7 +410,7 @@ class SQLServerSecurityUtility {
      * @throws SQLServerException
      */
     static SqlAuthenticationToken getDefaultAzureCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
+            String managedIdentityClientId, int millisecondsRemaining) throws SQLServerException {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
         String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
 
@@ -463,7 +465,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional();
+        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional(Duration.of(millisecondsRemaining, ChronoUnit.MILLIS));
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),

@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -80,7 +81,7 @@ class SQLServerMSAL4JUtils {
     private static final Lock lock = new ReentrantLock();
 
     static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
-            String authenticationString) throws SQLServerException {
+            String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -116,7 +117,7 @@ class SQLServerMSAL4JUtils {
                     .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
                     .build());
 
-            final IAuthenticationResult authenticationResult = future.get();
+            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -132,6 +133,8 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);         
         } finally {
             lock.unlock();
             executorService.shutdown();
@@ -139,7 +142,7 @@ class SQLServerMSAL4JUtils {
     }
 
     static SqlAuthenticationToken getSqlFedAuthTokenPrincipal(SqlFedAuthInfo fedAuthInfo, String aadPrincipalID,
-            String aadPrincipalSecret, String authenticationString) throws SQLServerException {
+            String aadPrincipalSecret, String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -181,7 +184,7 @@ class SQLServerMSAL4JUtils {
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
-            final IAuthenticationResult authenticationResult = future.get();
+            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -197,6 +200,8 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
+        } catch (TimeoutException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);         
         } finally {
             lock.unlock();
             executorService.shutdown();
@@ -205,7 +210,7 @@ class SQLServerMSAL4JUtils {
 
     static SqlAuthenticationToken getSqlFedAuthTokenPrincipalCertificate(SqlFedAuthInfo fedAuthInfo,
             String aadPrincipalID, String certFile, String certPassword, String certKey, String certKeyPassword,
-            String authenticationString) throws SQLServerException {
+            String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINEST)) {
@@ -297,7 +302,7 @@ class SQLServerMSAL4JUtils {
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
-            final IAuthenticationResult authenticationResult = future.get();
+            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -325,7 +330,7 @@ class SQLServerMSAL4JUtils {
     }
 
     static SqlAuthenticationToken getSqlFedAuthTokenIntegrated(SqlFedAuthInfo fedAuthInfo,
-            String authenticationString) throws SQLServerException {
+            String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         /*
@@ -352,7 +357,7 @@ class SQLServerMSAL4JUtils {
                     .acquireToken(IntegratedWindowsAuthenticationParameters
                             .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
 
-            final IAuthenticationResult authenticationResult = future.get();
+            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -368,6 +373,8 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (IOException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
             lock.unlock();
             executorService.shutdown();
@@ -375,7 +382,7 @@ class SQLServerMSAL4JUtils {
     }
 
     static SqlAuthenticationToken getSqlFedAuthTokenInteractive(SqlFedAuthInfo fedAuthInfo, String user,
-            String authenticationString) throws SQLServerException {
+            String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         if (logger.isLoggable(Level.FINER)) {
@@ -432,7 +439,7 @@ class SQLServerMSAL4JUtils {
             }
 
             if (null != future) {
-                authenticationResult = future.get();
+                authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
             } else {
                 // acquire token interactively with system browser
                 if (logger.isLoggable(Level.FINEST)) {
@@ -444,7 +451,7 @@ class SQLServerMSAL4JUtils {
                         .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
 
                 future = pca.acquireToken(parameters);
-                authenticationResult = future.get();
+                authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
             }
 
             if (logger.isLoggable(Level.FINER)) {
@@ -461,6 +468,8 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(e.getMessage(), e);
         } catch (MalformedURLException | URISyntaxException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);        
         } finally {
             lock.unlock();
             executorService.shutdown();
