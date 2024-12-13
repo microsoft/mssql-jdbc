@@ -27,10 +27,12 @@ public class DatabaseMetadataTest extends AbstractTest {
         setConnection();
     }
 
-    @BeforeEach
-    public void init() throws SQLException {
+    @Test
+    public void testGetIndexInfo() throws SQLException, SQLServerException {
+        ResultSet rs = null;
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
-            String createTableSQL = "CREATE TABLE " + tableName + " (" +
+        	TestUtils.dropTableIfExists(tableName, stmt);
+        	String createTableSQL = "CREATE TABLE " + tableName + " (" +
                                     col1Name + " INT, " +
                                     col2Name + " INT, " +
                                     col3Name + " INT)";
@@ -44,24 +46,6 @@ public class DatabaseMetadataTest extends AbstractTest {
 
             String createColumnstoreIndexSQL = "CREATE NONCLUSTERED COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "(" + col3Name + ")";
             stmt.executeUpdate(createColumnstoreIndexSQL);
-
-        } catch (SQLException e) {
-            fail("Exception occurred while testing getIndexInfo: " + e.getMessage());
-        }
-    }
-
-    @AfterEach
-    public void terminate() throws SQLException {
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
-            String dropTableSQL = "DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(tableName);
-            stmt.executeUpdate(dropTableSQL);
-        }
-    }
-
-    @Test
-    public void testGetIndexInfo() throws SQLException, SQLServerException {
-        ResultSet rs = null;
-        try (Connection connection = getConnection()) {
             String catalog = connection.getCatalog();
             String schema = "dbo";
             String table = tableName;
