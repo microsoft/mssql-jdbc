@@ -8,9 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -38,7 +36,7 @@ public class DatabaseMetadataTest extends AbstractTest {
                                     col3Name + " INT)";
             stmt.executeUpdate(createTableSQL);
 
-            String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "(" + col1Name + ")";
+			String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "(" + col1Name + ")";
             stmt.executeUpdate(createClusteredIndexSQL);
 
             String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName + "(" + col2Name + ")";
@@ -56,10 +54,11 @@ public class DatabaseMetadataTest extends AbstractTest {
             boolean hasClusteredIndex = false;
             boolean hasNonClusteredIndex = false;
             boolean hasColumnstoreIndex = false;
-            
+            System.out.println("Testing getIndexInfo " + rs);
             while (rs.next()) {
                 String indexType = rs.getString("IndexType");
                 String indexName = rs.getString("IndexName");
+                System.out.println(indexType + " " + indexName);
 
                 if (indexType.contains("COLUMNSTORE")) {
                     hasColumnstoreIndex = true;
@@ -73,8 +72,6 @@ public class DatabaseMetadataTest extends AbstractTest {
             assertTrue(hasClusteredIndex, "CLUSTERED index found.");
             assertTrue(hasNonClusteredIndex, "NONCLUSTERED index found.");
             assertTrue(hasColumnstoreIndex, "COLUMNSTORE index found.");
-        } catch (SQLException e) {
-            fail("Exception occurred while testing getIndexInfo: " + e.getMessage());
         }
     }
 }
