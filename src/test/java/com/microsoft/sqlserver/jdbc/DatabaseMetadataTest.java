@@ -17,7 +17,7 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 
 public class DatabaseMetadataTest extends AbstractTest {
 
-    private static String tableName = AbstractSQLGenerator.escapeIdentifier("TestTable");
+    private static String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
     private static String col1Name = AbstractSQLGenerator.escapeIdentifier("p1");
     private static String col2Name = AbstractSQLGenerator.escapeIdentifier("p2");
     private static String col3Name = AbstractSQLGenerator.escapeIdentifier("p3");
