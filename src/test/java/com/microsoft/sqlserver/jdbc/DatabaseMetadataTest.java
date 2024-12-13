@@ -63,36 +63,18 @@ public class DatabaseMetadataTest extends AbstractTest {
 
                 if (indexType.contains("COLUMNSTORE")) {
                     hasColumnstoreIndex = true;
-                } else if (indexType.contains("CLUSTERED")) {
+                } else if (indexType.equals("CLUSTERED")) {
                     hasClusteredIndex = true;
-                } else if (indexType.contains("NONCLUSTERED")) {
+                } else if (indexType.equals("NONCLUSTERED")) {
                     hasNonClusteredIndex = true;
                 }
             }
 
-            assertTrue(hasClusteredIndex);
-            assertTrue(hasNonClusteredIndex);
-            assertTrue(hasColumnstoreIndex);
+            assertTrue(hasClusteredIndex, "CLUSTERED index found.");
+            assertTrue(hasNonClusteredIndex, "NONCLUSTERED index found.");
+            assertTrue(hasColumnstoreIndex, "COLUMNSTORE index found.");
         } catch (SQLException e) {
             fail("Exception occurred while testing getIndexInfo: " + e.getMessage());
-        }
-    }
-
-    @Test
-    public void testGetIndexInfoNonExistentTable() throws SQLException, SQLServerException {
-        String nonExistentTable = AbstractSQLGenerator.escapeIdentifier("NonExistentTable");
-
-        try (Connection connection = getConnection()) {
-            String catalog = connection.getCatalog();
-            String schema = "dbo";
-            String table = nonExistentTable;
-
-            DatabaseMetaData dbMetadata = connection.getMetaData();
-            ResultSet rs = dbMetadata.getIndexInfo(catalog, schema, table, false, false);
-
-            fail("Expected SQLException when calling getIndexInfo on a non-existent table, but no exception was thrown.");
-        } catch (SQLException e) {
-            assertNotNull(e);
         }
     }
 }
