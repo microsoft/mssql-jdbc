@@ -745,17 +745,12 @@ public final class SQLServerDriver implements java.sql.Driver {
         String osArch = System.getProperty("os.arch", "");
         String javaVmName = System.getProperty("java.vm.name", "");
         String javaVmVersion = System.getProperty("java.vm.version", "");
-
         String platform = javaVmName.isEmpty() || javaVmVersion.isEmpty() ? "" : javaVmName + " " + javaVmVersion;
 
-        String appName = String.format(APP_NAME_TEMPLATE, osName, platform, osArch);
-        
-        // If all values are empty, return the default app name
         if (osName.isEmpty() && platform.isEmpty() && osArch.isEmpty()) {
             return DEFAULT_APP_NAME;
         }
-        return appName;
-
+        return String.format(APP_NAME_TEMPLATE, osName, platform, osArch);
     }
     
     private static final String[] TRUE_FALSE = {"true", "false"};
@@ -1054,9 +1049,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
-        if (loggerExternal.isLoggable(Level.INFO)) {
-            String appName = getAppName();
-            loggerExternal.log(Level.INFO, "Application Name: " + appName);
+        if (loggerExternal.isLoggable(Level.FINE)) {
+            loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.getAppName());
         }
     }
 
