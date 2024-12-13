@@ -1221,12 +1221,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 "WHERE t.name = '" + table + "' " +
                 "AND sch.name = '" + schema + "' " +
                 "ORDER BY t.name, i.name, ic.key_ordinal";
-        try {
-            return getResultSetFromInternalQueries(cat, query);
-        } catch (SQLException e) {
-            // Handle the SQLException appropriately (log, rethrow, etc.)
-            throw new SQLServerException("Error executing getIndexInfo query", e);
-        }
+        return getResultSetFromInternalQueries(cat, query);
     }
 
     @Override
