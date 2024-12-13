@@ -563,7 +563,7 @@ enum PrepareMethod {
 
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
-    APPLICATION_NAME("applicationName", SQLServerDriver.APP_NAME),
+    APPLICATION_NAME("applicationName", ""),
     PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
@@ -731,8 +731,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
-    static String APP_NAME = getAppNameWithProperties();
-    
+    static final String APP_NAME_TEMPLATE = "Microsoft JDBC - %s, %s - %s";
+
     /**
      * Constructs the application name using system properties for OS, platform, and architecture.
      * If any of the properties cannot be fetched, it falls back to the default application name.
@@ -740,47 +740,24 @@ public final class SQLServerDriver implements java.sql.Driver {
      *
      * @return the constructed application name or the default application name if properties are not available
      */
-    public static String getAppNameWithProperties() {
-        String osName = null;
-        String osArch = null;
-        String javaVmName = null;
-        String javaVmVersion = null;
+    static String getAppName() {
+        String osName = System.getProperty("os.name", "");
+        String osArch = System.getProperty("os.arch", "");
+        String javaVmName = System.getProperty("java.vm.name", "");
+        String javaVmVersion = System.getProperty("java.vm.version", "");
 
-        try {
-            osName = System.getProperty("os.name");
-        } catch (Exception e) {
-        	loggerExternal.warning("Unable to capture os.name: " + e.getMessage());
-            osName = null; 
-        }
-        try {
-            osArch = System.getProperty("os.arch");
-        } catch (Exception e) {
-        	loggerExternal.warning("Unable to capture os.arch: " + e.getMessage());
-            osArch = null;
-        }
-        try {
-            javaVmName = System.getProperty("java.vm.name");
-        } catch (Exception e) {
-        	loggerExternal.warning("Unable to capture java.vm.name: " + e.getMessage());
-            javaVmName = null;
-        }
-        try {
-            javaVmVersion = System.getProperty("java.vm.version");
-        } catch (Exception e) {
-        	loggerExternal.warning("Unable to capture java.vm.version: " + e.getMessage());
-            javaVmVersion = null;
-        }
+        String platform = javaVmName.isEmpty() || javaVmVersion.isEmpty() ? "" : javaVmName + " " + javaVmVersion;
 
-        String platform = (javaVmName != null) ? javaVmName + (javaVmVersion != null ? " " + javaVmVersion : "") : null;
-        String appName = (osName != null || platform != null || osArch != null)
-            ? String.format("Microsoft JDBC - {%s}, {%s} - {%s}", 
-                            (osName != null ? osName : ""), 
-                            (platform != null ? platform : ""), 
-                            (osArch != null ? osArch : ""))
-            : DEFAULT_APP_NAME;
-        return appName.trim().isEmpty() ? DEFAULT_APP_NAME : appName;
+        String appName = String.format(APP_NAME_TEMPLATE, osName, platform, osArch);
+        
+        // If all values are empty, return the default app name
+        if (osName.isEmpty() && platform.isEmpty() && osArch.isEmpty()) {
+            return DEFAULT_APP_NAME;
+        }
+        return appName;
+
     }
-
+    
     private static final String[] TRUE_FALSE = {"true", "false"};
 
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
@@ -790,7 +767,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), false,
                     new String[] {ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
-                    SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), false, null),
+                    "", false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
                     SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(), false,
                     new String[] {ColumnEncryptionSetting.DISABLED.toString(),
@@ -1077,6 +1054,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
+        if (loggerExternal.isLoggable(Level.INFO)) {
+            String appName = getAppName();
+            loggerExternal.log(Level.INFO, "Application Name: " + appName);
+        }
     }
 
     // Check for jdk.net.ExtendedSocketOptions to set TCP keep-alive options for idle connection resiliency
@@ -1300,7 +1281,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
                             + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT
                             + " for SQL Server");
-            loggerExternal.log(Level.FINE, "Application Name: " + APP_NAME);
             if (loggerExternal.isLoggable(Level.FINER)) {
                 for (String propertyKeyName : systemPropertiesToLog) {
                     String propertyValue = System.getProperty(propertyKeyName);
@@ -1316,6 +1296,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
+            connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), getAppName());
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
