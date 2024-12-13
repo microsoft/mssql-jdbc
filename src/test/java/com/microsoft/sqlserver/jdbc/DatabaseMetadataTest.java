@@ -54,7 +54,7 @@ public class DatabaseMetadataTest extends AbstractTest {
             boolean hasClusteredIndex = false;
             boolean hasNonClusteredIndex = false;
             boolean hasColumnstoreIndex = false;
-            System.out.println("Testing getIndexInfo " + rs);
+            System.out.println("Testing getIndexInfo " + rs + " " + rs.next());
             while (rs.next()) {
                 String indexType = rs.getString("IndexType");
                 String indexName = rs.getString("IndexName");
