@@ -1199,7 +1199,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
-            boolean approximate) throws SQLServerException, SQLException {
+            boolean approximate) throws SQLServerException, SQLTimeoutException, SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
