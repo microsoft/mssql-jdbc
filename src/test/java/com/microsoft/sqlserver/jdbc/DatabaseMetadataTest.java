@@ -46,15 +46,41 @@ public class DatabaseMetadataTest extends AbstractTest {
             stmt.executeUpdate(createColumnstoreIndexSQL);
             String catalog = connection.getCatalog();
             String schema = "dbo";
-            String table = tableName;
 
             DatabaseMetaData dbMetadata = connection.getMetaData();
-            rs = dbMetadata.getIndexInfo(catalog, schema, table, false, false);
+			rs = dbMetadata.getIndexInfo(catalog, schema, tableName, false, false);
 
             boolean hasClusteredIndex = false;
             boolean hasNonClusteredIndex = false;
             boolean hasColumnstoreIndex = false;
             System.out.println("Testing getIndexInfo " + rs + " " + rs.next());
+            String query = 
+                    "SELECT " +
+                    "    db_name() AS CatalogName, " +
+                    "    sch.name AS SchemaName, " +
+                    "    t.name AS TableName, " +
+                    "    i.name AS IndexName, " +
+                    "    i.type_desc AS IndexType, " +
+                    "    i.is_unique AS IsUnique, " +
+                    "    c.name AS ColumnName, " +
+                    "    ic.key_ordinal AS ColumnOrder " +
+                    "FROM " +
+                    "    sys.indexes i " +
+                    "INNER JOIN " +
+                    "    sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+                    "INNER JOIN " +
+                    "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                    "INNER JOIN " +
+                    "    sys.tables t ON i.object_id = t.object_id " +
+                    "INNER JOIN " +
+                    "    sys.schemas sch ON t.schema_id = sch.schema_id " +
+                   
+                    "WHERE t.name = '" + tableName + "' " +
+                          "AND sch.name = '" + schema + "' " +
+                    "ORDER BY " +
+                    "    t.name, i.name, ic.key_ordinal;";
+            rs = stmt.executeQuery(query);
+            System.out.println("Testing query " + rs + " " + rs.next());
             while (rs.next()) {
                 String indexType = rs.getString("IndexType");
                 String indexName = rs.getString("IndexName");
