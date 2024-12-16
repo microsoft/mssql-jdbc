@@ -73,10 +73,37 @@ public class DatabaseMetadataTest extends AbstractTest {
 
             boolean hasColumnstoreIndex = false;
             
-            System.out.println("Testing getIndexInfo " + rs);
-            if (rs.next()) {
-                String indexType = rs.getString("IndexType");
-                String indexName = rs.getString("IndexName");
+            System.out.println("Testing getIndexInfo " + rs + rs.next());
+		String query = 
+                    "SELECT " +
+                    "    db_name() AS CatalogName, " +
+                    "    sch.name AS SchemaName, " +
+                    "    t.name AS TableName, " +
+                    "    i.name AS IndexName, " +
+                    "    i.type_desc AS IndexType, " +
+                    "    i.is_unique AS IsUnique, " +
+                    "    c.name AS ColumnName, " +
+                    "    ic.key_ordinal AS ColumnOrder " +
+                    "FROM " +
+                    "    sys.indexes i " +
+                    "INNER JOIN " +
+                    "    sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+                    "INNER JOIN " +
+                    "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                    "INNER JOIN " +
+                    "    sys.tables t ON i.object_id = t.object_id " +
+                    "INNER JOIN " +
+                    "    sys.schemas sch ON t.schema_id = sch.schema_id " +
+
+                    "WHERE t.name = '" + tableName + "' " +
+                          "AND sch.name = '" + schema + "' " +
+                    "ORDER BY " +
+                    "    t.name, i.name, ic.key_ordinal;";
+		ResultSet rs1 = stmt.executeQuery(query);
+		 System.out.println("Testing query " + rs1 + rs1.next());
+            if (rs1.next()) {
+                String indexType = rs1.getString("IndexType");
+                String indexName = rs1.getString("IndexName");
                 System.out.println(indexType + " " + indexName);
 
                 if (indexType.contains("COLUMNSTORE")) {
