@@ -34,9 +34,13 @@ public class DatabaseMetadataTest extends AbstractTest {
                                     col1Name + " INT, " +
                                     col2Name + " INT)";
         	stmt.executeUpdate(createTableSQL);
+		assertNull(conn.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Connection.");
+                assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Statement.");
 
         	String createIndexSQL = "CREATE CLUSTERED COLUMNSTORE INDEX " + indexName + " ON " + tableName;
         	stmt.executeUpdate(createIndexSQL);
+		assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
+                assertNull(stmnt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
 		
         	String catalog = connection.getCatalog();
         	String schema = "dbo";
