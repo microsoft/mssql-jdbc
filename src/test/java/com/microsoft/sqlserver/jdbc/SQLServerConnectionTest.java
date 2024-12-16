@@ -42,6 +42,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.aad.msal4j.TokenCache;
 import com.microsoft.aad.msal4j.TokenCacheAccessContext;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -50,6 +51,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 public class SQLServerConnectionTest extends AbstractTest {
+	
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
@@ -1321,4 +1323,34 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }
+    
+
+    @Test
+    public void testGetSqlFedAuthTokenFailure() throws SQLException {
+        try (Connection conn = getConnection()){
+        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+        	fedAuthInfo.spn = "https://database.windows.net/";
+        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+                    "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), 0);
+        	fail("Expected the test to throw SQLServerException");
+        } catch (SQLServerException e) {
+        	//test pass
+        }        
+    }
+
+
+    @Test
+    public void testGetSqlFedAuthTokenPrincipalFailure() throws SQLException {
+        try (Connection conn = getConnection()){
+        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+        	fedAuthInfo.spn = "https://database.windows.net/";
+        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, "xxx",
+                    "xxx",SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString(), 0);
+        	fail("Expected the test to throw SQLServerException");
+        } catch (SQLServerException e) {
+    	}        
+    }
+    
 }
