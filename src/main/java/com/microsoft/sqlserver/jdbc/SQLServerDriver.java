@@ -563,7 +563,7 @@ enum PrepareMethod {
 
 enum SQLServerDriverStringProperty {
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
-    APPLICATION_NAME("applicationName", ""),
+    APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
     PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
     DATABASE_NAME("databaseName", ""),
     FAILOVER_PARTNER("failoverPartner", ""),
@@ -762,7 +762,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), false,
                     new String[] {ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
-                    "", false, null),
+            		SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString(),
                     SQLServerDriverStringProperty.COLUMN_ENCRYPTION.getDefaultValue(), false,
                     new String[] {ColumnEncryptionSetting.DISABLED.toString(),
