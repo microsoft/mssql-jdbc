@@ -28,7 +28,9 @@ public class BigDecimalPrecisionTest extends AbstractTest {
     public void init() throws SQLException {
         try (Connection connection = getConnection()) {
             String dropProcedureSQL = "DROP PROCEDURE IF EXISTS " + procName1 + ", " + procName2;
-            stmt.execute(dropProcedureSQL);
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(dropProcedureSQL);
+            }
             
             String createProcedureSQL1 = "CREATE PROCEDURE " + procName1 + "\n" +
                     "    @big_decimal_type      decimal(15, 3),\n" +
