@@ -79,17 +79,19 @@ public class DatabaseMetadataTest extends AbstractTest {
         	ResultSet rs1 = stmt.executeQuery(query);
         	System.out.println("Testing query " + rs1);
 		
-		System.out.println("Testing query and Index Type" + rs1 + " " + rs1.getString("IndexType"));
-		System.out.println("Testing function and Index Type" + rs + " " + rs.getString("IndexType"));
-		
-		String indexType = rs.getString("IndexType");
-		String indexName = rs.getString("IndexName");
-		System.out.println(indexType + " " + indexName);
-	
-		if (indexType.contains("COLUMNSTORE")) {
-		    hasColumnstoreIndex = true;
-		}
-        	assertTrue(hasColumnstoreIndex, "COLUMNSTORE index not found.");
+		if (rs.next()) {
+			System.out.println("Testing getIndexInfo " + rs);
+            		String indexType = rs.getString("IndexType");
+			String indexName = rs.getString("IndexName");
+			System.out.println("Testing query and Index Type: " + rs + " " + indexType);
+			System.out.println("Testing function and Index Type: " + rs + " " + indexType);
+			System.out.println(indexType + " " + indexName);
+
+			if (indexType.contains("COLUMNSTORE")) {
+				hasColumnstoreIndex = true;
+			}
+        	}
+	        assertTrue(hasColumnstoreIndex, "COLUMNSTORE index not found.");
         }
     }
 }
