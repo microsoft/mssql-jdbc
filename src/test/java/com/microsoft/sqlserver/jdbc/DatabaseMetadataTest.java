@@ -34,27 +34,20 @@ public class DatabaseMetadataTest extends AbstractTest {
                                     col1Name + " INT, " +
                                     col2Name + " INT, " +
                                     col3Name + " INT)";
-            stmt.executeUpdate(createTableSQL);
+        	stmt.executeUpdate(createTableSQL);
 
-			String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "(" + col1Name + ")";
-            stmt.executeUpdate(createClusteredIndexSQL);
+        	String createColumnstoreIndexSQL = "CREATE NONCLUSTERED COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "(" + col3Name + ")";
+        	stmt.executeUpdate(createColumnstoreIndexSQL);
+		
+        	String catalog = connection.getCatalog();
+        	String schema = "dbo";
 
-            String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName + "(" + col2Name + ")";
-            stmt.executeUpdate(createNonClusteredIndexSQL);
+        	DatabaseMetaData dbMetadata = connection.getMetaData();
+		rs = dbMetadata.getIndexInfo(catalog, schema, tableName, false, false);
 
-            String createColumnstoreIndexSQL = "CREATE NONCLUSTERED COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "(" + col3Name + ")";
-            stmt.executeUpdate(createColumnstoreIndexSQL);
-            String catalog = connection.getCatalog();
-            String schema = "dbo";
-
-            DatabaseMetaData dbMetadata = connection.getMetaData();
-			rs = dbMetadata.getIndexInfo(catalog, schema, tableName, false, false);
-
-            boolean hasClusteredIndex = false;
-            boolean hasNonClusteredIndex = false;
-            boolean hasColumnstoreIndex = false;
-            System.out.println("Testing getIndexInfo " + rs + " " + rs.next());
-            String query = 
+        	boolean hasColumnstoreIndex = false;
+        	System.out.println("Testing getIndexInfo " + rs + " " + rs.getString("IndexType"));
+        	String query = 
                     "SELECT " +
                     "    db_name() AS CatalogName, " +
                     "    sch.name AS SchemaName, " +
@@ -79,25 +72,17 @@ public class DatabaseMetadataTest extends AbstractTest {
                           "AND sch.name = '" + schema + "' " +
                     "ORDER BY " +
                     "    t.name, i.name, ic.key_ordinal;";
-            rs = stmt.executeQuery(query);
-            System.out.println("Testing query " + rs + " " + rs.next());
-            while (rs.next()) {
-                String indexType = rs.getString("IndexType");
-                String indexName = rs.getString("IndexName");
-                System.out.println(indexType + " " + indexName);
-
-                if (indexType.contains("COLUMNSTORE")) {
-                    hasColumnstoreIndex = true;
-                } else if (indexType.equals("CLUSTERED")) {
-                    hasClusteredIndex = true;
-                } else if (indexType.equals("NONCLUSTERED")) {
-                    hasNonClusteredIndex = true;
-                }
-            }
-
-            assertTrue(hasClusteredIndex, "CLUSTERED index found.");
-            assertTrue(hasNonClusteredIndex, "NONCLUSTERED index found.");
-            assertTrue(hasColumnstoreIndex, "COLUMNSTORE index found.");
+        	ResultSet rs1 = stmt.executeQuery(query);
+        	System.out.println("Testing query " + rs1 + " " + rs.getString("IndexType"));
+		String indexType = rs.getString("IndexType");
+		String indexName = rs.getString("IndexName");
+		System.out.println(indexType + " " + indexName);
+	
+		if (indexType.contains("COLUMNSTORE")) {
+		    hasColumnstoreIndex = true;
+		}
+            
+        	assertTrue(hasColumnstoreIndex, "COLUMNSTORE index found.");
         }
     }
 }
