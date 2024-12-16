@@ -18,7 +18,7 @@ public class DatabaseMetadataTest extends AbstractTest {
     private static String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
     private static String col1Name = AbstractSQLGenerator.escapeIdentifier("p1");
     private static String col2Name = AbstractSQLGenerator.escapeIdentifier("p2");
-    private static String col3Name = AbstractSQLGenerator.escapeIdentifier("p3");
+    private static String indexName = AbstractSQLGenerator.escapeIdentifier( tableName + "_indx");
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -32,12 +32,11 @@ public class DatabaseMetadataTest extends AbstractTest {
         	TestUtils.dropTableIfExists(tableName, stmt);
         	String createTableSQL = "CREATE TABLE " + tableName + " (" +
                                     col1Name + " INT, " +
-                                    col2Name + " INT, " +
-                                    col3Name + " INT)";
+                                    col2Name + " INT)";
         	stmt.executeUpdate(createTableSQL);
 
-        	String createColumnstoreIndexSQL = "CREATE NONCLUSTERED COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "(" + col3Name + ")";
-        	stmt.executeUpdate(createColumnstoreIndexSQL);
+        	String createIndexSQL = "CREATE CLUSTERED COLUMNSTORE INDEX " + indexName + " ON " + tableName;
+        	stmt.executeUpdate(createIndexSQL);
 		
         	String catalog = connection.getCatalog();
         	String schema = "dbo";
@@ -46,7 +45,8 @@ public class DatabaseMetadataTest extends AbstractTest {
 		rs = dbMetadata.getIndexInfo(catalog, schema, tableName, false, false);
 
         	boolean hasColumnstoreIndex = false;
-        	System.out.println("Testing getIndexInfo " + rs + " " + rs.getString("IndexType"));
+        	System.out.println("Testing getIndexInfo " + rs);
+		
         	String query = 
                     "SELECT " +
                     "    db_name() AS CatalogName, " +
@@ -73,7 +73,11 @@ public class DatabaseMetadataTest extends AbstractTest {
                     "ORDER BY " +
                     "    t.name, i.name, ic.key_ordinal;";
         	ResultSet rs1 = stmt.executeQuery(query);
-        	System.out.println("Testing query " + rs1 + " " + rs.getString("IndexType"));
+        	System.out.println("Testing query " + rs1);
+		
+		System.out.println("Testing query and Index Type" + rs1 + " " + rs1.getString("IndexType"));
+		System.out.println("Testing function and Index Type" + rs + " " + rs.getString("IndexType"));
+		
 		String indexType = rs.getString("IndexType");
 		String indexName = rs.getString("IndexName");
 		System.out.println(indexType + " " + indexName);
@@ -81,8 +85,7 @@ public class DatabaseMetadataTest extends AbstractTest {
 		if (indexType.contains("COLUMNSTORE")) {
 		    hasColumnstoreIndex = true;
 		}
-            
-        	assertTrue(hasColumnstoreIndex, "COLUMNSTORE index found.");
+        	assertTrue(hasColumnstoreIndex, "COLUMNSTORE index not found.");
         }
     }
 }
