@@ -18,7 +18,7 @@ public class DatabaseMetadataTest extends AbstractTest {
     private static String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
     private static String col1Name = AbstractSQLGenerator.escapeIdentifier("p1");
     private static String col2Name = AbstractSQLGenerator.escapeIdentifier("p2");
-    private static String indexName = AbstractSQLGenerator.escapeIdentifier( tableName + "_indx");
+    private static String indexName = AbstractSQLGenerator.escapeIdentifier( "indx_col");
 
     @BeforeAll
     public static void setupTests() throws Exception {
