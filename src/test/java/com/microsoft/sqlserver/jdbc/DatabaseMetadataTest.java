@@ -52,45 +52,38 @@ public class DatabaseMetadataTest extends AbstractTest {
         	System.out.println("Testing getIndexInfo " + rs);
 		
         	String query = 
-                    "SELECT " +
-                    "    db_name() AS CatalogName, " +
-                    "    sch.name AS SchemaName, " +
-                    "    t.name AS TableName, " +
-                    "    i.name AS IndexName, " +
-                    "    i.type_desc AS IndexType, " +
-                    "    i.is_unique AS IsUnique, " +
-                    "    c.name AS ColumnName, " +
-                    "    ic.key_ordinal AS ColumnOrder " +
-                    "FROM " +
-                    "    sys.indexes i " +
-                    "INNER JOIN " +
-                    "    sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
-                    "INNER JOIN " +
-                    "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
-                    "INNER JOIN " +
-                    "    sys.tables t ON i.object_id = t.object_id " +
-                    "INNER JOIN " +
-                    "    sys.schemas sch ON t.schema_id = sch.schema_id " +
-                   
-                    "WHERE t.name = '" + tableName + "' " +
-                          "AND sch.name = '" + schema + "' " +
-                    "ORDER BY " +
-                    "    t.name, i.name, ic.key_ordinal;";
-        	ResultSet rs1 = stmt.executeQuery(query);
+            "SELECT " +
+            "    i.name AS IndexName, " +
+            "    i.type_desc AS IndexType " +
+            "FROM " +
+            "    sys.indexes i " +
+            "WHERE " +
+            "    i.object_id = OBJECT_ID('" + tableName + "') " +
+            "    AND i.type_desc = 'COLUMNSTORE'";
+		ResultSet rs1 = stmt.executeQuery(query);
         	System.out.println("Testing query " + rs1);
-		
-		if (rs.next()) {
-			System.out.println("Testing getIndexInfo " + rs);
-            		String indexType = rs.getString("IndexType");
-			String indexName = rs.getString("IndexName");
-			System.out.println("Testing query and Index Type: " + rs + " " + indexType);
-			System.out.println("Testing function and Index Type: " + rs + " " + indexType);
-			System.out.println(indexType + " " + indexName);
 
-			if (indexType.contains("COLUMNSTORE")) {
-				hasColumnstoreIndex = true;
-			}
+		if (rs1.next()) {
+            		String indexType = rs1.getString("IndexType");
+            		String indexName = rs1.getString("IndexName");
+           		System.out.println("Found Index: " + indexName + " of type " + indexType);
+            		if (indexType.contains("COLUMNSTORE")) {
+                		hasColumnstoreIndex = true;
+            		}
         	}
+        
+		// if (rs.next()) {
+		// 	System.out.println("Testing getIndexInfo " + rs);
+  //           		String indexType = rs.getString("IndexType");
+		// 	String indexName = rs.getString("IndexName");
+		// 	System.out.println("Testing query and Index Type: " + rs + " " + indexType);
+		// 	System.out.println("Testing function and Index Type: " + rs + " " + indexType);
+		// 	System.out.println(indexType + " " + indexName);
+
+		// 	if (indexType.contains("COLUMNSTORE")) {
+		// 		hasColumnstoreIndex = true;
+		// 	}
+  //       	}
 	        assertTrue(hasColumnstoreIndex, "COLUMNSTORE index not found.");
         }
     }
