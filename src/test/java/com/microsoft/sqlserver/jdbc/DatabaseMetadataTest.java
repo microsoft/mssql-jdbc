@@ -37,7 +37,7 @@ public class DatabaseMetadataTest extends AbstractTest {
 		assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Connection.");
                 assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Statement.");
 
-        	String createIndexSQL = "CREATE CLUSTERED COLUMNSTORE INDEX " + indexName + " ON " + tableName;
+        	String createIndexSQL = "CREATE COLUMNSTORE INDEX " + indexName + " ON " + tableName;
         	stmt.executeUpdate(createIndexSQL);
 		assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
                 assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
