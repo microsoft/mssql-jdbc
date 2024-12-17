@@ -65,7 +65,7 @@ class SQLServerMSAL4JUtils {
     static final String REDIRECTURI = "http://localhost";
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
-
+    static final long TOKEN_WAIT_DURATION_MS = 20000;
     private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
 
     private final static String LOGCONTEXT = "MSAL version "
@@ -117,7 +117,7 @@ class SQLServerMSAL4JUtils {
                     .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user, password.toCharArray())
                     .build());
 
-            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+            final IAuthenticationResult authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -184,7 +184,7 @@ class SQLServerMSAL4JUtils {
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
-            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+            final IAuthenticationResult authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -302,7 +302,7 @@ class SQLServerMSAL4JUtils {
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
-            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+            final IAuthenticationResult authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -357,7 +357,7 @@ class SQLServerMSAL4JUtils {
                     .acquireToken(IntegratedWindowsAuthenticationParameters
                             .builder(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT), user).build());
 
-            final IAuthenticationResult authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+            final IAuthenticationResult authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(
@@ -439,7 +439,7 @@ class SQLServerMSAL4JUtils {
             }
 
             if (null != future) {
-                authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+                authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
             } else {
                 // acquire token interactively with system browser
                 if (logger.isLoggable(Level.FINEST)) {
@@ -451,7 +451,7 @@ class SQLServerMSAL4JUtils {
                         .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
 
                 future = pca.acquireToken(parameters);
-                authenticationResult = future.get(millisecondsRemaining, TimeUnit.MILLISECONDS);
+                authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
             }
 
             if (logger.isLoggable(Level.FINER)) {

@@ -58,6 +58,8 @@ class SQLServerSecurityUtility {
 
     private static final Lock CREDENTIAL_LOCK = new ReentrantLock();
 
+	private static final int TOKEN_WAIT_DURATION_MS = 0;
+
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -465,7 +467,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional(Duration.of(millisecondsRemaining, ChronoUnit.MILLIS));
+        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS));
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
