@@ -202,7 +202,7 @@ public class SQLServerDriverTest extends AbstractTest {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT program_name FROM sys.dm_exec_sessions WHERE session_id = @@SPID")) {
             if (rs.next()) {
-                assertEquals(SQLServerDriver.getAppName(), rs.getString("program_name"));
+                assertEquals(SQLServerDriver.contructedAppName, rs.getString("program_name"));
             }
         } catch (SQLException e) {
             fail(e.getMessage());

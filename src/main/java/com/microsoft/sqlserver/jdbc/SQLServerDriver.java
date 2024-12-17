@@ -732,6 +732,10 @@ public final class SQLServerDriver implements java.sql.Driver {
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
     static final String APP_NAME_TEMPLATE = "Microsoft JDBC - %s, %s - %s";
+    static final String contructedAppName;
+    static {
+        contructedAppName = getAppName();
+    }
 
     /**
      * Constructs the application name using system properties for OS, platform, and architecture.
@@ -1050,7 +1054,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
         if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.getAppName());
+            loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.contructedAppName);
         }
     }
 
@@ -1290,7 +1294,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), getAppName());
+            connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.contructedAppName);
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
