@@ -1197,39 +1197,31 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
-            /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
-            /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
-            /* 13 */ FILTER_CONDITION};
-
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
-            boolean approximate) throws SQLServerException, SQLTimeoutException {
+            boolean approximate) throws SQLServerException, SQLTimeoutException, SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
-        /*
-         * sp_statistics [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'owner' ] [ , [ @table_qualifier = ]
-         * 'qualifier' ] [ , [ @index_name = ] 'index_name' ] [ , [ @is_unique = ] 'is_unique' ] [ , [ @accuracy = ]
-         * 'accuracy' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = table;
-        arguments[1] = schema;
-        arguments[2] = cat;
-        // use default for index name
-        arguments[3] = "%"; // index name % is default
-        if (unique)
-            arguments[4] = "Y"; // is_unique
-        else
-            arguments[4] = "N";
-        if (approximate)
-            arguments[5] = "Q";
-        else
-            arguments[5] = "E";
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
-                getIndexInfoColumnNames);
+        String query = "SELECT " +
+                "db_name() AS CatalogName, " +
+                "sch.name AS SchemaName, " +
+                "t.name AS TableName, " +
+                "i.name AS IndexName, " +
+                "i.type_desc AS IndexType, " +
+                "i.is_unique AS IsUnique, " +
+                "c.name AS ColumnName, " +
+                "ic.key_ordinal AS ColumnOrder " +
+                "FROM sys.indexes i " +
+                "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+                "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+                "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+                "WHERE t.name = '" + table + "' " +
+                "AND sch.name = '" + schema + "' " +
+                "ORDER BY t.name, i.name, ic.key_ordinal";
+        return getResultSetFromInternalQueries(cat, query);
     }
 
     @Override
