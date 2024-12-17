@@ -66,6 +66,7 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
     static final long TOKEN_WAIT_DURATION_MS = 20000;
+    static final long TOKEN_LOCK_WAIT_DURATION_MS = 5000;
     private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
 
     private final static String LOGCONTEXT = "MSAL version "
@@ -88,9 +89,11 @@ class SQLServerMSAL4JUtils {
             logger.finest(LOGCONTEXT + authenticationString + ": get FedAuth token for user: " + user);
         }
 
-        lock.lock();
-
+        boolean lockAcquired = false;
         try {
+            //Just try to acquire the lock and if can't then proceed to attempt to get the token
+            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(user,
                     hashedSecret);
@@ -136,7 +139,9 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             executorService.shutdown();
         }
     }
@@ -154,10 +159,12 @@ class SQLServerMSAL4JUtils {
                                                                     : fedAuthInfo.spn + defaultScopeSuffix;
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
-
-        lock.lock();
-
+        
+        boolean lockAcquired = false;
         try {
+        	//Just try to acquire the lock and if can't then proceed to attempt to get the token
+            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
@@ -203,7 +210,9 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             executorService.shutdown();
         }
     }
@@ -224,9 +233,11 @@ class SQLServerMSAL4JUtils {
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
 
-        lock.lock();
-
+        boolean lockAcquired = false;
         try {
+            //Just try to acquire the lock and if can't then proceed to attempt to get the token
+            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
@@ -326,7 +337,9 @@ class SQLServerMSAL4JUtils {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             executorService.shutdown();
         }
     }
@@ -347,10 +360,12 @@ class SQLServerMSAL4JUtils {
                     + "realm name:" + kerberosPrincipal.getRealm());
         }
 
-        lock.lock();
-
+        boolean lockAcquired = false;
         try {
-            final PublicClientApplication pca = PublicClientApplication
+            //Just try to acquire the lock and if can't then proceed to attempt to get the token
+            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
+        	final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
                     .authority(fedAuthInfo.stsurl).build();
@@ -378,7 +393,9 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             executorService.shutdown();
         }
     }
@@ -391,9 +408,11 @@ class SQLServerMSAL4JUtils {
             logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
-        lock.lock();
-
+        boolean lockAcquired = false;
         try {
+            //Just try to acquire the lock and if can't then proceed to attempt to get the token
+            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
@@ -473,7 +492,9 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            lock.unlock();
+            if (lockAcquired) {
+                lock.unlock();
+            }
             executorService.shutdown();
         }
     }
