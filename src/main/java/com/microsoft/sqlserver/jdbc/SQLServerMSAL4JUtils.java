@@ -320,6 +320,8 @@ class SQLServerMSAL4JUtils {
             // this includes all certificate exceptions
             throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
                     null);
+        } catch (TimeoutException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } catch (Exception e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
