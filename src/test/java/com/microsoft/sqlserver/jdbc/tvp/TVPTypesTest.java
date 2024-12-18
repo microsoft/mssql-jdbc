@@ -150,6 +150,36 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     /**
+     * Test JSON support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testJSON() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        value = "{\"severity\":\"TRACE\",\"duration\":200,\"date\":\"2024-12-17T15:45:56\"}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.JSON);
+        tvp.addRow(value);
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+
+            pstmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
+        }
+    }
+
+    /**
      * Test ntext support
      * 
      * @throws SQLException
