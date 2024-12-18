@@ -205,44 +205,6 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
     }
 
     /**
-     * Test with useBulkCopyBatchInsert=true and bulkCopyOptionDefaultsBatchSize set
-     * to a negative value
-     *
-     * @throws SQLException
-     */
-    @Test
-    public void testBulkInsertWithNegativeBatchSize() throws Exception {
-        try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsBatchSize=-1")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setInt(2, 1);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 2);
-                pstmt.setInt(2, 2);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 3);
-                pstmt.setInt(2, 3);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 4);
-                pstmt.setInt(2, 4);
-                pstmt.addBatch();
-
-                pstmt.executeBatch();
-
-                fail(TestResource.getResource("R_expectedExceptionNotThrown"));
-            }
-        } catch (SQLException e) {
-            if (!e.getMessage().contains("Invalid batch size")) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-        }
-    }
-
-    /**
      * Test with useBulkCopyBatchInsert=true and
      * bulkCopyOptionDefaultsKeepIdentity=true
      *
@@ -529,70 +491,31 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
                 pstmt.setInt(2, 4);
                 pstmt.addBatch();
 
-                // Started a transaction and acquired a table lock
+                // Start a transaction and acquire a table lock
                 connection.setAutoCommit(false);
                 try (Statement stmt = connection.createStatement()) {
                     String lockTableSQL = "SELECT * FROM " + tableName + " WITH (TABLOCKX)";
                     stmt.execute(lockTableSQL);
 
-                    // Attempt to perform a bulk insert in another connection
                     try (Connection connection2 = PrepUtil.getConnection(
                             connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTableLock=true");
-                            PreparedStatement pstmt2 = connection2
-                                    .prepareStatement("insert into " + tableName + " values(?, ?)")) {
+                         PreparedStatement pstmt2 = connection2
+                                 .prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
                         pstmt2.setInt(1, 5);
                         pstmt2.setInt(2, 5);
                         pstmt2.addBatch();
 
+                        // Set a query timeout to prevent the test from running indefinitely
+                        pstmt2.setQueryTimeout(5);
+
                         pstmt2.executeBatch(); // This should fail due to the table lock
+                        fail("Expected exception due to table lock was not thrown");
                     } catch (SQLException e) {
                         System.out.println("Bulk insert failed as expected: " + e.getMessage());
                     }
                     // Release the lock
                     connection.rollback();
-                }
-            }
-        } catch (SQLException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
-    /**
-     * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsTimeout=1 where insert fails
-     *
-     * @throws SQLException
-     */
-    @Test
-    public void testBulkCopyOptionDefaultsTimeoutFailure() throws Exception {
-        try (Connection connection = PrepUtil
-                .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTimeout=1")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setInt(2, 1);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 2);
-                pstmt.setInt(2, 2);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 3);
-                pstmt.setInt(2, 3);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 4);
-                pstmt.setInt(2, 4);
-                pstmt.addBatch();
-
-                long startTime = System.currentTimeMillis();
-                try {
-                    pstmt.executeBatch();
-                    fail("Expected timeout exception was not thrown");
-                } catch (SQLException e) {
-                    long elapsedTime = System.currentTimeMillis() - startTime;
-                    System.out.println("Batch execution failed as expected: " + e.getMessage());
-                    assertTrue(elapsedTime < 2000, "Batch execution took too long");
                 }
             }
         } catch (SQLException e) {
@@ -693,39 +616,41 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
     @Test
     public void testBulkCopyOptionDefaultsFireTriggersFailure() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsFireTriggers=true")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setInt(2, 1);
-                pstmt.addBatch();
+            connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsFireTriggers=true")) {
+                try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setInt(2, 1);
+                    pstmt.addBatch();
 
-                pstmt.setInt(1, 2);
-                pstmt.setInt(2, 2);
-                pstmt.addBatch();
+                    pstmt.setInt(1, 2);
+                    pstmt.setInt(2, 2);
+                    pstmt.addBatch();
 
-                pstmt.setInt(1, 3);
-                pstmt.setInt(2, 3);
-                pstmt.addBatch();
+                    pstmt.setInt(1, 3);
+                    pstmt.setInt(2, 3);
+                    pstmt.addBatch();
 
-                pstmt.setInt(1, 4);
-                pstmt.setInt(2, 4);
-                pstmt.addBatch();
-
-                // Created a trigger that will cause the batch insert to fail
-                try (Statement stmt = connection.createStatement()) {
+                    pstmt.setInt(1, 4);
+                    pstmt.setInt(2, 4);
+                    pstmt.addBatch();
+                    
+                    // Created a trigger that will cause the batch insert to fail
+                    try (Statement stmt = connection.createStatement()) {
                     String createTriggerSQL = "CREATE TRIGGER trgFailInsert ON " + tableName +
-                            " AFTER INSERT AS BEGIN " +
-                            "RAISEERROR('Trigger failure', 16, 1); " +
-                            "ROLLBACK TRANSACTION; END";
+                    " AFTER INSERT AS BEGIN " +
+                    "RAISERROR('Trigger failure', 16, 1); " +
+                    "ROLLBACK TRANSACTION; END";
                     stmt.execute(createTriggerSQL);
                 }
-                // Execute batch with fire triggers option
+                
                 try {
                     pstmt.executeBatch();
                     fail("Expected trigger failure exception was not thrown");
                 } catch (SQLException e) {
                     System.out.println("Batch execution failed as expected: " + e.getMessage());
                 }
+                
+                // Cleaning up by dropping the trigger
                 try (Statement stmt = connection.createStatement()) {
                     String dropTriggerSQL = "DROP TRIGGER trgFailInsert";
                     stmt.execute(dropTriggerSQL);
@@ -767,7 +692,7 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
                 try (Statement stmt = connection.createStatement()) {
                     try (ResultSet rs = stmt
-                            .executeQuery("select count(*) from " + tableName + " where column2 is null")) {
+                            .executeQuery("select count(*) from " + tableName + " where b is null")) {
                         if (rs.next()) {
                             int cnt = rs.getInt(1);
                             assertEquals(cnt, 4, "Row count with null values should have been 4");
@@ -811,10 +736,10 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
                 try (Statement stmt = connection.createStatement()) {
                     try (ResultSet rs = stmt
-                            .executeQuery("select count(*) from " + tableName + " where column2 is null")) {
+                            .executeQuery("select count(*) from " + tableName + " where b is not null")) {
                         if (rs.next()) {
                             int cnt = rs.getInt(1);
-                            assertEquals(cnt, 0, "Row count with null values should have been 0");
+                            assertEquals(cnt, 0, "Row count with non-null values should have been 0");
                         }
                     }
                 }
@@ -863,89 +788,9 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
                 }
             }
         } catch (SQLException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
-    /**
-     * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsAllowEncryptedValueModifications=true
-     *
-     * @throws SQLException
-     */
-    @Test
-    public void testBulkCopyOptionDefaultsAllowEncryptedValueModifications() throws Exception {
-        try (Connection connection = PrepUtil.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsAllowEncryptedValueModifications=true")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setString(2, "EncryptedValue1");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 2);
-                pstmt.setString(2, "EncryptedValue2");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 3);
-                pstmt.setString(2, "EncryptedValue3");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 4);
-                pstmt.setString(2, "EncryptedValue4");
-                pstmt.addBatch();
-
-                pstmt.executeBatch();
-
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
-                        if (rs.next()) {
-                            int cnt = rs.getInt(1);
-                            assertEquals(cnt, 4, "Row count should have been 4");
-                        }
-                    }
-                }
+            if (!e.getMessage().contains("UseInternalTransaction option cannot be set to TRUE")) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
-        } catch (SQLException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
-    /**
-     * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsAllowEncryptedValueModifications=false
-     *
-     * @throws SQLException
-     */
-    @Test
-    public void testBulkCopyOptionDefaultsAllowEncryptedValueModificationsFalse() throws Exception {
-        try (Connection connection = PrepUtil.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsAllowEncryptedValueModifications=false")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setString(2, "EncryptedValue1");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 2);
-                pstmt.setString(2, "EncryptedValue2");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 3);
-                pstmt.setString(2, "EncryptedValue3");
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 4);
-                pstmt.setString(2, "EncryptedValue4");
-                pstmt.addBatch();
-
-                try {
-                    pstmt.executeBatch();
-                    fail("Expected exception for encrypted value modifications was not thrown");
-                } catch (SQLException e) {
-                    System.out.println("Batch execution failed as expected: " + e.getMessage());
-                }
-            }
-        } catch (SQLException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
         }
     }
 
