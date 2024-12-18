@@ -117,10 +117,7 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
 
-<<<<<<< HEAD
     abstract void execute(DTV dtv, Vector vectorValue) throws SQLServerException;
-=======
->>>>>>> 1f2b95b0 (JSON startegy in DTV)
 }
 
 
@@ -3049,10 +3046,10 @@ final class TypeInfo implements Serializable {
              *         when an error occurs
              */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
-                typeInfo.ssLenType = SSLenType.PARTLENTYPE; //FIXME - need to validate JSON strategy
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
                 typeInfo.ssType = SSType.JSON;
                 typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
-                typeInfo.charset = Encoding.UNICODE.charset();
+                typeInfo.charset = Encoding.UTF8.charset();
             }
         });
 
@@ -3803,6 +3800,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARYMAX:
                 case VARCHARMAX:
                 case NVARCHARMAX:
+                case JSON:
                 case UDT: {
                     convertedValue = DDC.convertStreamToObject(
                             PLPInputStream.makeStream(tdsReader, streamGetterArgs, this), typeInfo, jdbcType,
