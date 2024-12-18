@@ -130,7 +130,7 @@ public class PreparedStatementTest extends AbstractTest {
     @Test
     void testDatabaseQueryMetaData() throws SQLException {
         try (Connection connection = getConnection()) {
-            try (var stmt = connection.prepareStatement(
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) connection.prepareStatement(
                     "select 1 as \"any questions ???\"")) {
                 ResultSetMetaData metaData = stmt.getMetaData();
                 String actualLabel = metaData.getColumnLabel(1);
@@ -948,4 +948,5 @@ public class PreparedStatementTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName5), stmt);
         }
     }
+    
 }
