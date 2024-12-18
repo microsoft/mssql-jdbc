@@ -13,8 +13,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -122,6 +124,25 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate(); // Takes sp_prepare path
                 ps.executeUpdate();
             }
+        }
+    }
+    
+    @Test
+    void testDatabaseQueryMetaData() throws SQLException {
+        try (Connection connection = getConnection()) {
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                    "select 1 as \"any questions ???\"")) {
+                ResultSetMetaData metaData = stmt.getMetaData();
+                String actualLabel = metaData.getColumnLabel(1);
+                String actualName = metaData.getColumnName(1);
+
+                String expected = "any questions ???";
+                assertEquals(expected, actualLabel, "Column label should match the expected value");
+                assertEquals(expected, actualName, "Column name should match the expected value");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail("SQLException occurred during test: " + e.getMessage());
         }
     }
 
@@ -927,5 +948,5 @@ public class PreparedStatementTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName5), stmt);
         }
     }
-
+    
 }

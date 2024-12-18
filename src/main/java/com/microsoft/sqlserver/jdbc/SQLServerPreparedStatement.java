@@ -1246,16 +1246,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private SQLServerResultSet buildExecuteMetaData() throws SQLServerException, SQLTimeoutException {
         String fmtSQL = userSQL;
-
+ 
         SQLServerResultSet emptyResultSet = null;
         try {
-            fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         } catch (SQLServerException sqle) {
             // Ignore empty result set errors, otherwise propagate the server error.
             if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
-                throw sqle;
+                //try by replacing ? characters in case that was an issue 
+                       try {
+                          fmtSQL = replaceMarkerWithNull(fmtSQL);
+                          internalStmt = (SQLServerStatement) connection.createStatement();
+                          emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+                       } catch (SQLServerException ex) {
+                          // Ignore empty result set errors, otherwise propagate the server error.
+                          if (!ex.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+                             throw ex;
+                          }
+               }
             }
         }
         return emptyResultSet;
