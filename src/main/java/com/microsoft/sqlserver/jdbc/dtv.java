@@ -3005,10 +3005,10 @@ final class TypeInfo implements Serializable {
              *         when an error occurs
              */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
-                typeInfo.ssLenType = SSLenType.PARTLENTYPE; //FIXME - need to validate JSON strategy
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
                 typeInfo.ssType = SSType.JSON;
                 typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
-                typeInfo.charset = Encoding.UNICODE.charset();
+                typeInfo.charset = Encoding.UTF8.charset();
             }
         });
 
@@ -3758,6 +3758,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARYMAX:
                 case VARCHARMAX:
                 case NVARCHARMAX:
+                case JSON:
                 case UDT: {
                     convertedValue = DDC.convertStreamToObject(
                             PLPInputStream.makeStream(tdsReader, streamGetterArgs, this), typeInfo, jdbcType,
@@ -3787,7 +3788,6 @@ final class ServerDTVImpl extends DTVImpl {
                 case BINARY:
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
-                case JSON:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,

@@ -458,7 +458,7 @@ enum JavaType {
                     case NVARCHAR:
                     case NVARCHARMAX:
                     case NTEXT:
-                    case JSON://FIXME: is JSON textual or binary? 
+                    case JSON:
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
 
@@ -683,8 +683,8 @@ enum JDBCType {
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
     GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
     LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName()),
-    JSON(Category.JSON, 2012, Object.class.getName()); //FIXME: type code value for JSON
-
+    JSON(Category.JSON, microsoft.sql.Types.JSON, Object.class.getName());
+ 
     final Category category;
     private final int intValue;
     private final String className;
@@ -984,7 +984,7 @@ enum JDBCType {
      * @return true if the JDBC type is textual
      */
     private final static EnumSet<Category> textualCategories = EnumSet.of(Category.CHARACTER, Category.LONG_CHARACTER,
-            Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB, Category.JSON); //FIXME: JSON is textual?
+    Category.CLOB, Category.NCHARACTER, Category.LONG_NCHARACTER, Category.NCLOB, Category.JSON); //FIXME: JSON is textual?
 
     boolean isTextual() {
         return textualCategories.contains(category);
@@ -1011,6 +1011,7 @@ enum JDBCType {
                     return java.sql.Types.CHAR;
                 case NVARCHAR:
                 case SQLXML:
+                case JSON:
                     return java.sql.Types.VARCHAR;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;

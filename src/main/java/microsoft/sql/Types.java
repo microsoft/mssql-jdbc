@@ -74,4 +74,10 @@ public final class Types {
      * Microsoft SQL type GEOGRAPHY.
      */
     public static final int GEOGRAPHY = -158;
+    
+    /**
+     * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
+     * Microsoft SQL type JSON.
+     */
+    public static final int JSON = -159;
 }
