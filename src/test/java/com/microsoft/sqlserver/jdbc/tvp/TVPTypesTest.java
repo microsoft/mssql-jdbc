@@ -380,6 +380,38 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     /**
+     * JSON with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testTVPJSONStoredProcedure() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        createProcedure();
+
+        value = "{\"severity\":\"TRACE\",\"duration\":200,\"date\":\"2024-12-17T15:45:56\"}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1",  microsoft.sql.Types.JSON);
+        tvp.addRow(value);
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
+        }
+    }
+
+    /**
      * Text with StoredProcedure
      * 
      * @throws SQLException

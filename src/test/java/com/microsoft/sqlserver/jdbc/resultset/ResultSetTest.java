@@ -100,7 +100,7 @@ public class ResultSetTest extends AbstractTest {
                     + "col2 varchar(512), " + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, "
                     + "col6 xml, " + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
                     + "col11 date, " + "col12 time, " + "col13 datetime2, " + "col14 datetimeoffset, "
-                    + "col15 decimal(10,9), " + "col16 decimal(38,38), "
+                    + "col15 decimal(10,9), " + "col16 decimal(38,38), " + "col17 json, "
                     + "order_column int identity(1,1) primary key)");
             try {
 
@@ -120,12 +120,13 @@ public class ResultSetTest extends AbstractTest {
                                 + "'2017-05-19T10:47:15.1234567'," // col13
                                 + "'2017-05-19T10:47:15.1234567+02:00'," // col14
                                 + "0.123456789, " // col15
-                                + "0.1234567890123456789012345678901234567" // col16
+                                + "0.1234567890123456789012345678901234567, " // col16
+                                + "'{\"test\":\"123\"}'" // col17
                                 + ")");
 
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values("
                         + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
-                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null)");
+                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null)");
 
                 try (ResultSet rs = stmt.executeQuery("select * from "
                         + AbstractSQLGenerator.escapeIdentifier(tableName) + " order by order_column")) {
@@ -223,7 +224,11 @@ public class ResultSetTest extends AbstractTest {
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
                     assertEquals(0, rs.getObject("col16", BigDecimal.class)
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
-
+    
+                    String expectedJsonValue = "{\"test\":\"123\"}";        
+                    assertEquals(expectedJsonValue, rs.getObject(17).toString());
+                    assertEquals(expectedJsonValue, rs.getObject("col17").toString());
+                
                     // test null values, mostly to verify primitive wrappers do not return default values
                     assertTrue(rs.next());
                     assertNull(rs.getObject("col1", Boolean.class));
@@ -283,6 +288,9 @@ public class ResultSetTest extends AbstractTest {
 
                     assertNull(rs.getObject(16, BigDecimal.class));
                     assertNull(rs.getObject("col16", BigDecimal.class));
+
+                    assertNull(rs.getObject(17));
+                    assertNull(rs.getObject("col17"));
 
                     assertFalse(rs.next());
                 }
