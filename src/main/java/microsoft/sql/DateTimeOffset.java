@@ -168,6 +168,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
             // a value that is not locale-sensitive. The date part of the returned string is a Gregorian date, even
             // if the VM default locale would otherwise indicate that a Buddhist calendar should be used.
             Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
+
             // Initialize the calendar with the UTC milliseconds value represented by this DateTimeOffset object
             calendar.setTimeInMillis(utcMillis);
 
@@ -192,7 +193,6 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
                                                                    .substring(2), // -> "123456"
                                                            formattedOffset);
         }
-        
         return result;
     }
 
