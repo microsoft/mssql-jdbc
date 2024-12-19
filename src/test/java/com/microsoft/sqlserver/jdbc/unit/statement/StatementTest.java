@@ -2730,7 +2730,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteUpdateInsertAndGenKeys() throws Exception {
+        public void testExecuteUpdateInsertAndGenKeys() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
@@ -2755,7 +2755,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteInsertAndGenKeys() throws Exception {
+        public void testExecuteInsertAndGenKeys() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test')";
@@ -2780,7 +2780,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteInsertAndSelect() throws Exception {
+        public void testExecuteInsertAndSelect() {
 
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
@@ -2818,7 +2818,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteMergeAndSelect() throws Exception {
+        public void testExecuteMergeAndSelect() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("MERGE INTO " + tableName + " AS target USING (VALUES ('test1')) AS source (name) ON target.name  = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES ('test1');  SELECT NAME FROM " + tableName + " WHERE ID = 1");
@@ -2855,7 +2855,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteInsertManyRowsAndSelect() throws Exception {
+        public void testExecuteInsertManyRowsAndSelect() {
             try (Connection con = getConnection()) {
                 try (Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("INSERT INTO " + tableName + " SELECT NAME FROM " + tableName + " SELECT NAME FROM " + tableName + " WHERE ID = 1");
@@ -2892,7 +2892,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteTwoInsertsRowsAndSelect() throws Exception {
+        public void testExecuteTwoInsertsRowsAndSelect() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("INSERT INTO " + tableName + " (NAME) VALUES('test') INSERT INTO " + tableName + " (NAME) VALUES('test') SELECT NAME from " + tableName + " WHERE ID = 1");
@@ -2930,7 +2930,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteUpdAndSelect() throws Exception {
+        public void testExecuteUpdAndSelect() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("UPDATE " + tableName +" SET NAME = 'test' SELECT NAME FROM " + tableName + " WHERE ID = 1");
@@ -2966,7 +2966,7 @@ public class StatementTest extends AbstractTest {
          * @throws Exception
          */
         @Test
-        public void testExecuteDelAndSelect() throws Exception {
+        public void testExecuteDelAndSelect() {
             try (Connection con = getConnection()) {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("DELETE FROM " + tableName +" WHERE ID = 1 SELECT NAME FROM " + tableName + " WHERE ID = 2");
@@ -2997,15 +2997,13 @@ public class StatementTest extends AbstractTest {
         }
 
         @AfterEach
-        public void terminate() throws Exception {
+        public void terminate() {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
-                try {
-                    TestUtils.dropTriggerIfExists(triggerName, stmt);
-                    TestUtils.dropTableIfExists(idTableName, stmt);
-                    TestUtils.dropTableIfExists(tableName, stmt);
-                } catch (SQLException e) {
-                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-                }
+                TestUtils.dropTriggerIfExists(triggerName, stmt);
+                TestUtils.dropTableIfExists(idTableName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
     }
