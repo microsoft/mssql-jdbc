@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -558,6 +559,47 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
                             assertEquals(cnt, 4, "Row count should have been 4");
                         }
                     }
+                }
+            }
+        } catch (SQLException e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /**
+     * Test with useBulkCopyBatchInsert=true and bulkCopyOptionDefaultsTimeout set to a lower value
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testBulkCopyOptionDefaultsTimeoutLowerValue() throws Exception {
+        try (Connection connection = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTimeout=1")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("WAITFOR DELAY '00:00:02'; insert into " + tableName + " values(?, ?)")) {
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 1);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 2);
+                pstmt.setInt(2, 2);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 3);
+                pstmt.setInt(2, 3);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 4);
+                pstmt.setInt(2, 4);
+                pstmt.addBatch();
+
+                // Set a query timeout to a lower value to simulate timeout
+                pstmt.setQueryTimeout(1);
+
+                try {
+                    pstmt.executeBatch();
+                    fail("Expected timeout exception was not thrown");
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("The query has timed out") || e.getMessage().contains("timeout"), "Expected timeout exception");
                 }
             }
         } catch (SQLException e) {
