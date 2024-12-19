@@ -2786,7 +2786,7 @@ public class StatementTest extends AbstractTest {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("INSERT INTO " + tableName +" (NAME) VALUES('test') SELECT NAME FROM " + tableName + " WHERE ID = 1");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
@@ -2823,7 +2823,7 @@ public class StatementTest extends AbstractTest {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("MERGE INTO " + tableName + " AS target USING (VALUES ('test1')) AS source (name) ON target.name  = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES ('test1');  SELECT NAME FROM " + tableName + " WHERE ID = 1");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
@@ -2860,7 +2860,7 @@ public class StatementTest extends AbstractTest {
                 try (Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("INSERT INTO " + tableName + " SELECT NAME FROM " + tableName + " SELECT NAME FROM " + tableName + " WHERE ID = 1");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
@@ -2897,7 +2897,7 @@ public class StatementTest extends AbstractTest {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("INSERT INTO " + tableName + " (NAME) VALUES('test') INSERT INTO " + tableName + " (NAME) VALUES('test') SELECT NAME from " + tableName + " WHERE ID = 1");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
@@ -2935,7 +2935,7 @@ public class StatementTest extends AbstractTest {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("UPDATE " + tableName +" SET NAME = 'test' SELECT NAME FROM " + tableName + " WHERE ID = 1");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
@@ -2971,7 +2971,7 @@ public class StatementTest extends AbstractTest {
                 try(Statement stmt = con.createStatement()) {
                     boolean retval = stmt.execute("DELETE FROM " + tableName +" WHERE ID = 1 SELECT NAME FROM " + tableName + " WHERE ID = 2");
                     do {
-                        if (retval == false) {
+                        if (!retval) {
                             int count = stmt.getUpdateCount();
                             if (count == -1) {
                                 // no more results
