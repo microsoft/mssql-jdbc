@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
@@ -66,7 +67,7 @@ class SQLServerMSAL4JUtils {
     static final String SLASH_DEFAULT = "/.default";
     static final String ACCESS_TOKEN_EXPIRE = "access token expires: ";
     static final long TOKEN_WAIT_DURATION_MS = 20000;
-    static final long TOKEN_LOCK_WAIT_DURATION_MS = 5000;
+    static final long TOKEN_SEM_WAIT_DURATION_MS = 5000;
     private static final TokenCacheMap TOKEN_CACHE_MAP = new TokenCacheMap();
 
     private final static String LOGCONTEXT = "MSAL version "
@@ -79,7 +80,7 @@ class SQLServerMSAL4JUtils {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
 
-    private static final Lock lock = new ReentrantLock();
+    private static final Semaphore sem = new Semaphore(1);
 
     static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString, int millisecondsRemaining) throws SQLServerException {
@@ -89,10 +90,17 @@ class SQLServerMSAL4JUtils {
             logger.finest(LOGCONTEXT + authenticationString + ": get FedAuth token for user: " + user);
         }
 
-        boolean lockAcquired = false;
+        boolean semAcquired = false;
         try {
-            //Just try to acquire the lock and if can't then proceed to attempt to get the token
-            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(user,
@@ -139,8 +147,8 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (lockAcquired) {
-                lock.unlock();
+            if (semAcquired) {
+                sem.release();
             }
             executorService.shutdown();
         }
@@ -160,10 +168,17 @@ class SQLServerMSAL4JUtils {
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
         
-        boolean lockAcquired = false;
+        boolean semAcquired = false;
         try {
-        	//Just try to acquire the lock and if can't then proceed to attempt to get the token
-            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
@@ -210,8 +225,8 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (lockAcquired) {
-                lock.unlock();
+            if (semAcquired) {
+                sem.release();
             }
             executorService.shutdown();
         }
@@ -233,10 +248,17 @@ class SQLServerMSAL4JUtils {
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
 
-        boolean lockAcquired = false;
+        boolean semAcquired = false;
         try {
-            //Just try to acquire the lock and if can't then proceed to attempt to get the token
-            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
@@ -337,8 +359,8 @@ class SQLServerMSAL4JUtils {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
         } finally {
-            if (lockAcquired) {
-                lock.unlock();
+            if (semAcquired) {
+                sem.release();
             }
             executorService.shutdown();
         }
@@ -360,10 +382,17 @@ class SQLServerMSAL4JUtils {
                     + "realm name:" + kerberosPrincipal.getRealm());
         }
 
-        boolean lockAcquired = false;
+        boolean semAcquired = false;
         try {
-            //Just try to acquire the lock and if can't then proceed to attempt to get the token
-            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
         	final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -393,8 +422,8 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (lockAcquired) {
-                lock.unlock();
+            if (semAcquired) {
+                sem.release();
             }
             executorService.shutdown();
         }
@@ -408,10 +437,17 @@ class SQLServerMSAL4JUtils {
             logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
-        boolean lockAcquired = false;
+        boolean semAcquired = false;
         try {
-            //Just try to acquire the lock and if can't then proceed to attempt to get the token
-            lockAcquired = lock.tryLock(Math.min(millisecondsRemaining, TOKEN_LOCK_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -492,8 +528,8 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (lockAcquired) {
-                lock.unlock();
+            if (semAcquired) {
+                sem.release();
             }
             executorService.shutdown();
         }
