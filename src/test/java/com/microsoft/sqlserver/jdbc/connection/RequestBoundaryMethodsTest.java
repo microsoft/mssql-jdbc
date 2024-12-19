@@ -73,6 +73,15 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean enablePrepareOnFirstPreparedStatementCall1 = false;
         String sCatalog1 = "master";
         boolean useBulkCopyForBatchInsert1 = true;
+        int bulkCopyOptionDefaultsBatchSize1 = 1000;
+        int bulkCopyOptionDefaultsTimeout1 = 600;
+        boolean bulkCopyOptionDefaultsCheckConstraints1 = true;
+        boolean bulkCopyOptionDefaultsFireTriggers1 = true;
+        boolean bulkCopyOptionDefaultsKeepIdentity1 = true;
+        boolean bulkCopyOptionDefaultsKeepNulls1 = true;
+        boolean bulkCopyOptionDefaultsTableLock1 = true;
+        boolean bulkCopyOptionDefaultsUseInternalTransaction1 = true;
+        boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications1 = true;
         boolean useFmtOnly1 = true;
         boolean delayLoadingLobs1 = false;
         boolean ignoreOffsetOnDateTimeOffsetConversion1 = true;
@@ -88,6 +97,15 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean enablePrepareOnFirstPreparedStatementCall2 = true;
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
         boolean useBulkCopyForBatchInsert2 = false;
+        int bulkCopyOptionDefaultsBatchSize2 = 0;
+        int bulkCopyOptionDefaultsTimeout2 = 0;
+        boolean bulkCopyOptionDefaultsCheckConstraints2 = false;
+        boolean bulkCopyOptionDefaultsFireTriggers2 = false;
+        boolean bulkCopyOptionDefaultsKeepIdentity2 = false;
+        boolean bulkCopyOptionDefaultsKeepNulls2 = false;
+        boolean bulkCopyOptionDefaultsTableLock2 = false;
+        boolean bulkCopyOptionDefaultsUseInternalTransaction2 = false;
+        boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications2 = false;
         boolean useFmtOnly2 = false;
         boolean delayLoadingLobs2 = true;
         boolean ignoreOffsetOnDateTimeOffsetConversion2 = false;
@@ -101,62 +119,87 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyOptionDefaultsBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
+                    bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
             con.beginRequest();
             // Call setters with the second set of values inside beginRequest()/endRequest() block.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyOptionDefaultsBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
+                    bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications2);
             con.endRequest();
             // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
             compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1,
                     holdability1, sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
-
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyOptionDefaultsBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
+                    bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
             // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyOptionDefaultsBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
+                    bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            
             con.beginRequest();
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyOptionDefaultsBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
+                    bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
             con.beginRequest();
             con.endRequest();
             // Same values as before the first beginRequest()
             compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
-
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyOptionDefaultsBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
+                    bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            
             // A call to endRequest() without an intervening call to beginRequest() is no-op.
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyOptionDefaultsBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
+                    bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
+
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
-            con.endRequest();
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyOptionDefaultsBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
+                    bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            con.endRequest();
             // No change.
             compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyOptionDefaultsBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
+                    bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
+                    bulkCopyOptionDefaultsAllowEncryptedValueModifications2);
         } finally {
             TestUtils.dropDatabaseIfExists(sCatalog2, connectionString);
         }
@@ -400,8 +443,13 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int networkTimeout, int holdability, boolean sendTimeAsDatetime, int statementPoolingCacheSize,
             boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs,
-            boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
+            int bulkCopyOptionDefaultsBatchSize, int bulkCopyOptionDefaultsTimeout,
+            boolean bulkCopyOptionDefaultsCheckConstraints, boolean bulkCopyOptionDefaultsFireTriggers,
+            boolean bulkCopyOptionDefaultsKeepIdentity, boolean bulkCopyOptionDefaultsKeepNulls,
+            boolean bulkCopyOptionDefaultsTableLock, boolean bulkCopyOptionDefaultsUseInternalTransaction,
+            boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) throws SQLException {
+        
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
@@ -416,38 +464,54 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setUseFmtOnly(useFmtOnly);
         con.setDelayLoadingLobs(delayLoadingLobs);
         con.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
+        con.setBulkCopyOptionDefaultsBatchSize(bulkCopyOptionDefaultsBatchSize);
+        con.setBulkCopyOptionDefaultsTimeout(bulkCopyOptionDefaultsTimeout);
+        con.setBulkCopyOptionDefaultsCheckConstraints(bulkCopyOptionDefaultsCheckConstraints);
+        con.setBulkCopyOptionDefaultsFireTriggers(bulkCopyOptionDefaultsFireTriggers);
+        con.setBulkCopyOptionDefaultsKeepIdentity(bulkCopyOptionDefaultsKeepIdentity);
+        con.setBulkCopyOptionDefaultsKeepNulls(bulkCopyOptionDefaultsKeepNulls);
+        con.setBulkCopyOptionDefaultsTableLock(bulkCopyOptionDefaultsTableLock);
+        con.setBulkCopyOptionDefaultsUseInternalTransaction(bulkCopyOptionDefaultsUseInternalTransaction);
+        con.setBulkCopyOptionDefaultsAllowEncryptedValueModifications(bulkCopyOptionDefaultsAllowEncryptedValueModifications);
     }
-
+    
     private void compareValuesAgainstConnection(SQLServerConnection con, boolean autoCommitMode,
             int transactionIsolationLevel, int networkTimeout, int holdability, boolean sendTimeAsDatetime,
             int statementPoolingCacheSize, boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs,
-            boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
+            int bulkCopyOptionDefaultsBatchSize, int bulkCopyOptionDefaultsTimeout,
+            boolean bulkCopyOptionDefaultsCheckConstraints, boolean bulkCopyOptionDefaultsFireTriggers,
+            boolean bulkCopyOptionDefaultsKeepIdentity, boolean bulkCopyOptionDefaultsKeepNulls,
+            boolean bulkCopyOptionDefaultsTableLock, boolean bulkCopyOptionDefaultsUseInternalTransaction,
+            boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) throws SQLException {
+        
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
-        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(),
-                "transactionIsolationLevel" + description);
+        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(), "transactionIsolationLevel" + description);
         assertEquals(networkTimeout, con.getNetworkTimeout(), "networkTimeout" + description);
         assertEquals(holdability, con.getHoldability(), "holdability" + description);
         assertEquals(sendTimeAsDatetime, con.getSendTimeAsDatetime(), "sendTimeAsDatetime" + description);
-        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(),
-                "statementPoolingCacheSize" + description);
-        assertEquals(disableStatementPooling, con.getDisableStatementPooling(),
-                "disableStatementPooling" + description);
-        assertEquals(serverPreparedStatementDiscardThreshold, con.getServerPreparedStatementDiscardThreshold(),
-                "serverPreparedStatementDiscardThreshold" + description);
-        assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(),
-                "enablePrepareOnFirstPreparedStatementCall" + description);
+        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(), "statementPoolingCacheSize" + description);
+        assertEquals(disableStatementPooling, con.getDisableStatementPooling(), "disableStatementPooling" + description);
+        assertEquals(serverPreparedStatementDiscardThreshold, con.getServerPreparedStatementDiscardThreshold(), "serverPreparedStatementDiscardThreshold" + description);
+        assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(), "enablePrepareOnFirstPreparedStatementCall" + description);
         assertEquals(sCatalog, con.getCatalog(), "sCatalog" + description);
-        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(),
-                "useBulkCopyForBatchInsert" + description);
+        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(), "useBulkCopyForBatchInsert" + description);
         assertEquals(useFmtOnly, con.getUseFmtOnly(), "useFmtOnly" + description);
         assertEquals(delayLoadingLobs, con.getDelayLoadingLobs(), "delayLoadingLobs" + description);
-        assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(),
-                "ignoreOffsetOnDateTimeOffsetConversion" + description);
+        assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(), "ignoreOffsetOnDateTimeOffsetConversion" + description);
+        assertEquals(bulkCopyOptionDefaultsBatchSize, con.getBulkCopyOptionDefaultsBatchSize(), "bulkCopyOptionDefaultsBatchSize" + description);
+        assertEquals(bulkCopyOptionDefaultsTimeout, con.getBulkCopyOptionDefaultsTimeout(), "bulkCopyOptionDefaultsTimeout" + description);
+        assertEquals(bulkCopyOptionDefaultsCheckConstraints, con.getBulkCopyOptionDefaultsCheckConstraints(), "bulkCopyOptionDefaultsCheckConstraints" + description);
+        assertEquals(bulkCopyOptionDefaultsFireTriggers, con.getBulkCopyOptionDefaultsFireTriggers(), "bulkCopyOptionDefaultsFireTriggers" + description);
+        assertEquals(bulkCopyOptionDefaultsKeepIdentity, con.getBulkCopyOptionDefaultsKeepIdentity(), "bulkCopyOptionDefaultsKeepIdentity" + description);
+        assertEquals(bulkCopyOptionDefaultsKeepNulls, con.getBulkCopyOptionDefaultsKeepNulls(), "bulkCopyOptionDefaultsKeepNulls" + description);
+        assertEquals(bulkCopyOptionDefaultsTableLock, con.getBulkCopyOptionDefaultsTableLock(), "bulkCopyOptionDefaultsTableLock" + description);
+        assertEquals(bulkCopyOptionDefaultsUseInternalTransaction, con.getBulkCopyOptionDefaultsUseInternalTransaction(), "bulkCopyOptionDefaultsUseInternalTransaction" + description);
+        assertEquals(bulkCopyOptionDefaultsAllowEncryptedValueModifications, con.getBulkCopyOptionDefaultsAllowEncryptedValueModifications(), "bulkCopyOptionDefaultsAllowEncryptedValueModifications" + description);
     }
-
+    
     private void generateWarning(Connection con) throws SQLException {
         con.setClientInfo("name", "value");
     }
@@ -476,6 +540,15 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setDisableStatementPooling");
         verifiedMethodNames.add("setTransactionIsolation");
         verifiedMethodNames.add("setUseBulkCopyForBatchInsert");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsBatchSize");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsTimeout");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsCheckConstraints");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsFireTriggers");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsKeepIdentity");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsKeepNulls");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsTableLock");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsUseInternalTransaction");
+        verifiedMethodNames.add("setBulkCopyOptionDefaultsAllowEncryptedValueModifications");
         verifiedMethodNames.add("commit");
         verifiedMethodNames.add("clearWarnings");
         verifiedMethodNames.add("prepareStatement");
