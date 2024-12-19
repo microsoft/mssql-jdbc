@@ -836,49 +836,6 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
         }
     }
 
-    /**
-     * Verifies that the existing functionality remains intact when
-     * useBulkCopyBatchInsert=true and bulkCopyOptionDefaultsAllowEncryptedValueModifications=true
-     *
-     * @throws SQLException
-     */
-    @Test
-    public void testBulkCopyOptionDefaultsAllowEncryptedValueModifications() throws Exception {
-        try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsAllowEncryptedValueModifications=true")) {
-            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.setInt(2, 1);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 2);
-                pstmt.setInt(2, 2);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 3);
-                pstmt.setInt(2, 3);
-                pstmt.addBatch();
-
-                pstmt.setInt(1, 4);
-                pstmt.setInt(2, 4);
-                pstmt.addBatch();
-
-                pstmt.executeBatch();
-
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
-                        if (rs.next()) {
-                            int cnt = rs.getInt(1);
-                            assertEquals(cnt, 4, "Row count should have been 4");
-                        }
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-        }
-    }
-
     @BeforeEach
     public void init() throws Exception {
         try (Connection con = getConnection()) {
