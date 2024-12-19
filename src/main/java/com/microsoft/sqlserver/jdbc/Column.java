@@ -336,7 +336,7 @@ final class Column {
 
         // Update of Unicode SSType from textual JDBCType: Use Unicode.
         if ((SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
-                || SSType.NTEXT == ssType || SSType.XML == ssType) &&
+                || SSType.NTEXT == ssType || SSType.XML == ssType || SSType.JSON == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType
                         || JDBCType.CLOB == jdbcType)) {
