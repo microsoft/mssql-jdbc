@@ -166,6 +166,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                             qm.precision = 8;
                         } else if (SSType.XML == ssType) {
                             qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
+                        }  else if (SSType.JSON == ssType) {
+                            qm.precision = SQLServerDatabaseMetaData.MAXLOBSIZE / 2;
                         }
 
                         qm.parameterTypeName = ssType.toString();
