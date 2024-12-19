@@ -5256,6 +5256,7 @@ final class TDSWriter {
             case LONGVARCHAR:
             case LONGNVARCHAR:
             case SQLXML:
+            case JSON:
                 isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentColumnStringValue);
                 dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
@@ -5500,6 +5501,7 @@ final class TDSWriter {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     writeByte(TDSType.NVARCHAR.byteValue());
                     isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
