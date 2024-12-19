@@ -1602,7 +1602,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                             return false;
 
                         //For Insert, we must fetch additional TDS_DONE token that comes with the actual update count
-                        if (doneToken.cmdIsInsert() &&  (-1 != doneToken.getUpdateCount()) && EXECUTE == executeMethod) {
+                        if ((StreamDone.CMD_INSERT == doneToken.getCurCmd()) &&  (-1 != doneToken.getUpdateCount()) && EXECUTE == executeMethod) {
                             return true;
                         }
 

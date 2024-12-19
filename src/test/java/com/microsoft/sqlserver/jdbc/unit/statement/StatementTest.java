@@ -2713,15 +2713,12 @@ public class StatementTest extends AbstractTest {
                 try (Statement stmt = con.createStatement()) {
                     TestUtils.dropTriggerIfExists(triggerName, stmt);
                     stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32));");
-
                     stmt.executeUpdate("CREATE TABLE " + idTableName  + "(ID int NOT NULL IDENTITY(1,1) PRIMARY KEY);");
-
-                    stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + tableName + " FOR INSERT AS INSERT INTO " + idTableName + " DEFAULT VALUES;");
-
+                    stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + tableName + 
+                            " FOR INSERT AS INSERT INTO " + idTableName + " DEFAULT VALUES;");
                     for (int i = 0; i < NUM_ROWS; i++) {
                         stmt.executeUpdate("INSERT INTO " + tableName + " (NAME) VALUES ('test')");
                     }
-
                 }
                 con.commit();
             }
@@ -3012,5 +3009,5 @@ public class StatementTest extends AbstractTest {
             }
         }
     }
-    
+
 }
