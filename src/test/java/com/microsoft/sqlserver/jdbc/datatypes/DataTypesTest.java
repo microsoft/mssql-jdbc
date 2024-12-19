@@ -1955,7 +1955,6 @@ public class DataTypesTest extends AbstractTest {
             TestUtils.dropTableIfExists(escapedTableName, stmt);
 
             stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (dob datetimeoffset(7) null)");
-
             stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('1500-12-16 00:00:00.0000000+08:00')");
             stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('1400-09-27 09:30:00.0000000+08:00')");
             stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('2024-12-16 23:40:00.0000000+08:00')");

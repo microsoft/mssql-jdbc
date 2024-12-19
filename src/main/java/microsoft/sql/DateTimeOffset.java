@@ -5,7 +5,6 @@
 
 package microsoft.sql;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Calendar;
@@ -262,7 +261,7 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
         // Format the offset as +hh:mm or -hh:mm. Zero offset is formatted as +00:00.
         String formattedOffset = (minutesOffset < 0) ?
                 String.format(Locale.US, "-%1$02d:%2$02d", -minutesOffset / 60, -minutesOffset % 60) :
-                String.format(Locale.US, "+%1$02d:%2$02d", minutesOffset / 60, minutesOffset % 60);
+                    String.format(Locale.US, "+%1$02d:%2$02d", minutesOffset / 60, minutesOffset % 60);
 
         // Create a Calendar instance with the time zone set to GMT plus the formatted offset
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
