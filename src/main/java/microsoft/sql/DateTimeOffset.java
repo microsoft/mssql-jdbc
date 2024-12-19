@@ -5,6 +5,8 @@
 
 package microsoft.sql;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -190,7 +192,6 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
                                                                    .substring(2), // -> "123456"
                                                            formattedOffset);
         }
-
         return result;
     }
 
@@ -257,12 +258,32 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      * @return OffsetDateTime equivalent to this DateTimeOffset object.
      */
     public java.time.OffsetDateTime getOffsetDateTime() {
-        java.time.ZoneOffset zoneOffset = java.time.ZoneOffset.ofTotalSeconds(60 * minutesOffset);
-        java.time.LocalDateTime localDateTime = java.time.LocalDateTime.ofEpochSecond(utcMillis / 1000, nanos,
-                zoneOffset);
-        return java.time.OffsetDateTime.of(localDateTime, zoneOffset);
-    }
+        // Format the offset as +hh:mm or -hh:mm. Zero offset is formatted as +00:00.
+        String formattedOffset = (minutesOffset < 0) ?
+                String.format(Locale.US, "-%1$02d:%2$02d", -minutesOffset / 60, -minutesOffset % 60) :
+                    String.format(Locale.US, "+%1$02d:%2$02d", minutesOffset / 60, minutesOffset % 60);
 
+        // Create a Calendar instance with the time zone set to GMT plus the formatted offset
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
+        // Initialize the calendar with the UTC milliseconds value
+        calendar.setTimeInMillis(utcMillis);
+
+        // Extract the date and time components from the calendar
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH) + 1; // Calendar.MONTH is zero-based
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        int second = calendar.get(Calendar.SECOND);
+
+        // Create the ZoneOffset from the minutesOffset
+        ZoneOffset offset = ZoneOffset.ofTotalSeconds(minutesOffset * 60);
+
+        // Create and return the OffsetDateTime
+        return OffsetDateTime.of(year, month, day, hour, minute, second, nanos, offset);
+    }
+    
+    
     /**
      * Returns this DateTimeOffset object's offset value.
      *
