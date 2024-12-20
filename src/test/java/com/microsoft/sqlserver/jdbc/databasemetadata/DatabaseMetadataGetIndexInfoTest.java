@@ -1,6 +1,9 @@
 package com.microsoft.sqlserver.jdbc.databasemetadata;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -23,7 +27,7 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
 	private static String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
     private static String col1Name = AbstractSQLGenerator.escapeIdentifier("p1");
     private static String col2Name = AbstractSQLGenerator.escapeIdentifier("p2");
-    private static String col3Name = AbstractSQLGenerator.escapeIdentifier( "p3");
+    private static String col3Name = AbstractSQLGenerator.escapeIdentifier("p3");
     
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -31,7 +35,7 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
     }
     
     @BeforeEach
-    public void init() throws Exception {
+    public void init() throws SQLException {
         try (Connection con = getConnection()) {
             con.setAutoCommit(false);
             try (Statement stmt = con.createStatement()) {
@@ -42,30 +46,30 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
                         col3Name + " INT)";
             	
             	stmt.executeUpdate(createTableSQL);
-            	assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Connection.");
-            	assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create table', at Statement.");
+            	assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateTableConnection"));
+            	assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateTableStatement"));
                 
                 String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "(" + col1Name + ")";
     			stmt.executeUpdate(createClusteredIndexSQL);
-    			assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
-                assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
+    			assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
     			
     			String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName + "(" + col2Name + ")";
     			stmt.executeUpdate(createNonClusteredIndexSQL);
-    			assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
-                assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
+    			assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
                 
                 String createColumnstoreIndexSQL = "CREATE COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "(" + col3Name + ")";
     			stmt.executeUpdate(createColumnstoreIndexSQL);
-            	assertNull(connection.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Connection.");
-                assertNull(stmt.getWarnings(), "Expecting NO SQLWarnings from 'create index', at Statement.");
+    			assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
             }
             con.commit();
         }
     }
     
     @AfterEach
-    public void terminate() throws Exception {
+    public void terminate() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             try {
                 TestUtils.dropTableIfExists(tableName, stmt);
@@ -76,7 +80,7 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
     }
 
     @Test
-    public void testGetIndexInfo() throws SQLException, SQLServerException {
+    public void testGetIndexInfo() throws SQLException {
         ResultSet rs1, rs2 = null;
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             String catalog = connection.getCatalog();
@@ -119,15 +123,21 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
             while (rs1.next() && rs2.next()) {
                 String indexType = rs1.getString("IndexType");
                 String indexName = rs1.getString("IndexName");
+                String catalogName = rs1.getString("CatalogName");
+                String schemaName = rs1.getString("SchemaName");
+                String tableName = rs1.getString("TableName");
+                boolean isUnique = rs1.getBoolean("IsUnique");
+                String columnName = rs1.getString("ColumnName");
+                int columnOrder = rs1.getInt("ColumnOrder");
                 
-                assertEquals(rs1.getString("CatalogName"), rs2.getString("CatalogName"));
-                assertEquals(rs1.getString("SchemaName"), rs2.getString("SchemaName"));
-                assertEquals(rs1.getString("TableName"), rs2.getString("TableName"));
+                assertEquals(catalogName, rs2.getString("CatalogName"));
+                assertEquals(schemaName, rs2.getString("SchemaName"));
+                assertEquals(tableName, rs2.getString("TableName"));
                 assertEquals(indexName, rs2.getString("IndexName"));
                 assertEquals(indexType, rs2.getString("IndexType"));
-                assertEquals(rs1.getString("IsUnique"), rs2.getString("IsUnique"));
-                assertEquals(rs1.getString("ColumnName"), rs2.getString("ColumnName"));
-                assertEquals(rs1.getString("ColumnOrder"), rs2.getString("ColumnOrder"));
+                assertEquals(isUnique, rs2.getBoolean("IsUnique"));
+                assertEquals(columnName, rs2.getString("ColumnName"));
+                assertEquals(columnOrder, rs2.getInt("ColumnOrder"));
 
                 if (indexType.contains("COLUMNSTORE")) {
                     hasColumnstoreIndex = true;
@@ -145,9 +155,9 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
     }
     
     @Test
-    public void testGetIndexInfoCaseSensitivity() throws SQLException, SQLServerException {
+    public void testGetIndexInfoCaseSensitivity() throws SQLException {
         ResultSet rs1, rs2 = null;
-        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection()) {
             String catalog = connection.getCatalog();
             String schema = "dbo";
             String table = "DBMetadataTestTable";
@@ -159,15 +169,21 @@ public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
 			while (rs1.next() && rs2.next()) {
                 String indexType = rs1.getString("IndexType");
                 String indexName = rs1.getString("IndexName");
+                String catalogName = rs1.getString("CatalogName");
+                String schemaName = rs1.getString("SchemaName");
+                String tableName = rs1.getString("TableName");
+                boolean isUnique = rs1.getBoolean("IsUnique");
+                String columnName = rs1.getString("ColumnName");
+                int columnOrder = rs1.getInt("ColumnOrder");
                 
-                assertEquals(rs1.getString("CatalogName"), rs2.getString("CatalogName"));
-                assertEquals(rs1.getString("SchemaName"), rs2.getString("SchemaName"));
-                assertEquals(rs1.getString("TableName"), rs2.getString("TableName"));
+                assertEquals(catalogName, rs2.getString("CatalogName"));
+                assertEquals(schemaName, rs2.getString("SchemaName"));
+                assertEquals(tableName, rs2.getString("TableName"));
                 assertEquals(indexName, rs2.getString("IndexName"));
                 assertEquals(indexType, rs2.getString("IndexType"));
-                assertEquals(rs1.getString("IsUnique"), rs2.getString("IsUnique"));
-                assertEquals(rs1.getString("ColumnName"), rs2.getString("ColumnName"));
-                assertEquals(rs1.getString("ColumnOrder"), rs2.getString("ColumnOrder"));
+                assertEquals(isUnique, rs2.getBoolean("IsUnique"));
+                assertEquals(columnName, rs2.getString("ColumnName"));
+                assertEquals(columnOrder, rs2.getInt("ColumnOrder"));
             }
         }
     }
