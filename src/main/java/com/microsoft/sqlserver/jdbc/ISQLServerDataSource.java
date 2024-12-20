@@ -981,6 +981,141 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
+     * Sets the default batch size for Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsBatchSize
+     *        the default batch size for Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize);
+
+    /**
+     * Returns the default batch size for Bulk Copy operations.
+     * 
+     * @return the default batch size for Bulk Copy operations.
+     */
+    int getBulkCopyOptionDefaultsBatchSize();
+
+    /**
+     * Sets the default timeout for Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsTimeout
+     *        the default timeout for Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout);
+
+    /**
+     * Returns the default timeout for Bulk Copy operations.
+     * 
+     * @return the default timeout for Bulk Copy operations.
+     */
+    int getBulkCopyOptionDefaultsTimeout();
+
+    /**
+     * Sets whether to check constraints during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsCheckConstraints
+     *        indicates whether to check constraints during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints);
+
+    /**
+     * Returns whether to check constraints during Bulk Copy operations.
+     * 
+     * @return whether to check constraints during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsCheckConstraints();
+
+    /**
+     * Sets whether to fire triggers during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsFireTriggers
+     *        indicates whether to fire triggers during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers);
+
+    /**
+     * Returns whether to fire triggers during Bulk Copy operations.
+     * 
+     * @return whether to fire triggers during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsFireTriggers();
+
+    /**
+     * Sets whether to keep identity values during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsKeepIdentity
+     *        indicates whether to keep identity values during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity);
+
+    /**
+     * Returns whether to keep identity values during Bulk Copy operations.
+     * 
+     * @return whether to keep identity values during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsKeepIdentity();
+
+    /**
+     * Sets whether to keep null values during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsKeepNulls
+     *        indicates whether to keep null values during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls);
+
+    /**
+     * Returns whether to keep null values during Bulk Copy operations.
+     * 
+     * @return whether to keep null values during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsKeepNulls();
+
+    /**
+     * Sets whether to use table lock during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsTableLock
+     *        indicates whether to use table lock during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock);
+
+    /**
+     * Returns whether to use table lock during Bulk Copy operations.
+     * 
+     * @return whether to use table lock during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsTableLock();
+
+    /**
+     * Sets whether to use internal transaction during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsUseInternalTransaction
+     *        indicates whether to use internal transaction during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction);
+
+    /**
+     * Returns whether to use internal transaction during Bulk Copy operations.
+     * 
+     * @return whether to use internal transaction during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsUseInternalTransaction();
+
+    /**
+     * Sets whether to allow encrypted value modifications during Bulk Copy operations.
+     * 
+     * @param bulkCopyOptionDefaultsAllowEncryptedValueModifications
+     *        indicates whether to allow encrypted value modifications during Bulk Copy operations.
+     */
+    void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+
+    /**
+     * Returns whether to allow encrypted value modifications during Bulk Copy operations.
+     * 
+     * @return whether to allow encrypted value modifications during Bulk Copy operations.
+     */
+    boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
+        
+    /**
      * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
      * @param managedIdentityClientId
