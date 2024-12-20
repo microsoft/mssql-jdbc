@@ -1945,6 +1945,34 @@ public class DataTypesTest extends AbstractTest {
         assertEquals(expected, DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundDown).getOffsetDateTime());
     }
+    
+    @Test
+    public void testPreGregorianDateTime() throws Exception {
+        try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);) {
+
+            conn.setAutoCommit(false);
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
+
+            stmt.executeUpdate("CREATE TABLE " + escapedTableName + " (dob datetimeoffset(7) null)");
+            stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('1500-12-16 00:00:00.0000000+08:00')");
+            stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('1400-09-27 09:30:00.0000000+08:00')");
+            stmt.executeUpdate("INSERT INTO " + escapedTableName + " VALUES ('2024-12-16 23:40:00.0000000+08:00')");
+
+            try (ResultSet rs = stmt.executeQuery("select dob from " + escapedTableName + " order by dob")) {
+                while (rs.next()) {
+                    String strDateTimeOffset = rs.getString(1).substring(0, 10);
+                    DateTimeOffset objDateTimeOffset = (DateTimeOffset) rs.getObject(1);
+                    OffsetDateTime objOffsetDateTime = objDateTimeOffset.getOffsetDateTime();
+
+                    String strOffsetDateTime = objOffsetDateTime.toString().substring(0, 10);
+                    assertEquals(strDateTimeOffset, strOffsetDateTime, "Mismatch found in DateTimeOffset : "
+                            + objDateTimeOffset + " and OffsetDateTime : " + objOffsetDateTime);
+                }
+            }
+            TestUtils.dropTableIfExists(escapedTableName, stmt);
+        }
+    }
 
     static LocalDateTime getUnstorableValue() throws Exception {
         ZoneId systemTimezone = ZoneId.systemDefault();
