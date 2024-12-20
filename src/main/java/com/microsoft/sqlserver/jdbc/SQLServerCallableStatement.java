@@ -152,6 +152,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 param.setOutScale(7);
                 break;
             case java.sql.Types.DECIMAL:
+                // Dynamically handle the scale for DECIMAL output parameters.
+                // The scale for the DECIMAL type is fetched from the ParameterMetaData.
+                // This provides flexibility to automatically apply the correct scale as per the database metadata.
                 ParameterMetaData parameterMetaData = this.getParameterMetaData();
                 if (parameterMetaData != null) {
                     try {
