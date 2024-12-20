@@ -1199,28 +1199,44 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
-            boolean approximate) throws SQLServerException, SQLTimeoutException, SQLException {
+            boolean approximate) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
-        String query = "SELECT " +
-                "db_name() AS CatalogName, " +
-                "sch.name AS SchemaName, " +
-                "t.name AS TableName, " +
-                "i.name AS IndexName, " +
-                "i.type_desc AS IndexType, " +
-                "i.is_unique AS IsUnique, " +
-                "c.name AS ColumnName, " +
-                "ic.key_ordinal AS ColumnOrder " +
-                "FROM sys.indexes i " +
-                "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
-                "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
-                "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
-                "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
-                "WHERE t.name = '" + table + "' " +
-                "AND sch.name = '" + schema + "' " +
-                "ORDER BY t.name, i.name, ic.key_ordinal";
+        /*
+        * Replaced the use of the sp_statistics stored procedure with a custom query to retrieve index information.
+        * 
+        * Reason for change:
+        * The sp_statistics procedure was not returning Columnstore indexes, which was limiting the results.
+        * To address this issue and include all index types (Clustered, NonClustered, and Columnstore), a direct
+        * SQL query using sys.indexes, sys.index_columns, and related system views was implemented.
+        * 
+        * This query ensures a complete set of index information, regardless of the index type, as a workaround for
+        * the limitations of sp_statistics.
+        * 
+        * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
+        */
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT ")
+                    .append("db_name() AS CatalogName, ")
+                    .append("sch.name AS SchemaName, ")
+                    .append("t.name AS TableName, ")
+                    .append("i.name AS IndexName, ")
+                    .append("i.type_desc AS IndexType, ")
+                    .append("i.is_unique AS IsUnique, ")
+                    .append("c.name AS ColumnName, ")
+                    .append("ic.key_ordinal AS ColumnOrder ")
+                    .append("FROM sys.indexes i ")
+                    .append("INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id ")
+                    .append("INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id ")
+                    .append("INNER JOIN sys.tables t ON i.object_id = t.object_id ")
+                    .append("INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id ")
+                    .append("WHERE t.name = '").append(table).append("' ")
+                    .append("AND sch.name = '").append(schema).append("' ")
+                    .append("ORDER BY t.name, i.name, ic.key_ordinal");
+
+        String query = queryBuilder.toString();
         return getResultSetFromInternalQueries(cat, query);
     }
 
