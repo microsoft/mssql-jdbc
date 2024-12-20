@@ -836,6 +836,53 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test with useBulkCopyBatchInsert=true and
+     * bulkCopyOptionDefaultsAllowEncryptedValueModifications=true
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testBulkInsertWithEncryptedValueModifications() throws Exception {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsAllowEncryptedValueModifications=true")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 2);
+                pstmt.setInt(2, 2);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 3);
+                pstmt.setInt(2, 0);
+                pstmt.addBatch();
+
+                pstmt.setInt(1, 4);
+                pstmt.setInt(2, 4);
+                pstmt.addBatch();
+
+                pstmt.executeBatch();
+
+                try (Statement stmt = connection.createStatement()) {
+                    try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
+                        if (rs.next()) {
+                            int cnt = rs.getInt(1);
+                            assertEquals(cnt, 4, "row count should have been 4");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            if (e.getMessage().contains("Invalid column type from bcp client for colid 1")) {
+                return;
+            } else {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+        fail("Expected exception 'Invalid column type from bcp client for colid 1' was not thrown.");
+    }
+
     @BeforeEach
     public void init() throws Exception {
         try (Connection con = getConnection()) {
