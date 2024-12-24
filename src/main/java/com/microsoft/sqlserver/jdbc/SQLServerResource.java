@@ -466,6 +466,15 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
         {"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
         {"R_useBulkCopyForBatchInsertPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations"},
+        {"R_bulkCopyOptionDefaultsBatchSizePropertyDescription", "The default batch size for bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsTimeoutPropertyDescription", "The default timeout for bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsCheckConstraintsPropertyDescription", "Whether to check constraints during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsFireTriggersPropertyDescription", "Whether to fire triggers during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsKeepIdentityPropertyDescription", "Whether to keep identity values during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsKeepNullsPropertyDescription", "Whether to keep null values during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsTableLockPropertyDescription", "Whether to use table lock during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsUseInternalTransactionPropertyDescription", "Whether to use internal transaction during bulk copy operations"},
+        {"R_bulkCopyOptionDefaultsAllowEncryptedValueModificationsPropertyDescription", "Whether to allow encrypted value modifications during bulk copy operations"},        
         {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
         {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
         {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
