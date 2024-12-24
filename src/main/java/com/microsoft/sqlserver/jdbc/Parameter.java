@@ -899,7 +899,9 @@ final class Parameter {
                 case SQLXML:
                     param.typeDefinition = SSType.XML.toString();
                     break;
-
+                case JSON:
+                    param.typeDefinition = SSType.JSON.toString();
+                    break;
                 case TVP:
                     // definition should contain the TVP name and the keyword READONLY
                     String schema = param.schemaName;
