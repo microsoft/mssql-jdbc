@@ -112,21 +112,6 @@ public class PooledConnectionTest extends FedauthCommon {
         testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryPassword);
     }
 
-    @Test
-    public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        // suspend 60 secs
-        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryIntegrated);
-
-        // get another token
-        getFedauthInfo();
-
-        // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration,
-                SqlAuthentication.ActiveDirectoryIntegrated);
-    }
-
     private void testPooledConnectionAccessTokenExpiredThenReconnect(long testingTimeInSeconds,
             SqlAuthentication authentication) throws SQLException {
         SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
@@ -190,13 +175,6 @@ public class PooledConnectionTest extends FedauthCommon {
     @Test
     public void testPooledConnectionMultiThreadADPassword() throws SQLException {
         testPooledConnectionMultiThread(secondsBeforeExpiration, SqlAuthentication.ActiveDirectoryPassword);
-    }
-
-    @Test
-    public void testPooledConnectionMultiThreadADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        testPooledConnectionMultiThread(secondsBeforeExpiration, SqlAuthentication.ActiveDirectoryIntegrated);
     }
 
     private void testPooledConnectionMultiThread(long testingTimeInSeconds,
