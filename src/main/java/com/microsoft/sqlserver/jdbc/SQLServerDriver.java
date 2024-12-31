@@ -1294,9 +1294,9 @@ public final class SQLServerDriver implements java.sql.Driver {
         Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            if (suppliedProperties != null && suppliedProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
+            if (suppliedProperties == null || (suppliedProperties != null && suppliedProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null)) {
                 connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
-            }
+            }   
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
