@@ -230,6 +230,26 @@ public class SQLServerDriverTest extends AbstractTest {
     }
 
     /**
+     * test application name by executing select app_name()
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testAppNameWithSpecifiedApplicationName() throws SQLException {
+        String url = connectionString + ";applicationName={0123456789012345678901234567890123456789012345678901234567890123456789012345678901234589012345678901234567890123456789012345678}";
+
+        try (Connection conn = DriverManager.getConnection(url);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT app_name()")) {
+            if (rs.next()) {
+                assertEquals(SQLServerDriver.constructedAppName, rs.getString(1));
+            }
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
      * test application name when system properties are empty
      * 
      */
