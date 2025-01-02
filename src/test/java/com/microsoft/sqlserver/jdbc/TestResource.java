@@ -216,5 +216,9 @@ public final class TestResource extends ListResourceBundle {
             {"R_expectedClassDoesNotMatchActualClass",
                     "Expected column class {0} does not match actual column class {1} for column {2}."},
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
-            {"R_MInotAvailable", "Managed Identity authentication is not available"},};
+            {"R_MInotAvailable", "Managed Identity authentication is not available"},
+            {"R_noSQLWarningsCreateTableConnection", "Expecting NO SQLWarnings from 'create table', at Connection."},
+            {"R_noSQLWarningsCreateTableStatement", "Expecting NO SQLWarnings from 'create table', at Statement."},
+            {"R_noSQLWarningsCreateIndexConnection", "Expecting NO SQLWarnings from 'create index', at Connection."},
+            {"R_noSQLWarningsCreateIndexStatement", "Expecting NO SQLWarnings from 'create index', at Statement."},};
 }

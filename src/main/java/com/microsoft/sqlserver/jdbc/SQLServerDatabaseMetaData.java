@@ -1197,39 +1197,47 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
     }
 
-    private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
-            /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
-            /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
-            /* 13 */ FILTER_CONDITION};
-
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
-            boolean approximate) throws SQLServerException, SQLTimeoutException {
+            boolean approximate) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         /*
-         * sp_statistics [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'owner' ] [ , [ @table_qualifier = ]
-         * 'qualifier' ] [ , [ @index_name = ] 'index_name' ] [ , [ @is_unique = ] 'is_unique' ] [ , [ @accuracy = ]
-         * 'accuracy' ]
-         */
-        String[] arguments = new String[6];
-        arguments[0] = table;
-        arguments[1] = schema;
-        arguments[2] = cat;
-        // use default for index name
-        arguments[3] = "%"; // index name % is default
-        if (unique)
-            arguments[4] = "Y"; // is_unique
-        else
-            arguments[4] = "N";
-        if (approximate)
-            arguments[5] = "Q";
-        else
-            arguments[5] = "E";
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
-                getIndexInfoColumnNames);
+        * Replaced the use of the sp_statistics stored procedure with a custom query to retrieve index information.
+        * 
+        * Reason for change:
+        * The sp_statistics procedure was not returning Columnstore indexes, which was limiting the results.
+        * To address this issue and include all index types (Clustered, NonClustered, and Columnstore), a direct
+        * SQL query using sys.indexes, sys.index_columns, and related system views was implemented.
+        * 
+        * This query ensures a complete set of index information, regardless of the index type, as a workaround for
+        * the limitations of sp_statistics.
+        * 
+        * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
+        */
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT ")
+                    .append("db_name() AS CatalogName, ")
+                    .append("sch.name AS SchemaName, ")
+                    .append("t.name AS TableName, ")
+                    .append("i.name AS IndexName, ")
+                    .append("i.type_desc AS IndexType, ")
+                    .append("i.is_unique AS IsUnique, ")
+                    .append("c.name AS ColumnName, ")
+                    .append("ic.key_ordinal AS ColumnOrder ")
+                    .append("FROM sys.indexes i ")
+                    .append("INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id ")
+                    .append("INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id ")
+                    .append("INNER JOIN sys.tables t ON i.object_id = t.object_id ")
+                    .append("INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id ")
+                    .append("WHERE t.name = '").append(table).append("' ")
+                    .append("AND sch.name = '").append(schema).append("' ")
+                    .append("ORDER BY t.name, i.name, ic.key_ordinal");
+
+        String query = queryBuilder.toString();
+        return getResultSetFromInternalQueries(cat, query);
     }
 
     @Override
