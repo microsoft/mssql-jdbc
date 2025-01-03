@@ -238,6 +238,30 @@ public class RegressionTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests Json query
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testJsonQuery() throws SQLException {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            tableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " ([c1] int, [c2] json, [c3] json)");
+
+            String sql = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET [c2] = ?, [c3] = ?";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setObject(1, null);
+                pstmt.setObject(2, null);
+                pstmt.executeUpdate();
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
     private void createTable(Statement stmt) throws SQLException {
 
         String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
