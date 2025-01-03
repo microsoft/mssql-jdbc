@@ -744,7 +744,7 @@ enum JDBCType {
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET,
                 JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER,
                 JDBCType.Category.LONG_NCHARACTER, JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT)),
+                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT, JDBCType.Category.JSON)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
@@ -844,7 +844,7 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER, SSType.Category.XML,
                 SSType.Category.BINARY, SSType.Category.LONG_BINARY, SSType.Category.UDT, SSType.Category.GUID,
-                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT)),
+                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT, SSType.Category.JSON)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER,
