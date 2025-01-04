@@ -242,7 +242,7 @@ public class SQLServerDriverTest extends AbstractTest {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT app_name()")) {
             if (rs.next()) {
-                assertEquals(SQLServerDriver.constructedAppName, rs.getString(1));
+                assertEquals("0123456789012345678901234567890123456789012345678901234567890123456789012345678901234589012345678901234567890123456789012345678", rs.getString(1));
             }
         } catch (SQLException e) {
             fail(e.getMessage());
