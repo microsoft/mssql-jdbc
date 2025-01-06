@@ -247,7 +247,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVQuotes"), null, 0, null);
             }
             if (c == -1) { // keep semantics of readLine() by returning a null when there is no more data
-                return null;
+                if (sb.toString().isBlank()) {
+                    return null;
+                }
             }
         } catch (IOException e) {
             throw new SQLServerException(e.getMessage(), null, 0, e);
