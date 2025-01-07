@@ -90,7 +90,7 @@ class SQLServerMSAL4JUtils {
             logger.finest(LOGCONTEXT + authenticationString + ": get FedAuth token for user: " + user);
         }
 
-        boolean semAcquired = false;
+        boolean isSemAcquired = false;
         try {
             //
             //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
@@ -100,7 +100,7 @@ class SQLServerMSAL4JUtils {
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
             //
-            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, user, password});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(user,
@@ -147,7 +147,7 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (semAcquired) {
+            if (isSemAcquired) {
                 sem.release();
             }
             executorService.shutdown();
@@ -168,7 +168,7 @@ class SQLServerMSAL4JUtils {
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
         
-        boolean semAcquired = false;
+        boolean isSemAcquired = false;
         try {
             //
             //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
@@ -178,7 +178,7 @@ class SQLServerMSAL4JUtils {
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
             //
-            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
@@ -225,7 +225,7 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (semAcquired) {
+            if (isSemAcquired) {
                 sem.release();
             }
             executorService.shutdown();
@@ -248,7 +248,7 @@ class SQLServerMSAL4JUtils {
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
 
-        boolean semAcquired = false;
+        boolean isSemAcquired = false;
         try {
             //
             //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
@@ -258,7 +258,7 @@ class SQLServerMSAL4JUtils {
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
             //
-            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             String hashedSecret = getHashedSecret(new String[] {fedAuthInfo.stsurl, aadPrincipalID, certFile,
                     certPassword, certKey, certKeyPassword});
@@ -359,7 +359,7 @@ class SQLServerMSAL4JUtils {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
         } finally {
-            if (semAcquired) {
+            if (isSemAcquired) {
                 sem.release();
             }
             executorService.shutdown();
@@ -382,7 +382,7 @@ class SQLServerMSAL4JUtils {
                     + "realm name:" + kerberosPrincipal.getRealm());
         }
 
-        boolean semAcquired = false;
+        boolean isSemAcquired = false;
         try {
             //
             //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
@@ -392,7 +392,7 @@ class SQLServerMSAL4JUtils {
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
             //
-            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
         	final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -422,7 +422,7 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (semAcquired) {
+            if (isSemAcquired) {
                 sem.release();
             }
             executorService.shutdown();
@@ -437,7 +437,7 @@ class SQLServerMSAL4JUtils {
             logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
-        boolean semAcquired = false;
+        boolean isSemAcquired = false;
         try {
             //
             //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
@@ -447,7 +447,7 @@ class SQLServerMSAL4JUtils {
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
             //
-            semAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
@@ -528,7 +528,7 @@ class SQLServerMSAL4JUtils {
         } catch (TimeoutException e) {
             throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
         } finally {
-            if (semAcquired) {
+            if (isSemAcquired) {
                 sem.release();
             }
             executorService.shutdown();
