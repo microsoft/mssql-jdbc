@@ -25,9 +25,9 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
 
 	private static String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
-	private static String col1Name = AbstractSQLGenerator.escapeIdentifier("p1");
-	private static String col2Name = AbstractSQLGenerator.escapeIdentifier("p2");
-	private static String col3Name = AbstractSQLGenerator.escapeIdentifier("p3");
+	private static String col1Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col1"));
+    private static String col2Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col2"));
+    private static String col3Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col3"));
 
 	@BeforeAll
 	public static void setupTests() throws Exception {
