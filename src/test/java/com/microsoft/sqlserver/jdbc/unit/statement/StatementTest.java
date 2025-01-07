@@ -2696,13 +2696,13 @@ public class StatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public class BigDecimalPrecisionTest {
 
-    	private static String procName1 = AbstractSQLGenerator
+    	private final String procName1 = AbstractSQLGenerator
     			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_3"));
-    	private static String procName2 = AbstractSQLGenerator
+    	private final String procName2 = AbstractSQLGenerator
     			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_5"));
-    	private static String procNameMaxScale = AbstractSQLGenerator
+    	private final String procNameMaxScale = AbstractSQLGenerator
     			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_scale"));
-    	private static String procNameMaxPrecision = AbstractSQLGenerator
+    	private final String procNameMaxPrecision = AbstractSQLGenerator
     			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_precision"));
 
     	@BeforeEach
