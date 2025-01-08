@@ -344,7 +344,7 @@ class SQLServerSecurityUtility {
      * @throws SQLServerException
      */
     static SqlAuthenticationToken getManagedIdentityCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
+            String managedIdentityClientId, long millisecondsRemaining) throws SQLServerException {
 
         if (logger.isLoggable(java.util.logging.Level.FINEST)) {
             logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
@@ -383,7 +383,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).blockOptional();
+        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
@@ -467,7 +467,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS));
+        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),

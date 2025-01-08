@@ -6126,12 +6126,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId);
+                            managedIdentityClientId, millisecondsRemaining);
                     break;
                 }
 
                 fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()), millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
