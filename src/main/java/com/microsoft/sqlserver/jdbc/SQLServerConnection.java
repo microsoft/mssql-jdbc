@@ -2446,7 +2446,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValue)
                     validateMaxSQLLoginName(sPropKey, sPropValue);
                 else
-                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.constructedAppName);
 
                 sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
