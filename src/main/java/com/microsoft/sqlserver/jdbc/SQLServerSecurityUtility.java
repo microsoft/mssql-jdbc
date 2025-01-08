@@ -58,7 +58,7 @@ class SQLServerSecurityUtility {
 
     private static final Lock CREDENTIAL_LOCK = new ReentrantLock();
 
-	private static final int TOKEN_WAIT_DURATION_MS = 0;
+	private static final int TOKEN_WAIT_DURATION_MS = 20000;
 
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
