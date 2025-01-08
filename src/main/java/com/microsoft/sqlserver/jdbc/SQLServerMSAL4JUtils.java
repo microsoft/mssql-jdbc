@@ -394,7 +394,7 @@ class SQLServerMSAL4JUtils {
             //
             isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
-        	final PublicClientApplication pca = PublicClientApplication
+            final PublicClientApplication pca = PublicClientApplication
                     .builder(ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID).executorService(executorService)
                     .setTokenCacheAccessAspect(PersistentTokenCacheAccessAspect.getInstance())
                     .authority(fedAuthInfo.stsurl).build();
