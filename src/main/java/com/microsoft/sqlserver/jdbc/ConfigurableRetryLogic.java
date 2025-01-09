@@ -36,7 +36,6 @@ public class ConfigurableRetryLogic {
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
-    private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
     private static final String RETRY_EXEC = "retryExec";
     private static final String RETRY_CONN = "retryConn";
@@ -283,16 +282,25 @@ public class ConfigurableRetryLogic {
     private static String getCurrentClassPath() throws SQLServerException {
         String location = "";
         String className = "";
+        String locationSuffix = "target/classes/";
 
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            location = location.substring(0, location.length() - 16);
-            URI uri = new URI(location + FORWARD_SLASH);
+            // When the driver is used as a jar / as a dependency, the above will be the correct "main" directory where
+            // the props file should be placed (as per documentation). When testing, or building the driver manually,
+            // the above will return with a suffix "target/classes/" which must be removed, as, with the first case, the
+            // properties file should be in the main directory.
+
+            if (location.endsWith(locationSuffix)) {
+                location = location.substring(0, location.length() - locationSuffix.length());
+            }
+
+            URI uri = new URI(location);
             return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
-            Object[] msgArgs = {location + FORWARD_SLASH};
+            Object[] msgArgs = {location};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (ClassNotFoundException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
