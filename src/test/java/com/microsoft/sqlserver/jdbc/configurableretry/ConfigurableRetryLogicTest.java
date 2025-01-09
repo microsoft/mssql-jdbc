@@ -56,7 +56,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
     /**
      * Test that the SQLServerConnection methods getRetryExec and setRetryExec correctly get the existing retryExec, and
      * set the retryExec connection parameter respectively.
-     *
+     * 
      * @throws Exception
      *         if an exception occurs
      */
