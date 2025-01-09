@@ -2456,7 +2456,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValue)
                     validateMaxSQLLoginName(sPropKey, sPropValue);
                 else
-                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.constructedAppName);
 
                 sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -2812,13 +2812,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         && !activeConnectionProperties
                                 .getProperty(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString())
                                 .isEmpty();
-                if ((null != accessTokenCallback || hasAccessTokenCallbackClass) && (!activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString()).isEmpty()
-                        || !activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString())
-                                .isEmpty())) {
-                    throw new SQLServerException(
-                            SQLServerException.getErrString("R_AccessTokenCallbackWithUserPassword"), null);
-                }
 
                 sPropKey = SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -7641,7 +7634,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** request started flag */
-    private boolean requestStarted = false;
+    private volatile boolean requestStarted = false;
 
     /** original database autocommit mode */
     private boolean originalDatabaseAutoCommitMode;
@@ -7783,9 +7776,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sqlWarnings = originalSqlWarnings;
                 if (null != openStatements) {
                     while (!openStatements.isEmpty()) {
-                        try (Statement st = openStatements.get(0)) {}
+                        Statement st = openStatements.get(0);
+                        try {
+                            st.close();
+                        } finally {
+                            removeOpenStatement((SQLServerStatement) st);
+                        }
                     }
-                    openStatements.clear();
                 }
                 requestStarted = false;
             }
