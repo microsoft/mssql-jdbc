@@ -108,7 +108,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     /**
      * Tests that statement retry with prepared statements correctly retries given the provided retryExec rule.
-     *
+     * 
      * @throws Exception
      *         if unable to connect or execute against db
      */
