@@ -755,6 +755,33 @@ public class TVPTypesTest extends AbstractTest {
             }
         }
     }
+    
+    @Test
+    public void testJSONTVPCallableAPI() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        createProcedure();
+
+        value = "{\"Name\":\"Alice\",\"Age\":25}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1",  microsoft.sql.Types.JSON);
+        tvp.addRow(value);
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setObject(1, tvp);
+            callableStmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getObject(1), value);
+            }
+        }
+    }
 
     @BeforeAll
     public static void setupTests() throws Exception {
