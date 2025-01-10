@@ -45,7 +45,11 @@ final class KerbAuthentication extends SSPIAuthentication {
     static {
         // Overrides the default JAAS configuration loader.
         // This one will forward to the default one in all cases but the default configuration is empty.
-        Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
+        try {
+            Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
+        } catch (SQLServerException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
