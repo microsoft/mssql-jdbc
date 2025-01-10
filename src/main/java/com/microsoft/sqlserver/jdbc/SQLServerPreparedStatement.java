@@ -132,7 +132,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
-    
+
     /**
      * Bulkcopy operation table name
      */
