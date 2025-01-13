@@ -1336,7 +1336,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
         	//test pass
-        	assertEquals(e.getMessage(), SQLServerException.getErrString("R_connectionTimedOut"), "Expected Timeout Exception was not thrown");
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
 
@@ -1351,7 +1351,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
         	//test pass
-        	assertEquals(e.getMessage(), SQLServerException.getErrString("R_connectionTimedOut"), "Expected Timeout Exception was not thrown");
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
 
@@ -1366,7 +1366,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
         	//test pass
-        	assertEquals(e.getMessage(), SQLServerException.getErrString("R_connectionTimedOut"), "Expected Timeout Exception was not thrown");
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
 

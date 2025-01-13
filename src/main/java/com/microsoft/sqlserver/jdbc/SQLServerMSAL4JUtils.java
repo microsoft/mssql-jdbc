@@ -145,7 +145,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -223,7 +223,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | ExecutionException e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), aadPrincipalID, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -354,7 +354,7 @@ class SQLServerMSAL4JUtils {
             throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
                     null);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), aadPrincipalID, authenticationString);
         } catch (Exception e) {
             throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
@@ -420,7 +420,7 @@ class SQLServerMSAL4JUtils {
         } catch (IOException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -526,7 +526,7 @@ class SQLServerMSAL4JUtils {
         } catch (MalformedURLException | URISyntaxException | ExecutionException e) {
             throw getCorrectedException(e, user, authenticationString);
         } catch (TimeoutException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e);
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
