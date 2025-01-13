@@ -23,6 +23,7 @@ import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.ParameterMetaData;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.Calendar;
@@ -149,6 +150,22 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             case java.sql.Types.TIMESTAMP:
             case microsoft.sql.Types.DATETIMEOFFSET:
                 param.setOutScale(7);
+                break;
+            case java.sql.Types.DECIMAL:
+                // Dynamically handle the scale for DECIMAL output parameters.
+                // The scale for the DECIMAL type is fetched from the ParameterMetaData.
+                // This provides flexibility to automatically apply the correct scale as per the database metadata.
+                ParameterMetaData parameterMetaData = this.getParameterMetaData();
+                if (parameterMetaData != null) {
+                    try {
+                        // Fetch scale from metadata for DECIMAL type
+                        int scale = parameterMetaData.getScale(index);
+                        param.setOutScale(scale);
+                    } catch (SQLException e) {
+                        loggerExternal.warning("Failed to fetch scale for DECIMAL type parameter at index " + index + ": " + e.getMessage());
+                        throw new SQLServerException(SQLServerException.getErrString("R_InvalidScale"), null, 0, e);
+                    }
+                } 
                 break;
             default:
                 break;
