@@ -217,5 +217,6 @@ public final class TestResource extends ListResourceBundle {
                     "Expected column class {0} does not match actual column class {1} for column {2}."},
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
             {"R_MInotAvailable", "Managed Identity authentication is not available"},
-            {"R_sessionPropertyFailed", "Expected {0} from server for session property {1} but got {2}."},};
+            {"R_sessionPropertyFailed", "Expected {0} from server for session property {1} but got {2}."},
+            {"R_featureNotSupported", "{0} is not supported."},};
 }
