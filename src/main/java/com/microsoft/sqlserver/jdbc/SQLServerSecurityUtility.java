@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
@@ -55,6 +57,8 @@ class SQLServerSecurityUtility {
     private static final HashMap<String, Credential> CREDENTIAL_CACHE = new HashMap<>();
 
     private static final Lock CREDENTIAL_LOCK = new ReentrantLock();
+
+	private static final int TOKEN_WAIT_DURATION_MS = 20000;
 
     private SQLServerSecurityUtility() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
@@ -340,7 +344,7 @@ class SQLServerSecurityUtility {
      * @throws SQLServerException
      */
     static SqlAuthenticationToken getManagedIdentityCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
+            String managedIdentityClientId, long millisecondsRemaining) throws SQLServerException {
 
         if (logger.isLoggable(java.util.logging.Level.FINEST)) {
             logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
@@ -379,7 +383,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).blockOptional();
+        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
@@ -408,7 +412,7 @@ class SQLServerSecurityUtility {
      * @throws SQLServerException
      */
     static SqlAuthenticationToken getDefaultAzureCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
+            String managedIdentityClientId, int millisecondsRemaining) throws SQLServerException {
         String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
         String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
 
@@ -463,7 +467,7 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional();
+        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
 
         if (!accessTokenOptional.isPresent()) {
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
