@@ -722,6 +722,8 @@ final class DDC {
                     return new SQLServerNClob(stream, typeInfo);
                 case SQLXML:
                     return new SQLServerSQLXML(stream, getterArgs, typeInfo);
+                case JSON:
+                    return new SQLServerSQLJSON(stream, getterArgs, typeInfo);
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:

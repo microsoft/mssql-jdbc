@@ -831,6 +831,7 @@ final class Parameter {
 
                 case NCHAR:
                 case NVARCHAR:
+                case JSON:
                     // To avoid the server side cost of re-preparing, once a "long" type, always a "long" type...
                     if (NVARCHAR_MAX.equals(param.typeDefinition) || NTEXT.equals(param.typeDefinition))
                         break;
@@ -899,9 +900,9 @@ final class Parameter {
                 case SQLXML:
                     param.typeDefinition = SSType.XML.toString();
                     break;
-                case JSON:
+                /*case JSON:
                     param.typeDefinition = SSType.JSON.toString();
-                    break;
+                    break;*/
                 case TVP:
                     // definition should contain the TVP name and the keyword READONLY
                     String schema = param.schemaName;
@@ -974,7 +975,6 @@ final class Parameter {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (null != strValue && strValue.length() > DataTypes.SHORT_VARTYPE_MAX_CHARS)
                 dtv.setJdbcType(JDBCType.LONGNVARCHAR);
-
             setTypeDefinition(dtv);
         }
 
@@ -1194,6 +1194,10 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
+        void execute(DTV dtv, SQLServerSQLJSON jsonValue) throws SQLServerException {
+            setTypeDefinition(dtv);
+        }
+        
         void execute(DTV dtv, com.microsoft.sqlserver.jdbc.TVP tvpValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
@@ -1207,7 +1211,6 @@ final class Parameter {
         void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
-
     }
 
     /**

@@ -1774,6 +1774,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 case SQLXML:
                     streamSetterArgs = new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH);
                     break;
+                
+                // case JSON:
+                //     streamSetterArgs = new StreamSetterArgs(StreamType.JSON, DataTypes.UNKNOWN_STREAM_LENGTH);
+                //     break;
+
                 default:
                     // Do nothing
                     break;

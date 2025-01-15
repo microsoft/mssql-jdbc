@@ -313,8 +313,9 @@ enum StreamType {
     BINARY(JDBCType.LONGVARBINARY, "BinaryStream"),
     CHARACTER(JDBCType.LONGVARCHAR, "CharacterStream"),
     NCHARACTER(JDBCType.LONGNVARCHAR, "NCharacterStream"),
+    JSON(JDBCType.JSON, "JSON"),
     SQLXML(JDBCType.SQLXML, "SQLXML");
-
+    
     // JDBC type most naturally associated with this type of stream
     private final JDBCType jdbcType;
 
@@ -342,6 +343,9 @@ enum StreamType {
             if (SSType.XML == typeInfo.getSSType())
                 return false;
 
+            // if (SSType.JSON == typeInfo.getSSType())
+            //     return false;
+
             // Conversion not allowed if collation doesn't cleanly convert to ASCII character set
             if (null != typeInfo.getSQLCollation() && !typeInfo.getSQLCollation().supportsAsciiConversion())
                 return false;
@@ -356,6 +360,10 @@ enum StreamType {
             // Conversion not allowed to XML from AsciiStream
             if (SSType.XML == typeInfo.getSSType())
                 return false;
+
+            // Conversion not allowed to XML from AsciiStream
+            // if (SSType.JSON == typeInfo.getSSType())
+            //     return false;    
 
             // Conversion not allowed if collation doesn't cleanly convert from ASCII character set
             if (null != typeInfo.getSQLCollation() && !typeInfo.getSQLCollation().supportsAsciiConversion())
@@ -432,7 +440,7 @@ enum JavaType {
     TVP(com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
     GEOMETRY(Geometry.class, JDBCType.GEOMETRY),
     GEOGRAPHY(Geography.class, JDBCType.GEOGRAPHY),
-
+   
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
         @Override
@@ -485,6 +493,7 @@ enum JavaType {
     READER(Reader.class, JDBCType.LONGVARCHAR),
     // Note: Only SQLServerSQLXML SQLXML instances are accepted by this driver
     SQLXML(SQLServerSQLXML.class, JDBCType.SQLXML),
+    JSON(SQLServerSQLJSON.class, JDBCType.JSON),
     OBJECT(Object.class, JDBCType.UNKNOWN);
 
     private final Class<?> javaClass;

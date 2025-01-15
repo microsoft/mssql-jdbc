@@ -5663,6 +5663,7 @@ final class TDSWriter {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
+                //case JSON:
                     tdsType = (isShortValue || usePLP) ? TDSType.BIGVARCHAR : TDSType.TEXT;
                     if (null == collation)
                         collation = con.getDatabaseCollation();
@@ -5672,11 +5673,16 @@ final class TDSWriter {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                //case JSON:
                     tdsType = (isShortValue || usePLP) ? TDSType.NVARCHAR : TDSType.NTEXT;
                     if (null == collation)
                         collation = con.getDatabaseCollation();
                     break;
-
+                case JSON: //The incoming tabular data stream (TDS) remote procedure call (RPC) protocol stream is incorrect. Parameter 3 (""): JSON data type is not supported in TDS on the server side.
+                    tdsType = TDSType.JSON;
+                    if (null == collation)
+                        collation = con.getDatabaseCollation();
+                    break; 
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
@@ -6576,6 +6582,31 @@ final class TDSWriter {
             writeStream(stream, streamLength, true);
     }
 
+    void writeRPCJSON(String sName, InputStream stream, long streamLength, boolean bOut) throws SQLServerException {
+        assert DataTypes.UNKNOWN_STREAM_LENGTH == streamLength || streamLength >= 0;
+        assert DataTypes.UNKNOWN_STREAM_LENGTH == streamLength || streamLength <= DataTypes.MAX_VARTYPE_MAX_BYTES;
+
+        writeRPCNameValType(sName, bOut, TDSType.JSON);
+        writeByte((byte) 0); // No schema
+        // Handle null here and return, we're done here if it's null.
+        if (null == stream) {
+            // Null header for v*max types is 0xFFFFFFFFFFFFFFFF.
+            writeLong(0xFFFFFFFFFFFFFFFFL);
+        } else if (DataTypes.UNKNOWN_STREAM_LENGTH == streamLength) {
+            // Append v*max length.
+            // UNKNOWN_PLP_LEN is 0xFFFFFFFFFFFFFFFE
+            writeLong(0xFFFFFFFFFFFFFFFEL);
+
+            // NOTE: Don't send the first chunk length, this will be calculated by caller.
+        } else {
+            // For v*max types with known length, length is <totallength8><chunklength4>
+            // We're sending same total length as chunk length (as we're sending 1 chunk).
+            writeLong(streamLength);
+        }
+        if (null != stream)
+            // Write the data
+            writeStream(stream, streamLength, true);
+    }
     /**
      * Append the data in a character reader in RPC transmission format.
      * 

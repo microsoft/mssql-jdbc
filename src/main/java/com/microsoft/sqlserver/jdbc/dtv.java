@@ -116,6 +116,8 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
 
+    abstract void execute(DTV dtv, SQLServerSQLJSON jsonValue) throws SQLServerException;
+
 }
 
 
@@ -1401,6 +1403,11 @@ final class DTV {
             tdsWriter.writeRPCXML(name, o, null == o ? 0 : dtv.getStreamSetterArgs().getLength(), isOutParam);
         }
 
+        void execute(DTV dtv, SQLServerSQLJSON jsonValue) throws SQLServerException {
+            InputStream o = (null == jsonValue) ? null : jsonValue.getValue();
+            tdsWriter.writeRPCJSON(name, o, null == o ? 0 : dtv.getStreamSetterArgs().getLength(), isOutParam);
+        }
+
         void execute(DTV dtv, InputStream inputStreamValue) throws SQLServerException {
             tdsWriter.writeRPCInputStream(name, inputStreamValue,
                     null == inputStreamValue ? 0 : dtv.getStreamSetterArgs().getLength(), isOutParam, dtv.getJdbcType(),
@@ -1460,12 +1467,12 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
                         op.execute(this, (String) null);
                     break;
-
                 case INTEGER:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
@@ -1519,7 +1526,7 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
-                case JSON:
+                //case JSON:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -1569,7 +1576,9 @@ final class DTV {
                 case SQLXML:
                     op.execute(this, (SQLServerSQLXML) null);
                     break;
-
+                case JSON:
+                    op.execute(this, (SQLServerSQLJSON) null);
+                    break; 
                 case ARRAY:
                 case DATALINK:
                 case DISTINCT:
@@ -1641,7 +1650,7 @@ final class DTV {
                             }
                             // Each character is represented using 1 bytes in VARCHAR
                             else if ((JDBCType.VARCHAR == jdbcTypeSetByUser) || (JDBCType.CHAR == jdbcTypeSetByUser)
-                                    || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser)) {
+                                    || (JDBCType.LONGVARCHAR == jdbcTypeSetByUser) || (JDBCType.JSON == jdbcTypeSetByUser)) {
                                 byteValue = ((String) value).getBytes();
                             }
 
@@ -1886,6 +1895,10 @@ final class DTV {
                 case SQLXML:
                     op.execute(this, (SQLServerSQLXML) value);
                     break;
+                
+                case JSON:
+                    op.execute(this, (SQLServerSQLJSON) value);
+                    break; 
 
                 default:
                     assert false : "Unexpected JavaType: " + javaType;
@@ -2065,6 +2078,8 @@ final class AppDTVImpl extends DTVImpl {
         }
 
         void execute(DTV dtv, SQLServerSQLXML xmlValue) throws SQLServerException {}
+
+        void execute(DTV dtv, SQLServerSQLJSON jsonValue) throws SQLServerException {}
 
         void execute(DTV dtv, Byte byteValue) throws SQLServerException {}
 
@@ -3473,6 +3488,7 @@ final class ServerDTVImpl extends DTVImpl {
             case NVARCHAR:
             case VARCHARMAX:
             case NVARCHARMAX:
+            case JSON:
                 try {
                     String strVal = new String(decryptedValue, 0, decryptedValue.length,
                             (null == baseTypeInfo.getCharset()) ? con.getDatabaseCollation().getCharset()

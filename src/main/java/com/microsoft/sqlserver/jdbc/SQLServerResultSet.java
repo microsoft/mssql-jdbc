@@ -4130,6 +4130,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     streamSetterArgs = new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH);
                     break;
 
+                // case JSON:
+                //     streamSetterArgs = new StreamSetterArgs(StreamType.JSON, DataTypes.UNKNOWN_STREAM_LENGTH);
+                //     break; 
+
                 default:
                     // Do nothing
                     break;

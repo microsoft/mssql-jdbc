@@ -475,6 +475,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
+    private Object getSQLJSONInternal(int parameterIndex) throws SQLServerException {
+        SQLServerSQLJSON value = (SQLServerSQLJSON) getterGetParam(parameterIndex).getValue(JDBCType.JSON,
+                new InputStreamGetterArgs(StreamType.JSON, getIsResponseBufferingAdaptive(),
+                        getIsResponseBufferingAdaptive(), toString()),
+                null, // calendar
+                resultsReader(), this);
+
+        if (null != value)
+            activeStream = value.getStream();
+        return value;
+    }
+
     @Override
     public int getInt(int index) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getInt", index);
