@@ -65,11 +65,11 @@
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.11.4]</junit.platform.version>
 		<junit.jupiter.version>5.11.4</junit.jupiter.version>
-		<hikaricp.version>6.2.1</hikaricp.version>
+		<hikaricp.version>3.4.2</hikaricp.version>
 		<dbcp2.version>2.13.0</dbcp2.version>
 		<slf4j.nop.version>1.7.36</slf4j.nop.version>
 		<gemini.mock.version>3.0.0.M01</gemini.mock.version>
-		<h2.version>2.3.232</h2.version>
+		<h2.version>2.2.220</h2.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<enforcer.skip>false</enforcer.skip>
