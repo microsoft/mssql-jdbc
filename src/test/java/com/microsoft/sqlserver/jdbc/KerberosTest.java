@@ -93,7 +93,7 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
-     * Verify the Kerberos module used
+     * Test to verify the Kerberos module used 
      */
     @Test
     public void testKerberosConnectionWithDefaultJaasConfig() {
