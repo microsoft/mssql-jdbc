@@ -93,6 +93,26 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Verify the Kerberos module used
+     */
+    @Test
+    public void testKerberosConnectionWithDefaultJaasConfig() {
+        try {
+            String connectionString = connectionStringKerberos + ";useDefaultJaasConfig=true;";
+            createKerberosConnection(connectionString);
+
+            Configuration config = Configuration.getConfiguration();
+            AppConfigurationEntry[] entries = config
+                    .getAppConfigurationEntry(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+            Assertions.assertNotNull(entries);
+            Assertions.assertTrue(entries.length > 0);
+            Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+        } catch (Exception e) {
+            Assertions.fail("Exception was thrown: " + e.getMessage());
+        }
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {
