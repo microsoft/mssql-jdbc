@@ -218,5 +218,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
             {"R_MInotAvailable", "Managed Identity authentication is not available"},
             {"R_sessionPropertyFailed", "Expected {0} from server for session property {1} but got {2}."},
-            {"R_featureNotSupported", "{0} is not supported."},};
+            {"R_featureNotSupported", "{0} is not supported."},
+            {"R_MInotAvailable", "Managed Identity authentication is not available"},};
 }

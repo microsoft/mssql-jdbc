@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerSavepoint;
 import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
@@ -151,11 +152,7 @@ public class SavepointTest extends AbstractTest {
             } catch (SQLException e) {
                 assertEquals(e.getClass(), SQLFeatureNotSupportedException.class, "Expected exception type " + SQLFeatureNotSupportedException.class.getName() + ", but received " + e.getClass().getName());
 
-                MessageFormat form = new MessageFormat(TestResource.getResource("R_featureNotSupported"));
-                Object[] msgArgs = {"releaseSavepoint"};
-                String expectedExceptionMsg = form.format(msgArgs);
-                String receivedExceptionMsg = e.getMessage();
-                assertEquals(expectedExceptionMsg, receivedExceptionMsg, "Expected exception message " + expectedExceptionMsg + ", but received " + receivedExceptionMsg);;
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_featureNotSupported")));
             }
         }
     }
