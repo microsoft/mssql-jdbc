@@ -105,8 +105,7 @@ public class KerberosTest extends AbstractTest {
             createKerberosConnection(connectionString);
 
             Configuration config = Configuration.getConfiguration();
-            AppConfigurationEntry[] entries = config
-                    .getAppConfigurationEntry(SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
+            AppConfigurationEntry[] entries = config.getAppConfigurationEntry("CLIENT_CONTEXT_NAME");
             Assertions.assertNotNull(entries);
             Assertions.assertTrue(entries.length > 0);
             Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
