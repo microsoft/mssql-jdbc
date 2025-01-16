@@ -4865,7 +4865,7 @@ final class TDSWriter {
     }
 
     void writeRPCJSON(String sValue) throws SQLServerException {
-        writeRPCJSON(null, sValue, false, null);
+        writeRPCJSON(null, sValue, true, null);
     }
     /**
      * Writes a string value as Unicode for RPC
@@ -4933,50 +4933,22 @@ final class TDSWriter {
         SQLCollation collation) throws SQLServerException {
             boolean bValueNull = (sValue == null);
             int nValueLen = bValueNull ? 0 : (2 * sValue.length());
-            // Textual RPC requires a collation. If none is provided, as is the case when
-            // the SSType is non-textual, then use the database collation by default.
-            // if (null == collation)
-            //     collation = con.getDatabaseCollation();
-    
-            /*
-             * Use PLP encoding if either OUT params were specified or if the user query exceeds
-             * DataTypes.SHORT_VARTYPE_MAX_BYTES
-             */
-            if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
-                writeRPCNameValType(sName, bOut, TDSType.JSON);
-    
-                writeVMaxHeader(nValueLen, // Length
-                        bValueNull, // Is null?
-                        collation);
-    
-                // Send the data.
-                if (!bValueNull) {
-                    if (nValueLen > 0) {
-                        writeInt(nValueLen);
-                        writeString(sValue);
-                    }
-    
-                    // Send the terminator PLP chunk.
-                    writeInt(0);
+            
+            writeRPCNameValType(sName, bOut, TDSType.JSON);
+
+            writeVMaxHeader(nValueLen, // Length
+                    bValueNull, // Is null?
+                    null); // For JSON test code POC, JSON does not have collation value
+
+            // Send the data.
+            if (!bValueNull) {
+                if (nValueLen > 0) {
+                    writeInt(nValueLen);
+                    writeString(sValue);
                 }
-            } else { // non-PLP type
-                // Write maximum length of data
-                writeRPCNameValType(sName, bOut, TDSType.JSON);
-                writeShort((short) DataTypes.UNKNOWN_STREAM_LENGTH);
-    
-    //            collation.writeCollation(this);
-    
-                // Data and length
-                if (bValueNull) {
-                    writeShort((short) -1); // actual len
-                } else {
-                    // Write actual length of data
-                    writeShort((short) nValueLen);
-    
-                    // If length is zero, we're done.
-                    if (0 != nValueLen)
-                        writeString(sValue); // data
-                }
+
+                // Send the terminator PLP chunk.
+                writeInt(0);
             }
     }
 

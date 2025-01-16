@@ -298,10 +298,22 @@ final class DTV {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
             } 
-            else  if (dtv.getJdbcType() == JDBCType.JSON) {
-                tdsWriter.writeRPCJSON(name, strValue, isOutParam, collation);
-            } 
+            // else  if (dtv.getJdbcType() == JDBCType.JSON) {
+            //     /* If you enble the following code, you will get the following exception:
+            //      * FINE: *** SQLException: com.microsoft.sqlserver.jdbc.SQLServerException: The incoming 
+            //      * tabular data stream (TDS) remote procedure call (RPC) protocol stream is incorrect. 
+            //      * Parameter 3 (""): JSON data type is not supported in TDS on the server side.
+            //      */
+            //     tdsWriter.writeRPCJSON(name, strValue, isOutParam, collation);
+            // } 
             else {
+                /*
+                 * For JSON type, if we use below method then we get the below error:
+                 * FINE: *** SQLException: com.microsoft.sqlserver.jdbc.SQLServerException: Implicit conversion 
+                 * from data type json to nvarchar(max) is not allowed. Use the CONVERT function to run this query.
+                 *  Msg 257, Level 16, State 3, Implicit conversion from data type 
+                 * json to nvarchar(max) is not allowed.
+                 */
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
         }
@@ -1531,8 +1543,8 @@ final class DTV {
                 case LONGVARCHAR:
                 case CLOB:
                 //case JSON:
-                    op.execute(this, (byte[]) null);
-                    break;
+                    // op.execute(this, (byte[]) null);
+                    // break;
 
                 case GUID:
                     if (null != cryptoMeta)
@@ -1613,6 +1625,7 @@ final class DTV {
 
             switch (javaType) {
                 case STRING:
+                case JSON:
                     if (JDBCType.GUID == jdbcType) {
                         if (null != cryptoMeta) {
                             if (value instanceof String) {
@@ -1900,9 +1913,9 @@ final class DTV {
                     op.execute(this, (SQLServerSQLXML) value);
                     break;
                 
-                case JSON:
-                    op.execute(this, (SQLServerSQLJSON) value);
-                    break; 
+                // case JSON:
+                //     op.execute(this, (SQLServerSQLJSON) value);
+                //     break; 
 
                 default:
                     assert false : "Unexpected JavaType: " + javaType;
