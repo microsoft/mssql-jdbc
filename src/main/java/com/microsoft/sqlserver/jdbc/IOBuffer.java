@@ -4864,6 +4864,9 @@ final class TDSWriter {
         writeRPCStringUnicode(null, sValue, false, null);
     }
 
+    void writeRPCJSON(String sValue) throws SQLServerException {
+        writeRPCJSON(null, sValue, false, null);
+    }
     /**
      * Writes a string value as Unicode for RPC
      * 
@@ -4912,7 +4915,6 @@ final class TDSWriter {
             writeShort((short) DataTypes.SHORT_VARTYPE_MAX_BYTES);
 
             collation.writeCollation(this);
-
             // Data and length
             if (bValueNull) {
                 writeShort((short) -1); // actual len
@@ -4925,6 +4927,57 @@ final class TDSWriter {
                     writeString(sValue); // data
             }
         }
+    }
+
+    void writeRPCJSON(String sName, String sValue, boolean bOut,
+        SQLCollation collation) throws SQLServerException {
+            boolean bValueNull = (sValue == null);
+            int nValueLen = bValueNull ? 0 : (2 * sValue.length());
+            // Textual RPC requires a collation. If none is provided, as is the case when
+            // the SSType is non-textual, then use the database collation by default.
+            // if (null == collation)
+            //     collation = con.getDatabaseCollation();
+    
+            /*
+             * Use PLP encoding if either OUT params were specified or if the user query exceeds
+             * DataTypes.SHORT_VARTYPE_MAX_BYTES
+             */
+            if (nValueLen > DataTypes.SHORT_VARTYPE_MAX_BYTES || bOut) {
+                writeRPCNameValType(sName, bOut, TDSType.JSON);
+    
+                writeVMaxHeader(nValueLen, // Length
+                        bValueNull, // Is null?
+                        collation);
+    
+                // Send the data.
+                if (!bValueNull) {
+                    if (nValueLen > 0) {
+                        writeInt(nValueLen);
+                        writeString(sValue);
+                    }
+    
+                    // Send the terminator PLP chunk.
+                    writeInt(0);
+                }
+            } else { // non-PLP type
+                // Write maximum length of data
+                writeRPCNameValType(sName, bOut, TDSType.JSON);
+                writeShort((short) DataTypes.UNKNOWN_STREAM_LENGTH);
+    
+    //            collation.writeCollation(this);
+    
+                // Data and length
+                if (bValueNull) {
+                    writeShort((short) -1); // actual len
+                } else {
+                    // Write actual length of data
+                    writeShort((short) nValueLen);
+    
+                    // If length is zero, we're done.
+                    if (0 != nValueLen)
+                        writeString(sValue); // data
+                }
+            }
     }
 
     void writeTVP(TVP value) throws SQLServerException {
@@ -5673,16 +5726,16 @@ final class TDSWriter {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
-                //case JSON:
+                case JSON:
                     tdsType = (isShortValue || usePLP) ? TDSType.NVARCHAR : TDSType.NTEXT;
                     if (null == collation)
                         collation = con.getDatabaseCollation();
                     break;
-                case JSON: //The incoming tabular data stream (TDS) remote procedure call (RPC) protocol stream is incorrect. Parameter 3 (""): JSON data type is not supported in TDS on the server side.
-                    tdsType = TDSType.JSON;
-                    if (null == collation)
-                        collation = con.getDatabaseCollation();
-                    break; 
+                // case JSON: //The incoming tabular data stream (TDS) remote procedure call (RPC) protocol stream is incorrect. Parameter 3 (""): JSON data type is not supported in TDS on the server side.
+                //     tdsType = TDSType.JSON;
+                //     if (null == collation)
+                //         collation = con.getDatabaseCollation();
+                //     break; 
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
@@ -6586,7 +6639,7 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == streamLength || streamLength >= 0;
         assert DataTypes.UNKNOWN_STREAM_LENGTH == streamLength || streamLength <= DataTypes.MAX_VARTYPE_MAX_BYTES;
 
-        writeRPCNameValType(sName, bOut, TDSType.JSON);
+        writeRPCNameValType(sName, bOut, TDSType.NVARCHAR);
         writeByte((byte) 0); // No schema
         // Handle null here and return, we're done here if it's null.
         if (null == stream) {

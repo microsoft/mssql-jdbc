@@ -297,7 +297,11 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
-            } else {
+            } 
+            else  if (dtv.getJdbcType() == JDBCType.JSON) {
+                tdsWriter.writeRPCJSON(name, strValue, isOutParam, collation);
+            } 
+            else {
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
         }
@@ -1467,7 +1471,7 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
-                
+                case JSON:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
@@ -1576,9 +1580,9 @@ final class DTV {
                 case SQLXML:
                     op.execute(this, (SQLServerSQLXML) null);
                     break;
-                case JSON:
-                    op.execute(this, (SQLServerSQLJSON) null);
-                    break; 
+                // case JSON:
+                //     op.execute(this, (SQLServerSQLJSON) null);
+                //     break; 
                 case ARRAY:
                 case DATALINK:
                 case DISTINCT:
