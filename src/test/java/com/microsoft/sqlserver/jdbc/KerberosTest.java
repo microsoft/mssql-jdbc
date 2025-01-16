@@ -98,6 +98,9 @@ public class KerberosTest extends AbstractTest {
     @Test
     public void testKerberosConnectionWithDefaultJaasConfig() {
         try {
+            // Set a mock JAAS configuration using the existing method
+            overwriteJaasConfig();
+
             String connectionString = connectionStringKerberos + ";useDefaultJaasConfig=true;";
             createKerberosConnection(connectionString);
 
