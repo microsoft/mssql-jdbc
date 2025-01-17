@@ -2225,7 +2225,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
-                            option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
                             if (columnMappings != null) {
@@ -2406,7 +2405,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
                             SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
-                            option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
                             bcOperation.setStmtColumnEncriptionSetting(this.getStmtColumnEncriptionSetting());
