@@ -579,19 +579,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
     int getBulkCopyForBatchInsertTimeout();
 
     /**
-     * Specifies the default check constraints option for bulk copy operations.
+     * Specifies the default check constraints for bulk copy operations created from batch insert operations.
      * 
-     * @param bulkCopyOptionDefaultsCheckConstraints
-     *        boolean value for bulkCopyOptionDefaultsCheckConstraints.
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        boolean value for bulkCopyForBatchInsertCheckConstraints.
      */
-    void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints);
+    void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
 
     /**
-     * Returns the default check constraints option for bulk copy operations.
+     * Returns the default check constraints for bulk copy operations created from batch insert operations.
      * 
-     * @return boolean value for bulkCopyOptionDefaultsCheckConstraints.
+     * @return boolean value for bulkCopyForBatchInsertCheckConstraints.
      */
-    boolean getBulkCopyOptionDefaultsCheckConstraints();
+    boolean getBulkCopyForBatchInsertCheckConstraints();
 
     /**
      * Specifies the default fire triggers option for bulk copy operations.

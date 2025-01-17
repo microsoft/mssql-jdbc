@@ -906,25 +906,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** 
      * Whether to check constraints during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsCheckConstraints = false;
+    private boolean bulkCopyForBatchInsertCheckConstraints = false;
 
     /**
-     * Returns the bulkCopyOptionDefaultsCheckConstraints value.
+     * Returns the bulkCopyForBatchInsertCheckConstraints value.
      * 
-     * @return the bulkCopyOptionDefaultsCheckConstraints value.
+     * @return the bulkCopyForBatchInsertCheckConstraints value.
      */
-    public boolean getBulkCopyOptionDefaultsCheckConstraints() {
-        return bulkCopyOptionDefaultsCheckConstraints;
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
+        return bulkCopyForBatchInsertCheckConstraints;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsCheckConstraints value.
+     * Sets the bulkCopyForBatchInsertCheckConstraints value.
      * 
-     * @param bulkCopyOptionDefaultsCheckConstraints
-     *        the bulkCopyOptionDefaultsCheckConstraints value to set.
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        the bulkCopyForBatchInsertCheckConstraints value to set.
      */
-    public void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints) {
-        this.bulkCopyOptionDefaultsCheckConstraints = bulkCopyOptionDefaultsCheckConstraints;
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        this.bulkCopyForBatchInsertCheckConstraints = bulkCopyForBatchInsertCheckConstraints;
     }
 
     /**
@@ -3348,10 +3348,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     bulkCopyForBatchInsertTimeout = Integer.parseInt(sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsCheckConstraints = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertCheckConstraints = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString();
@@ -7907,8 +7907,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original bulkCopyForBatchInsertTimeout */
     private int originalBulkCopyForBatchInsertTimeout;
 
-    /** original bulkCopyOptionDefaultsCheckConstraints flag */
-    private boolean originalBulkCopyOptionDefaultsCheckConstraints;
+    /** original bulkCopyForBatchInsertCheckConstraints flag */
+    private boolean originalBulkCopyForBatchInsertCheckConstraints;
 
     /** original bulkCopyOptionDefaultsFireTriggers flag */
     private boolean originalBulkCopyOptionDefaultsFireTriggers;
@@ -7965,7 +7965,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalBulkCopyForBatchInsertBatchSize = getBulkCopyForBatchInsertBatchSize();
                 originalBulkCopyForBatchInsertTimeout = getBulkCopyForBatchInsertTimeout();
-                originalBulkCopyOptionDefaultsCheckConstraints = getBulkCopyOptionDefaultsCheckConstraints();
+                originalBulkCopyForBatchInsertCheckConstraints = getBulkCopyForBatchInsertCheckConstraints();
                 originalBulkCopyOptionDefaultsFireTriggers = getBulkCopyOptionDefaultsFireTriggers();
                 originalBulkCopyOptionDefaultsKeepIdentity = getBulkCopyOptionDefaultsKeepIdentity();
                 originalBulkCopyOptionDefaultsKeepNulls = getBulkCopyOptionDefaultsKeepNulls();
@@ -8042,8 +8042,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     setBulkCopyForBatchInsertTimeout(originalBulkCopyForBatchInsertTimeout);
                 }
 
-                if (getBulkCopyOptionDefaultsCheckConstraints() != originalBulkCopyOptionDefaultsCheckConstraints) {
-                    setBulkCopyOptionDefaultsCheckConstraints(originalBulkCopyOptionDefaultsCheckConstraints);
+                if (getBulkCopyForBatchInsertCheckConstraints() != originalBulkCopyForBatchInsertCheckConstraints) {
+                    setBulkCopyForBatchInsertCheckConstraints(originalBulkCopyForBatchInsertCheckConstraints);
                 }
 
                 if (getBulkCopyOptionDefaultsFireTriggers() != originalBulkCopyOptionDefaultsFireTriggers) {

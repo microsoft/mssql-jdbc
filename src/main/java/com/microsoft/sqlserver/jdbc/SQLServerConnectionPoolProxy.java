@@ -798,22 +798,22 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsCheckConstraints value.
+     * Returns the bulkCopyForBatchInsertCheckConstraints value.
      * 
-     * @return the bulkCopyOptionDefaultsCheckConstraints value.
+     * @return the bulkCopyForBatchInsertCheckConstraints value.
      */
-    public boolean getBulkCopyOptionDefaultsCheckConstraints() {
-        return wrappedConnection.getBulkCopyOptionDefaultsCheckConstraints();
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
+        return wrappedConnection.getBulkCopyForBatchInsertCheckConstraints();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsCheckConstraints value.
+     * Sets the bulkCopyForBatchInsertCheckConstraints value.
      * 
-     * @param bulkCopyOptionDefaultsCheckConstraints
-     *        the bulkCopyOptionDefaultsCheckConstraints value to set.
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        the bulkCopyForBatchInsertCheckConstraints value to set.
      */
-    public void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints) {
-        wrappedConnection.setBulkCopyOptionDefaultsCheckConstraints(bulkCopyOptionDefaultsCheckConstraints);
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        wrappedConnection.setBulkCopyForBatchInsertCheckConstraints(bulkCopyForBatchInsertCheckConstraints);
     }
 
     /**

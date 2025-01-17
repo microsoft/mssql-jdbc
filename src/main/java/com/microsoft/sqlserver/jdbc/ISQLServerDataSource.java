@@ -1011,19 +1011,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getBulkCopyForBatchInsertTimeout();
 
     /**
-     * Sets whether to check constraints during Bulk Copy operations.
+     * Sets whether to check constraints during bulk copy operations created from batch insert operations.
      * 
-     * @param bulkCopyOptionDefaultsCheckConstraints
-     *        indicates whether to check constraints during Bulk Copy operations.
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        indicates whether to check constraints during bulk copy operations created from batch insert operations.
      */
-    void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints);
+    void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
 
     /**
-     * Returns whether to check constraints during Bulk Copy operations.
+     * Returns whether to check constraints during bulk copy operations created from batch insert operations.
      * 
-     * @return whether to check constraints during Bulk Copy operations.
+     * @return whether to check constraints during bulk copy operations created from batch insert operations.
      */
-    boolean getBulkCopyOptionDefaultsCheckConstraints();
+    boolean getBulkCopyForBatchInsertCheckConstraints();
 
     /**
      * Sets whether to fire triggers during Bulk Copy operations.

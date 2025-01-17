@@ -1052,16 +1052,16 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsCheckConstraints(boolean bulkCopyOptionDefaultsCheckConstraints) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString(),
-                bulkCopyOptionDefaultsCheckConstraints);
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                bulkCopyForBatchInsertCheckConstraints);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsCheckConstraints() {
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.getDefaultValue());
     }
 
     @Override

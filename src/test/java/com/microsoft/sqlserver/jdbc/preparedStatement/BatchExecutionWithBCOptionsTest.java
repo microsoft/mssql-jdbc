@@ -39,7 +39,7 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true without passing
-     * bulkCopyOptionDefaultsCheckConstraints
+     * bulkCopyForBatchInsertCheckConstraints
      *
      * @throws SQLException
      */
@@ -81,14 +81,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsCheckConstraints=true
+     * bulkCopyForBatchInsertCheckConstraints=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithConnStrConstraintCheckEnabled() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsCheckConstraints=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertCheckConstraints=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
                 pstmt.setInt(1, 1);
@@ -121,14 +121,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsCheckConstraints=false
+     * bulkCopyForBatchInsertCheckConstraints=false
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithConnStrCheckConstraintsDisabled() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsCheckConstraints=false")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertCheckConstraints=false")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
                 pstmt.setInt(1, 1);

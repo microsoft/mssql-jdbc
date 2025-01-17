@@ -468,7 +468,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_useBulkCopyForBatchInsertPropertyDescription", "Determines whether the driver will use bulk copy API for batch insert operations."},
         {"R_bulkCopyForBatchInsertBatchSizePropertyDescription", "The default batch size for bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertTimeoutPropertyDescription", "The default timeout for bulk copy operations created from batch insert operations."},
-        {"R_bulkCopyOptionDefaultsCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations."},
+        {"R_bulkCopyForBatchInsertCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyOptionDefaultsFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations."},
         {"R_bulkCopyOptionDefaultsKeepIdentityPropertyDescription", "Determines whether to keep identity values during bulk copy operations."},
         {"R_bulkCopyOptionDefaultsKeepNullsPropertyDescription", "Determines whether to keep null values during bulk copy operations."},
