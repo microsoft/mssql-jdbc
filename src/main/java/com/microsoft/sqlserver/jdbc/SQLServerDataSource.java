@@ -1026,16 +1026,16 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString(),
-                bulkCopyOptionDefaultsBatchSize);
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                bulkCopyForBatchInsertBatchSize);
     }
 
     @Override
-    public int getBulkCopyOptionDefaultsBatchSize() {
+    public int getBulkCopyForBatchInsertBatchSize() {
         return getIntProperty(connectionProps,
-                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString(),
-                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.getDefaultValue());
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue());
     }
 
     @Override

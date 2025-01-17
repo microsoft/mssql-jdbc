@@ -164,14 +164,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
     }
 
     /**
-     * Test with useBulkCopyBatchInsert=true and bulkCopyOptionDefaultsBatchSize set
+     * Test with useBulkCopyBatchInsert=true and bulkCopyForBatchInsertBatchSize set
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithBatchSize() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsBatchSize=2")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=2")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);

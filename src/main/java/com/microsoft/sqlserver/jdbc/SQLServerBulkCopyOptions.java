@@ -108,7 +108,7 @@ public class SQLServerBulkCopyOptions implements Serializable {
      * Constructs a SQLServerBulkCopySettings class using defaults from given connection
      */
     SQLServerBulkCopyOptions(SQLServerConnection conn) {
-        batchSize = conn.getBulkCopyOptionDefaultsBatchSize();
+        batchSize = conn.getBulkCopyForBatchInsertBatchSize();
         bulkCopyTimeout = conn.getBulkCopyOptionDefaultsTimeout();
         checkConstraints = conn.getBulkCopyOptionDefaultsCheckConstraints();
         fireTriggers = conn.getBulkCopyOptionDefaultsFireTriggers();

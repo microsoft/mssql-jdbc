@@ -466,7 +466,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
         {"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
         {"R_useBulkCopyForBatchInsertPropertyDescription", "Determines whether the driver will use bulk copy API for batch insert operations."},
-        {"R_bulkCopyOptionDefaultsBatchSizePropertyDescription", "The default batch size for bulk copy operations."},
+        {"R_bulkCopyForBatchInsertBatchSizePropertyDescription", "The default batch size for bulk copy operations created from batch insert operations."},
         {"R_bulkCopyOptionDefaultsTimeoutPropertyDescription", "The default timeout for bulk copy operations."},
         {"R_bulkCopyOptionDefaultsCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations."},
         {"R_bulkCopyOptionDefaultsFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations."},

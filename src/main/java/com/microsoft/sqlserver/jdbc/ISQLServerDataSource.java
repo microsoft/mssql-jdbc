@@ -981,19 +981,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * Sets the default batch size for Bulk Copy operations.
+     * Sets the default batch size for bulk copy operations created from batch insert operations.
      * 
-     * @param bulkCopyOptionDefaultsBatchSize
-     *        the default batch size for Bulk Copy operations.
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the default batch size for bulk copy operations created from batch insert operations.
      */
-    void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize);
+    void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
 
     /**
-     * Returns the default batch size for Bulk Copy operations.
+     * Returns the default batch size for bulk copy operations created from batch insert operations.
      * 
-     * @return the default batch size for Bulk Copy operations.
+     * @return the default batch size for bulk copy operations created from batch insert operations.
      */
-    int getBulkCopyOptionDefaultsBatchSize();
+    int getBulkCopyForBatchInsertBatchSize();
 
     /**
      * Sets the default timeout for Bulk Copy operations.

@@ -549,19 +549,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
     boolean getcacheBulkCopyMetadata();
 
     /**
-     * Specifies the default batch size for bulk copy operations.
+     * Specifies the default batch size for bulk copy operations created from batch insert operations.
      * 
-     * @param bulkCopyOptionDefaultsBatchSize
-     *        integer value for bulkCopyOptionDefaultsBatchSize.
+     * @param bulkCopyForBatchInsertBatchSize
+     *        integer value for bulkCopyForBatchInsertBatchSize.
      */
-    void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize);
+    void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
 
     /**
-     * Returns the default batch size for bulk copy operations.
+     * Returns the default batch size for bulk copy operations created from batch insert operations.
      * 
-     * @return integer value for bulkCopyOptionDefaultsBatchSize.
+     * @return integer value for bulkCopyForBatchInsertBatchSize.
      */
-    int getBulkCopyOptionDefaultsBatchSize();
+    int getBulkCopyForBatchInsertBatchSize();
 
     /**
      * Specifies the default timeout for bulk copy operations.

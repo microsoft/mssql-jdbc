@@ -856,27 +856,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** 
-     * The default batch size for bulk copy operations.
+     * The default batch size for bulk copy operations created from batch insert operations.
      */
-    private int bulkCopyOptionDefaultsBatchSize = 0;
+    private int bulkCopyForBatchInsertBatchSize = 0;
 
     /**
-     * Returns the bulkCopyOptionDefaultsBatchSize value.
+     * Returns the bulkCopyForBatchInsertBatchSize value.
      * 
-     * @return the bulkCopyOptionDefaultsBatchSize value.
+     * @return the bulkCopyForBatchInsertBatchSize value.
      */
-    public int getBulkCopyOptionDefaultsBatchSize() {
-        return bulkCopyOptionDefaultsBatchSize;
+    public int getBulkCopyForBatchInsertBatchSize() {
+        return bulkCopyForBatchInsertBatchSize;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsBatchSize value.
+     * Sets the bulkCopyForBatchInsertBatchSize value.
      * 
-     * @param bulkCopyOptionDefaultsBatchSize
-     *        the bulkCopyOptionDefaultsBatchSize value to set.
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the bulkCopyForBatchInsertBatchSize value to set.
      */
-    public void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize) {
-        this.bulkCopyOptionDefaultsBatchSize = bulkCopyOptionDefaultsBatchSize;
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+        this.bulkCopyForBatchInsertBatchSize = bulkCopyForBatchInsertBatchSize;
     }
 
     /** 
@@ -3336,10 +3336,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     useBulkCopyForBatchInsert = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString();
+                sPropKey = SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsBatchSize = Integer.parseInt(sPropValue);
+                    bulkCopyForBatchInsertBatchSize = Integer.parseInt(sPropValue);
                 }
 
                 sPropKey = SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString();
@@ -7901,8 +7901,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original useBulkCopyForBatchInsert flag */
     private boolean originalUseBulkCopyForBatchInsert;
 
-    /** original bulkCopyOptionDefaultsBatchSize */
-    private int originalBulkCopyOptionDefaultsBatchSize;
+    /** original bulkCopyForBatchInsertBatchSize */
+    private int originalBulkCopyForBatchInsertBatchSize;
 
     /** original bulkCopyOptionDefaultsTimeout */
     private int originalBulkCopyOptionDefaultsTimeout;
@@ -7963,7 +7963,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalEnablePrepareOnFirstPreparedStatementCall = getEnablePrepareOnFirstPreparedStatementCall();
                 originalSCatalog = sCatalog;
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
-                originalBulkCopyOptionDefaultsBatchSize = getBulkCopyOptionDefaultsBatchSize();
+                originalBulkCopyForBatchInsertBatchSize = getBulkCopyForBatchInsertBatchSize();
                 originalBulkCopyOptionDefaultsTimeout = getBulkCopyOptionDefaultsTimeout();
                 originalBulkCopyOptionDefaultsCheckConstraints = getBulkCopyOptionDefaultsCheckConstraints();
                 originalBulkCopyOptionDefaultsFireTriggers = getBulkCopyOptionDefaultsFireTriggers();
@@ -8034,8 +8034,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     setUseBulkCopyForBatchInsert(originalUseBulkCopyForBatchInsert);
                 }
 
-                if (getBulkCopyOptionDefaultsBatchSize() != originalBulkCopyOptionDefaultsBatchSize) {
-                    setBulkCopyOptionDefaultsBatchSize(originalBulkCopyOptionDefaultsBatchSize);
+                if (getBulkCopyForBatchInsertBatchSize() != originalBulkCopyForBatchInsertBatchSize) {
+                    setBulkCopyForBatchInsertBatchSize(originalBulkCopyForBatchInsertBatchSize);
                 }
 
                 if (getBulkCopyOptionDefaultsTimeout() != originalBulkCopyOptionDefaultsTimeout) {

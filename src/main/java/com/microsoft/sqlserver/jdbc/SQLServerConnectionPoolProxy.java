@@ -755,27 +755,27 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
     
     /** 
-     * The default batch size for bulk copy operations.
+     * The default batch size for bulk copy operations created from batch insert operations.
      */
-    private int bulkCopyOptionDefaultsBatchSize = 0;
+    private int bulkCopyForBatchInsertBatchSize = 0;
 
     /**
-     * Returns the bulkCopyOptionDefaultsBatchSize value.
+     * Returns the bulkCopyForBatchInsertBatchSize value.
      * 
-     * @return the bulkCopyOptionDefaultsBatchSize value.
+     * @return the bulkCopyForBatchInsertBatchSize value.
      */
-    public int getBulkCopyOptionDefaultsBatchSize() {
-        return wrappedConnection.getBulkCopyOptionDefaultsBatchSize();
+    public int getBulkCopyForBatchInsertBatchSize() {
+        return wrappedConnection.getBulkCopyForBatchInsertBatchSize();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsBatchSize value.
+     * Sets the bulkCopyForBatchInsertBatchSize value.
      * 
-     * @param bulkCopyOptionDefaultsBatchSize
-     *        the bulkCopyOptionDefaultsBatchSize value to set.
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the bulkCopyForBatchInsertBatchSize value to set.
      */
-    public void setBulkCopyOptionDefaultsBatchSize(int bulkCopyOptionDefaultsBatchSize) {
-    	wrappedConnection.setBulkCopyOptionDefaultsBatchSize(bulkCopyOptionDefaultsBatchSize);
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+    	wrappedConnection.setBulkCopyForBatchInsertBatchSize(bulkCopyForBatchInsertBatchSize);
     }
 
     /**

@@ -645,7 +645,7 @@ enum SQLServerDriverIntProperty {
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
     CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
-    BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE("bulkCopyOptionDefaultsBatchSize", 0),
+    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0),
     BULK_COPY_OPTION_DEFAULTS_TIMEOUT("bulkCopyOptionDefaultsTimeout", 60);
 
     private final String name;
@@ -955,8 +955,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
                     false, TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_BATCH_SIZE.getDefaultValue()),false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue()),false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.getDefaultValue()),false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_CHECK_CONSTRAINTS.toString(),
