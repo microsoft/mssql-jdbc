@@ -7000,12 +7000,34 @@ final class TDSReader implements Serializable {
         return mark;
     }
 
+    final TDSPacket markPacket() {
+        isStreaming = false;
+        if (logger.isLoggable(Level.FINEST))
+            logger.finest(this.toString() + ": Buffering from packet: " + currentPacket.toString());
+        return currentPacket;
+    }
+
+    final int markPacketOffset() {
+        isStreaming = false;
+        if (logger.isLoggable(Level.FINEST))
+            logger.finest(this.toString() + ": Buffering from packet offset : " + payloadOffset);
+        return payloadOffset;
+    }
+
     final void reset(TDSReaderMark mark) {
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Resetting to: " + mark.toString());
 
         currentPacket = mark.packet;
         payloadOffset = mark.payloadOffset;
+    }
+
+    final void reset(TDSPacket markPacket, int markOffset) {
+        if (logger.isLoggable(Level.FINEST))
+            logger.finest(this.toString() + ": Resetting to: " + markPacket.toString() + " : " + markOffset);
+
+        currentPacket = markPacket;
+        payloadOffset = markOffset;
     }
 
     final void stream() {

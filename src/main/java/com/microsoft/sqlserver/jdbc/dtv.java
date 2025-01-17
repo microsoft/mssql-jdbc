@@ -129,7 +129,7 @@ final class DTV {
 
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
-
+    
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -159,7 +159,8 @@ final class DTV {
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
-        if (null == impl)
+        
+    	if (null == impl)
             impl = new ServerDTVImpl();
 
         impl.skipValue(type, tdsReader, isDiscard);
@@ -169,9 +170,10 @@ final class DTV {
         if (null == impl)
             impl = new ServerDTVImpl();
 
-        impl.initFromCompressedNull();
+    	impl.initFromCompressedNull();
     }
 
+    
     final void setStreamSetterArgs(StreamSetterArgs streamSetterArgs) {
         impl.setStreamSetterArgs(streamSetterArgs);
     }
@@ -211,9 +213,9 @@ final class DTV {
      * @return true if impl is not null
      */
     final boolean isInitialized() {
-        return (null != impl);
+        return ((null != impl) && impl.isInitialized());
     }
-
+    
     final void setJdbcType(JDBCType jdbcType) {
         if (null == impl)
             impl = new AppDTVImpl();
@@ -246,10 +248,12 @@ final class DTV {
     Object getValue(JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
-        if (null == impl)
+        if (impl == null) {
             impl = new ServerDTVImpl();
-        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
-                statement);
+        } else if (impl.isNull()) {
+            return null;
+        }
+        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,statement);
     }
 
     Object getSetterValue() {
@@ -1918,6 +1922,10 @@ final class DTV {
         // typeInfo is null when called from PreparedStatement->Parameter->SendByRPC
         executeOp(new SendByRPCOp(name, typeInfo, collation, precision, outScale, isOutParam, tdsWriter, statement));
     }
+
+	public void reset() {
+		impl.reset();
+	}
 }
 
 
@@ -1932,7 +1940,13 @@ abstract class DTVImpl {
             StreamSetterArgs streamSetterArgs, Calendar cal, Integer scale, SQLServerConnection con,
             boolean forceEncrypt) throws SQLServerException;
 
-    abstract void setValue(Object value, JavaType javaType);
+    protected abstract boolean isInitialized();
+
+	protected abstract void reset();
+
+	protected abstract void setInitialized();
+
+	abstract void setValue(Object value, JavaType javaType);
 
     abstract void setStreamSetterArgs(StreamSetterArgs streamSetterArgs);
 
@@ -2366,6 +2380,22 @@ final class AppDTVImpl extends DTVImpl {
     void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
     }
+    
+    
+	@Override
+	protected boolean isInitialized() {
+		return true;
+	}
+
+	@Override
+	protected void setInitialized() {
+		//NoOp
+	}
+
+	@Override
+	protected void reset() {
+		//NoOp
+	}
 }
 
 
@@ -3242,12 +3272,16 @@ final class TypeInfo implements Serializable {
  * DTV implementation for values set from the TDS response stream.
  */
 final class ServerDTVImpl extends DTVImpl {
+	
     private int valueLength;
-    private TDSReaderMark valueMark;
+    //private TDSReaderMark valueMark;
+    private TDSPacket valueMarkPacket;
+    private int valueMarkOffset;
     private boolean isNull;
     private SqlVariant internalVariant;
+    private boolean isInitialized = false;
 
-    /**
+	/**
      * Sets the value of the DTV to an app-specified Java type.
      *
      * Generally, the value cannot be stored back into the TDS byte stream (although this could be done for fixed-length
@@ -3271,7 +3305,9 @@ final class ServerDTVImpl extends DTVImpl {
     // whole value of the stream has been consumed.
     // Note this only to be used by the streams returned to the user.
     void setPositionAfterStreamed(TDSReader tdsReader) {
-        valueMark = tdsReader.mark();
+    	//valueMark = tdsReader.mark();
+    	valueMarkPacket = tdsReader.markPacket();
+        valueMarkOffset = tdsReader.markPacketOffset();
         valueLength = STREAMCONSUMED;
     }
 
@@ -3338,20 +3374,26 @@ final class ServerDTVImpl extends DTVImpl {
     // for the DTV when a null value is
     // received from NBCROW for a particular column
     final void initFromCompressedNull() {
-        assert valueMark == null;
+        //assert valueMark == null;
+    	assert valueMarkPacket == null;
         isNull = true;
+        isInitialized = true;
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         // indicates that this value was obtained from NBCROW
         // So, there is nothing else to read from the wire
-        if (null == valueMark && isNull) {
+        //if (null == valueMark && isNull) {
+        if (null == valueMarkPacket && isNull) {
             return;
         }
 
-        if (null == valueMark)
+        //if (null == valueMark)
+    	if (null == valueMarkPacket)
             getValuePrep(type, tdsReader);
-        tdsReader.reset(valueMark);
+
+    	//tdsReader.reset(valueMark);
+        tdsReader.reset(valueMarkPacket, valueMarkOffset);
         // value length zero means that the stream has been already skipped to the end - adaptive case
         if (valueLength != STREAMCONSUMED) {
             if (valueLength == DataTypes.UNKNOWN_STREAM_LENGTH) {
@@ -3378,8 +3420,8 @@ final class ServerDTVImpl extends DTVImpl {
 
     private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
         // If we've already seen this value before, then we shouldn't be here.
-        assert null == valueMark;
-
+        //assert null == valueMark;
+    	assert null == valueMarkPacket;
         // Otherwise, mark the value's location, figure out its length, and determine whether it was NULL.
         switch (typeInfo.getSSLenType()) {
             case PARTLENTYPE:
@@ -3428,7 +3470,9 @@ final class ServerDTVImpl extends DTVImpl {
         if (valueLength > typeInfo.getMaxLength())
             tdsReader.throwInvalidTDS();
 
-        valueMark = tdsReader.mark();
+        //valueMark = tdsReader.mark();
+        valueMarkPacket = tdsReader.markPacket();
+        valueMarkOffset = tdsReader.markPacketOffset();
     }
 
     Object denormalizedValue(byte[] decryptedValue, JDBCType jdbcType, TypeInfo baseTypeInfo, SQLServerConnection con,
@@ -3674,12 +3718,14 @@ final class ServerDTVImpl extends DTVImpl {
         // If valueMark == null and isNull, it implies that
         // the column is null according to NBCROW and that
         // there is nothing to be read from the wire.
-        if (null == valueMark && (!isNull))
+        //if (null == valueMark && (!isNull))
+        if (null == valueMarkPacket && (!isNull))
             getValuePrep(typeInfo, tdsReader);
 
         // either there should be a valueMark
         // or valueMark should be null and isNull should be set to true(NBCROW case)
-        assert ((valueMark != null) || (valueMark == null && isNull));
+        //assert ((valueMark != null) || (valueMark == null && isNull));
+        assert ((valueMarkPacket != null) || (valueMarkPacket == null && isNull));
 
         if (null != streamGetterArgs) {
             if (!streamGetterArgs.streamType.convertsFrom(typeInfo))
@@ -3706,8 +3752,8 @@ final class ServerDTVImpl extends DTVImpl {
         }
 
         if (!isNull) {
-            tdsReader.reset(valueMark);
-
+            //tdsReader.reset(valueMark);
+        	tdsReader.reset(valueMarkPacket, valueMarkOffset);
             if (encrypted) {
                 if (DataTypes.UNKNOWN_STREAM_LENGTH == valueLength) {
                     convertedValue = DDC.convertStreamToObject(
@@ -3888,9 +3934,10 @@ final class ServerDTVImpl extends DTVImpl {
 
         // Postcondition: returned object is null only if value was null.
         assert isNull || null != convertedValue;
+        setInitialized();
         return convertedValue;
     }
-
+    
     SqlVariant getInternalVariant() {
         return internalVariant;
     }
@@ -4154,4 +4201,25 @@ final class ServerDTVImpl extends DTVImpl {
 
         return daysIntoCE;
     }
+
+	@Override
+	protected boolean isInitialized() {
+		return this.isInitialized;
+	}
+
+	@Override
+	protected void setInitialized() {
+		this.isInitialized = true;
+	}
+	
+	@Override
+	protected void reset() {
+    	this.isNull = false;
+    	//this.valueMark = null;
+    	this.valueMarkPacket = null;
+    	this.valueMarkOffset = 0;
+    	this.valueLength = 0;
+    	this.internalVariant = null;
+	    this.isInitialized = false;
+	}
 }

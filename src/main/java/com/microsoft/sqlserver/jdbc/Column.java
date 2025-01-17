@@ -129,6 +129,7 @@ final class Column {
         this.baseColumnName = columnName;
         this.tableName = tableName;
         this.cryptoMetadata = cryptoMeta;
+        this.getterDTV.setImpl(new ServerDTVImpl());
     }
 
     CryptoMetadata getCryptoMetadata() {
@@ -139,7 +140,8 @@ final class Column {
      * Clears the values associated with this column.
      */
     final void clear() {
-        getterDTV.clear();
+        //getterDTV.clear();
+        getterDTV.reset();
     }
 
     /**
