@@ -882,7 +882,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** 
      * The default timeout for bulk copy operations.
      */
-    private int bulkCopyForBatchInsertTimeout = 0;
+    private int bulkCopyForBatchInsertTimeout = 60;
 
     /**
      * Returns the bulkCopyForBatchInsertTimeout value.
