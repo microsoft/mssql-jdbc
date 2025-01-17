@@ -2776,7 +2776,7 @@ public class StatementTest extends AbstractTest {
     			// Test for DECIMAL(38, 38)
     			String callSQLMaxScale = "{call " + procNameMaxScale + "(?, ?)}";
     			try (CallableStatement call = connection.prepareCall(callSQLMaxScale)) {
-    				BigDecimal maxScaleValue = new BigDecimal("0." + "1".repeat(38));
+    				BigDecimal maxScaleValue = new BigDecimal("0.11111111111111111111111111111111111111");
     				call.setBigDecimal(1, maxScaleValue);
     				call.registerOutParameter(2, Types.DECIMAL);
     				call.execute();
@@ -2787,7 +2787,7 @@ public class StatementTest extends AbstractTest {
     			// Test for DECIMAL(38, 0)
     			String callSQLMaxPrecision = "{call " + procNameMaxPrecision + "(?, ?)}";
     			try (CallableStatement call = connection.prepareCall(callSQLMaxPrecision)) {
-    				BigDecimal maxPrecisionValue = new BigDecimal("9".repeat(38));
+    				BigDecimal maxPrecisionValue = new BigDecimal("99999999999999999999999999999999999999");
     				call.setBigDecimal(1, maxPrecisionValue);
     				call.registerOutParameter(2, Types.DECIMAL);
     				call.execute();
