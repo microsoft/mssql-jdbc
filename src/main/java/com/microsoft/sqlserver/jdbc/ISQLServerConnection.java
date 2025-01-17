@@ -564,19 +564,19 @@ public interface ISQLServerConnection extends java.sql.Connection {
     int getBulkCopyForBatchInsertBatchSize();
 
     /**
-     * Specifies the default timeout for bulk copy operations.
+     * Specifies the default timeout for bulk copy operations created from batch insert operations.
      * 
-     * @param bulkCopyOptionDefaultsTimeout
-     *        integer value for bulkCopyOptionDefaultsTimeout.
+     * @param bulkCopyForBatchInsertTimeout
+     *        integer value for bulkCopyForBatchInsertTimeout.
      */
-    void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout);
+    void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout);
 
     /**
-     * Returns the default timeout for bulk copy operations.
+     * Returns the default timeout for bulk copy operations created from batch insert operations.
      * 
-     * @return integer value for bulkCopyOptionDefaultsTimeout.
+     * @return integer value for bulkCopyForBatchInsertTimeout.
      */
-    int getBulkCopyOptionDefaultsTimeout();
+    int getBulkCopyForBatchInsertTimeout();
 
     /**
      * Specifies the default check constraints option for bulk copy operations.

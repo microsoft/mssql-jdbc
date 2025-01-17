@@ -1039,16 +1039,16 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString(),
-                bulkCopyOptionDefaultsTimeout);
+    public void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString(),
+                bulkCopyForBatchInsertTimeout);
     }
 
     @Override
-    public int getBulkCopyOptionDefaultsTimeout() {
+    public int getBulkCopyForBatchInsertTimeout() {
         return getIntProperty(connectionProps,
-                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.toString(),
-                SQLServerDriverIntProperty.BULK_COPY_OPTION_DEFAULTS_TIMEOUT.getDefaultValue());
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.getDefaultValue());
     }
 
     @Override

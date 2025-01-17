@@ -74,7 +74,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String sCatalog1 = "master";
         boolean useBulkCopyForBatchInsert1 = true;
         int bulkCopyForBatchInsertBatchSize1 = 1000;
-        int bulkCopyOptionDefaultsTimeout1 = 600;
+        int bulkCopyForBatchInsertTimeout1 = 600;
         boolean bulkCopyOptionDefaultsCheckConstraints1 = true;
         boolean bulkCopyOptionDefaultsFireTriggers1 = true;
         boolean bulkCopyOptionDefaultsKeepIdentity1 = true;
@@ -98,7 +98,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
         boolean useBulkCopyForBatchInsert2 = false;
         int bulkCopyForBatchInsertBatchSize2 = 0;
-        int bulkCopyOptionDefaultsTimeout2 = 0;
+        int bulkCopyForBatchInsertTimeout2 = 0;
         boolean bulkCopyOptionDefaultsCheckConstraints2 = false;
         boolean bulkCopyOptionDefaultsFireTriggers2 = false;
         boolean bulkCopyOptionDefaultsKeepIdentity2 = false;
@@ -120,7 +120,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
-                    bulkCopyForBatchInsertBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
                     bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
                     bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
@@ -130,7 +130,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
-                    bulkCopyForBatchInsertBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
                     bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
                     bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications2);
@@ -140,7 +140,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     holdability1, sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
-                    bulkCopyForBatchInsertBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
                     bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
                     bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
@@ -149,7 +149,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
-                    bulkCopyForBatchInsertBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
                     bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
                     bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            
@@ -158,7 +158,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
-                    bulkCopyForBatchInsertBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
                     bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
                     bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
@@ -169,7 +169,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
-                    bulkCopyForBatchInsertBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
                     bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
                     bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            
@@ -178,7 +178,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
-                    bulkCopyForBatchInsertBatchSize1, bulkCopyOptionDefaultsTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertTimeout1, bulkCopyOptionDefaultsCheckConstraints1,
                     bulkCopyOptionDefaultsFireTriggers1, bulkCopyOptionDefaultsKeepIdentity1, bulkCopyOptionDefaultsKeepNulls1,
                     bulkCopyOptionDefaultsTableLock1, bulkCopyOptionDefaultsUseInternalTransaction1,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications1);
@@ -187,7 +187,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
-                    bulkCopyForBatchInsertBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
                     bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
                     bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications2);            con.endRequest();
@@ -196,7 +196,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
-                    bulkCopyForBatchInsertBatchSize2, bulkCopyOptionDefaultsTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertTimeout2, bulkCopyOptionDefaultsCheckConstraints2,
                     bulkCopyOptionDefaultsFireTriggers2, bulkCopyOptionDefaultsKeepIdentity2, bulkCopyOptionDefaultsKeepNulls2,
                     bulkCopyOptionDefaultsTableLock2, bulkCopyOptionDefaultsUseInternalTransaction2,
                     bulkCopyOptionDefaultsAllowEncryptedValueModifications2);
@@ -444,7 +444,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
             boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
-            int bulkCopyForBatchInsertBatchSize, int bulkCopyOptionDefaultsTimeout,
+            int bulkCopyForBatchInsertBatchSize, int bulkCopyForBatchInsertTimeout,
             boolean bulkCopyOptionDefaultsCheckConstraints, boolean bulkCopyOptionDefaultsFireTriggers,
             boolean bulkCopyOptionDefaultsKeepIdentity, boolean bulkCopyOptionDefaultsKeepNulls,
             boolean bulkCopyOptionDefaultsTableLock, boolean bulkCopyOptionDefaultsUseInternalTransaction,
@@ -465,7 +465,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setDelayLoadingLobs(delayLoadingLobs);
         con.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
         con.setBulkCopyForBatchInsertBatchSize(bulkCopyForBatchInsertBatchSize);
-        con.setBulkCopyOptionDefaultsTimeout(bulkCopyOptionDefaultsTimeout);
+        con.setBulkCopyForBatchInsertTimeout(bulkCopyForBatchInsertTimeout);
         con.setBulkCopyOptionDefaultsCheckConstraints(bulkCopyOptionDefaultsCheckConstraints);
         con.setBulkCopyOptionDefaultsFireTriggers(bulkCopyOptionDefaultsFireTriggers);
         con.setBulkCopyOptionDefaultsKeepIdentity(bulkCopyOptionDefaultsKeepIdentity);
@@ -480,7 +480,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int statementPoolingCacheSize, boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
             boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
-            int bulkCopyForBatchInsertBatchSize, int bulkCopyOptionDefaultsTimeout,
+            int bulkCopyForBatchInsertBatchSize, int bulkCopyForBatchInsertTimeout,
             boolean bulkCopyOptionDefaultsCheckConstraints, boolean bulkCopyOptionDefaultsFireTriggers,
             boolean bulkCopyOptionDefaultsKeepIdentity, boolean bulkCopyOptionDefaultsKeepNulls,
             boolean bulkCopyOptionDefaultsTableLock, boolean bulkCopyOptionDefaultsUseInternalTransaction,
@@ -502,7 +502,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         assertEquals(delayLoadingLobs, con.getDelayLoadingLobs(), "delayLoadingLobs" + description);
         assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(), "ignoreOffsetOnDateTimeOffsetConversion" + description);
         assertEquals(bulkCopyForBatchInsertBatchSize, con.getBulkCopyForBatchInsertBatchSize(), "bulkCopyForBatchInsertBatchSize" + description);
-        assertEquals(bulkCopyOptionDefaultsTimeout, con.getBulkCopyOptionDefaultsTimeout(), "bulkCopyOptionDefaultsTimeout" + description);
+        assertEquals(bulkCopyForBatchInsertTimeout, con.getBulkCopyForBatchInsertTimeout(), "bulkCopyForBatchInsertTimeout" + description);
         assertEquals(bulkCopyOptionDefaultsCheckConstraints, con.getBulkCopyOptionDefaultsCheckConstraints(), "bulkCopyOptionDefaultsCheckConstraints" + description);
         assertEquals(bulkCopyOptionDefaultsFireTriggers, con.getBulkCopyOptionDefaultsFireTriggers(), "bulkCopyOptionDefaultsFireTriggers" + description);
         assertEquals(bulkCopyOptionDefaultsKeepIdentity, con.getBulkCopyOptionDefaultsKeepIdentity(), "bulkCopyOptionDefaultsKeepIdentity" + description);
@@ -541,7 +541,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setTransactionIsolation");
         verifiedMethodNames.add("setUseBulkCopyForBatchInsert");
         verifiedMethodNames.add("setBulkCopyForBatchInsertBatchSize");
-        verifiedMethodNames.add("setBulkCopyOptionDefaultsTimeout");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertTimeout");
         verifiedMethodNames.add("setBulkCopyOptionDefaultsCheckConstraints");
         verifiedMethodNames.add("setBulkCopyOptionDefaultsFireTriggers");
         verifiedMethodNames.add("setBulkCopyOptionDefaultsKeepIdentity");

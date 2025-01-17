@@ -424,14 +424,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsTimeout=30
+     * bulkCopyForBatchInsertTimeout=30
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsTimeout() throws Exception {
         try (Connection connection = PrepUtil
-                .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTimeout=30")) {
+                .getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertTimeout=30")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -465,14 +465,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
     }
 
     /**
-     * Test with useBulkCopyBatchInsert=true and bulkCopyOptionDefaultsTimeout set to a lower value
+     * Test with useBulkCopyBatchInsert=true and bulkCopyForBatchInsertTimeout set to a lower value
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsTimeoutLowerValue() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTimeout=1")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertTimeout=1")) {
             try (PreparedStatement pstmt = connection.prepareStatement("WAITFOR DELAY '00:00:02'; insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);

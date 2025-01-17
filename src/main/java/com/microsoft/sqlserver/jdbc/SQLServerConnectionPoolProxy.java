@@ -779,22 +779,22 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsTimeout value.
+     * Returns the bulkCopyForBatchInsertTimeout value.
      * 
-     * @return the bulkCopyOptionDefaultsTimeout value.
+     * @return the bulkCopyForBatchInsertTimeout value.
      */
-    public int getBulkCopyOptionDefaultsTimeout() {
-        return wrappedConnection.getBulkCopyOptionDefaultsTimeout();
+    public int getBulkCopyForBatchInsertTimeout() {
+        return wrappedConnection.getBulkCopyForBatchInsertTimeout();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsTimeout value.
+     * Sets the bulkCopyForBatchInsertTimeout value.
      * 
-     * @param bulkCopyOptionDefaultsTimeout
-     *        the bulkCopyOptionDefaultsTimeout value to set.
+     * @param bulkCopyForBatchInsertTimeout
+     *        the bulkCopyForBatchInsertTimeout value to set.
      */
-    public void setBulkCopyOptionDefaultsTimeout(int bulkCopyOptionDefaultsTimeout) {
-         wrappedConnection.setBulkCopyOptionDefaultsTimeout(bulkCopyOptionDefaultsTimeout);
+    public void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout) {
+         wrappedConnection.setBulkCopyForBatchInsertTimeout(bulkCopyForBatchInsertTimeout);
     }
 
     /**
