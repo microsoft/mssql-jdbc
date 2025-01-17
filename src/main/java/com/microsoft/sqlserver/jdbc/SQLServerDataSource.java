@@ -1065,81 +1065,81 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString(),
-                bulkCopyOptionDefaultsFireTriggers);
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                bulkCopyForBatchInsertFireTriggers);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsFireTriggers() {
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.getDefaultValue());
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.toString(),
-                bulkCopyOptionDefaultsKeepIdentity);
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                bulkCopyForBatchInsertKeepIdentity);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsKeepIdentity() {
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.getDefaultValue());
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.toString(),
-                bulkCopyOptionDefaultsKeepNulls);
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                bulkCopyForBatchInsertKeepNulls);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsKeepNulls() {
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.getDefaultValue());
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.toString(),
-                bulkCopyOptionDefaultsTableLock);
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                bulkCopyForBatchInsertTableLock);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsTableLock() {
+    public boolean getBulkCopyForBatchInsertTableLock() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue());
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.toString(),
-                bulkCopyOptionDefaultsUseInternalTransaction);
+    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString(),
+                bulkCopyForBatchInsertUseInternalTransaction);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsUseInternalTransaction() {
+    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.getDefaultValue());
     }
 
     @Override
-    public void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
-                bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                bulkCopyForBatchInsertAllowEncryptedValueModifications);
     }
 
     @Override
-    public boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications() {
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
         return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
     }    
     /**
      * @deprecated

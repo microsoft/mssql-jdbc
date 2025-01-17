@@ -928,149 +928,149 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsFireTriggers value.
+     * Returns the bulkCopyForBatchInsertFireTriggers value.
      * 
-     * @return the bulkCopyOptionDefaultsFireTriggers value.
+     * @return the bulkCopyForBatchInsertFireTriggers value.
      */
-    public boolean getBulkCopyOptionDefaultsFireTriggers() {
-        return bulkCopyOptionDefaultsFireTriggers;
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
+        return bulkCopyForBatchInsertFireTriggers;
     }
 
     /** 
      * Whether to fire triggers during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsFireTriggers = false;
+    private boolean bulkCopyForBatchInsertFireTriggers = false;
 
     /**
-     * Sets the bulkCopyOptionDefaultsFireTriggers value.
+     * Sets the bulkCopyForBatchInsertFireTriggers value.
      * 
-     * @param bulkCopyOptionDefaultsFireTriggers
-     *        the bulkCopyOptionDefaultsFireTriggers value to set.
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        the bulkCopyForBatchInsertFireTriggers value to set.
      */
-    public void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers) {
-        this.bulkCopyOptionDefaultsFireTriggers = bulkCopyOptionDefaultsFireTriggers;
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        this.bulkCopyForBatchInsertFireTriggers = bulkCopyForBatchInsertFireTriggers;
     }
 
     /** 
      * Whether to keep identity values during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsKeepIdentity = false;
+    private boolean bulkCopyForBatchInsertKeepIdentity = false;
 
     /**
-     * Returns the bulkCopyOptionDefaultsKeepIdentity value.
+     * Returns the bulkCopyForBatchInsertKeepIdentity value.
      * 
-     * @return the bulkCopyOptionDefaultsKeepIdentity value.
+     * @return the bulkCopyForBatchInsertKeepIdentity value.
      */
-    public boolean getBulkCopyOptionDefaultsKeepIdentity() {
-        return bulkCopyOptionDefaultsKeepIdentity;
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
+        return bulkCopyForBatchInsertKeepIdentity;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsKeepIdentity value.
+     * Sets the bulkCopyForBatchInsertKeepIdentity value.
      * 
-     * @param bulkCopyOptionDefaultsKeepIdentity
-     *        the bulkCopyOptionDefaultsKeepIdentity value to set.
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        the bulkCopyForBatchInsertKeepIdentity value to set.
      */
-    public void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity) {
-        this.bulkCopyOptionDefaultsKeepIdentity = bulkCopyOptionDefaultsKeepIdentity;
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        this.bulkCopyForBatchInsertKeepIdentity = bulkCopyForBatchInsertKeepIdentity;
     }
 
     /** 
      * Whether to keep null values during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsKeepNulls = false;
+    private boolean bulkCopyForBatchInsertKeepNulls = false;
 
     /**
-     * Returns the bulkCopyOptionDefaultsKeepNulls value.
+     * Returns the bulkCopyForBatchInsertKeepNulls value.
      * 
-     * @return the bulkCopyOptionDefaultsKeepNulls value.
+     * @return the bulkCopyForBatchInsertKeepNulls value.
      */
-    public boolean getBulkCopyOptionDefaultsKeepNulls() {
-        return bulkCopyOptionDefaultsKeepNulls;
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
+        return bulkCopyForBatchInsertKeepNulls;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsKeepNulls value.
+     * Sets the bulkCopyForBatchInsertKeepNulls value.
      * 
-     * @param bulkCopyOptionDefaultsKeepNulls
-     *        the bulkCopyOptionDefaultsKeepNulls value to set.
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        the bulkCopyForBatchInsertKeepNulls value to set.
      */
-    public void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls) {
-        this.bulkCopyOptionDefaultsKeepNulls = bulkCopyOptionDefaultsKeepNulls;
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        this.bulkCopyForBatchInsertKeepNulls = bulkCopyForBatchInsertKeepNulls;
     }
 
     /** 
      * Whether to use table lock during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsTableLock = false;
+    private boolean bulkCopyForBatchInsertTableLock = false;
 
     /**
-     * Returns the bulkCopyOptionDefaultsTableLock value.
+     * Returns the bulkCopyForBatchInsertTableLock value.
      * 
-     * @return the bulkCopyOptionDefaultsTableLock value.
+     * @return the bulkCopyForBatchInsertTableLock value.
      */
-    public boolean getBulkCopyOptionDefaultsTableLock() {
-        return bulkCopyOptionDefaultsTableLock;
+    public boolean getBulkCopyForBatchInsertTableLock() {
+        return bulkCopyForBatchInsertTableLock;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsTableLock value.
+     * Sets the bulkCopyForBatchInsertTableLock value.
      * 
-     * @param bulkCopyOptionDefaultsTableLock
-     *        the bulkCopyOptionDefaultsTableLock value to set.
+     * @param bulkCopyForBatchInsertTableLock
+     *        the bulkCopyForBatchInsertTableLock value to set.
      */
-    public void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock) {
-        this.bulkCopyOptionDefaultsTableLock = bulkCopyOptionDefaultsTableLock;
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+        this.bulkCopyForBatchInsertTableLock = bulkCopyForBatchInsertTableLock;
     }
 
     
     /** 
      * Whether to use internal transactions during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsUseInternalTransaction = false;
+    private boolean bulkCopyForBatchInsertUseInternalTransaction = false;
 
     /**
-     * Returns the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * Returns the bulkCopyForBatchInsertUseInternalTransaction value.
      * 
-     * @return the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * @return the bulkCopyForBatchInsertUseInternalTransaction value.
      */
-    public boolean getBulkCopyOptionDefaultsUseInternalTransaction() {
-        return bulkCopyOptionDefaultsUseInternalTransaction;
+    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
+        return bulkCopyForBatchInsertUseInternalTransaction;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * Sets the bulkCopyForBatchInsertUseInternalTransaction value.
      * 
-     * @param bulkCopyOptionDefaultsUseInternalTransaction
-     *        the bulkCopyOptionDefaultsUseInternalTransaction value to set.
+     * @param bulkCopyForBatchInsertUseInternalTransaction
+     *        the bulkCopyForBatchInsertUseInternalTransaction value to set.
      */
-    public void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction) {
-        this.bulkCopyOptionDefaultsUseInternalTransaction = bulkCopyOptionDefaultsUseInternalTransaction;
+    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
+        this.bulkCopyForBatchInsertUseInternalTransaction = bulkCopyForBatchInsertUseInternalTransaction;
     }
 
     /** 
      * Whether to allow encrypted value modifications during bulk copy operations.
      */
-    private boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications = false;
+    private boolean bulkCopyForBatchInsertAllowEncryptedValueModifications = false;
 
 
     /**
-     * Returns the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * Returns the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      * 
-     * @return the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * @return the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      */
-    public boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications() {
-        return bulkCopyOptionDefaultsAllowEncryptedValueModifications;
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
+        return bulkCopyForBatchInsertAllowEncryptedValueModifications;
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * Sets the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      * 
-     * @param bulkCopyOptionDefaultsAllowEncryptedValueModifications
-     *        the bulkCopyOptionDefaultsAllowEncryptedValueModifications value to set.
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        the bulkCopyForBatchInsertAllowEncryptedValueModifications value to set.
      */
-    public void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) {
-        this.bulkCopyOptionDefaultsAllowEncryptedValueModifications = bulkCopyOptionDefaultsAllowEncryptedValueModifications;
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        this.bulkCopyForBatchInsertAllowEncryptedValueModifications = bulkCopyForBatchInsertAllowEncryptedValueModifications;
     }
 
     /** user set TNIR flag */
@@ -3354,40 +3354,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     bulkCopyForBatchInsertCheckConstraints = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_FIRE_TRIGGERS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsFireTriggers = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertFireTriggers = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_IDENTITY.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsKeepIdentity = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertKeepIdentity = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_KEEP_NULLS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsKeepNulls = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertKeepNulls = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_TABLE_LOCK.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsTableLock = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertTableLock = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_USE_INTERNAL_TRANSACTION.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsUseInternalTransaction = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertUseInternalTransaction = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_OPTION_DEFAULTS_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
-                    bulkCopyOptionDefaultsAllowEncryptedValueModifications = isBooleanPropertyOn(sPropKey, sPropValue);
+                    bulkCopyForBatchInsertAllowEncryptedValueModifications = isBooleanPropertyOn(sPropKey, sPropValue);
                 }                
                 
                 sPropKey = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString();
@@ -7910,23 +7910,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original bulkCopyForBatchInsertCheckConstraints flag */
     private boolean originalBulkCopyForBatchInsertCheckConstraints;
 
-    /** original bulkCopyOptionDefaultsFireTriggers flag */
-    private boolean originalBulkCopyOptionDefaultsFireTriggers;
+    /** original bulkCopyForBatchInsertFireTriggers flag */
+    private boolean originalBulkCopyForBatchInsertFireTriggers;
 
-    /** original bulkCopyOptionDefaultsKeepIdentity flag */
-    private boolean originalBulkCopyOptionDefaultsKeepIdentity;
+    /** original bulkCopyForBatchInsertKeepIdentity flag */
+    private boolean originalBulkCopyForBatchInsertKeepIdentity;
 
-    /** original bulkCopyOptionDefaultsKeepNulls flag */
-    private boolean originalBulkCopyOptionDefaultsKeepNulls;
+    /** original bulkCopyForBatchInsertKeepNulls flag */
+    private boolean originalBulkCopyForBatchInsertKeepNulls;
 
-    /** original bulkCopyOptionDefaultsTableLock flag */
-    private boolean originalBulkCopyOptionDefaultsTableLock;
+    /** original bulkCopyForBatchInsertTableLock flag */
+    private boolean originalBulkCopyForBatchInsertTableLock;
 
-    /** original bulkCopyOptionDefaultsUseInternalTransaction flag */
-    private boolean originalBulkCopyOptionDefaultsUseInternalTransaction;
+    /** original bulkCopyForBatchInsertUseInternalTransaction flag */
+    private boolean originalBulkCopyForBatchInsertUseInternalTransaction;
 
-    /** original bulkCopyOptionDefaultsAllowEncryptedValueModifications flag */
-    private boolean originalBulkCopyOptionDefaultsAllowEncryptedValueModifications;
+    /** original bulkCopyForBatchInsertAllowEncryptedValueModifications flag */
+    private boolean originalBulkCopyForBatchInsertAllowEncryptedValueModifications;
     
     /** original SqlWarnings */
     private volatile SQLWarning originalSqlWarnings;
@@ -7966,12 +7966,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalBulkCopyForBatchInsertBatchSize = getBulkCopyForBatchInsertBatchSize();
                 originalBulkCopyForBatchInsertTimeout = getBulkCopyForBatchInsertTimeout();
                 originalBulkCopyForBatchInsertCheckConstraints = getBulkCopyForBatchInsertCheckConstraints();
-                originalBulkCopyOptionDefaultsFireTriggers = getBulkCopyOptionDefaultsFireTriggers();
-                originalBulkCopyOptionDefaultsKeepIdentity = getBulkCopyOptionDefaultsKeepIdentity();
-                originalBulkCopyOptionDefaultsKeepNulls = getBulkCopyOptionDefaultsKeepNulls();
-                originalBulkCopyOptionDefaultsTableLock = getBulkCopyOptionDefaultsTableLock();
-                originalBulkCopyOptionDefaultsUseInternalTransaction = getBulkCopyOptionDefaultsUseInternalTransaction();
-                originalBulkCopyOptionDefaultsAllowEncryptedValueModifications = getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
+                originalBulkCopyForBatchInsertFireTriggers = getBulkCopyForBatchInsertFireTriggers();
+                originalBulkCopyForBatchInsertKeepIdentity = getBulkCopyForBatchInsertKeepIdentity();
+                originalBulkCopyForBatchInsertKeepNulls = getBulkCopyForBatchInsertKeepNulls();
+                originalBulkCopyForBatchInsertTableLock = getBulkCopyForBatchInsertTableLock();
+                originalBulkCopyForBatchInsertUseInternalTransaction = getBulkCopyForBatchInsertUseInternalTransaction();
+                originalBulkCopyForBatchInsertAllowEncryptedValueModifications = getBulkCopyForBatchInsertAllowEncryptedValueModifications();
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
@@ -8046,28 +8046,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     setBulkCopyForBatchInsertCheckConstraints(originalBulkCopyForBatchInsertCheckConstraints);
                 }
 
-                if (getBulkCopyOptionDefaultsFireTriggers() != originalBulkCopyOptionDefaultsFireTriggers) {
-                    setBulkCopyOptionDefaultsFireTriggers(originalBulkCopyOptionDefaultsFireTriggers);
+                if (getBulkCopyForBatchInsertFireTriggers() != originalBulkCopyForBatchInsertFireTriggers) {
+                    setBulkCopyForBatchInsertFireTriggers(originalBulkCopyForBatchInsertFireTriggers);
                 }
 
-                if (getBulkCopyOptionDefaultsKeepIdentity() != originalBulkCopyOptionDefaultsKeepIdentity) {
-                    setBulkCopyOptionDefaultsKeepIdentity(originalBulkCopyOptionDefaultsKeepIdentity);
+                if (getBulkCopyForBatchInsertKeepIdentity() != originalBulkCopyForBatchInsertKeepIdentity) {
+                    setBulkCopyForBatchInsertKeepIdentity(originalBulkCopyForBatchInsertKeepIdentity);
                 }
 
-                if (getBulkCopyOptionDefaultsKeepNulls() != originalBulkCopyOptionDefaultsKeepNulls) {
-                    setBulkCopyOptionDefaultsKeepNulls(originalBulkCopyOptionDefaultsKeepNulls);
+                if (getBulkCopyForBatchInsertKeepNulls() != originalBulkCopyForBatchInsertKeepNulls) {
+                    setBulkCopyForBatchInsertKeepNulls(originalBulkCopyForBatchInsertKeepNulls);
                 }
 
-                if (getBulkCopyOptionDefaultsTableLock() != originalBulkCopyOptionDefaultsTableLock) {
-                    setBulkCopyOptionDefaultsTableLock(originalBulkCopyOptionDefaultsTableLock);
+                if (getBulkCopyForBatchInsertTableLock() != originalBulkCopyForBatchInsertTableLock) {
+                    setBulkCopyForBatchInsertTableLock(originalBulkCopyForBatchInsertTableLock);
                 }
 
-                if (getBulkCopyOptionDefaultsUseInternalTransaction() != originalBulkCopyOptionDefaultsUseInternalTransaction) {
-                    setBulkCopyOptionDefaultsUseInternalTransaction(originalBulkCopyOptionDefaultsUseInternalTransaction);
+                if (getBulkCopyForBatchInsertUseInternalTransaction() != originalBulkCopyForBatchInsertUseInternalTransaction) {
+                    setBulkCopyForBatchInsertUseInternalTransaction(originalBulkCopyForBatchInsertUseInternalTransaction);
                 }
 
-                if (getBulkCopyOptionDefaultsAllowEncryptedValueModifications() != originalBulkCopyOptionDefaultsAllowEncryptedValueModifications) {
-                    setBulkCopyOptionDefaultsAllowEncryptedValueModifications(originalBulkCopyOptionDefaultsAllowEncryptedValueModifications);
+                if (getBulkCopyForBatchInsertAllowEncryptedValueModifications() != originalBulkCopyForBatchInsertAllowEncryptedValueModifications) {
+                    setBulkCopyForBatchInsertAllowEncryptedValueModifications(originalBulkCopyForBatchInsertAllowEncryptedValueModifications);
                 }
 
                 if (delayLoadingLobs != originalDelayLoadingLobs) {

@@ -469,12 +469,12 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_bulkCopyForBatchInsertBatchSizePropertyDescription", "The default batch size for bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertTimeoutPropertyDescription", "The default timeout for bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations created from batch insert operations."},
-        {"R_bulkCopyOptionDefaultsFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations."},
-        {"R_bulkCopyOptionDefaultsKeepIdentityPropertyDescription", "Determines whether to keep identity values during bulk copy operations."},
-        {"R_bulkCopyOptionDefaultsKeepNullsPropertyDescription", "Determines whether to keep null values during bulk copy operations."},
-        {"R_bulkCopyOptionDefaultsTableLockPropertyDescription", "Determines whether to use table lock during bulk copy operations."},
-        {"R_bulkCopyOptionDefaultsUseInternalTransactionPropertyDescription", "Determines whether to use internal transaction during bulk copy operations."},
-        {"R_bulkCopyOptionDefaultsAllowEncryptedValueModificationsPropertyDescription", "Determines whether to allow encrypted value modifications during bulk copy operations."},        
+        {"R_bulkCopyForBatchInsertFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertKeepIdentityPropertyDescription", "Determines whether to keep identity values during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertKeepNullsPropertyDescription", "Determines whether to keep null values during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertTableLockPropertyDescription", "Determines whether to use table lock during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertUseInternalTransactionPropertyDescription", "Determines whether to use internal transaction during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertAllowEncryptedValueModificationsPropertyDescription", "Determines whether to allow encrypted value modifications during bulk copy operations created from batch insert operations."},        
         {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
         {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
         {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},

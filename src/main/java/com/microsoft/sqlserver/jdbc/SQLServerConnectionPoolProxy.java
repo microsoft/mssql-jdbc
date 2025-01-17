@@ -817,117 +817,117 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsFireTriggers value.
+     * Returns the bulkCopyForBatchInsertFireTriggers value.
      * 
-     * @return the bulkCopyOptionDefaultsFireTriggers value.
+     * @return the bulkCopyForBatchInsertFireTriggers value.
      */
-    public boolean getBulkCopyOptionDefaultsFireTriggers() {
-        return wrappedConnection.getBulkCopyOptionDefaultsFireTriggers();
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
+        return wrappedConnection.getBulkCopyForBatchInsertFireTriggers();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsFireTriggers value.
+     * Sets the bulkCopyForBatchInsertFireTriggers value.
      * 
-     * @param bulkCopyOptionDefaultsFireTriggers
-     *        the bulkCopyOptionDefaultsFireTriggers value to set.
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        the bulkCopyForBatchInsertFireTriggers value to set.
      */
-    public void setBulkCopyOptionDefaultsFireTriggers(boolean bulkCopyOptionDefaultsFireTriggers) {
-        wrappedConnection.setBulkCopyOptionDefaultsFireTriggers(bulkCopyOptionDefaultsFireTriggers);
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        wrappedConnection.setBulkCopyForBatchInsertFireTriggers(bulkCopyForBatchInsertFireTriggers);
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsKeepIdentity value.
+     * Returns the bulkCopyForBatchInsertKeepIdentity value.
      * 
-     * @return the bulkCopyOptionDefaultsKeepIdentity value.
+     * @return the bulkCopyForBatchInsertKeepIdentity value.
      */
-    public boolean getBulkCopyOptionDefaultsKeepIdentity() {
-        return wrappedConnection.getBulkCopyOptionDefaultsKeepIdentity();
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
+        return wrappedConnection.getBulkCopyForBatchInsertKeepIdentity();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsKeepIdentity value.
+     * Sets the bulkCopyForBatchInsertKeepIdentity value.
      * 
-     * @param bulkCopyOptionDefaultsKeepIdentity
-     *        the bulkCopyOptionDefaultsKeepIdentity value to set.
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        the bulkCopyForBatchInsertKeepIdentity value to set.
      */
-    public void setBulkCopyOptionDefaultsKeepIdentity(boolean bulkCopyOptionDefaultsKeepIdentity) {
-        wrappedConnection.setBulkCopyOptionDefaultsKeepIdentity(bulkCopyOptionDefaultsKeepIdentity);
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        wrappedConnection.setBulkCopyForBatchInsertKeepIdentity(bulkCopyForBatchInsertKeepIdentity);
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsKeepNulls value.
+     * Returns the bulkCopyForBatchInsertKeepNulls value.
      * 
-     * @return the bulkCopyOptionDefaultsKeepNulls value.
+     * @return the bulkCopyForBatchInsertKeepNulls value.
      */
-    public boolean getBulkCopyOptionDefaultsKeepNulls() {
-        return wrappedConnection.getBulkCopyOptionDefaultsKeepNulls();
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
+        return wrappedConnection.getBulkCopyForBatchInsertKeepNulls();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsKeepNulls value.
+     * Sets the bulkCopyForBatchInsertKeepNulls value.
      * 
-     * @param bulkCopyOptionDefaultsKeepNulls
-     *        the bulkCopyOptionDefaultsKeepNulls value to set.
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        the bulkCopyForBatchInsertKeepNulls value to set.
      */
-    public void setBulkCopyOptionDefaultsKeepNulls(boolean bulkCopyOptionDefaultsKeepNulls) {
-        wrappedConnection.setBulkCopyOptionDefaultsKeepNulls(bulkCopyOptionDefaultsKeepNulls);
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        wrappedConnection.setBulkCopyForBatchInsertKeepNulls(bulkCopyForBatchInsertKeepNulls);
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsTableLock value.
+     * Returns the bulkCopyForBatchInsertTableLock value.
      * 
-     * @return the bulkCopyOptionDefaultsTableLock value.
+     * @return the bulkCopyForBatchInsertTableLock value.
      */
-    public boolean getBulkCopyOptionDefaultsTableLock() {
-        return wrappedConnection.getBulkCopyOptionDefaultsTableLock();
+    public boolean getBulkCopyForBatchInsertTableLock() {
+        return wrappedConnection.getBulkCopyForBatchInsertTableLock();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsTableLock value.
+     * Sets the bulkCopyForBatchInsertTableLock value.
      * 
-     * @param bulkCopyOptionDefaultsTableLock
-     *        the bulkCopyOptionDefaultsTableLock value to set.
+     * @param bulkCopyForBatchInsertTableLock
+     *        the bulkCopyForBatchInsertTableLock value to set.
      */
-    public void setBulkCopyOptionDefaultsTableLock(boolean bulkCopyOptionDefaultsTableLock) {
-    	wrappedConnection.setBulkCopyOptionDefaultsTableLock(bulkCopyOptionDefaultsTableLock);
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+    	wrappedConnection.setBulkCopyForBatchInsertTableLock(bulkCopyForBatchInsertTableLock);
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * Returns the bulkCopyForBatchInsertUseInternalTransaction value.
      * 
-     * @return the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * @return the bulkCopyForBatchInsertUseInternalTransaction value.
      */
-    public boolean getBulkCopyOptionDefaultsUseInternalTransaction() {
-        return wrappedConnection.getBulkCopyOptionDefaultsUseInternalTransaction();
+    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
+        return wrappedConnection.getBulkCopyForBatchInsertUseInternalTransaction();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsUseInternalTransaction value.
+     * Sets the bulkCopyForBatchInsertUseInternalTransaction value.
      * 
-     * @param bulkCopyOptionDefaultsUseInternalTransaction
-     *        the bulkCopyOptionDefaultsUseInternalTransaction value to set.
+     * @param bulkCopyForBatchInsertUseInternalTransaction
+     *        the bulkCopyForBatchInsertUseInternalTransaction value to set.
      */
-    public void setBulkCopyOptionDefaultsUseInternalTransaction(boolean bulkCopyOptionDefaultsUseInternalTransaction) {
-    	wrappedConnection.setBulkCopyOptionDefaultsUseInternalTransaction(bulkCopyOptionDefaultsUseInternalTransaction);
+    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
+    	wrappedConnection.setBulkCopyForBatchInsertUseInternalTransaction(bulkCopyForBatchInsertUseInternalTransaction);
     }
 
     /**
-     * Returns the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * Returns the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      * 
-     * @return the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * @return the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      */
-    public boolean getBulkCopyOptionDefaultsAllowEncryptedValueModifications() {
-    	return wrappedConnection.getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
+    	return wrappedConnection.getBulkCopyForBatchInsertAllowEncryptedValueModifications();
     }
 
     /**
-     * Sets the bulkCopyOptionDefaultsAllowEncryptedValueModifications value.
+     * Sets the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
      * 
-     * @param bulkCopyOptionDefaultsAllowEncryptedValueModifications
-     *        the bulkCopyOptionDefaultsAllowEncryptedValueModifications value to set.
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        the bulkCopyForBatchInsertAllowEncryptedValueModifications value to set.
      */
-    public void setBulkCopyOptionDefaultsAllowEncryptedValueModifications(boolean bulkCopyOptionDefaultsAllowEncryptedValueModifications) {
-        wrappedConnection.setBulkCopyOptionDefaultsAllowEncryptedValueModifications(bulkCopyOptionDefaultsAllowEncryptedValueModifications);
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        wrappedConnection.setBulkCopyForBatchInsertAllowEncryptedValueModifications(bulkCopyForBatchInsertAllowEncryptedValueModifications);
     }
 
 }

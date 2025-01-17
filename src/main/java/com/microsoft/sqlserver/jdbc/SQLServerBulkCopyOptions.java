@@ -111,12 +111,12 @@ public class SQLServerBulkCopyOptions implements Serializable {
         batchSize = conn.getBulkCopyForBatchInsertBatchSize();
         bulkCopyTimeout = conn.getBulkCopyForBatchInsertTimeout();
         checkConstraints = conn.getBulkCopyForBatchInsertCheckConstraints();
-        fireTriggers = conn.getBulkCopyOptionDefaultsFireTriggers();
-        keepIdentity = conn.getBulkCopyOptionDefaultsKeepIdentity();
-        keepNulls = conn.getBulkCopyOptionDefaultsKeepNulls();
-        tableLock = conn.getBulkCopyOptionDefaultsTableLock();
-        useInternalTransaction = conn.getBulkCopyOptionDefaultsUseInternalTransaction();
-        allowEncryptedValueModifications = conn.getBulkCopyOptionDefaultsAllowEncryptedValueModifications();
+        fireTriggers = conn.getBulkCopyForBatchInsertFireTriggers();
+        keepIdentity = conn.getBulkCopyForBatchInsertKeepIdentity();
+        keepNulls = conn.getBulkCopyForBatchInsertKeepNulls();
+        tableLock = conn.getBulkCopyForBatchInsertTableLock();
+        useInternalTransaction = conn.getBulkCopyForBatchInsertUseInternalTransaction();
+        allowEncryptedValueModifications = conn.getBulkCopyForBatchInsertAllowEncryptedValueModifications();
     }
     
 

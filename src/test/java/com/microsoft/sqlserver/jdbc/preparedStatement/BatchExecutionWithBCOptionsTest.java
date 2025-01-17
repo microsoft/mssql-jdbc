@@ -207,14 +207,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsKeepIdentity=true
+     * bulkCopyForBatchInsertKeepIdentity=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithKeepIdentity() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsKeepIdentity=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepIdentity=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -250,14 +250,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsKeepIdentity=true where identity insert fails
+     * bulkCopyForBatchInsertKeepIdentity=true where identity insert fails
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithKeepIdentityFailure() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsKeepIdentity=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepIdentity=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -322,14 +322,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsTableLock=true
+     * bulkCopyForBatchInsertTableLock=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithTableLock() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTableLock=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertTableLock=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -365,14 +365,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsTableLock=true where insert fails
+     * bulkCopyForBatchInsertTableLock=true where insert fails
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithTableLockFailure() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTableLock=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertTableLock=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -397,7 +397,7 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
                     stmt.execute(lockTableSQL);
 
                     try (Connection connection2 = PrepUtil.getConnection(
-                            connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsTableLock=true");
+                            connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertTableLock=true");
                          PreparedStatement pstmt2 = connection2
                                  .prepareStatement("insert into " + tableName + " values(?, ?)")) {
 
@@ -507,14 +507,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsFireTriggers=true
+     * bulkCopyForBatchInsertFireTriggers=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsFireTriggers() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsFireTriggers=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertFireTriggers=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -549,14 +549,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsFireTriggers=true where insert fails
+     * bulkCopyForBatchInsertFireTriggers=true where insert fails
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsFireTriggersFailure() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-            connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsFireTriggers=true")) {
+            connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertFireTriggers=true")) {
                 try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                     pstmt.setInt(1, 1);
                     pstmt.setInt(2, 1);
@@ -603,14 +603,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsKeepNulls=true
+     * bulkCopyForBatchInsertKeepNulls=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsKeepNulls() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsKeepNulls=true")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepNulls=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setNull(2, java.sql.Types.INTEGER);
@@ -647,14 +647,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsKeepNulls=false
+     * bulkCopyForBatchInsertKeepNulls=false
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsKeepNullsFalse() throws Exception {
         try (Connection connection = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsKeepNulls=false")) {
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepNulls=false")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setNull(2, java.sql.Types.INTEGER);
@@ -691,14 +691,14 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsUseInternalTransaction=true
+     * bulkCopyForBatchInsertUseInternalTransaction=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkCopyOptionDefaultsUseInternalTransaction() throws Exception {
         try (Connection connection = PrepUtil.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsUseInternalTransaction=true")) {
+                + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertUseInternalTransaction=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 1);
@@ -736,13 +736,13 @@ public class BatchExecutionWithBCOptionsTest extends AbstractTest {
 
     /**
      * Test with useBulkCopyBatchInsert=true and
-     * bulkCopyOptionDefaultsAllowEncryptedValueModifications=true
+     * bulkCopyForBatchInsertAllowEncryptedValueModifications=true
      *
      * @throws SQLException
      */
     @Test
     public void testBulkInsertWithEncryptedValueModifications() throws Exception {
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyOptionDefaultsAllowEncryptedValueModifications=true")) {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertAllowEncryptedValueModifications=true")) {
             try (PreparedStatement pstmt = connection.prepareStatement("insert into " + tableName + " values(?, ?)")) {
                 pstmt.setInt(1, 1);
                 pstmt.setInt(2, 0);
