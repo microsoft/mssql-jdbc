@@ -2446,7 +2446,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValue)
                     validateMaxSQLLoginName(sPropKey, sPropValue);
                 else
-                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.constructedAppName);
 
                 sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -6110,10 +6110,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         while (true) {
+            int millisecondsRemaining = timerRemaining(timerExpire);
             if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        authenticationString);
+                        authenticationString, millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6125,12 +6126,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId);
+                            managedIdentityClientId, millisecondsRemaining);
                     break;
                 }
 
                 fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()), millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6141,12 +6142,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
                         && !aadPrincipalSecret.isEmpty()) {
                     fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
-                            aadPrincipalSecret, authenticationString);
+                            aadPrincipalSecret, authenticationString, millisecondsRemaining);
                 } else {
                     fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                            authenticationString);
+                            authenticationString, millisecondsRemaining);
                 }
 
                 // Break out of the retry loop in successful case.
@@ -6159,7 +6160,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         servicePrincipalCertificate,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString);
+                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString, millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6194,7 +6195,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             throw new SQLServerException(form.format(msgArgs), null);
                         }
 
-                        int millisecondsRemaining = timerRemaining(timerExpire);
+                        millisecondsRemaining = timerRemaining(timerExpire);
                         if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
                                 || timerHasExpired(timerExpire) || (fedauthSleepInterval >= millisecondsRemaining)) {
 
@@ -6240,7 +6241,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
                     }
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString);
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString, millisecondsRemaining);
                 }
                 // Break out of the retry loop in successful case.
                 break;
@@ -6248,7 +6249,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
                 // interactive flow
                 fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
-                        authenticationString);
+                        authenticationString, millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6258,12 +6259,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId);
+                            managedIdentityClientId, millisecondsRemaining);
                     break;
                 }
 
                 fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()));
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()), millisecondsRemaining);
 
                 break;
             }
