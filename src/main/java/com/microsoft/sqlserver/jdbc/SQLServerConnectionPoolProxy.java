@@ -779,25 +779,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the bulkCopyForBatchInsertTimeout value.
-     * 
-     * @return the bulkCopyForBatchInsertTimeout value.
-     */
-    public int getBulkCopyForBatchInsertTimeout() {
-        return wrappedConnection.getBulkCopyForBatchInsertTimeout();
-    }
-
-    /**
-     * Sets the bulkCopyForBatchInsertTimeout value.
-     * 
-     * @param bulkCopyForBatchInsertTimeout
-     *        the bulkCopyForBatchInsertTimeout value to set.
-     */
-    public void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout) {
-         wrappedConnection.setBulkCopyForBatchInsertTimeout(bulkCopyForBatchInsertTimeout);
-    }
-
-    /**
      * Returns the bulkCopyForBatchInsertCheckConstraints value.
      * 
      * @return the bulkCopyForBatchInsertCheckConstraints value.
@@ -890,25 +871,6 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      */
     public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
     	wrappedConnection.setBulkCopyForBatchInsertTableLock(bulkCopyForBatchInsertTableLock);
-    }
-
-    /**
-     * Returns the bulkCopyForBatchInsertUseInternalTransaction value.
-     * 
-     * @return the bulkCopyForBatchInsertUseInternalTransaction value.
-     */
-    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
-        return wrappedConnection.getBulkCopyForBatchInsertUseInternalTransaction();
-    }
-
-    /**
-     * Sets the bulkCopyForBatchInsertUseInternalTransaction value.
-     * 
-     * @param bulkCopyForBatchInsertUseInternalTransaction
-     *        the bulkCopyForBatchInsertUseInternalTransaction value to set.
-     */
-    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
-    	wrappedConnection.setBulkCopyForBatchInsertUseInternalTransaction(bulkCopyForBatchInsertUseInternalTransaction);
     }
 
     /**

@@ -645,8 +645,7 @@ enum SQLServerDriverIntProperty {
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
     CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
-    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0),
-    BULK_COPY_FOR_BATCH_INSERT_TIMEOUT("bulkCopyForBatchInsertTimeout", 60);
+    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0);
 
     private final String name;
     private final int defaultValue;
@@ -701,7 +700,6 @@ enum SQLServerDriverBooleanProperty {
     BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY("bulkCopyForBatchInsertKeepIdentity", false),
     BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS("bulkCopyForBatchInsertKeepNulls", false),
     BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK("bulkCopyForBatchInsertTableLock", false),
-    BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION("bulkCopyForBatchInsertUseInternalTransaction", false),
     BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS("bulkCopyForBatchInsertAllowEncryptedValueModifications", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
@@ -957,8 +955,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
                     Integer.toString(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue()),false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.getDefaultValue()),false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
@@ -969,8 +965,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue()),false, TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),

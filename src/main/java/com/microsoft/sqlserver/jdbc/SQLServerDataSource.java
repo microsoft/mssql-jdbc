@@ -1039,19 +1039,6 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout) {
-        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString(),
-                bulkCopyForBatchInsertTimeout);
-    }
-
-    @Override
-    public int getBulkCopyForBatchInsertTimeout() {
-        return getIntProperty(connectionProps,
-                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString(),
-                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.getDefaultValue());
-    }
-
-    @Override
     public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
         setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
                 bulkCopyForBatchInsertCheckConstraints);
@@ -1114,19 +1101,6 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps,
                 SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
                 SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue());
-    }
-
-    @Override
-    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
-        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString(),
-                bulkCopyForBatchInsertUseInternalTransaction);
-    }
-
-    @Override
-    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
-        return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString(),
-                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.getDefaultValue());
     }
 
     @Override

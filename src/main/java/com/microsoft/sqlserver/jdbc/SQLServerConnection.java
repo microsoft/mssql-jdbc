@@ -880,30 +880,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /** 
-     * The default timeout for bulk copy operations.
-     */
-    private int bulkCopyForBatchInsertTimeout = 60;
-
-    /**
-     * Returns the bulkCopyForBatchInsertTimeout value.
-     * 
-     * @return the bulkCopyForBatchInsertTimeout value.
-     */
-    public int getBulkCopyForBatchInsertTimeout() {
-        return bulkCopyForBatchInsertTimeout;
-    }
-
-    /**
-     * Sets the bulkCopyForBatchInsertTimeout value.
-     * 
-     * @param bulkCopyForBatchInsertTimeout
-     *        the bulkCopyForBatchInsertTimeout value to set.
-     */
-    public void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout) {
-        this.bulkCopyForBatchInsertTimeout = bulkCopyForBatchInsertTimeout;
-    }
-
-    /** 
      * Whether to check constraints during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertCheckConstraints = false;
@@ -1021,31 +997,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
         this.bulkCopyForBatchInsertTableLock = bulkCopyForBatchInsertTableLock;
-    }
-
-    
-    /** 
-     * Whether to use internal transactions during bulk copy operations.
-     */
-    private boolean bulkCopyForBatchInsertUseInternalTransaction = false;
-
-    /**
-     * Returns the bulkCopyForBatchInsertUseInternalTransaction value.
-     * 
-     * @return the bulkCopyForBatchInsertUseInternalTransaction value.
-     */
-    public boolean getBulkCopyForBatchInsertUseInternalTransaction() {
-        return bulkCopyForBatchInsertUseInternalTransaction;
-    }
-
-    /**
-     * Sets the bulkCopyForBatchInsertUseInternalTransaction value.
-     * 
-     * @param bulkCopyForBatchInsertUseInternalTransaction
-     *        the bulkCopyForBatchInsertUseInternalTransaction value to set.
-     */
-    public void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction) {
-        this.bulkCopyForBatchInsertUseInternalTransaction = bulkCopyForBatchInsertUseInternalTransaction;
     }
 
     /** 
@@ -3342,12 +3293,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     bulkCopyForBatchInsertBatchSize = Integer.parseInt(sPropValue);
                 }
 
-                sPropKey = SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_TIMEOUT.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    bulkCopyForBatchInsertTimeout = Integer.parseInt(sPropValue);
-                }
-
                 sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
@@ -3376,12 +3321,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     bulkCopyForBatchInsertTableLock = isBooleanPropertyOn(sPropKey, sPropValue);
-                }
-
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_USE_INTERNAL_TRANSACTION.toString();
-                sPropValue = activeConnectionProperties.getProperty(sPropKey);
-                if (null != sPropValue) {
-                    bulkCopyForBatchInsertUseInternalTransaction = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
                 sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString();
@@ -7904,9 +7843,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** original bulkCopyForBatchInsertBatchSize */
     private int originalBulkCopyForBatchInsertBatchSize;
 
-    /** original bulkCopyForBatchInsertTimeout */
-    private int originalBulkCopyForBatchInsertTimeout;
-
     /** original bulkCopyForBatchInsertCheckConstraints flag */
     private boolean originalBulkCopyForBatchInsertCheckConstraints;
 
@@ -7921,9 +7857,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original bulkCopyForBatchInsertTableLock flag */
     private boolean originalBulkCopyForBatchInsertTableLock;
-
-    /** original bulkCopyForBatchInsertUseInternalTransaction flag */
-    private boolean originalBulkCopyForBatchInsertUseInternalTransaction;
 
     /** original bulkCopyForBatchInsertAllowEncryptedValueModifications flag */
     private boolean originalBulkCopyForBatchInsertAllowEncryptedValueModifications;
@@ -7964,13 +7897,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalSCatalog = sCatalog;
                 originalUseBulkCopyForBatchInsert = getUseBulkCopyForBatchInsert();
                 originalBulkCopyForBatchInsertBatchSize = getBulkCopyForBatchInsertBatchSize();
-                originalBulkCopyForBatchInsertTimeout = getBulkCopyForBatchInsertTimeout();
                 originalBulkCopyForBatchInsertCheckConstraints = getBulkCopyForBatchInsertCheckConstraints();
                 originalBulkCopyForBatchInsertFireTriggers = getBulkCopyForBatchInsertFireTriggers();
                 originalBulkCopyForBatchInsertKeepIdentity = getBulkCopyForBatchInsertKeepIdentity();
                 originalBulkCopyForBatchInsertKeepNulls = getBulkCopyForBatchInsertKeepNulls();
                 originalBulkCopyForBatchInsertTableLock = getBulkCopyForBatchInsertTableLock();
-                originalBulkCopyForBatchInsertUseInternalTransaction = getBulkCopyForBatchInsertUseInternalTransaction();
                 originalBulkCopyForBatchInsertAllowEncryptedValueModifications = getBulkCopyForBatchInsertAllowEncryptedValueModifications();
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<>();
@@ -8038,10 +7969,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     setBulkCopyForBatchInsertBatchSize(originalBulkCopyForBatchInsertBatchSize);
                 }
 
-                if (getBulkCopyForBatchInsertTimeout() != originalBulkCopyForBatchInsertTimeout) {
-                    setBulkCopyForBatchInsertTimeout(originalBulkCopyForBatchInsertTimeout);
-                }
-
                 if (getBulkCopyForBatchInsertCheckConstraints() != originalBulkCopyForBatchInsertCheckConstraints) {
                     setBulkCopyForBatchInsertCheckConstraints(originalBulkCopyForBatchInsertCheckConstraints);
                 }
@@ -8060,10 +7987,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 if (getBulkCopyForBatchInsertTableLock() != originalBulkCopyForBatchInsertTableLock) {
                     setBulkCopyForBatchInsertTableLock(originalBulkCopyForBatchInsertTableLock);
-                }
-
-                if (getBulkCopyForBatchInsertUseInternalTransaction() != originalBulkCopyForBatchInsertUseInternalTransaction) {
-                    setBulkCopyForBatchInsertUseInternalTransaction(originalBulkCopyForBatchInsertUseInternalTransaction);
                 }
 
                 if (getBulkCopyForBatchInsertAllowEncryptedValueModifications() != originalBulkCopyForBatchInsertAllowEncryptedValueModifications) {

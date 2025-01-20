@@ -996,21 +996,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getBulkCopyForBatchInsertBatchSize();
 
     /**
-     * Sets the default timeout for bulk copy operations created from batch insert operations.
-     * 
-     * @param bulkCopyForBatchInsertTimeout
-     *        the default timeout for bulk copy operations created from batch insert operations.
-     */
-    void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout);
-
-    /**
-     * Returns the default timeout for bulk copy operations created from batch insert operations.
-     * 
-     * @return the default timeout for bulk copy operations created from batch insert operations.
-     */
-    int getBulkCopyForBatchInsertTimeout();
-
-    /**
      * Sets whether to check constraints during bulk copy operations created from batch insert operations.
      * 
      * @param bulkCopyForBatchInsertCheckConstraints
@@ -1084,21 +1069,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return whether to use table lock during bulk copy operations created from batch insert operations.
      */
     boolean getBulkCopyForBatchInsertTableLock();
-
-    /**
-     * Sets whether to use internal transaction during bulk copy operations created from batch insert operations.
-     * 
-     * @param bulkCopyForBatchInsertUseInternalTransaction
-     *        indicates whether to use internal transaction during bulk copy operations created from batch insert operations.
-     */
-    void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction);
-
-    /**
-     * Returns whether to use internal transaction during bulk copy operations created from batch insert operations.
-     * 
-     * @return whether to use internal transaction during bulk copy operations created from batch insert operations.
-     */
-    boolean getBulkCopyForBatchInsertUseInternalTransaction();
 
     /**
      * Sets whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.

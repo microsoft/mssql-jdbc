@@ -467,13 +467,11 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
         {"R_useBulkCopyForBatchInsertPropertyDescription", "Determines whether the driver will use bulk copy API for batch insert operations."},
         {"R_bulkCopyForBatchInsertBatchSizePropertyDescription", "The default batch size for bulk copy operations created from batch insert operations."},
-        {"R_bulkCopyForBatchInsertTimeoutPropertyDescription", "The default timeout for bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertKeepIdentityPropertyDescription", "Determines whether to keep identity values during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertKeepNullsPropertyDescription", "Determines whether to keep null values during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertTableLockPropertyDescription", "Determines whether to use table lock during bulk copy operations created from batch insert operations."},
-        {"R_bulkCopyForBatchInsertUseInternalTransactionPropertyDescription", "Determines whether to use internal transaction during bulk copy operations created from batch insert operations."},
         {"R_bulkCopyForBatchInsertAllowEncryptedValueModificationsPropertyDescription", "Determines whether to allow encrypted value modifications during bulk copy operations created from batch insert operations."},        
         {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
         {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server

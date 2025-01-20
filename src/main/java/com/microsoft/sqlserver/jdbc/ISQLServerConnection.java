@@ -564,21 +564,6 @@ public interface ISQLServerConnection extends java.sql.Connection {
     int getBulkCopyForBatchInsertBatchSize();
 
     /**
-     * Specifies the default timeout for bulk copy operations created from batch insert operations.
-     * 
-     * @param bulkCopyForBatchInsertTimeout
-     *        integer value for bulkCopyForBatchInsertTimeout.
-     */
-    void setBulkCopyForBatchInsertTimeout(int bulkCopyForBatchInsertTimeout);
-
-    /**
-     * Returns the default timeout for bulk copy operations created from batch insert operations.
-     * 
-     * @return integer value for bulkCopyForBatchInsertTimeout.
-     */
-    int getBulkCopyForBatchInsertTimeout();
-
-    /**
      * Specifies the default check constraints for bulk copy operations created from batch insert operations.
      * 
      * @param bulkCopyForBatchInsertCheckConstraints
@@ -652,21 +637,6 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return boolean value for bulkCopyForBatchInsertTableLock.
      */
     boolean getBulkCopyForBatchInsertTableLock();
-
-    /**
-     * Specifies the default use internal transaction for bulk copy operations created from batch insert operations.
-     * 
-     * @param bulkCopyForBatchInsertUseInternalTransaction
-     *        boolean value for bulkCopyForBatchInsertUseInternalTransaction.
-     */
-    void setBulkCopyForBatchInsertUseInternalTransaction(boolean bulkCopyForBatchInsertUseInternalTransaction);
-
-    /**
-     * Returns the default use internal transaction for bulk copy operations created from batch insert operations.
-     * 
-     * @return boolean value for bulkCopyForBatchInsertUseInternalTransaction.
-     */
-    boolean getBulkCopyForBatchInsertUseInternalTransaction();
 
     /**
      * Specifies the default allow encrypted value modifications for bulk copy operations created from batch insert operations.
