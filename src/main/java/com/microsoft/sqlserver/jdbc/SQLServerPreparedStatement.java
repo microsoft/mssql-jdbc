@@ -2210,7 +2210,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
                             if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
-                                int columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                // find index ignore case
+                                int columnIndex = -1;
+                                for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
+                                    if (bcOperationColumnList.get(opi).equalsIgnoreCase(c.getColumnName())) {
+                                        columnIndex = opi;
+                                    }
+                                }
+
                                 if (columnIndex > -1) {
                                     columnMappings.put(columnIndex + 1, i);
                                     batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,

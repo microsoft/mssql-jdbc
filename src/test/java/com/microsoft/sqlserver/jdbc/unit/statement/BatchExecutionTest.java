@@ -606,13 +606,7 @@ public class BatchExecutionTest extends AbstractTest {
                 preparedStatement.addBatch();
                 preparedStatement.setObject(1, "value2");
                 preparedStatement.addBatch();
-                try {
-                    preparedStatement.executeBatch();
-                    fail("Should have failed");
-                } catch (Exception ex) {
-                    assertInstanceOf(SQLServerException.class, ex);
-                    assertEquals("Unable to retrieve column metadata.", ex.getMessage());
-                }
+                preparedStatement.executeBatch();
             }
         }
     }
