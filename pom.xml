@@ -126,8 +126,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcprov-jdk15on</artifactId>
-			<version>${bcprov-jdk15on.version}</version>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>${bcprov-jdk18on.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies for Client Certificate Authentication -->
@@ -146,8 +146,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
-			<artifactId>org.osgi.compendium</artifactId>
-			<version>${org.osgi.compendium.version}</version>
+			<artifactId>org.osgi.core</artifactId>
+			<version>${org.osgi.core.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
