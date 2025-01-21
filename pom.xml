@@ -371,6 +371,9 @@
 		</profile>
 		<profile>
 			<id>jre21</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
 				<plugins>
@@ -404,9 +407,6 @@
 		</profile>
 		<profile>
 			<id>jre23</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre23${releaseExt}</finalName>
 				<plugins>
