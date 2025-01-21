@@ -568,6 +568,55 @@ public class BatchExecutionTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testExecuteBatchColumnCaseMatching() throws Exception {
+        String varcharTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("varchartable1"));
+        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+        try (Connection con = DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+            try (Statement statement = con.createStatement()) {
+                TestUtils.dropTableIfExists(varcharTable1, statement);
+                String createSql = "CREATE TABLE" + varcharTable1 + " (c1 varchar(10))";
+                statement.execute(createSql);
+            }
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + varcharTable1 + "(c1) VALUES(?)")) {
+                preparedStatement.setObject(1, "value1");
+                preparedStatement.addBatch();
+                preparedStatement.setObject(1, "value2");
+                preparedStatement.addBatch();
+                preparedStatement.executeBatch();
+            }
+        }
+    }
+
+    @Test
+    public void testExecuteBatchColumnCaseMismatch() throws Exception {
+        String varcharTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("varchartable1"));
+        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+        try (Connection con = DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+            try (Statement statement = con.createStatement()) {
+                TestUtils.dropTableIfExists(varcharTable1, statement);
+                String createSql = "CREATE TABLE" + varcharTable1 + " (c1 varchar(10))";
+                statement.execute(createSql);
+            }
+            // upper case C1
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + varcharTable1 + "(C1) VALUES(?)")) {
+                preparedStatement.setObject(1, "value1");
+                preparedStatement.addBatch();
+                preparedStatement.setObject(1, "value2");
+                preparedStatement.addBatch();
+                try {
+                    preparedStatement.executeBatch();
+                    fail("Should have failed");
+                } catch (Exception ex) {
+                    assertInstanceOf(SQLServerException.class, ex);
+                    assertEquals("Unable to retrieve column metadata.", ex.getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * Get a PreparedStatement object and call the addBatch() method with 3 SQL statements and call the executeBatch()
      * method and it should return array of Integer values of length 3
