@@ -705,7 +705,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"),
                     null, true);
-        } else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
+        } else if ((EXECUTE_UPDATE == executeMethod) && (null != resultSet) && !bRequestedGeneratedKeys) {
             SQLServerException.makeFromDriverError(connection, this,
                     SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
