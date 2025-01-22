@@ -105,7 +105,7 @@
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>msal4j</artifactId>
-			<version>1.13.0</version>
+			<version>${msal.version}</version>
 			<optional>true</optional>
 		</dependency>
 
@@ -237,7 +237,30 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>central</id>
+			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
 	<profiles>
 		<profile>
 			<id>jre8</id>
@@ -535,7 +558,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.8</version>
+				<version>0.8.12</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>
