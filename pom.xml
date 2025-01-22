@@ -146,8 +146,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.osgi</groupId>
-			<artifactId>org.osgi.core</artifactId>
-			<version>${org.osgi.core.version}</version>
+			<artifactId>org.osgi.service.jdbc</artifactId>
+			<version>${osgi.jdbc.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
