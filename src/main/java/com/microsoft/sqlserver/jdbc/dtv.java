@@ -1470,6 +1470,7 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                case JSON:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
@@ -1529,7 +1530,6 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
-                case JSON:
                     op.execute(this, (byte[]) null);
                     break;
 
