@@ -26,7 +26,30 @@ public class KerberosTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
+        setJaasConfiguration();
         setConnection();
+    }
+
+    private static void setJaasConfiguration() {
+        AppConfigurationEntry[] entries = new AppConfigurationEntry[]{
+            new AppConfigurationEntry(
+                "com.sun.security.auth.module.Krb5LoginModule",
+                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                new HashMap<String, Object>() {{
+                    put("useTicketCache", "true");
+                    put("renewTGT", "true");
+                }}
+            )
+        };
+        Configuration.setConfiguration(new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+                if ("SQLJDBCDriver".equals(name)) {
+                    return entries;
+                }
+                return null;
+            }
+        });
     }
 
     @Test
