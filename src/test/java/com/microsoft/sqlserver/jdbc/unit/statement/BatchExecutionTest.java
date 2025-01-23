@@ -72,6 +72,8 @@ public class BatchExecutionTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("timestamptable1"));
     private static String timestampTable2 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("timestamptable2"));
+    private static String caseSensitiveTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
 
     /**
      * This tests the updateCount when the error query does cause a SQL state HY008.
@@ -570,16 +572,15 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testExecuteBatchColumnCaseMatching() throws Exception {
-        String varcharTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("varchartable1"));
         // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
         try (Connection con = DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
             try (Statement statement = con.createStatement()) {
-                TestUtils.dropTableIfExists(varcharTable1, statement);
-                String createSql = "CREATE TABLE" + varcharTable1 + " (c1 varchar(10))";
+                TestUtils.dropTableIfExists(caseSensitiveTable, statement);
+                String createSql = "CREATE TABLE" + caseSensitiveTable + " (c1 varchar(10))";
                 statement.execute(createSql);
             }
-            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + varcharTable1 + "(c1) VALUES(?)")) {
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + caseSensitiveTable + "(c1) VALUES(?)")) {
                 preparedStatement.setObject(1, "value1");
                 preparedStatement.addBatch();
                 preparedStatement.setObject(1, "value2");
@@ -591,17 +592,16 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testExecuteBatchColumnCaseMismatch() throws Exception {
-        String varcharTable1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("varchartable1"));
         // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
         try (Connection con = DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
             try (Statement statement = con.createStatement()) {
-                TestUtils.dropTableIfExists(varcharTable1, statement);
-                String createSql = "CREATE TABLE" + varcharTable1 + " (c1 varchar(10))";
+                TestUtils.dropTableIfExists(caseSensitiveTable, statement);
+                String createSql = "CREATE TABLE" + caseSensitiveTable + " (c1 varchar(10))";
                 statement.execute(createSql);
             }
             // upper case C1
-            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + varcharTable1 + "(C1) VALUES(?)")) {
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + caseSensitiveTable + "(C1) VALUES(?)")) {
                 preparedStatement.setObject(1, "value1");
                 preparedStatement.addBatch();
                 preparedStatement.setObject(1, "value2");
@@ -882,6 +882,7 @@ public class BatchExecutionTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable4), stmt);
             TestUtils.dropTableIfExists(timestampTable1, stmt);
             TestUtils.dropTableIfExists(timestampTable2, stmt);
+            TestUtils.dropTableIfExists(caseSensitiveTable, stmt);
         }
     }
 
