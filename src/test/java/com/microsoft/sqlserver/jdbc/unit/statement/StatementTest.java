@@ -2796,6 +2796,30 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Tests executeUpdate using PreparedStatement for Insert followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPrepStmtNoCountExecuteInsertAndGenKeys() {
+            try (Connection con = getConnection()) {
+                String sql = "SET NOCOUNT ON; INSERT INTO " + tableName + " (NAME) VALUES('test')";
+                try(PreparedStatement stmt = con.prepareStatement(sql,PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    stmt.execute();
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "id should have been 4, but received : " + id);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        
+        /**
          * Tests execute for Insert followed by getGenerateKeys
          *
          * @throws Exception
