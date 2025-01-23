@@ -256,9 +256,9 @@ public class BulkCopyCSVTest extends AbstractTest {
                     i++;
                 }
                 assertEquals(i, 12, "Expected to load 12 records, but loaded " + i + " records");
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
-
-            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
     
