@@ -107,7 +107,11 @@ final class KerbAuthentication extends SSPIAuthentication {
                     }
 
                     if (null == currentSubject) {
-                        lc = new LoginContext(configName, null, callback, new JaasConfiguration(Configuration.getConfiguration()));
+                        if (useDefaultJaas) {
+                            lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
+                        } else {
+                            lc = new LoginContext(configName, callback);
+                        }
                         lc.login();
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
