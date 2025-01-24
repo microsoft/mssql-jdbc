@@ -753,4 +753,143 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     public void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert) {
         wrappedConnection.setUseBulkCopyForBatchInsert(useBulkCopyForBatchInsert);
     }
+    
+    /** 
+     * The default batch size for bulk copy operations created from batch insert operations.
+     */
+    private int bulkCopyForBatchInsertBatchSize = 0;
+
+    /**
+     * Returns the bulkCopyForBatchInsertBatchSize value.
+     * 
+     * @return the bulkCopyForBatchInsertBatchSize value.
+     */
+    public int getBulkCopyForBatchInsertBatchSize() {
+        return wrappedConnection.getBulkCopyForBatchInsertBatchSize();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertBatchSize value.
+     * 
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the bulkCopyForBatchInsertBatchSize value to set.
+     */
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+    	wrappedConnection.setBulkCopyForBatchInsertBatchSize(bulkCopyForBatchInsertBatchSize);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertCheckConstraints value.
+     * 
+     * @return the bulkCopyForBatchInsertCheckConstraints value.
+     */
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
+        return wrappedConnection.getBulkCopyForBatchInsertCheckConstraints();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertCheckConstraints value.
+     * 
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        the bulkCopyForBatchInsertCheckConstraints value to set.
+     */
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        wrappedConnection.setBulkCopyForBatchInsertCheckConstraints(bulkCopyForBatchInsertCheckConstraints);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertFireTriggers value.
+     * 
+     * @return the bulkCopyForBatchInsertFireTriggers value.
+     */
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
+        return wrappedConnection.getBulkCopyForBatchInsertFireTriggers();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertFireTriggers value.
+     * 
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        the bulkCopyForBatchInsertFireTriggers value to set.
+     */
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        wrappedConnection.setBulkCopyForBatchInsertFireTriggers(bulkCopyForBatchInsertFireTriggers);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertKeepIdentity value.
+     * 
+     * @return the bulkCopyForBatchInsertKeepIdentity value.
+     */
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
+        return wrappedConnection.getBulkCopyForBatchInsertKeepIdentity();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertKeepIdentity value.
+     * 
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        the bulkCopyForBatchInsertKeepIdentity value to set.
+     */
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        wrappedConnection.setBulkCopyForBatchInsertKeepIdentity(bulkCopyForBatchInsertKeepIdentity);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertKeepNulls value.
+     * 
+     * @return the bulkCopyForBatchInsertKeepNulls value.
+     */
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
+        return wrappedConnection.getBulkCopyForBatchInsertKeepNulls();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertKeepNulls value.
+     * 
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        the bulkCopyForBatchInsertKeepNulls value to set.
+     */
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        wrappedConnection.setBulkCopyForBatchInsertKeepNulls(bulkCopyForBatchInsertKeepNulls);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertTableLock value.
+     * 
+     * @return the bulkCopyForBatchInsertTableLock value.
+     */
+    public boolean getBulkCopyForBatchInsertTableLock() {
+        return wrappedConnection.getBulkCopyForBatchInsertTableLock();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertTableLock value.
+     * 
+     * @param bulkCopyForBatchInsertTableLock
+     *        the bulkCopyForBatchInsertTableLock value to set.
+     */
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+    	wrappedConnection.setBulkCopyForBatchInsertTableLock(bulkCopyForBatchInsertTableLock);
+    }
+
+    /**
+     * Returns the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
+     * 
+     * @return the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
+     */
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
+    	return wrappedConnection.getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+    }
+
+    /**
+     * Sets the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
+     * 
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        the bulkCopyForBatchInsertAllowEncryptedValueModifications value to set.
+     */
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        wrappedConnection.setBulkCopyForBatchInsertAllowEncryptedValueModifications(bulkCopyForBatchInsertAllowEncryptedValueModifications);
+    }
+
 }
