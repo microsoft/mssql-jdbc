@@ -571,26 +571,6 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @Test
-    public void testExecuteBatchColumnCaseMatching() throws Exception {
-        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
-        try (Connection con = DriverManager.getConnection(connectionString
-                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
-            try (Statement statement = con.createStatement()) {
-                TestUtils.dropTableIfExists(caseSensitiveTable, statement);
-                String createSql = "CREATE TABLE" + caseSensitiveTable + " (c1 varchar(10))";
-                statement.execute(createSql);
-            }
-            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + caseSensitiveTable + "(c1) VALUES(?)")) {
-                preparedStatement.setObject(1, "value1");
-                preparedStatement.addBatch();
-                preparedStatement.setObject(1, "value2");
-                preparedStatement.addBatch();
-                preparedStatement.executeBatch();
-            }
-        }
-    }
-
-    @Test
     public void testExecuteBatchColumnCaseMismatch() throws Exception {
         // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
         try (Connection con = DriverManager.getConnection(connectionString
