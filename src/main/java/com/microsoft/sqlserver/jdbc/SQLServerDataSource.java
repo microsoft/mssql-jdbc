@@ -170,7 +170,7 @@ public class SQLServerDataSource
     @Override
     public String getApplicationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
-                SQLServerDriver.constructedAppName);
+        SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
     /**
