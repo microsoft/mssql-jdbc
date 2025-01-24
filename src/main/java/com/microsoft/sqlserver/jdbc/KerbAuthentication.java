@@ -13,7 +13,7 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import javax.security.auth.Subject;
-//import javax.security.auth.login.Configuration;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -42,15 +42,15 @@ final class KerbAuthentication extends SSPIAuthentication {
     private boolean useDefaultNativeGSSCredential = false;
     private GSSContext peerContext = null;
 
-    // static {
-    //     // Overrides the default JAAS configuration loader.
-    //     // This one will forward to the default one in all cases but the default configuration is empty.
-    //     try {
-    //         Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
-    //     } catch (SQLServerException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
+    static {
+        // Overrides the default JAAS configuration loader.
+        // This one will forward to the default one in all cases but the default configuration is empty.
+        try {
+            Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
+        } catch (SQLServerException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Initializes the Kerberos client security context

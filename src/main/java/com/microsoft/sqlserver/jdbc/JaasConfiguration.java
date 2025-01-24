@@ -19,8 +19,13 @@ public class JaasConfiguration extends Configuration {
     private final Configuration delegate;
     private AppConfigurationEntry[] defaultValue;
 
+    private static boolean useIbmModule = false;
+
     private static AppConfigurationEntry[] generateDefaultConfiguration() throws SQLServerException {
         try {
+            if (useIbmModule) {
+                return loadIbmModule();
+            }
             Class.forName("com.sun.security.auth.module.Krb5LoginModule");
             Map<String, String> confDetails = new HashMap<>();
             confDetails.put("useTicketCache", "true");
@@ -28,23 +33,25 @@ public class JaasConfiguration extends Configuration {
                     new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
                             AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
         } catch (ClassNotFoundException e) {
-            try {
-                Class.forName("com.ibm.security.auth.module.Krb5LoginModule");
-                Map<String, String> confDetailsWithoutPassword = new HashMap<>();
-                confDetailsWithoutPassword.put("useDefaultCcache", "true");
-                Map<String, String> confDetailsWithPassword = new HashMap<>();
-                // We generated a two configurations fallback that is suitable for password and password-less authentication
-                // See
-                // https://www.ibm.com/support/knowledgecenter/SSYKE2_8.0.0/com.ibm.java.security.component.80.doc/security-component/jgssDocs/jaas_login_user.html
-                final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
-                return new AppConfigurationEntry[] {
-                        new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                confDetailsWithoutPassword),
-                        new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                confDetailsWithPassword)};
-            } catch (ClassNotFoundException ex) {
-                throw new SQLServerException(SQLServerException.getErrString("R_moduleNotFound"), null);
-            }
+            return loadIbmModule();
+        }
+    }
+
+    private static AppConfigurationEntry[] loadIbmModule() throws SQLServerException {
+        try {
+            Class.forName("com.ibm.security.auth.module.Krb5LoginModule");
+            useIbmModule = true;
+            Map<String, String> confDetailsWithoutPassword = new HashMap<>();
+            confDetailsWithoutPassword.put("useDefaultCcache", "true");
+            Map<String, String> confDetailsWithPassword = new HashMap<>();
+            final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
+            return new AppConfigurationEntry[] {
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithoutPassword),
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithPassword)};
+        } catch (ClassNotFoundException ex) {
+            throw new SQLServerException(SQLServerException.getErrString("R_moduleNotFound"), null);
         }
     }
 
