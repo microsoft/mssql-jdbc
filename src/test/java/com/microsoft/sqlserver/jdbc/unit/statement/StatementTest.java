@@ -2708,10 +2708,11 @@ public class StatementTest extends AbstractTest {
     	@BeforeEach
     	public void init() throws SQLException {
     		try (Connection connection = getConnection()) {
-    			String dropProcedureSQL = "DROP PROCEDURE IF EXISTS " + procName1 + ", " + procName2 + ", "
-    					+ procNameMaxScale + ", " + procNameMaxPrecision;
     			try (Statement stmt = connection.createStatement()) {
-    				stmt.execute(dropProcedureSQL);
+    				TestUtils.dropProcedureIfExists(procName1, stmt);
+    				TestUtils.dropProcedureIfExists(procName2, stmt);
+    				TestUtils.dropProcedureIfExists(procNameMaxScale, stmt);
+    				TestUtils.dropProcedureIfExists(procNameMaxPrecision, stmt);
     			}
 
     			String createProcedureSQL1 = "CREATE PROCEDURE " + procName1 + "\n"
