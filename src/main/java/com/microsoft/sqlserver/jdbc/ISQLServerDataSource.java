@@ -981,6 +981,111 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
+     * Sets the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the default batch size for bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
+
+    /**
+     * Returns the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @return the default batch size for bulk copy operations created from batch insert operations.
+     */
+    int getBulkCopyForBatchInsertBatchSize();
+
+    /**
+     * Sets whether to check constraints during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        indicates whether to check constraints during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
+
+    /**
+     * Returns whether to check constraints during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to check constraints during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertCheckConstraints();
+
+    /**
+     * Sets whether to fire triggers during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        indicates whether to fire triggers during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers);
+
+    /**
+     * Returns whether to fire triggers during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to fire triggers during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertFireTriggers();
+
+    /**
+     * Sets whether to keep identity values during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        indicates whether to keep identity values during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity);
+
+    /**
+     * Returns whether to keep identity values during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to keep identity values during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertKeepIdentity();
+
+    /**
+     * Sets whether to keep null values during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        indicates whether to keep null values during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls);
+
+    /**
+     * Returns whether to keep null values during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to keep null values during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertKeepNulls();
+
+    /**
+     * Sets whether to use table lock during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertTableLock
+     *        indicates whether to use table lock during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock);
+
+    /**
+     * Returns whether to use table lock during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to use table lock during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertTableLock();
+
+    /**
+     * Sets whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        indicates whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications);
+
+    /**
+     * Returns whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+        
+    /**
      * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
      * @param managedIdentityClientId

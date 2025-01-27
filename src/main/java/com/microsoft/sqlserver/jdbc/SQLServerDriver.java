@@ -644,7 +644,8 @@ enum SQLServerDriverIntProperty {
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
-    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
+    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0);
 
     private final String name;
     private final int defaultValue;
@@ -694,6 +695,12 @@ enum SQLServerDriverBooleanProperty {
     ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT("enablePrepareOnFirstPreparedStatementCall", SQLServerConnection.DEFAULT_ENABLE_PREPARE_ON_FIRST_PREPARED_STATEMENT_CALL),
     ENABLE_BULK_COPY_CACHE("cacheBulkCopyMetadata", false),
     USE_BULK_COPY_FOR_BATCH_INSERT("useBulkCopyForBatchInsert", false),
+    BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS("bulkCopyForBatchInsertCheckConstraints", false),
+    BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS("bulkCopyForBatchInsertFireTriggers", false),
+    BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY("bulkCopyForBatchInsertKeepIdentity", false),
+    BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS("bulkCopyForBatchInsertKeepNulls", false),
+    BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK("bulkCopyForBatchInsertTableLock", false),
+    BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS("bulkCopyForBatchInsertAllowEncryptedValueModifications", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
@@ -731,11 +738,11 @@ public final class SQLServerDriver implements java.sql.Driver {
     static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
     static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
-    static final String APP_NAME_TEMPLATE = "Microsoft JDBC - %s, %s - %s";
-    static final String constructedAppName;
-    static {
-        constructedAppName = getAppName();
-    }
+    // static final String APP_NAME_TEMPLATE = "Microsoft JDBC - %s, %s - %s";
+    // static final String constructedAppName;
+    // static {
+    //     constructedAppName = getAppName();
+    // }
 
     /**
      * Constructs the application name using system properties for OS, platform, and architecture.
@@ -744,18 +751,18 @@ public final class SQLServerDriver implements java.sql.Driver {
      *
      * @return the constructed application name or the default application name if properties are not available
      */
-    static String getAppName() {
-        String osName = System.getProperty("os.name", "");
-        String osArch = System.getProperty("os.arch", "");
-        String javaVmName = System.getProperty("java.vm.name", "");
-        String javaVmVersion = System.getProperty("java.vm.version", "");
-        String platform = javaVmName.isEmpty() || javaVmVersion.isEmpty() ? "" : javaVmName + " " + javaVmVersion;
+    // static String getAppName() {
+    //     String osName = System.getProperty("os.name", "");
+    //     String osArch = System.getProperty("os.arch", "");
+    //     String javaVmName = System.getProperty("java.vm.name", "");
+    //     String javaVmVersion = System.getProperty("java.vm.version", "");
+    //     String platform = javaVmName.isEmpty() || javaVmVersion.isEmpty() ? "" : javaVmName + " " + javaVmVersion;
 
-        if (osName.isEmpty() && platform.isEmpty() && osArch.isEmpty()) {
-            return DEFAULT_APP_NAME;
-        }
-        return String.format(APP_NAME_TEMPLATE, osName, platform, osArch);
-    }
+    //     if (osName.isEmpty() && platform.isEmpty() && osArch.isEmpty()) {
+    //         return DEFAULT_APP_NAME;
+    //     }
+    //     return String.format(APP_NAME_TEMPLATE, osName, platform, osArch);
+    // }
     
     private static final String[] TRUE_FALSE = {"true", "false"};
 
@@ -946,9 +953,22 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue()),
                     false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue()),false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.getDefaultValue()),false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+            		Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.getDefaultValue()),false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.getDefaultValue()),false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.getDefaultValue()),false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue()),false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue()),
-                    false, TRUE_FALSE),
+                    Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
@@ -1053,9 +1073,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.constructedAppName);
-        }
+        // if (loggerExternal.isLoggable(Level.FINE)) {
+        //     loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.constructedAppName);
+        // }
     }
 
     // Check for jdk.net.ExtendedSocketOptions to set TCP keep-alive options for idle connection resiliency
@@ -1294,9 +1314,9 @@ public final class SQLServerDriver implements java.sql.Driver {
         Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            if (connectProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
-                connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
-            }   
+            // if (connectProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
+            //     connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
+            // }   
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);
