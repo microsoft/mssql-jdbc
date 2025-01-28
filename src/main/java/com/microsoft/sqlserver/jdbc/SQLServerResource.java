@@ -190,7 +190,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_lockTimeoutPropertyDescription", "The number of milliseconds to wait before the database reports a lock time-out."},
         {"R_connectRetryCountPropertyDescription", "The number of reconnection attempts if there is a connection failure."},
         {"R_connectRetryIntervalPropertyDescription", "The number of seconds between each connection retry attempt."},
-        {"R_msiTokenCacheTtlPropertyDescription", "The number of seconds a Managed Identity (MSI) access token should be cached."},
         {"R_loginTimeoutPropertyDescription", "The number of seconds the driver should wait before timing out a failed connection."},
         {"R_instanceNamePropertyDescription", "The name of the SQL Server instance to connect to."},
         {"R_xopenStatesPropertyDescription", "Determines if the driver returns XOPEN-compliant SQL state codes in exceptions."},
@@ -340,7 +339,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_NtlmNoUserPasswordDomain", "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},
         {"R_SetAccesstokenWhenIntegratedSecurityTrue", "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
         {"R_IntegratedAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-        {"R_MSIAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryMSI\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
+        {"R_MSIAuthenticationWithPassword", "Cannot use \"Authentication={0}\" with \"Password\" connection string keyword."},
         {"R_AccessTokenWithUserPassword", "Cannot set the AccessToken property if \"User\", \"UserName\" or \"Password\" has been specified in the connection string."},
         {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
@@ -457,9 +456,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_keyStorePrincipalIdPropertyDescription", "Principal Id of Azure Active Directory."},
         {"R_MSALMissing", "Failed to load MSAL4J Java library for performing {0} authentication."},
         {"R_DLLandMSALMissing", "Failed to load both {0} and MSAL4J Java library for performing {1} authentication. Please install one of them to proceed."},
-        {"R_MSITokenFailureImds", "MSI Token failure: Failed to acquire access token from IMDS"},
-        {"R_MSITokenFailureImdsClientId", "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
-        {"R_MSITokenFailureUnexpected", "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
         {"R_MSITokenFailureEndpoint", "MSI Token failure: Failed to acquire token from MSI Endpoint"},
         {"R_propertyNotSupported", "Microsoft JDBC Driver for SQL Server currently does not support the property: {0}"},
         {"R_ntlmHmacMD5Error", "Unable to initialize NTLM authentication: HMAC-MD5 initialization error."},
@@ -502,7 +498,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
         {"R_maxResultBufferPropertyExceeded", "MaxResultBuffer property exceeded: {0}. MaxResultBuffer was set to: {1}."},
-        {"R_invalidMsiTokenCacheTtl", "msiTokenCacheTtl {0} is not valid."},
         {"R_invalidConnectRetryCount", "Connection retry count {0} is not valid."},
         {"R_connectRetryCountPropertyDescription", "The maximum number of attempts to reestablish a broken connection."},
         {"R_invalidConnectRetryInterval", "Connection retry interval {0} is not valid."},
@@ -519,7 +514,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_serverCertError", "Error validating Server Certificate: {0}: {1}."},
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
         {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
-        {"R_serverError", "An error occurred during the current command (Done status {0}). {1}"},
+        {"R_serverError", "An error occurred during the current command (Done status {0})."},
+        {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."}
     };
 }
 // @formatter:on

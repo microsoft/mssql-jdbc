@@ -82,8 +82,8 @@ public abstract class AbstractTest {
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
-    // properties needed for MSI
-    protected static String msiClientId = null;
+    // properties needed for Managed Identity
+    protected static String managedIdentityClientId = null;
     protected static String keyStorePrincipalId = null;
     protected static String keyStoreSecret = null;
 
@@ -217,7 +217,7 @@ public abstract class AbstractTest {
         }
 
         // MSI properties
-        msiClientId = getConfiguredProperty("msiClientId");
+        managedIdentityClientId = getConfiguredProperty("msiClientId");
         keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
         keyStoreSecret = getConfiguredProperty("keyStoreSecret");
     }
@@ -408,9 +408,6 @@ public abstract class AbstractTest {
                             break;
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
-                            break;
-                        case Constants.MSITOKENCACHETTL:
-                            ds.setMsiTokenCacheTtl(Integer.parseInt(value));
                             break;
                         default:
                             break;

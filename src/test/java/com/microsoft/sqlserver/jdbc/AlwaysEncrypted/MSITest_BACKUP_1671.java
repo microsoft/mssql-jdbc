@@ -58,11 +58,24 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.PASSWORD, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
 
+<<<<<<< HEAD
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+=======
         testSimpleConnect(connStr);
 
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
+>>>>>>> 095c7ee2 (Managed Identity dev experience improvements (#1936))
 
         testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
+                Integer.toString(Integer.MAX_VALUE));
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
+
+        testSimpleConnect(connStr); // This call will use a cached token
     }
 
     private void testSimpleConnect(String connStr) {
@@ -104,9 +117,26 @@ public class MSITest extends AESetup {
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.USER, "");
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, managedIdentityClientId);
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryMSI");
+<<<<<<< HEAD
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSICLIENTID, msiClientId);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "0");
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL,
+                Integer.toString(Integer.MAX_VALUE));
+
+        testSimpleConnect(connStr);
+
+        connStr = TestUtils.addOrOverrideProperty(connStr, Constants.MSITOKENCACHETTL, "");
+
+        testSimpleConnect(connStr); // This call will use a cached token
+=======
         try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
         connStr = TestUtils.addOrOverrideProperty(connStr, Constants.AUTHENTICATION, "ActiveDirectoryManagedIdentity");
         try (SQLServerConnection con = PrepUtil.getConnection(connStr)) {}
+>>>>>>> 095c7ee2 (Managed Identity dev experience improvements (#1936))
     }
 
     /*
@@ -125,6 +155,11 @@ public class MSITest extends AESetup {
         SQLServerDataSource ds = new SQLServerDataSource();
         AbstractTest.updateDataSource(connStr, ds);
 
+<<<<<<< HEAD
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
+=======
         ds.setAuthentication("ActiveDirectoryMSI");
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
@@ -132,6 +167,7 @@ public class MSITest extends AESetup {
         ds.setAuthentication("ActiveDirectoryManagedIdentity");
 
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+>>>>>>> 095c7ee2 (Managed Identity dev experience improvements (#1936))
     }
 
     /*
@@ -199,6 +235,12 @@ public class MSITest extends AESetup {
         ds.setMSIClientId(managedIdentityClientId);
         AbstractTest.updateDataSource(connStr, ds);
 
+<<<<<<< HEAD
+
+        try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {} catch (Exception e) {
+            fail(TestResource.getResource("R_loginFailed") + e.getMessage());
+        }
+=======
         // With msiClientId property
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
 
@@ -213,6 +255,7 @@ public class MSITest extends AESetup {
         // Without user property
         ds.setUser("");
         try (SQLServerConnection con = (SQLServerConnection) ds.getConnection()) {}
+>>>>>>> 095c7ee2 (Managed Identity dev experience improvements (#1936))
     }
 
     /*
