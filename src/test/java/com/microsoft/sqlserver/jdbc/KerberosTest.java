@@ -42,7 +42,7 @@ public class KerberosTest extends AbstractTest {
                 "com.sun.security.auth.module.Krb5LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                 options);
         Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("SQLJDBCDriver", new AppConfigurationEntry[] {kerberosConfigurationEntry});
+        configurationEntries.put("CLIENT_CONTEXT_NAME", new AppConfigurationEntry[] {kerberosConfigurationEntry});
         Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
     }
 
