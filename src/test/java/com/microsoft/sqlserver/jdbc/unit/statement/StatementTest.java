@@ -7,7 +7,11 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -17,6 +21,7 @@ import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.NClob;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -2696,106 +2701,138 @@ public class StatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public class BigDecimalPrecisionTest {
 
-    	private final String procName1 = AbstractSQLGenerator
-    			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_3"));
-    	private final String procName2 = AbstractSQLGenerator
-    			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_5"));
-    	private final String procNameMaxScale = AbstractSQLGenerator
-    			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_scale"));
-    	private final String procNameMaxPrecision = AbstractSQLGenerator
-    			.escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_precision"));
+        private final String procName1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_3"));
+        private final String procName2 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_5"));
+        private final String procNameMaxScale = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_scale"));
+        private final String procNameMaxPrecision = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_max_precision"));
+        private final String procNameForCatchBlock = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("test_bigdecimal_catch_block"));
 
-    	@BeforeEach
-    	public void init() throws SQLException {
-    		try (Connection connection = getConnection()) {
-    			try (Statement stmt = connection.createStatement()) {
-    				TestUtils.dropProcedureIfExists(procName1, stmt);
-    				TestUtils.dropProcedureIfExists(procName2, stmt);
-    				TestUtils.dropProcedureIfExists(procNameMaxScale, stmt);
-    				TestUtils.dropProcedureIfExists(procNameMaxPrecision, stmt);
-    			}
+        @BeforeEach
+        public void init() throws SQLException {
+            try (Connection connection = getConnection()) {
+                try (Statement stmt = connection.createStatement()) {
+                    TestUtils.dropProcedureIfExists(procName1, stmt);
+                    TestUtils.dropProcedureIfExists(procName2, stmt);
+                    TestUtils.dropProcedureIfExists(procNameMaxScale, stmt);
+                    TestUtils.dropProcedureIfExists(procNameMaxPrecision, stmt);
+                    TestUtils.dropProcedureIfExists(procNameForCatchBlock, stmt);
+                }
 
-    			String createProcedureSQL1 = "CREATE PROCEDURE " + procName1 + "\n"
-    					+ "    @big_decimal_type      decimal(15, 3),\n"
-    					+ "    @big_decimal_type_o    decimal(15, 3) OUTPUT\n" + "AS\n" + "BEGIN\n"
-    					+ "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
-    			String createProcedureSQL2 = "CREATE PROCEDURE " + procName2 + "\n"
-    					+ "    @big_decimal_type      decimal(15, 5),\n"
-    					+ "    @big_decimal_type_o    decimal(15, 5) OUTPUT\n" + "AS\n" + "BEGIN\n"
-    					+ "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
-    			String createProcedureMaxScale = "CREATE PROCEDURE " + procNameMaxScale + "\n"
-    					+ "    @big_decimal_type      decimal(38, 38),\n"
-    					+ "    @big_decimal_type_o    decimal(38, 38) OUTPUT\n" + "AS\n" + "BEGIN\n"
-    					+ "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
-    			String createProcedureMaxPrecision = "CREATE PROCEDURE " + procNameMaxPrecision + "\n"
-    					+ "    @big_decimal_type      decimal(38, 0),\n"
-    					+ "    @big_decimal_type_o    decimal(38, 0) OUTPUT\n" + "AS\n" + "BEGIN\n"
-    					+ "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
+                String createProcedureSQL1 = "CREATE PROCEDURE " + procName1 + "\n"
+                        + "    @big_decimal_type      decimal(15, 3),\n"
+                        + "    @big_decimal_type_o    decimal(15, 3) OUTPUT\n" + "AS\n" + "BEGIN\n"
+                        + "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
+                String createProcedureSQL2 = "CREATE PROCEDURE " + procName2 + "\n"
+                        + "    @big_decimal_type      decimal(15, 5),\n"
+                        + "    @big_decimal_type_o    decimal(15, 5) OUTPUT\n" + "AS\n" + "BEGIN\n"
+                        + "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
+                String createProcedureMaxScale = "CREATE PROCEDURE " + procNameMaxScale + "\n"
+                        + "    @big_decimal_type      decimal(38, 38),\n"
+                        + "    @big_decimal_type_o    decimal(38, 38) OUTPUT\n" + "AS\n" + "BEGIN\n"
+                        + "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
+                String createProcedureMaxPrecision = "CREATE PROCEDURE " + procNameMaxPrecision + "\n"
+                        + "    @big_decimal_type      decimal(38, 0),\n"
+                        + "    @big_decimal_type_o    decimal(38, 0) OUTPUT\n" + "AS\n" + "BEGIN\n"
+                        + "    SET @big_decimal_type_o = @big_decimal_type;\n" + "END;";
+                String createProcedureForCatchBlock = "CREATE PROCEDURE " + procNameForCatchBlock + "\n" +
+                        "@outParam DECIMAL(10,2) OUTPUT " +
+                        "AS BEGIN SET @outParam = 123.45 END";
 
-    			try (Statement stmt = connection.createStatement()) {
-    				stmt.execute(createProcedureSQL1);
-    				stmt.execute(createProcedureSQL2);
-    				stmt.execute(createProcedureMaxScale);
-    				stmt.execute(createProcedureMaxPrecision);
-    			}
-    		}
-    	}
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(createProcedureSQL1);
+                    stmt.execute(createProcedureSQL2);
+                    stmt.execute(createProcedureMaxScale);
+                    stmt.execute(createProcedureMaxPrecision);
+                    stmt.execute(createProcedureForCatchBlock);
+                }
+            }
+        }
 
-    	@AfterEach
-    	public void terminate() throws SQLException {
-    		try (Connection connection = getConnection()) {
-    			try (Statement stmt = connection.createStatement()) {
-    				String dropProcedureSQL = "DROP PROCEDURE IF EXISTS " + procName1 + ", " + procName2 + ", "
-    						+ procNameMaxScale + ", " + procNameMaxPrecision;
-    				stmt.execute(dropProcedureSQL);
-    			}
-    		}
-    	}
+        @AfterEach
+        public void terminate() throws SQLException {
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                    TestUtils.dropProcedureIfExists(procName1, stmt);
+                    TestUtils.dropProcedureIfExists(procName2, stmt);
+                    TestUtils.dropProcedureIfExists(procNameMaxScale, stmt);
+                    TestUtils.dropProcedureIfExists(procNameMaxPrecision, stmt);
+                    TestUtils.dropProcedureIfExists(procNameForCatchBlock, stmt);
+            }
+        }
 
-    	@Test
-    	@Tag("BigDecimal")
-    	public void testBigDecimalPrecision() throws SQLException {
-    		try (Connection connection = getConnection()) {
-    			// Test for DECIMAL(15, 3)
-    			String callSQL1 = "{call " + procName1 + "(100.241, ?)}";
-    			try (CallableStatement call = connection.prepareCall(callSQL1)) {
-    				call.registerOutParameter(1, Types.DECIMAL);
-    				call.execute();
-    				BigDecimal actual1 = call.getBigDecimal(1);
-    				assertEquals(new BigDecimal("100.241"), actual1);
-    			}
+        @Test
+        @Tag("BigDecimal")
+        public void testBigDecimalPrecision() throws SQLException {
+            try (Connection connection = getConnection()) {
+                // Test for DECIMAL(15, 3)
+                String callSQL1 = "{call " + procName1 + "(100.241, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL1)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual1 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.241"), actual1);
+                }
 
-    			// Test for DECIMAL(15, 5)
-    			String callSQL2 = "{call " + procName2 + "(100.24112, ?)}";
-    			try (CallableStatement call = connection.prepareCall(callSQL2)) {
-    				call.registerOutParameter(1, Types.DECIMAL);
-    				call.execute();
-    				BigDecimal actual2 = call.getBigDecimal(1);
-    				assertEquals(new BigDecimal("100.24112"), actual2);
-    			}
+                // Test for DECIMAL(15, 5)
+                String callSQL2 = "{call " + procName2 + "(100.24112, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQL2)) {
+                    call.registerOutParameter(1, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actual2 = call.getBigDecimal(1);
+                    assertEquals(new BigDecimal("100.24112"), actual2);
+                }
 
-    			// Test for DECIMAL(38, 38)
-    			String callSQLMaxScale = "{call " + procNameMaxScale + "(?, ?)}";
-    			try (CallableStatement call = connection.prepareCall(callSQLMaxScale)) {
-    				BigDecimal maxScaleValue = new BigDecimal("0.11111111111111111111111111111111111111");
-    				call.setBigDecimal(1, maxScaleValue);
-    				call.registerOutParameter(2, Types.DECIMAL);
-    				call.execute();
-    				BigDecimal actualMaxScale = call.getBigDecimal(2);
-    				assertEquals(maxScaleValue, actualMaxScale, "DECIMAL(38, 38) max scale test failed");
-    			}
+                // Test for DECIMAL(38, 38)
+                String callSQLMaxScale = "{call " + procNameMaxScale + "(?, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQLMaxScale)) {
+                    BigDecimal maxScaleValue = new BigDecimal("0.11111111111111111111111111111111111111");
+                    call.setBigDecimal(1, maxScaleValue);
+                    call.registerOutParameter(2, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actualMaxScale = call.getBigDecimal(2);
+                    assertEquals(maxScaleValue, actualMaxScale, "DECIMAL(38, 38) max scale test failed");
+                }
 
-    			// Test for DECIMAL(38, 0)
-    			String callSQLMaxPrecision = "{call " + procNameMaxPrecision + "(?, ?)}";
-    			try (CallableStatement call = connection.prepareCall(callSQLMaxPrecision)) {
-    				BigDecimal maxPrecisionValue = new BigDecimal("99999999999999999999999999999999999999");
-    				call.setBigDecimal(1, maxPrecisionValue);
-    				call.registerOutParameter(2, Types.DECIMAL);
-    				call.execute();
-    				BigDecimal actualMaxPrecision = call.getBigDecimal(2);
-    				assertEquals(maxPrecisionValue, actualMaxPrecision, "DECIMAL(38, 0) max precision test failed");
-    			}
-    		}
-    	}
+                // Test for DECIMAL(38, 0)
+                String callSQLMaxPrecision = "{call " + procNameMaxPrecision + "(?, ?)}";
+                try (CallableStatement call = connection.prepareCall(callSQLMaxPrecision)) {
+                    BigDecimal maxPrecisionValue = new BigDecimal("99999999999999999999999999999999999999");
+                    call.setBigDecimal(1, maxPrecisionValue);
+                    call.registerOutParameter(2, Types.DECIMAL);
+                    call.execute();
+                    BigDecimal actualMaxPrecision = call.getBigDecimal(2);
+                    assertEquals(maxPrecisionValue, actualMaxPrecision, "DECIMAL(38, 0) max precision test failed");
+                }
+            }
+        }
+
+        @Test
+        @Tag("BigDecimal")
+        public void testRegisterOutParameterForBigDecimalCatchBlock() throws SQLException {
+            try (Connection con = getConnection()) {
+                try (CallableStatement realCallableStatement = con.prepareCall("{call "+ procNameForCatchBlock + "(?)}")) {
+
+                    CallableStatement spyCallableStatement = spy(realCallableStatement);
+                    ParameterMetaData spyMetaData = spy(realCallableStatement.getParameterMetaData());
+
+                    // Simulate an exception for getScale
+                    doThrow(new SQLException("Simulated error for BigDecimal scale retrieval"))
+                            .when(spyMetaData).getScale(1);
+
+                    // Inject the mocked ParameterMetaData back into the spy CallableStatement
+                    doReturn(spyMetaData).when(spyCallableStatement).getParameterMetaData();
+
+                    // Assert that the catch block for SQLException is executed
+                    SQLServerException thrownException = assertThrows(SQLServerException.class, () -> {
+                        spyCallableStatement.registerOutParameter(1, java.sql.Types.DECIMAL);
+                    });
+                    assertTrue(thrownException.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidScale")), thrownException.getMessage());
+                }
+            }
+        }
     }
 }

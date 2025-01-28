@@ -167,5 +167,8 @@ dependencies {
 			'org.bouncycastle:bcprov-jdk18on:1.78',
 			'com.azure:azure-security-keyvault-keys:4.7.3',
 			'com.azure:azure-identity:1.12.2',
-			'com.h2database:h2:2.2.220'
+			'com.h2database:h2:2.2.220',
+			'org.mockito:mockito-core:5.15.2',
+			'net.bytebuddy:byte-buddy:1.15.11',
+			'net.bytebuddy:byte-buddy-agent:1.15.11'
 }
