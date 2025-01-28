@@ -66,10 +66,8 @@ enum SqlAuthentication {
     ActiveDirectoryPassword,
     ActiveDirectoryIntegrated,
     ActiveDirectoryMSI,
-    ActiveDirectoryManagedIdentity,
     ActiveDirectoryServicePrincipal,
-    ActiveDirectoryInteractive,
-    DefaultAzureCredential;
+    ActiveDirectoryInteractive;
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
@@ -84,19 +82,14 @@ enum SqlAuthentication {
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
             method = SqlAuthentication.ActiveDirectoryIntegrated;
-        } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
-                || SQLServerDriver.getNormalizedPropertyValueName(value).toLowerCase(Locale.US)
-                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
-            method = SqlAuthentication.ActiveDirectoryManagedIdentity;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.ActiveDirectoryMSI.toString())) {
+            method = SqlAuthentication.ActiveDirectoryMSI;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
             method = SqlAuthentication.ActiveDirectoryServicePrincipal;
         } else if (value.toLowerCase(Locale.US)
                 .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
             method = SqlAuthentication.ActiveDirectoryInteractive;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
-            method = SqlAuthentication.DefaultAzureCredential;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -531,7 +524,8 @@ enum SQLServerDriverIntProperty {
     STATEMENT_POOLING_CACHE_SIZE("statementPoolingCacheSize", SQLServerConnection.DEFAULT_STATEMENT_POOLING_CACHE_SIZE),
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
-    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60);
+    CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
+    MSI_TOKEN_CACHE_TTL("msiTokenCacheTtl", 3600, 0, Integer.MAX_VALUE);
 
     private final String name;
     private final int defaultValue;
@@ -747,7 +741,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
                             SqlAuthentication.ActiveDirectoryPassword.toString(),
                             SqlAuthentication.ActiveDirectoryIntegrated.toString(),
-                            SqlAuthentication.ActiveDirectoryManagedIdentity.toString(),
+                            SqlAuthentication.ActiveDirectoryMSI.toString(),
                             SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
                             SqlAuthentication.ActiveDirectoryInteractive.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
@@ -780,6 +774,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString(),
@@ -831,10 +827,6 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
-
-    private static final String driverPropertyValuesSynonyms[][] = {
-            {"ActiveDirectoryMSI", SqlAuthentication.ActiveDirectoryManagedIdentity.toString()}};
-
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
                                                                       // logging
 
@@ -1014,31 +1006,6 @@ public final class SQLServerDriver implements java.sql.Driver {
         if (logger.isLoggable(Level.FINER))
             logger.finer("Unknown property" + name);
         return null;
-    }
-
-    /**
-     * Returns the normalized the property value name.
-     *
-     * @param name
-     *        name to normalize
-     *
-     * @return the normalized property value name
-     */
-    static String getNormalizedPropertyValueName(String name) {
-        if (null == name)
-            return name;
-
-        for (String[] driverPropertyValueSynonym : driverPropertyValuesSynonyms) {
-            if (driverPropertyValueSynonym[0].equalsIgnoreCase(name)) {
-                return driverPropertyValueSynonym[1];
-            }
-        }
-
-        if (parentLogger.isLoggable(Level.FINER)) {
-            parentLogger.finer("Unknown property value: " + name);
-        }
-
-        return "";
     }
 
     /**

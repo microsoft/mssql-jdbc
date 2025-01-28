@@ -274,7 +274,6 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
      * @throws SQLServerException
      *         when an error occurs
      */
-    @Deprecated
     public SQLServerColumnEncryptionAzureKeyVaultProvider(
             SQLServerKeyVaultAuthenticationCallback authenticationCallback) throws SQLServerException {
         if (null == authenticationCallback) {

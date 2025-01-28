@@ -932,24 +932,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * This method is deprecated. Use {@link ISQLServerDataSource#setUser(String user)} instead.
-     *
-     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
+     * Sets the client id to be used to retrieve access token from MSI EndPoint.
      * 
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
+     * @param msiClientId
+     *        Client ID of User Assigned Managed Identity
      */
-    @Deprecated
-    void setMSIClientId(String managedIdentityClientId);
+    void setMSIClientId(String msiClientId);
 
     /**
-     * This method is deprecated. Use {@link ISQLServerDataSource#getUser()} instead.
-     *
      * Returns the value for the connection property 'msiClientId'.
      * 
      * @return msiClientId property value
      */
-    @Deprecated
     String getMSIClientId();
 
     /**
@@ -1135,7 +1129,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
      * 
-     * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
+     * @deprecated Use {@link ISQLServerDataSource#setUser(String password)} instead
      * @param AADSecurePrincipalId
      *        Active Directory Service Principal Id.
      */
@@ -1214,16 +1208,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getPrepareMethod();
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
+     * Sets time-to-live for the the cached MSI token
+     *
+     * @param timeToLive
+     *        Changes the setting as per description
      */
-    @Deprecated
     void setMsiTokenCacheTtl(int timeToLive);
 
     /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
+     * Gets the time-to-live for the the cached MSI token
+     *
+     * @return time-to-live for the cached MSI token
      */
-    @Deprecated
     int getMsiTokenCacheTtl();
 }

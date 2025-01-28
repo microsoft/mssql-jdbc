@@ -623,7 +623,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void setIPAddressPreference(String iPAddressPreference) {
         wrappedConnection.setIPAddressPreference(iPAddressPreference);
-
+        
     }
 
     @Override
@@ -631,21 +631,13 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         return wrappedConnection.getIPAddressPreference();
     }
 
-    /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
-     */
-    @Deprecated
     @Override
     public int getMsiTokenCacheTtl() {
-        return 0;
+        return wrappedConnection.getMsiTokenCacheTtl();
     }
 
-    /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
-     */
-    @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {}
+    public void setMsiTokenCacheTtl(int timeToLive) {
+        wrappedConnection.setMsiTokenCacheTtl(timeToLive);
+    }
 }
