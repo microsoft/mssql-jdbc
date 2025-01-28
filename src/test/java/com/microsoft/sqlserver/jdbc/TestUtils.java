@@ -629,8 +629,6 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
-     * @param sql
-     *        SQL string
      * @param stmtColEncSetting
      *        SQLServerStatementColumnEncryptionSetting object
      * @return
@@ -795,7 +793,7 @@ public final class TestUtils {
     /**
      * Checks if object SYS.SENSITIVITY_CLASSIFICATIONS exists in SQL Server
      * 
-     * @param Statement
+     * @param stmt
      * @return boolean
      */
     public static boolean serverSupportsDataClassification(Statement stmt) {

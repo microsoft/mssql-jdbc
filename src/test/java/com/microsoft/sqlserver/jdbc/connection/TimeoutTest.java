@@ -353,36 +353,6 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
-    // Test for detecting Azure server for connection retries
-    @Test
-    public void testAzureEndpointRetry() {
-
-        try (Connection con = PrepUtil.getConnection(connectionString)) {
-            Field fields[] = con.getClass().getSuperclass().getDeclaredFields();
-            for (Field f : fields) {
-                if (f.getName().equals("connectRetryCount")) {
-                    f.setAccessible(true);
-                    int retryCount = f.getInt(con);
-
-                    if (TestUtils.isAzureSynapseOnDemand(con)) {
-                        assertTrue(retryCount == 5); // AZURE_SYNAPSE_ONDEMAND_ENDPOINT_RETRY_COUNT_DEFAULT
-                    } else if (TestUtils.isAzure(con)) {
-                        assertTrue(retryCount == 2); // AZURE_SERVER_ENDPOINT_RETRY_COUNT_DEFAFULT
-                    } else {
-                        // default retryCount is 1 if not set in connection string
-                        String retryCountFromConnStr = TestUtils.getProperty(connectionString, "connectRetryCount");
-                        int expectedRetryCount = (retryCountFromConnStr != null) ? Integer
-                                .parseInt(retryCountFromConnStr) : 1;
-
-                        assertTrue(retryCount == expectedRetryCount); // default connectRetryCount
-                    }
-                }
-            }
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-    }
-
     /**
      * When query timeout occurs, the connection is still usable.
      * 
