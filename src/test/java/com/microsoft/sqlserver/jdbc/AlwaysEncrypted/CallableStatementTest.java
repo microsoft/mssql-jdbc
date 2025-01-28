@@ -2200,7 +2200,7 @@ public class CallableStatementTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
             stmt.execute(sql);
-            TestUtils.freeProcCache(stmt);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }

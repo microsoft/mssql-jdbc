@@ -328,7 +328,7 @@ public class AESetup extends AbstractTest {
             TestUtils.dropTableIfExists(tableName, stmt);
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            TestUtils.freeProcCache(stmt);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -362,7 +362,7 @@ public class AESetup extends AbstractTest {
             }
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            TestUtils.freeProcCache(stmt);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -390,7 +390,7 @@ public class AESetup extends AbstractTest {
 
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            TestUtils.freeProcCache(stmt);
+            stmt.execute("DBCC FREEPROCCACHE");
         } catch (SQLException e) {
             fail(e.getMessage());
         }

@@ -307,7 +307,7 @@ public class FedauthWithAE extends FedauthCommon {
     private void callDbccFreeProcCache() throws SQLException {
         try (Connection connection = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = connection.createStatement()) {
-            TestUtils.freeProcCache(stmt);
+            stmt.execute("DBCC FREEPROCCACHE");
         }
     }
 
