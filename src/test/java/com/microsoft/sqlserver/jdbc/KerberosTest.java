@@ -16,7 +16,6 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 
-
 @Tag(Constants.kerberos)
 @RunWith(JUnitPlatform.class)
 public class KerberosTest extends AbstractTest {
@@ -34,11 +33,16 @@ public class KerberosTest extends AbstractTest {
      * Configures JAAS for the test environment.
      */
     private static void configureJaas() {
-        AppConfigurationEntry kafkaClientConfigurationEntry = new AppConfigurationEntry(
+        Map<String, String> options = new HashMap<>();
+        options.put("useTicketCache", "true");
+        options.put("renewTGT", "true");
+        options.put("doNotPrompt", "false"); // Allow prompting for credentials if necessary
+
+        AppConfigurationEntry kerberosConfigurationEntry = new AppConfigurationEntry(
                 "com.sun.security.auth.module.Krb5LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                new HashMap<>());
+                options);
         Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("SQLJDBCDriver", new AppConfigurationEntry[] {kafkaClientConfigurationEntry});
+        configurationEntries.put("SQLJDBCDriver", new AppConfigurationEntry[] {kerberosConfigurationEntry});
         Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
     }
 
@@ -106,14 +110,41 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Test to verify the Kerberos module used 
+     */
+    @Test
+    public void testKerberosConnectionWithDefaultJaasConfig() {
+        try {
+            // Set a mock JAAS configuration using the existing method
+            overwriteJaasConfig();
+
+            String connectionString = connectionStringKerberos + ";useDefaultJaasConfig=true;";
+            createKerberosConnection(connectionString);
+
+            Configuration config = Configuration.getConfiguration();
+            AppConfigurationEntry[] entries = config.getAppConfigurationEntry("CLIENT_CONTEXT_NAME");
+            Assertions.assertNotNull(entries);
+            Assertions.assertTrue(entries.length > 0);
+            Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+        } catch (Exception e) {
+            Assertions.fail("Exception was thrown: " + e.getMessage());
+        }
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {
-        AppConfigurationEntry kafkaClientConfigurationEntry = new AppConfigurationEntry(
+        Map<String, String> options = new HashMap<>();
+        options.put("useTicketCache", "true");
+        options.put("renewTGT", "true");
+        options.put("doNotPrompt", "false"); // Allow prompting for credentials if necessary
+
+        AppConfigurationEntry kerberosConfigurationEntry = new AppConfigurationEntry(
                 "com.sun.security.auth.module.Krb5LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                new HashMap<>());
+                options);
         Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("CLIENT_CONTEXT_NAME", new AppConfigurationEntry[] {kafkaClientConfigurationEntry});
+        configurationEntries.put("CLIENT_CONTEXT_NAME", new AppConfigurationEntry[] {kerberosConfigurationEntry});
         Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
     }
 
