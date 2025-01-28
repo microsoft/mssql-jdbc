@@ -391,7 +391,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
-    
+
     /**
      * Sets the name of the preferred type of IP Address.
      * 
@@ -399,27 +399,26 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        A String that contains the preferred type of IP Address.
      */
     void setIPAddressPreference(String iPAddressPreference);
-    
+
     /**
      * Gets the name of the preferred type of IP Address.
      * 
      * @return IPAddressPreference
-     *        A String that contains the preferred type of IP Address.
+     *         A String that contains the preferred type of IP Address.
      */
     String getIPAddressPreference();
 
     /**
-     * Gets the time-to-live for the the cached MSI token
-     *
-     * @return time-to-live for the cached MSI token
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
      */
+    @Deprecated
     int getMsiTokenCacheTtl();
 
     /**
-     * Sets time-to-live for the the cached MSI token
-     *
-     * @param timeToLive
-     *        Changes the setting as per description
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
      */
+    @Deprecated
     void setMsiTokenCacheTtl(int timeToLive);
 }
