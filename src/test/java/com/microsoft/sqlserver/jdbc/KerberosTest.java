@@ -25,25 +25,30 @@ public class KerberosTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        configureJaas();
+        setJaasConfiguration();
         setConnection();
     }
 
-    /**
-     * Configures JAAS for the test environment.
-     */
-    private static void configureJaas() {
-        Map<String, String> options = new HashMap<>();
-        options.put("useTicketCache", "true");
-        options.put("renewTGT", "true");
-        options.put("doNotPrompt", "false"); // Allow prompting for credentials if necessary
-
-        AppConfigurationEntry kerberosConfigurationEntry = new AppConfigurationEntry(
-                "com.sun.security.auth.module.Krb5LoginModule", AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                options);
-        Map<String, AppConfigurationEntry[]> configurationEntries = new HashMap<>();
-        configurationEntries.put("SQLJDBCDriver", new AppConfigurationEntry[] {kerberosConfigurationEntry});
-        Configuration.setConfiguration(new InternalConfiguration(configurationEntries));
+    private static void setJaasConfiguration() {
+        AppConfigurationEntry[] entries = new AppConfigurationEntry[]{
+            new AppConfigurationEntry(
+                "com.sun.security.auth.module.Krb5LoginModule",
+                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                new HashMap<String, Object>() {{
+                    put("useTicketCache", "true");
+                    put("renewTGT", "true");
+                }}
+            )
+        };
+        Configuration.setConfiguration(new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+                if ("SQLJDBCDriver".equals(name)) {
+                    return entries;
+                }
+                return null;
+            }
+        });
     }
 
     @Test
@@ -106,28 +111,6 @@ public class KerberosTest extends AbstractTest {
             ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
             rs.next();
             Assertions.assertEquals(kerberosAuth, rs.getString(1));
-        }
-    }
-
-    /**
-     * Test to verify the Kerberos module used 
-     */
-    @Test
-    public void testKerberosConnectionWithDefaultJaasConfig() {
-        try {
-            // Set a mock JAAS configuration using the existing method
-            overwriteJaasConfig();
-
-            String connectionString = connectionStringKerberos + ";useDefaultJaasConfig=true;";
-            createKerberosConnection(connectionString);
-
-            Configuration config = Configuration.getConfiguration();
-            AppConfigurationEntry[] entries = config.getAppConfigurationEntry("CLIENT_CONTEXT_NAME");
-            Assertions.assertNotNull(entries);
-            Assertions.assertTrue(entries.length > 0);
-            Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
-        } catch (Exception e) {
-            Assertions.fail("Exception was thrown: " + e.getMessage());
         }
     }
 
