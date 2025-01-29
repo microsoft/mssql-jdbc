@@ -1481,7 +1481,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return pooledConnectionParent;
     }
 
-    SQLServerConnection(String parentInfo) {
+    SQLServerConnection(String parentInfo) throws SQLServerException {
         int connectionID = nextConnectionID(); // sequential connection id
         traceID = "ConnectionID:" + connectionID;
         loggingClassName += ":" + connectionID;
@@ -6772,7 +6772,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return null;
     }
 
-    String getTrustedServerNameAE() {
+    String getTrustedServerNameAE() throws SQLServerException {
         return trustedServerNameAE.toUpperCase();
     }
 
