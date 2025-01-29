@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.reflect.Method;
+import java.net.Socket;
+import java.net.SocketOption;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
@@ -606,6 +609,7 @@ enum SQLServerDriverBooleanProperty {
 /**
  * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
  */
+@SuppressWarnings("unchecked")
 public final class SQLServerDriver implements java.sql.Driver {
     static final String PRODUCT_NAME = "Microsoft JDBC Driver " + SQLJdbcVersion.major + "." + SQLJdbcVersion.minor
             + " for SQL Server";
@@ -841,6 +845,13 @@ public final class SQLServerDriver implements java.sql.Driver {
     final private int instanceID; // Unique id for this instance.
     final private String traceID;
 
+    /**
+     * From jdk.net.ExtendedSocketOption for setting TCP keep-alive options
+     */
+    static Method socketSetOptionMethod = null;
+    static SocketOption<Integer> socketKeepIdleOption = null;
+    static SocketOption<Integer> socketKeepIntervalOption = null;
+
     // Returns unique id for each instance.
     private static int nextInstanceID() {
         return baseID.incrementAndGet();
@@ -871,6 +882,20 @@ public final class SQLServerDriver implements java.sql.Driver {
         } catch (SQLException e) {
             if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
                 drLogger.finer("Error registering driver: " + e);
+            }
+        }
+    }
+
+    // Check for jdk.net.ExtendedSocketOptions to set TCP keep-alive options for idle connection resiliency
+    static {
+        try {
+            socketSetOptionMethod = Socket.class.getMethod("setOption", SocketOption.class, Object.class);
+            Class<?> clazz = Class.forName("jdk.net.ExtendedSocketOptions");
+            socketKeepIdleOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPIDLE").get(null);
+            socketKeepIntervalOption = (SocketOption<Integer>) clazz.getDeclaredField("TCP_KEEPINTERVAL").get(null);
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
+            if (drLogger.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+                drLogger.finer("KeepAlive extended socket options not supported on this platform.");
             }
         }
     }
