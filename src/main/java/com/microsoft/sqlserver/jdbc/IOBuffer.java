@@ -4871,6 +4871,12 @@ final class TDSWriter {
         writeRPCStringUnicode(null, sValue, false, null);
     }
 
+    void writeRPCJson(String sName, String sValue, boolean bOut,
+            SQLCollation collation) throws SQLServerException {
+        writeRPCNameValType(sName, bOut, TDSType.JSON);
+        writeLong(0xFFFFFFFFFFFFFFFFL);
+    }
+
     /**
      * Writes a string value as Unicode for RPC
      * 
