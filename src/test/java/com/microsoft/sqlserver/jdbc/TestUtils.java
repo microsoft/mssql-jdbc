@@ -74,7 +74,6 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
-    
 
     private TestUtils() {}
 
@@ -294,7 +293,7 @@ public final class TestUtils {
      * mimic "DROP TABLE ..."
      * 
      * @param tableName
-     * @param Statement
+     * @param stmt
      * @throws SQLException
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
@@ -562,8 +561,6 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
-     * @param sql
-     *        SQL string
      * @param stmtColEncSetting
      *        SQLServerStatementColumnEncryptionSetting object
      * @param sql
@@ -605,6 +602,8 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
+     * @param sql
+     *        SQL string
      * @return
      */
     public static Statement getScrollableStatement(Connection connection) throws SQLException {
@@ -796,7 +795,7 @@ public final class TestUtils {
     /**
      * Checks if object SYS.SENSITIVITY_CLASSIFICATIONS exists in SQL Server
      * 
-     * @param stmt
+     * @param Statement
      * @return boolean
      */
     public static boolean serverSupportsDataClassification(Statement stmt) {
