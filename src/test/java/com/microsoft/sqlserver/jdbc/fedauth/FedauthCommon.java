@@ -159,13 +159,16 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
-        int retry = THROTTLE_RETRY_COUNT;
+        int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
-        while (retry > 0) {
+        while (retry <= THROTTLE_RETRY_COUNT) {
             try {
-                final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
-                        .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
-                final CompletableFuture<IAuthenticationResult> future = clientApplication
+                if (null == fedauthPcaApp) {
+                    fedauthPcaApp = PublicClientApplication.builder(fedauthClientId)
+                            .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
+                }
+
+                final CompletableFuture<IAuthenticationResult> future = fedauthPcaApp
                         .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
                                 azureUserName, azurePassword.toCharArray()).build());
 
@@ -174,14 +177,14 @@ public class FedauthCommon extends AbstractTest {
                 secondsBeforeExpiration = TimeUnit.MILLISECONDS
                         .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
                 accessToken = authenticationResult.accessToken();
-                retry = 0;
+                retry = THROTTLE_RETRY_COUNT + 1;
             } catch (MsalThrottlingException te) {
-                interval = ((MsalThrottlingException) te).retryInMs();
-                if (!checkForRetry(te, retry--, interval)) {
+                interval = te.retryInMs();
+                if (!checkForRetry(te, retry++, interval)) {
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
                 }
             } catch (Exception e) {
-                if (!checkForRetry(e, retry--, interval)) {
+                if (!checkForRetry(e, retry++, interval)) {
                     fail(ERR_FAILED_FEDAUTH + "no more retries: " + e.getMessage());
                 }
             }
@@ -189,15 +192,16 @@ public class FedauthCommon extends AbstractTest {
     }
 
     static boolean checkForRetry(Exception e, int retry, long interval) {
-        if (retry <= 0) {
+        if (retry > THROTTLE_RETRY_COUNT) {
             return false;
         }
         try {
-            System.out.println(e.getMessage() + "Get FedAuth token failed retry #" + retry + " in " + interval + " ms");
-            e.printStackTrace();
-
+            System.out
+                    .println(e.getMessage() + "Get FedAuth token failed, retry #" + retry + " in " + interval + " ms");
             Thread.sleep(interval);
         } catch (InterruptedException ex) {
+            e.printStackTrace();
+
             fail(ERR_FAILED_FEDAUTH + ex.getMessage());
         }
         return true;
