@@ -67,6 +67,10 @@ public abstract class AbstractTest {
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
 
+
+    protected static String kerberosServer = null;
+    protected static String kerberosServerPort = null;
+
     protected static String clientCertificate = null;
     protected static String clientKey = null;
     protected static String clientKeyPassword = "";
@@ -97,6 +101,7 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
+    protected static String connectionStringKerberos;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
@@ -176,6 +181,9 @@ public abstract class AbstractTest {
 
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
+        kerberosServer = getConfiguredProperty("kerberosServer", null);
+        kerberosServerPort = getConfiguredProperty("kerberosServerPort", null);
+
         trustStore = getConfiguredProperty("trustStore", "");
         if (!trustStore.trim().isEmpty()) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStore", trustStore);
@@ -227,7 +235,7 @@ public abstract class AbstractTest {
     protected static void setupConnectionString() {
         connectionStringNTLM = connectionString;
 
-        // if these properties are defined then NTLM is desired, modify connection string accordingly
+        // If these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
         String user = getConfiguredProperty("userNTLM");
         String password = getConfiguredProperty("passwordNTLM");
@@ -248,6 +256,14 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "authenticationScheme",
                     "NTLM");
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
+        }
+
+        if (null != kerberosServer && null != kerberosServerPort) {
+            connectionStringKerberos = "jdbc:sqlserver://" + kerberosServer + ":" + kerberosServerPort + ";";
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "authenticationScheme", "JavaKerberos");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "integratedSecurity", "true");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "trustServerCertificate", "true");
+            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "encrypt", "false");
         }
 
         ds = updateDataSource(connectionString, new SQLServerDataSource());
