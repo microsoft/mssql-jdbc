@@ -547,4 +547,109 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
+
+    /**
+     * Specifies the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertBatchSize
+     *        integer value for bulkCopyForBatchInsertBatchSize.
+     */
+    void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
+
+    /**
+     * Returns the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @return integer value for bulkCopyForBatchInsertBatchSize.
+     */
+    int getBulkCopyForBatchInsertBatchSize();
+
+    /**
+     * Specifies the default check constraints for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        boolean value for bulkCopyForBatchInsertCheckConstraints.
+     */
+    void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
+
+    /**
+     * Returns the default check constraints for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertCheckConstraints.
+     */
+    boolean getBulkCopyForBatchInsertCheckConstraints();
+
+    /**
+     * Specifies the default fire triggers for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        boolean value for bulkCopyForBatchInsertFireTriggers.
+     */
+    void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers);
+
+    /**
+     * Returns the default fire triggers for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertFireTriggers.
+     */
+    boolean getBulkCopyForBatchInsertFireTriggers();
+
+    /**
+     * Specifies the default keep identity for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        boolean value for bulkCopyForBatchInsertKeepIdentity.
+     */
+    void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity);
+
+    /**
+     * Returns the default keep identity for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertKeepIdentity.
+     */
+    boolean getBulkCopyForBatchInsertKeepIdentity();
+
+    /**
+     * Specifies the default keep nulls for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        boolean value for bulkCopyForBatchInsertKeepNulls.
+     */
+    void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls);
+
+    /**
+     * Returns the default keep nulls for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertKeepNulls.
+     */
+    boolean getBulkCopyForBatchInsertKeepNulls();
+
+    /**
+     * Specifies the default table lock for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertTableLock
+     *        boolean value for bulkCopyForBatchInsertTableLock.
+     */
+    void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock);
+
+    /**
+     * Returns the default table lock for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertTableLock.
+     */
+    boolean getBulkCopyForBatchInsertTableLock();
+
+    /**
+     * Specifies the default allow encrypted value modifications for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        boolean value for bulkCopyForBatchInsertAllowEncryptedValueModifications.
+     */
+    void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications);
+
+    /**
+     * Returns the default allow encrypted value modifications for bulk copy operations created from batch insert operations.
+     * 
+     * @return boolean value for bulkCopyForBatchInsertAllowEncryptedValueModifications.
+     */
+    boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications();
 }
