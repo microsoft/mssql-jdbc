@@ -306,7 +306,8 @@ public class BasicConnectionTest extends AbstractTest {
 
             // add new statements to fill cache
             for (int i = 0; i < cacheSize; ++i) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + i)) {
                     pstmt.execute();
                     pstmt.execute();
                 }
@@ -330,12 +331,12 @@ public class BasicConnectionTest extends AbstractTest {
     public void testUnprocessedResponseCountSuccessfulIdleConnectionRecovery() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
             int queriesToSend = 5;
-            String query = String.format(
-                    "/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
+            String query = String.format("/*testUnprocessedResponseCountSuccessfulIdleConnectionRecovery_%s*/SELECT 1; -- ",
                     UUID.randomUUID());
 
             for (int i = 0; i < queriesToSend; ++i) {
-                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(query + i)) {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                        .prepareStatement(query + i)) {
                     pstmt.executeQuery();
                     pstmt.executeQuery();
                 }

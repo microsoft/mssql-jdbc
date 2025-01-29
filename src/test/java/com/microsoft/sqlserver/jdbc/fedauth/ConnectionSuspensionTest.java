@@ -82,7 +82,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
             } finally {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
-            
+
             while (secondsPassed < secondsBeforeExpiration) {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(90)); // Sleep for 90s
 
@@ -149,7 +149,7 @@ public class ConnectionSuspensionTest extends FedauthCommon {
                 } finally {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
-                
+
                 while (secondsPassed < secondsBeforeExpiration) {
                     Thread.sleep(TimeUnit.SECONDS.toMillis(90)); // Sleep for 90s
                     secondsPassed = (System.currentTimeMillis() - start) / 1000;

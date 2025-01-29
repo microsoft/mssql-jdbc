@@ -11,7 +11,6 @@ import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

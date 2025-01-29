@@ -284,15 +284,15 @@ public abstract class AbstractTest {
         try {
             setupConnectionString();
 
-            Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
-            Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
-            if (!SQLServerDriver.isRegistered()) {
-                SQLServerDriver.register();
-            }
-            if (null == connection || connection.isClosed()) {
-                connection = getConnection();
-            }
-            isSqlAzureOrAzureDW(connection);
+        Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
+        Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
+        if (!SQLServerDriver.isRegistered()) {
+            SQLServerDriver.register();
+        }
+        if (null == connection || connection.isClosed()) {
+            connection = getConnection();
+        }
+        isSqlAzureOrAzureDW(connection);
 
             checkSqlOS(connection);
         } catch (Exception e) {

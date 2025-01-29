@@ -23,7 +23,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.microsoft.sqlserver.jdbc.*;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.TestResource;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
