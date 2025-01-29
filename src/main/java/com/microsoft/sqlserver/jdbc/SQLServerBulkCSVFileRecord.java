@@ -246,7 +246,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             if (c == -1 && quoteCount % 2 != 0) { // stream ended, but we are within quotes -- data problem
                 throw new SQLServerException(SQLServerException.getErrString("R_InvalidCSVQuotes"), null, 0, null);
             }
-            if (c == -1) { // keep semantics of readLine() by returning a null when there is no more data
+            if ((c == -1) && (sb.length() == 0)) { // keep semantics of readLine() by returning a null when there is no more data
                 return null;
             }
         } catch (IOException e) {
