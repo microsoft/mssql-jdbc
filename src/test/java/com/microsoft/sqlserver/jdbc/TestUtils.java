@@ -29,13 +29,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Assert;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -81,73 +74,7 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
-
-    public static final int TEST_TOKEN_EXPIRY_SECONDS = 120; // token expiry time in secs
-
-    static String applicationKey;
-    static String applicationClientID;
-
-    static {
-        try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
-            Properties configProperties = new Properties();
-            configProperties.load(input);
-            applicationKey = configProperties.getProperty("applicationKey");
-            applicationClientID = configProperties.getProperty("applicationClientID");
-        } catch (IOException e) {
-            // No config file found
-        }
-    }
-
-    public static boolean expireTokenToggle = false;
-
-    public static final SQLServerAccessTokenCallback accessTokenCallback = new SQLServerAccessTokenCallback() {
-        @Override
-        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
-            String scope = spn + "/.default";
-            Set<String> scopes = new HashSet<>();
-            scopes.add(scope);
-
-            try {
-                ExecutorService executorService = Executors.newSingleThreadExecutor();
-                IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
-                ConfidentialClientApplication clientApplication = ConfidentialClientApplication
-                        .builder(applicationClientID, credential).executorService(executorService).authority(stsurl)
-                        .build();
-                CompletableFuture<IAuthenticationResult> future = clientApplication
-                        .acquireToken(ClientCredentialParameters.builder(scopes).build());
-
-                IAuthenticationResult authenticationResult = future.get();
-                String accessToken = authenticationResult.accessToken();
-                long expiresOn = authenticationResult.expiresOnDate().getTime();
-
-                if (expireTokenToggle) {
-                    Date now = new Date();
-                    long minutesToExpireWithin = 10 * 60 * 1000; // Expire within 10 minutes
-                    return new SqlAuthenticationToken(accessToken, now.getTime() + minutesToExpireWithin);
-                } else {
-                    return new SqlAuthenticationToken(accessToken, expiresOn);
-                }
-            } catch (Exception e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
-            }
-            return null;
-        }
-    };
-
-    public static void setAccessTokenExpiry(Object con, String accessToken) {
-        Field fedAuthTokenField;
-        try {
-            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
-            fedAuthTokenField.setAccessible(true);
-
-            Date newExpiry = new Date(
-                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
-            SqlAuthenticationToken newFedAuthToken = new SqlAuthenticationToken(accessToken, newExpiry);
-            fedAuthTokenField.set(con, newFedAuthToken);
-        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-            Assert.fail("Failed to set token expiry: " + e.getMessage());
-        }
-    }
+    
 
     private TestUtils() {}
 
@@ -367,7 +294,7 @@ public final class TestUtils {
      * mimic "DROP TABLE ..."
      * 
      * @param tableName
-     * @param stmt
+     * @param Statement
      * @throws SQLException
      */
     public static void dropTableIfExists(String tableName, java.sql.Statement stmt) throws SQLException {
@@ -450,8 +377,7 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName)
-                + "') DROP TYPE " + typeName);
+        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName) + "') DROP TYPE " + typeName);
     }
 
     /**
@@ -478,7 +404,7 @@ public final class TestUtils {
      */
     public static void dropSchemaIfExists(String schemaName, Statement stmt) throws SQLException {
         stmt.execute("if EXISTS (SELECT * FROM sys.schemas where name = '" + escapeSingleQuotes(schemaName)
-                + "') DROP SCHEMA" + AbstractSQLGenerator.escapeIdentifier(schemaName));
+                + "') drop schema " + AbstractSQLGenerator.escapeIdentifier(schemaName));
     }
 
     /**
@@ -636,6 +562,8 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
+     * @param sql
+     *        SQL string
      * @param stmtColEncSetting
      *        SQLServerStatementColumnEncryptionSetting object
      * @param sql
@@ -1037,19 +965,5 @@ public final class TestUtils {
             return cf.generateCertificate(is);
         }
     }
-
-    public static String getConnectionID(
-            SQLServerPooledConnection pc) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
-        Class<?> pooledConnection = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerPooledConnection");
-        Class<?> connection = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnection");
-
-        Field physicalConnection = pooledConnection.getDeclaredField("physicalConnection");
-        Field traceID = connection.getDeclaredField("traceID");
-
-        physicalConnection.setAccessible(true);
-        traceID.setAccessible(true);
-
-        SQLServerConnection conn = (SQLServerConnection) physicalConnection.get(pc);
-        return (String) traceID.get(conn);
-    }
+    
 }
