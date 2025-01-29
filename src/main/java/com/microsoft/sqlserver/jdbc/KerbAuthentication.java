@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import javax.security.auth.Subject;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -107,7 +108,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
                     if (null == currentSubject) {
                         if (useDefaultJaas) {
-                            lc = new LoginContext(configName, null, callback);
+                            lc = new LoginContext(configName, null, callback, new JaasConfiguration(Configuration.getConfiguration()));
                         } else {
                             lc = new LoginContext(configName, callback);
                         }

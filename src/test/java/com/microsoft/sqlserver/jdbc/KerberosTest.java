@@ -30,16 +30,27 @@ public class KerberosTest extends AbstractTest {
     }
 
     private static void setJaasConfiguration() {
-        AppConfigurationEntry[] entries = new AppConfigurationEntry[]{
-            new AppConfigurationEntry(
-                "com.sun.security.auth.module.Krb5LoginModule",
-                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                new HashMap<String, Object>() {{
-                    put("useTicketCache", "true");
-                    put("renewTGT", "true");
-                }}
-            )
-        };
+        AppConfigurationEntry[] entries;
+        if (Util.isIBM()) {
+            Map<String, String> confDetailsWithoutPassword = new HashMap<>();
+            confDetailsWithoutPassword.put("useDefaultCcache", "true");
+            Map<String, String> confDetailsWithPassword = new HashMap<>();
+            final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
+            entries = new AppConfigurationEntry[] {
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithoutPassword),
+                    new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                            confDetailsWithPassword)};
+        } else {
+            Map<String, String> options = new HashMap<>();
+            options.put("useTicketCache", "true");
+            options.put("renewTGT", "true");
+            options.put("doNotPrompt", "false"); // Allow prompting for credentials if necessary
+
+            entries = new AppConfigurationEntry[] {
+                    new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
+                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
+        }
         Configuration.setConfiguration(new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
