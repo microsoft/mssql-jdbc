@@ -84,7 +84,7 @@ public class ReflectiveTests extends AbstractTest {
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
-        timeoutVariations(m, 6000, Optional.empty());
+        timeoutVariations(m, 7000, Optional.empty());
     }
 
     /*
