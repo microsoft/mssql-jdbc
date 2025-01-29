@@ -153,7 +153,7 @@ enum SSType {
     GEOMETRY(Category.UDT, "geometry", JDBCType.GEOMETRY),
     GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY),
     VECTOR(Category.VECTOR, "vector", JDBCType.VECTOR),
-    JSON(Category.JSON, "json", JDBCType.LONGNVARCHAR);
+    JSON(Category.JSON, "json", JDBCType.JSON); 
 
     final Category category;
     private final String name;
@@ -464,11 +464,13 @@ enum JavaType {
                     case NVARCHAR:
                     case NVARCHARMAX:
                     case NTEXT:
-                    case JSON:
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
                     case VECTOR:
                         jdbcType = JDBCType.VECTOR;
+                        break;
+                    case JSON:
+                        jdbcType = JDBCType.JSON;
                         break;
                     case XML:
                     default:

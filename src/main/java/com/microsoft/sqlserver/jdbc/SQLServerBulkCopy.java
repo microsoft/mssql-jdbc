@@ -1023,7 +1023,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 collation.writeCollation(tdsWriter);
                 break;
-
+            case microsoft.sql.Types.JSON: // 0x62
+                tdsWriter.writeByte(TDSType.JSON.byteValue());
+                if (isStreaming) {
+                    tdsWriter.writeShort((short) 0xFFFF);
+                } else {
+                    tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
+                }
+                break; 
             case java.sql.Types.BINARY: // 0xAD
                 tdsWriter.writeByte(TDSType.BIGBINARY.byteValue());
                 tdsWriter.writeShort((short) (srcPrecision));
@@ -1132,7 +1139,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.SQL_VARIANT: // 0x62
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
                 tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH);
-                break;
+                break;   
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 String unsupportedDataType = JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH);
@@ -1481,6 +1488,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
             case microsoft.sql.Types.SQL_VARIANT:
                 return SSType.SQL_VARIANT.toString();
+            case microsoft.sql.Types.JSON:
+                return SSType.JSON.toString();    
             default: {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
@@ -2102,6 +2111,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.LONGVARBINARY:
             case microsoft.sql.Types.VECTOR:
+            case microsoft.sql.Types.JSON:
                 if (isStreaming) {
                     tdsWriter.writeLong(PLPInputStream.PLP_NULL);
                 } else {
@@ -2176,6 +2186,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case microsoft.sql.Types.DATETIMEOFFSET:
                 case microsoft.sql.Types.DATETIME:
                 case microsoft.sql.Types.SMALLDATETIME:
+                case microsoft.sql.Types.JSON:
                     bulkJdbcType = java.sql.Types.VARCHAR;
                     break;
                 default:
@@ -2449,6 +2460,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.LONGNVARCHAR:
                 case java.sql.Types.NCHAR:
                 case java.sql.Types.NVARCHAR:
+                case microsoft.sql.Types.JSON:
                     if (isStreaming) {
                         // PLP_BODY rule in TDS
                         // Use ResultSet.getString for non-streaming data and ResultSet.getNCharacterStream() for
@@ -3018,6 +3030,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.LONGNVARCHAR:
                 case java.sql.Types.NCHAR:
                 case java.sql.Types.NVARCHAR:
+                case microsoft.sql.Types.JSON:
                     // PLP if stream type and both the source and destination are not encrypted
                     // This is because AE does not support streaming types.
                     // Therefore an encrypted source or destination means the data must not actually be streaming data
@@ -3092,7 +3105,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         destPrecision = destColumnMetadata.get(destColOrdinal).precision;
 
         if ((java.sql.Types.NCHAR == srcJdbcType) || (java.sql.Types.NVARCHAR == srcJdbcType)
-                || (java.sql.Types.LONGNVARCHAR == srcJdbcType)) {
+                || (java.sql.Types.LONGNVARCHAR == srcJdbcType)
+                || (microsoft.sql.Types.JSON == srcJdbcType)) {
             isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < srcPrecision)
                     || (DataTypes.SHORT_VARTYPE_MAX_CHARS < destPrecision);
         } else {
@@ -3813,6 +3827,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private boolean unicodeConversionRequired(int jdbcType, SSType ssType) {
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType)
-                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
+                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
+                || SSType.JSON == ssType));
     }
 }
