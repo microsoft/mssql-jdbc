@@ -108,8 +108,25 @@ public class KerberosTest extends AbstractTest {
             AppConfigurationEntry[] entries = config.getAppConfigurationEntry("CLIENT_CONTEXT_NAME");
             Assertions.assertNotNull(entries);
             Assertions.assertTrue(entries.length > 0);
-            Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+            if (Util.isIBM()) {
+                Assertions.assertEquals("com.ibm.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+            } else {
+                Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+            }
         } catch (Exception e) {
+            Assertions.fail("Exception was thrown: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test to verify the JaasConfiguration constructor
+     */
+    @Test
+    public void testJaasConfigurationConstructor() {
+        try {
+            JaasConfiguration config = new JaasConfiguration(Configuration.getConfiguration());
+            Assertions.assertNotNull(config);
+        } catch (SQLServerException e) {
             Assertions.fail("Exception was thrown: " + e.getMessage());
         }
     }

@@ -19,11 +19,9 @@ public class JaasConfiguration extends Configuration {
     private final Configuration delegate;
     private AppConfigurationEntry[] defaultValue;
 
-    private static boolean useIbmModule = false;
-
     private static AppConfigurationEntry[] generateDefaultConfiguration() throws SQLServerException {
         try {
-            if (useIbmModule) {
+            if (Util.isIBM()) {
                 return loadIbmModule();
             }
             Class.forName("com.sun.security.auth.module.Krb5LoginModule");
@@ -40,7 +38,6 @@ public class JaasConfiguration extends Configuration {
     private static AppConfigurationEntry[] loadIbmModule() throws SQLServerException {
         try {
             Class.forName("com.ibm.security.auth.module.Krb5LoginModule");
-            useIbmModule = true;
             Map<String, String> confDetailsWithoutPassword = new HashMap<>();
             confDetailsWithoutPassword.put("useDefaultCcache", "true");
             Map<String, String> confDetailsWithPassword = new HashMap<>();
