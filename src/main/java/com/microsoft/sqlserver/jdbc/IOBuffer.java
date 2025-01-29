@@ -797,6 +797,28 @@ final class TDSChannel implements Serializable {
     }
 
     /**
+     * Set TCP keep-alive options for idle connection resiliency
+     */
+    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) {
+        try {
+            if (SQLServerDriver.socketSetOptionMethod != null && SQLServerDriver.socketKeepIdleOption != null
+                    && SQLServerDriver.socketKeepIntervalOption != null) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+                }
+
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIdleOption, 30); // 30 seconds
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIntervalOption, 1); // 1 second
+            }
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform. "
+                        + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Disables SSL on this TDS channel.
      */
     synchronized void disableSSL() {

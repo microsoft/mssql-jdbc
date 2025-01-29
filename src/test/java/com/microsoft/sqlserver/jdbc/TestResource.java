@@ -204,5 +204,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"},
             {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
             {"R_MInotAvailable", "Managed Identity authentication is not available"},
-            {"R_noLoginModulesConfiguredForJdbcDriver", "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"}};
+            {"R_noLoginModulesConfiguredForJdbcDriver", "javax.security.auth.login.LoginException (No LoginModules configured for SQLJDBCDriver)"},
+            {"R_failedFedauth", "Failed to acquire fedauth token: "}};
 }
