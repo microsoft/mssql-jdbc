@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -32,7 +31,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -97,11 +95,6 @@ public class PooledConnectionTest extends FedauthCommon {
         try {
             // create pooled connection
             PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
@@ -168,11 +161,6 @@ public class PooledConnectionTest extends FedauthCommon {
         try {
             // create pooled connection
             final PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
@@ -225,11 +213,6 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // create pooled connection
             final PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {

@@ -965,5 +965,13 @@ public final class TestUtils {
             return cf.generateCertificate(is);
         }
     }
+
+    public static void freeProcCache(Statement stmt) {
+        try {
+            stmt.execute("DBCC FREEPROCCACHE");
+        } catch (Exception e) {
+            // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
+        }
+    }
     
 }

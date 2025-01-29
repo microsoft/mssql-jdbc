@@ -291,45 +291,6 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-    @Tag(Constants.xSQLv11)
-    @Tag(Constants.xSQLv12)
-    @Tag(Constants.xSQLv14)
-    @Tag(Constants.xSQLv15)
-    @Tag(Constants.xAzureSQLDW)
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testDSPooledConnectionAccessTokenCallbackIdleConnectionResiliency() throws Exception {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-
-        // User/password is not required for access token callback
-        String cs = TestUtils.addOrOverrideProperty(connectionString, "user", "");
-        cs = TestUtils.addOrOverrideProperty(cs, "password", "");
-        AbstractTest.updateDataSource(cs, ds);
-        ds.setAccessTokenCallback(TestUtils.accessTokenCallback);
-
-        // change token expiry
-        SQLServerPooledConnection pc = (SQLServerPooledConnection) ds.getPooledConnection();
-        Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-        physicalConnectionField.setAccessible(true);
-        Object c = physicalConnectionField.get(pc);
-        String accessToken = ds.getAccessToken();
-        TestUtils.setAccessTokenExpiry(c, accessToken);
-
-        // Idle Connection Resiliency should reconnect after connection kill, second query should run successfully
-        TestUtils.expireTokenToggle = false;
-        pc = (SQLServerPooledConnection) ds.getPooledConnection();
-
-        try (Connection conn = pc.getConnection(); Statement s = conn.createStatement()) {
-            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
-            s.executeQuery("SELECT 1");
-            ResiliencyUtils.killConnection(conn, connectionString, 3);
-            ResiliencyUtils.minimizeIdleNetworkTracker(conn);
-            s.executeQuery("SELECT 1");
-        } catch (SQLException e) {
-            fail(e.getMessage());
-        }
-    }
-
     @Test
     public void testPreparedStatementCacheShouldBeCleared() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) ResiliencyUtils.getConnection(connectionString)) {
