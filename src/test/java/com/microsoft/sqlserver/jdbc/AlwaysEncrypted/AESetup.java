@@ -177,17 +177,19 @@ public class AESetup extends AbstractTest {
         if (!isSqlLinux() && null != serverName && null != url && null != protocol) {
             enclaveProperties = "serverName=" + serverName + ";" + Constants.ENCLAVE_ATTESTATIONURL + "=" + url + ";"
                     + Constants.ENCLAVE_ATTESTATIONPROTOCOL + "=" + protocol;
-            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false" + ";columnEncryptionSetting=enabled"
-                    + ";" + enclaveProperties;
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false;columnEncryptionSetting=enabled;"
+                    + enclaveProperties;
 
             // show progress if testing multiple servers
             if (enclaveServer.length > 1) {
                 System.out.println("Testing enclave: " + enclaveProperties);
             }
         } else {
-            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
-                    + ";columnEncryptionSetting=enabled";
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false;columnEncryptionSetting=enabled;";
         }
+
+        // TODO: update AE test servers to support
+        AETestConnectionString += ";trustServerCertificate=true;";
     }
 
     @BeforeAll
