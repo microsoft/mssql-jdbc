@@ -12,6 +12,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.CodeSource;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -285,15 +288,23 @@ public class ConfigurableRetryLogic {
         String locationSuffix = "target/classes/";
 
         try {
+            // Attempt to get the location and CodeSource for this class
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            // When the driver is used as a jar / as a dependency, the above will be the correct "main" directory where
-            // the props file should be placed (as per documentation). When testing, or building the driver manually,
-            // the above will return with a suffix "target/classes/" which must be removed, as, with the first case, the
-            // properties file should be in the main directory.
-
-            if (location.endsWith(locationSuffix)) {
-                location = location.substring(0, location.length() - locationSuffix.length());
+            CodeSource codeSource = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource();
+            
+            if (codeSource == null) {
+                // CodeSource should never be null, so throw an error
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
+                Object[] msgArgs = {ConfigurableRetryLogic.class};
+                throw new SQLServerException(form.format(msgArgs), null, 0, null);
+            } else {
+                if (Files.isDirectory(Paths.get(codeSource.getLocation().toURI()))) {
+                    // We check if the Path we get from the CodeSource location is a directory. If so, we are running
+                    // from class files and should remove a suffix (i.e. the props file is in a different location from the 
+                    // location returned)
+                    location = location.substring(0, location.length() - locationSuffix.length());
+                }
             }
 
             URI uri = new URI(location);
