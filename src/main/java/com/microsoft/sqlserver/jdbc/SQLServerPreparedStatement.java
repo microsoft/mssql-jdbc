@@ -2213,7 +2213,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 // connection contains database name
                                 boolean isCaseSensitive = connection.getDatabaseCollation().getIsCaseSensitive();
                                 int columnIndex;
-                                columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
                                 if (isCaseSensitive) {
                                     columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
                                 } else {
