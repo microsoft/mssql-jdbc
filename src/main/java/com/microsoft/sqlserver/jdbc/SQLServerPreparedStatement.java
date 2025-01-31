@@ -2193,7 +2193,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, connection.getDatabaseCollation().getIsCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2212,12 +2212,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
                                 // connection contains database name
                                 boolean isCaseSensitive = connection.getDatabaseCollation().getIsCaseSensitive();
-                                // bcOperationTableName contains database name, may be not equal to connection
-                                int columnIndex = -1;
+                                int columnIndex;
+                                columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
                                 if (isCaseSensitive) {
                                     columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
                                 } else {
                                     // find index ignore case
+                                    columnIndex = -1;
                                     for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
                                         if (bcOperationColumnList.get(opi).equalsIgnoreCase(c.getColumnName())) {
                                             columnIndex = opi;
@@ -2264,8 +2265,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
             } catch (SQLException e) {
+                throw e;
                 // throw a BatchUpdateException with the given error message, and return null for the updateCounts.
-                throw new BatchUpdateException(e.getMessage(), null, 0, null);
+                //throw new BatchUpdateException(e.getMessage(), null, 0, null);
             } catch (IllegalArgumentException e) {
                 // If we fail with IllegalArgumentException, fall back to the original batch insert logic.
                 if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
@@ -2401,7 +2403,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, connection.getDatabaseCollation().getIsCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);

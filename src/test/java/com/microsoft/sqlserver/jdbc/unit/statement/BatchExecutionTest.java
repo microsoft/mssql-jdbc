@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
@@ -33,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.microsoft.sqlserver.jdbc.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -571,7 +573,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @Test
-    public void testExecuteBatchColumnCaseMismatch() throws Exception {
+    public void testExecuteBatchColumnCaseMismatch_CI() throws Exception {
         // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
         try (Connection con = DriverManager.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
@@ -585,6 +587,58 @@ public class BatchExecutionTest extends AbstractTest {
                 preparedStatement.setObject(1, "value1");
                 preparedStatement.addBatch();
                 preparedStatement.setObject(1, "value2");
+                preparedStatement.addBatch();
+                preparedStatement.executeBatch();
+            }
+        }
+    }
+
+    // TODO: adapter CI, use connectionString for _CS_
+    // @Test
+    public void testExecuteBatchColumnCaseMismatch_CS_throwException() throws Exception {
+        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+        try (Connection con = DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+            try (Statement statement = con.createStatement()) {
+                TestUtils.dropTableIfExists(caseSensitiveTable, statement);
+                String createSql = "CREATE TABLE" + caseSensitiveTable + " (c1 varchar(10))";
+                statement.execute(createSql);
+            }
+            // upper case C1
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + caseSensitiveTable + "(C1) VALUES(?)")) {
+                preparedStatement.setObject(1, "value1");
+                preparedStatement.addBatch();
+                preparedStatement.setObject(1, "value2");
+                preparedStatement.addBatch();
+                try {
+                    preparedStatement.executeBatch();
+                    fail("Should have failed");
+                } catch (Exception ex) {
+                    assertInstanceOf(SQLServerException.class, ex);
+                    assertEquals("Unable to retrieve column metadata.", ex.getMessage());
+                }
+            }
+        }
+    }
+
+    // TODO: adapter CI, use connectionString for _CS_
+    // @Test
+    public void testExecuteBatchColumnCaseMismatch_CS() throws Exception {
+        // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+        try (Connection con = DriverManager.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+            try (Statement statement = con.createStatement()) {
+                TestUtils.dropTableIfExists(caseSensitiveTable, statement);
+                String createSql = "CREATE TABLE" + caseSensitiveTable + " (c1 varchar(10), C1 varchar(10))";
+                statement.execute(createSql);
+            }
+            // upper case C1
+            try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + caseSensitiveTable + "(c1, C1) VALUES(?,?)")) {
+                preparedStatement.setObject(1, "value1-1");
+                preparedStatement.setObject(2, "value1-2");
+                preparedStatement.addBatch();
+                preparedStatement.setObject(1, "value2-1");
+                preparedStatement.setObject(2, "value2-2");
                 preparedStatement.addBatch();
                 preparedStatement.executeBatch();
             }
