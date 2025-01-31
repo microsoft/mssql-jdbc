@@ -2210,11 +2210,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
                             if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
-                                // find index ignore case
+                                // connection contains database name
+                                boolean isCaseSensitive = connection.getDatabaseCollation().getIsCaseSensitive();
+                                // bcOperationTableName contains database name, may be not equal to connection
                                 int columnIndex = -1;
-                                for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
-                                    if (bcOperationColumnList.get(opi).equalsIgnoreCase(c.getColumnName())) {
-                                        columnIndex = opi;
+                                if (isCaseSensitive) {
+                                    columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                } else {
+                                    // find index ignore case
+                                    for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
+                                        if (bcOperationColumnList.get(opi).equalsIgnoreCase(c.getColumnName())) {
+                                            columnIndex = opi;
+                                            break;
+                                        }
                                     }
                                 }
 
