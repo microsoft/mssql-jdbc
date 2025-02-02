@@ -31,7 +31,7 @@ public class JaasConfiguration extends Configuration {
                     new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
                             AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
         } catch (ClassNotFoundException e) {
-            return loadIbmModule();
+            throw new SQLServerException(SQLServerException.getErrString("R_moduleNotFound"), null);
         }
     }
 
@@ -48,7 +48,7 @@ public class JaasConfiguration extends Configuration {
                     new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
                             confDetailsWithPassword)};
         } catch (ClassNotFoundException ex) {
-            throw new SQLServerException(SQLServerException.getErrString("R_moduleNotFound"), null);
+            throw new SQLServerException(SQLServerException.getErrString("R_ibmModuleNotFound"), null);
         }
     }
 
