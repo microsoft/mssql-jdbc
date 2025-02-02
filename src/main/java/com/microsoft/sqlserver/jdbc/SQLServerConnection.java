@@ -4474,7 +4474,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              */
             boolean commandComplete = false;
             try {
-                commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
+                   commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
                 /*
                  * If execution of the new command left response bytes on the wire (e.g. a large ResultSet or complex

@@ -1788,7 +1788,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // Not an error. Is it a result set?
         else if (nextResult.isResultSet()) {
-            resultSet = new SQLServerResultSet(this);
+            resultSet = createResultSet();
             return true;
         }
 
@@ -2616,6 +2616,15 @@ public class SQLServerStatement implements ISQLServerStatement {
             lock.unlock();
         }
     }
+
+    private final SQLServerResultSet createResultSet() throws SQLServerException {
+        if (SQLServerResultSet.prefetch) {
+            return new SQLServerPrefetchedResultSet(this);
+        }
+        return new SQLServerResultSet(this);
+
+    }
+
 }
 
 

@@ -58,6 +58,8 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -627,6 +629,10 @@ final class TDSChannel implements Serializable {
 
     final TDSReader getReader(TDSCommand command) {
         return new TDSReader(this, con, command);
+    }
+
+    final TDSReader getRowReader(TDSCommand command) {
+        return new TDSRowReader(this, con, command);
     }
 
     // Socket for raw TCP/IP communications with SQL Server
@@ -6665,7 +6671,7 @@ final class TDSWriter {
  */
 final class TDSPacket {
     final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    final byte[] payload;
+    byte[] payload;
     int payloadLength;
     volatile TDSPacket next;
 
@@ -6676,6 +6682,14 @@ final class TDSPacket {
 
     TDSPacket(int size) {
         payload = new byte[size];
+        payloadLength = 0;
+        next = null;
+    }
+    
+    public void reset(int size) {
+        if (payload.length < size) {
+            payload = new byte[size];
+        }
         payloadLength = 0;
         next = null;
     }
@@ -6703,13 +6717,35 @@ final class TDSReaderMark {
     }
 }
 
+final class TDSPacketPool {    
+    private static int INITIAL_SIZE = 2;
+    private final BlockingQueue<TDSPacket> packetQueue = new LinkedBlockingDeque<TDSPacket>();
+    TDSPacketPool() {
+        for (int i = 0; i < INITIAL_SIZE; ++i) {
+            packetQueue.add(new TDSPacket(0));
+        }
+    }
+    
+    TDSPacket get(int packetSize) {
+        if (packetQueue.isEmpty()) {
+            packetQueue.add(new TDSPacket(packetSize));
+        }        
+        TDSPacket p = packetQueue.poll();
+        p.reset(packetSize);
+        return p;
+    }
+    
+    void release(TDSPacket p) {
+        packetQueue.add(p);
+    }
+}
 
 /**
  * TDSReader encapsulates the TDS response data stream.
  *
  * Bytes are read from SQL Server into a FIFO of packets. Reader methods traverse the packets to access the data.
  */
-final class TDSReader implements Serializable {
+class TDSReader implements Serializable {
 
     /**
      * Always update serialVersionUID when prompted.
@@ -6738,9 +6774,9 @@ final class TDSReader implements Serializable {
         return con;
     }
 
-    private transient TDSPacket currentPacket = new TDSPacket(0);
+    protected transient TDSPacket currentPacket = new TDSPacket(0);
     private transient TDSPacket lastPacket = currentPacket;
-    private int payloadOffset = 0;
+    protected int payloadOffset = 0;
     private int packetNum = 0;
 
     private boolean isStreaming = true;
@@ -6824,7 +6860,7 @@ final class TDSReader implements Serializable {
      *
      * @return true if additional data is available to be read false if no more data is available
      */
-    private boolean nextPacket() throws SQLServerException {
+    protected boolean nextPacket() throws SQLServerException {
         assert null != currentPacket;
 
         // Shouldn't call this function unless we're at the end of the current packet...
@@ -6879,7 +6915,8 @@ final class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+            TDSPacket newPacket = newPacket(con.getTDSPacketSize());
+            //TDSPacket newPacket = tdsPacketPool.get(con.getTDSPacketSize());
             if ((null != command) &&
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
@@ -6963,8 +7000,7 @@ final class TDSReader implements Serializable {
 
             ++packetNum;
 
-            lastPacket.next = newPacket;
-            lastPacket = newPacket;
+            linkPackets(newPacket);
 
             // When logging, append the payload to the log buffer and write out the whole thing.
             if (tdsChannel.isLoggingPackets() && logBuffer != null) {
@@ -6988,6 +7024,15 @@ final class TDSReader implements Serializable {
         } finally {
             tdsReaderLock.unlock();
         }
+    }
+
+    protected void linkPackets(TDSPacket newPacket) {
+        lastPacket.next = newPacket;
+        lastPacket = newPacket;
+    }
+
+    protected TDSPacket newPacket(int tdsPacketSize) {
+        return new TDSPacket(tdsPacketSize);
     }
 
     final TDSReaderMark mark() {
@@ -7558,6 +7603,33 @@ final class TDSReader implements Serializable {
     }
 }
 
+class TDSRowReader extends TDSReader {
+
+    TDSRowReader(TDSChannel tdsChannel, SQLServerConnection con, TDSCommand command) {
+        super(tdsChannel, con, command);
+    }
+
+    @Override
+    protected TDSPacket newPacket(int tdsPacketSize) {
+        currentPacket.reset(tdsPacketSize);
+        return currentPacket;
+    }
+
+    @Override
+    protected boolean nextPacket() throws SQLServerException {
+        boolean r = readPacket();
+        if (r) {
+            payloadOffset = 0;
+        }
+        return r;
+    }
+
+    @Override
+    protected void linkPackets(TDSPacket newPacket) {
+        //
+    }
+
+}
 
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.
