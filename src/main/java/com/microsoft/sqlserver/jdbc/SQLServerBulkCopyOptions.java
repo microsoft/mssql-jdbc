@@ -103,6 +103,20 @@ public class SQLServerBulkCopyOptions implements Serializable {
         useInternalTransaction = false;
         allowEncryptedValueModifications = false;
     }
+    
+    /**
+     * Constructs a SQLServerBulkCopySettings class using defaults from given connection
+     */
+    SQLServerBulkCopyOptions(SQLServerConnection conn) {
+        batchSize = conn.getBulkCopyForBatchInsertBatchSize();
+        checkConstraints = conn.getBulkCopyForBatchInsertCheckConstraints();
+        fireTriggers = conn.getBulkCopyForBatchInsertFireTriggers();
+        keepIdentity = conn.getBulkCopyForBatchInsertKeepIdentity();
+        keepNulls = conn.getBulkCopyForBatchInsertKeepNulls();
+        tableLock = conn.getBulkCopyForBatchInsertTableLock();
+        allowEncryptedValueModifications = conn.getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+    }
+    
 
     /**
      * Returns the number of rows in each batch. At the end of each batch, the rows in the batch are sent to the server.
