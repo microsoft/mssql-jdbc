@@ -95,6 +95,7 @@ public class FedauthWithAE extends FedauthCommon {
         }
     }
 
+    @Tag(Constants.secretRequired)
     @Test
     public void testFedAuthWithAE_AKV() throws SQLException {
         String[] charValues = {"hello world!!!", "hello world!!!", "hello world!!!", "你好啊~~~", "你好啊~~~", "你好啊~~~"};

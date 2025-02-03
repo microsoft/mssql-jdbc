@@ -284,6 +284,7 @@ public class FedauthTest extends FedauthCommon {
      * @deprecated
      */
     @Deprecated
+    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -306,6 +307,7 @@ public class FedauthTest extends FedauthCommon {
      * Test AAD Service Principal Authentication using username/password in connection string, data source and SSL
      * encryption.
      */
+    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -324,6 +326,7 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
+    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidSecret() throws Exception {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -366,8 +369,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
         // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
 
         // Should fail on invalid cert field values
         String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
@@ -387,6 +390,7 @@ public class FedauthTest extends FedauthCommon {
     /**
      * Test invalid connection property combinations when using AAD Service Principal Authentication.
      */
+    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -428,8 +432,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuth() {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
 
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -450,7 +454,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName="
+                + servicePrincipalCertificateApplicationClientId;
 
         // no certificate provided.
         String url = baseUrl;
@@ -469,8 +474,8 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
-        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
-                + "clientPassword=wrongPassword";
+        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate
+                + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
 

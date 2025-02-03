@@ -103,6 +103,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.secretRequired)
     public void testAkvName(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -207,6 +208,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.secretRequired)
     public void testAkvBadEncryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -286,6 +288,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.secretRequired)
     public void testAkvDecryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -2287,6 +2290,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.secretRequired)
     public void testAkvNameWithTokenCredential(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
