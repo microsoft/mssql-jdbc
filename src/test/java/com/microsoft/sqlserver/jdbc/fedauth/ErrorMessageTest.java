@@ -396,9 +396,7 @@ public class ErrorMessageTest extends FedauthCommon {
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
                     || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
-                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
-                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
-                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -424,9 +422,7 @@ public class ErrorMessageTest extends FedauthCommon {
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
                     || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
-                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
-                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
-                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
@@ -446,9 +442,7 @@ public class ErrorMessageTest extends FedauthCommon {
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
                     && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
                     || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
-                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
-                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
-                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED));
         }
     }
 
