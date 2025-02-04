@@ -64,42 +64,57 @@ final class SQLServerDriverPropertyInfo {
 
 
 enum SqlAuthentication {
-    NotSpecified,
-    SqlPassword,
-    ActiveDirectoryPassword,
-    ActiveDirectoryIntegrated,
-    ActiveDirectoryMSI,
-    ActiveDirectoryManagedIdentity,
-    ActiveDirectoryServicePrincipal,
-    ActiveDirectoryInteractive,
-    DefaultAzureCredential;
+    NOT_SPECIFIED("NotSpecified"),
+    SQLPASSWORD("SqlPassword"),
+    ACTIVE_DIRECTORY_PASSWORD("ActiveDirectoryPassword"),
+    ACTIVE_DIRECTORY_INTEGRATED("ActiveDirectoryIntegrated"),
+    ACTIVE_DIRECTORY_MANAGED_IDENTITY("ActiveDirectoryManagedIdentity"),
+    ACTIVE_DIRECTORY_SERVICE_PRINCIPAL("ActiveDirectoryServicePrincipal"),
+    ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE("ActiveDirectoryServicePrincipalCertificate"),
+    ACTIVE_DIRECTORY_INTERACTIVE("ActiveDirectoryInteractive"),
+    ACTIVE_DIRECTORY_DEFAULT("ActiveDirectoryDefault");
+
+    private final String name;
+
+    private SqlAuthentication(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 
     static SqlAuthentication valueOfString(String value) throws SQLServerException {
         SqlAuthentication method = null;
 
-        if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.NotSpecified.toString())) {
-            method = SqlAuthentication.NotSpecified;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.SqlPassword.toString())) {
-            method = SqlAuthentication.SqlPassword;
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString())) {
+            method = SqlAuthentication.NOT_SPECIFIED;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.SQLPASSWORD.toString())) {
+            method = SqlAuthentication.SQLPASSWORD;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryPassword.toString())) {
-            method = SqlAuthentication.ActiveDirectoryPassword;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryIntegrated.toString())) {
-            method = SqlAuthentication.ActiveDirectoryIntegrated;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
                 || SQLServerDriver.getNormalizedPropertyValueName(value).toLowerCase(Locale.US)
-                        .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryManagedIdentity.toString())) {
-            method = SqlAuthentication.ActiveDirectoryManagedIdentity;
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryServicePrincipal.toString())) {
-            method = SqlAuthentication.ActiveDirectoryServicePrincipal;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL;
         } else if (value.toLowerCase(Locale.US)
-                .equalsIgnoreCase(SqlAuthentication.ActiveDirectoryInteractive.toString())) {
-            method = SqlAuthentication.ActiveDirectoryInteractive;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(SqlAuthentication.DefaultAzureCredential.toString())) {
-            method = SqlAuthentication.DefaultAzureCredential;
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE;
+        } else if (value.toLowerCase(Locale.US)
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
+            method = SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"authentication", value};
@@ -482,7 +497,7 @@ enum SQLServerDriverStringProperty {
     USER("user", ""),
     WORKSTATION_ID("workstationID", Util.WSIDNotAvailable),
     AUTHENTICATION_SCHEME("authenticationScheme", AuthenticationScheme.nativeAuthentication.toString()),
-    AUTHENTICATION("authentication", SqlAuthentication.NotSpecified.toString()),
+    AUTHENTICATION("authentication", SqlAuthentication.NOT_SPECIFIED.toString()),
     ACCESS_TOKEN("accessToken", ""),
     COLUMN_ENCRYPTION("columnEncryptionSetting", ColumnEncryptionSetting.Disabled.toString()),
     ENCLAVE_ATTESTATION_URL("enclaveAttestationUrl", ""),
@@ -748,12 +763,13 @@ public final class SQLServerDriver implements java.sql.Driver {
                             AuthenticationScheme.ntlm.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.AUTHENTICATION.getDefaultValue(), false,
-                    new String[] {SqlAuthentication.NotSpecified.toString(), SqlAuthentication.SqlPassword.toString(),
-                            SqlAuthentication.ActiveDirectoryPassword.toString(),
-                            SqlAuthentication.ActiveDirectoryIntegrated.toString(),
-                            SqlAuthentication.ActiveDirectoryManagedIdentity.toString(),
-                            SqlAuthentication.ActiveDirectoryServicePrincipal.toString(),
-                            SqlAuthentication.ActiveDirectoryInteractive.toString()}),
+                    new String[] {SqlAuthentication.NOT_SPECIFIED.toString(), SqlAuthentication.SQLPASSWORD.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString(),
+                            SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.SOCKET_TIMEOUT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.SOCKET_TIMEOUT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.FIPS.toString(),
@@ -837,7 +853,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
 
     private static final String driverPropertyValuesSynonyms[][] = {
-            {"ActiveDirectoryMSI", SqlAuthentication.ActiveDirectoryManagedIdentity.toString()}};
+            {"ActiveDirectoryMSI", SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString()}};
 
     static private final AtomicInteger baseID = new AtomicInteger(0); // Unique id generator for each instance (used for
                                                                       // logging

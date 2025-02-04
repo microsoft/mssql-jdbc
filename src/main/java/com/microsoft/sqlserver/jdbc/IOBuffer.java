@@ -197,13 +197,17 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
     static final int TDS_FEDAUTH_LIBRARY_ADAL = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
+
+    // workflows
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
-    static final byte ADALWORKFLOW_DEFAULTAZURECREDENTIAL = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
-                                                                           // closest we have.
+                                                                           // closest we have
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPALCERTIFICATE = 0x01;
+
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -1780,7 +1784,7 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+            KeyManager[] km = (null != clientCertificate && !clientCertificate.isEmpty()) ? SQLServerCertificateUtils
                     .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
 
             sslContext = SSLContext.getInstance(sslProtocol);
