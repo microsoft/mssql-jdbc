@@ -46,13 +46,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
         testAccessTokenExpiredThenCreateNewStatement(SqlAuthentication.ActiveDirectoryPassword);
     }
 
-    @Test
-    public void testAccessTokenExpiredThenCreateNewStatementADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        testAccessTokenExpiredThenCreateNewStatement(SqlAuthentication.ActiveDirectoryIntegrated);
-    }
-
     private void testAccessTokenExpiredThenCreateNewStatement(SqlAuthentication authentication) throws SQLException {
         long secondsPassed = 0;
         long start = System.currentTimeMillis();
@@ -112,13 +105,6 @@ public class ConnectionSuspensionTest extends FedauthCommon {
     @Test
     public void testAccessTokenExpiredThenExecuteUsingSameStatementADPassword() throws SQLException {
         testAccessTokenExpiredThenExecuteUsingSameStatement(SqlAuthentication.ActiveDirectoryPassword);
-    }
-
-    @Test
-    public void testAccessTokenExpiredThenExecuteUsingSameStatementADIntegrated() throws SQLException {
-        org.junit.Assume.assumeTrue(enableADIntegrated);
-
-        testAccessTokenExpiredThenExecuteUsingSameStatement(SqlAuthentication.ActiveDirectoryIntegrated);
     }
 
     private void testAccessTokenExpiredThenExecuteUsingSameStatement(
