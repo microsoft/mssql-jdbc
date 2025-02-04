@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.secretRequired)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
@@ -326,7 +327,6 @@ public class FedauthTest extends FedauthCommon {
         }
     }
 
-    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidSecret() throws Exception {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -390,7 +390,6 @@ public class FedauthTest extends FedauthCommon {
     /**
      * Test invalid connection property combinations when using AAD Service Principal Authentication.
      */
-    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
