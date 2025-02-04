@@ -37,6 +37,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class FedauthWithAE extends FedauthCommon {
 
     static String cmkName1 = Constants.CMK_NAME + "fedauthAE1";
@@ -95,7 +96,6 @@ public class FedauthWithAE extends FedauthCommon {
         }
     }
 
-    @Tag(Constants.secretRequired)
     @Test
     public void testFedAuthWithAE_AKV() throws SQLException {
         String[] charValues = {"hello world!!!", "hello world!!!", "hello world!!!", "你好啊~~~", "你好啊~~~", "你好啊~~~"};

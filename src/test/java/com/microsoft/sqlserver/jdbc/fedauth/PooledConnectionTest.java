@@ -58,7 +58,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag("slow")
 @Tag(Constants.fedAuth)
-@Tag(Constants.secretRequired)
+@Tag(Constants.requireSecret)
 public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(

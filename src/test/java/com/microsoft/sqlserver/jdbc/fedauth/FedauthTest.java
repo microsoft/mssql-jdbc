@@ -42,7 +42,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
-@Tag(Constants.secretRequired)
+@Tag(Constants.requireSecret)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
@@ -285,7 +285,6 @@ public class FedauthTest extends FedauthCommon {
      * @deprecated
      */
     @Deprecated
-    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -308,7 +307,6 @@ public class FedauthTest extends FedauthCommon {
      * Test AAD Service Principal Authentication using username/password in connection string, data source and SSL
      * encryption.
      */
-    @Tag(Constants.secretRequired)
     @Test
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
