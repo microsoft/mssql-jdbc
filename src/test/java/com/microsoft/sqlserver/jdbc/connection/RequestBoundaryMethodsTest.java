@@ -73,6 +73,13 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean enablePrepareOnFirstPreparedStatementCall1 = false;
         String sCatalog1 = "master";
         boolean useBulkCopyForBatchInsert1 = true;
+        int bulkCopyForBatchInsertBatchSize1 = 1000;
+        boolean bulkCopyForBatchInsertCheckConstraints1 = true;
+        boolean bulkCopyForBatchInsertFireTriggers1 = true;
+        boolean bulkCopyForBatchInsertKeepIdentity1 = true;
+        boolean bulkCopyForBatchInsertKeepNulls1 = true;
+        boolean bulkCopyForBatchInsertTableLock1 = true;
+        boolean bulkCopyForBatchInsertAllowEncryptedValueModifications1 = true;
         boolean useFmtOnly1 = true;
         boolean delayLoadingLobs1 = false;
         boolean ignoreOffsetOnDateTimeOffsetConversion1 = true;
@@ -88,6 +95,13 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean enablePrepareOnFirstPreparedStatementCall2 = true;
         String sCatalog2 = RandomUtil.getIdentifier("RequestBoundaryDatabase");
         boolean useBulkCopyForBatchInsert2 = false;
+        int bulkCopyForBatchInsertBatchSize2 = 0;
+        boolean bulkCopyForBatchInsertCheckConstraints2 = false;
+        boolean bulkCopyForBatchInsertFireTriggers2 = false;
+        boolean bulkCopyForBatchInsertKeepIdentity2 = false;
+        boolean bulkCopyForBatchInsertKeepNulls2 = false;
+        boolean bulkCopyForBatchInsertTableLock2 = false;
+        boolean bulkCopyForBatchInsertAllowEncryptedValueModifications2 = false;
         boolean useFmtOnly2 = false;
         boolean delayLoadingLobs2 = true;
         boolean ignoreOffsetOnDateTimeOffsetConversion2 = false;
@@ -101,62 +115,78 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
+                    bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
+                    bulkCopyForBatchInsertTableLock1,bulkCopyForBatchInsertAllowEncryptedValueModifications1);
             con.beginRequest();
             // Call setters with the second set of values inside beginRequest()/endRequest() block.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
+                    bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);
             con.endRequest();
             // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
             compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1,
                     holdability1, sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
-
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
+                    bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
             // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
+                    bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            
             con.beginRequest();
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
+                    bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
             con.beginRequest();
             con.endRequest();
             // Same values as before the first beginRequest()
             compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
-
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
+                    bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            
             // A call to endRequest() without an intervening call to beginRequest() is no-op.
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
                     serverPreparedStatementDiscardThreshold1, enablePrepareOnFirstPreparedStatementCall1, sCatalog1,
-                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1,
-                    ignoreOffsetOnDateTimeOffsetConversion1);
+                    useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
+                    bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
+                    bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
+
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
-            con.endRequest();
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
+                    bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            con.endRequest();
             // No change.
             compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
                     serverPreparedStatementDiscardThreshold2, enablePrepareOnFirstPreparedStatementCall2, sCatalog2,
-                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2,
-                    ignoreOffsetOnDateTimeOffsetConversion2);
+                    useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
+                    bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
+                    bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);
         } finally {
             TestUtils.dropDatabaseIfExists(sCatalog2, connectionString);
         }
@@ -400,8 +430,12 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int networkTimeout, int holdability, boolean sendTimeAsDatetime, int statementPoolingCacheSize,
             boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs,
-            boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
+            int bulkCopyForBatchInsertBatchSize, boolean bulkCopyForBatchInsertCheckConstraints, 
+            boolean bulkCopyForBatchInsertFireTriggers, boolean bulkCopyForBatchInsertKeepIdentity, 
+            boolean bulkCopyForBatchInsertKeepNulls, boolean bulkCopyForBatchInsertTableLock, 
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) throws SQLException {
+        
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
         con.setNetworkTimeout(null, networkTimeout);
@@ -416,38 +450,49 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setUseFmtOnly(useFmtOnly);
         con.setDelayLoadingLobs(delayLoadingLobs);
         con.setIgnoreOffsetOnDateTimeOffsetConversion(ignoreOffsetOnDateTimeOffsetConversion);
+        con.setBulkCopyForBatchInsertBatchSize(bulkCopyForBatchInsertBatchSize);
+        con.setBulkCopyForBatchInsertCheckConstraints(bulkCopyForBatchInsertCheckConstraints);
+        con.setBulkCopyForBatchInsertFireTriggers(bulkCopyForBatchInsertFireTriggers);
+        con.setBulkCopyForBatchInsertKeepIdentity(bulkCopyForBatchInsertKeepIdentity);
+        con.setBulkCopyForBatchInsertKeepNulls(bulkCopyForBatchInsertKeepNulls);
+        con.setBulkCopyForBatchInsertTableLock(bulkCopyForBatchInsertTableLock);
+        con.setBulkCopyForBatchInsertAllowEncryptedValueModifications(bulkCopyForBatchInsertAllowEncryptedValueModifications);
     }
-
+    
     private void compareValuesAgainstConnection(SQLServerConnection con, boolean autoCommitMode,
             int transactionIsolationLevel, int networkTimeout, int holdability, boolean sendTimeAsDatetime,
             int statementPoolingCacheSize, boolean disableStatementPooling, int serverPreparedStatementDiscardThreshold,
             boolean enablePrepareOnFirstPreparedStatementCall, String sCatalog, boolean useBulkCopyForBatchInsert,
-            boolean useFmtOnly, boolean delayLoadingLobs,
-            boolean ignoreOffsetOnDateTimeOffsetConversion) throws SQLException {
+            boolean useFmtOnly, boolean delayLoadingLobs, boolean ignoreOffsetOnDateTimeOffsetConversion,
+            int bulkCopyForBatchInsertBatchSize, boolean bulkCopyForBatchInsertCheckConstraints, 
+            boolean bulkCopyForBatchInsertFireTriggers, boolean bulkCopyForBatchInsertKeepIdentity, 
+            boolean bulkCopyForBatchInsertKeepNulls, boolean bulkCopyForBatchInsertTableLock, 
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) throws SQLException {
+        
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
-        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(),
-                "transactionIsolationLevel" + description);
+        assertEquals(transactionIsolationLevel, con.getTransactionIsolation(), "transactionIsolationLevel" + description);
         assertEquals(networkTimeout, con.getNetworkTimeout(), "networkTimeout" + description);
         assertEquals(holdability, con.getHoldability(), "holdability" + description);
         assertEquals(sendTimeAsDatetime, con.getSendTimeAsDatetime(), "sendTimeAsDatetime" + description);
-        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(),
-                "statementPoolingCacheSize" + description);
-        assertEquals(disableStatementPooling, con.getDisableStatementPooling(),
-                "disableStatementPooling" + description);
-        assertEquals(serverPreparedStatementDiscardThreshold, con.getServerPreparedStatementDiscardThreshold(),
-                "serverPreparedStatementDiscardThreshold" + description);
-        assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(),
-                "enablePrepareOnFirstPreparedStatementCall" + description);
+        assertEquals(statementPoolingCacheSize, con.getStatementPoolingCacheSize(), "statementPoolingCacheSize" + description);
+        assertEquals(disableStatementPooling, con.getDisableStatementPooling(), "disableStatementPooling" + description);
+        assertEquals(serverPreparedStatementDiscardThreshold, con.getServerPreparedStatementDiscardThreshold(), "serverPreparedStatementDiscardThreshold" + description);
+        assertEquals(enablePrepareOnFirstPreparedStatementCall, con.getEnablePrepareOnFirstPreparedStatementCall(), "enablePrepareOnFirstPreparedStatementCall" + description);
         assertEquals(sCatalog, con.getCatalog(), "sCatalog" + description);
-        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(),
-                "useBulkCopyForBatchInsert" + description);
+        assertEquals(useBulkCopyForBatchInsert, con.getUseBulkCopyForBatchInsert(), "useBulkCopyForBatchInsert" + description);
         assertEquals(useFmtOnly, con.getUseFmtOnly(), "useFmtOnly" + description);
         assertEquals(delayLoadingLobs, con.getDelayLoadingLobs(), "delayLoadingLobs" + description);
-        assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(),
-                "ignoreOffsetOnDateTimeOffsetConversion" + description);
+        assertEquals(ignoreOffsetOnDateTimeOffsetConversion, con.getIgnoreOffsetOnDateTimeOffsetConversion(), "ignoreOffsetOnDateTimeOffsetConversion" + description);
+        assertEquals(bulkCopyForBatchInsertBatchSize, con.getBulkCopyForBatchInsertBatchSize(), "bulkCopyForBatchInsertBatchSize" + description);
+        assertEquals(bulkCopyForBatchInsertCheckConstraints, con.getBulkCopyForBatchInsertCheckConstraints(), "bulkCopyForBatchInsertCheckConstraints" + description);
+        assertEquals(bulkCopyForBatchInsertFireTriggers, con.getBulkCopyForBatchInsertFireTriggers(), "bulkCopyForBatchInsertFireTriggers" + description);
+        assertEquals(bulkCopyForBatchInsertKeepIdentity, con.getBulkCopyForBatchInsertKeepIdentity(), "bulkCopyForBatchInsertKeepIdentity" + description);
+        assertEquals(bulkCopyForBatchInsertKeepNulls, con.getBulkCopyForBatchInsertKeepNulls(), "bulkCopyForBatchInsertKeepNulls" + description);
+        assertEquals(bulkCopyForBatchInsertTableLock, con.getBulkCopyForBatchInsertTableLock(), "bulkCopyForBatchInsertTableLock" + description);
+        assertEquals(bulkCopyForBatchInsertAllowEncryptedValueModifications, con.getBulkCopyForBatchInsertAllowEncryptedValueModifications(), "bulkCopyForBatchInsertAllowEncryptedValueModifications" + description);
     }
-
+    
     private void generateWarning(Connection con) throws SQLException {
         con.setClientInfo("name", "value");
     }
@@ -476,6 +521,13 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setDisableStatementPooling");
         verifiedMethodNames.add("setTransactionIsolation");
         verifiedMethodNames.add("setUseBulkCopyForBatchInsert");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertBatchSize");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertCheckConstraints");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertFireTriggers");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertKeepIdentity");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertKeepNulls");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertTableLock");
+        verifiedMethodNames.add("setBulkCopyForBatchInsertAllowEncryptedValueModifications");
         verifiedMethodNames.add("commit");
         verifiedMethodNames.add("clearWarnings");
         verifiedMethodNames.add("prepareStatement");

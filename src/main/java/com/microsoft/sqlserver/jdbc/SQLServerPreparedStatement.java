@@ -2224,7 +2224,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
@@ -2405,7 +2405,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
