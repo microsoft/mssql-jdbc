@@ -14,7 +14,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.CodeSource;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -288,20 +287,18 @@ public class ConfigurableRetryLogic {
         String locationSuffix = "target/classes/";
 
         try {
-            // Attempt to get the location and CodeSource for this class
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            CodeSource codeSource = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource();
             
-            if (null != codeSource && Files.isDirectory(Paths.get(codeSource.getLocation().toURI()))) {
+            if (Files.isDirectory(Paths.get(
+                    ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation().toURI()))) {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
                 // from class files and should remove a suffix (i.e. the props file is in a different location from the 
                 // location returned)
                 location = location.substring(0, location.length() - locationSuffix.length());
             }
-
-            URI uri = new URI(location);
-            return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
+            
+            return  new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
             Object[] msgArgs = {location};
