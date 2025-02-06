@@ -289,16 +289,16 @@ public class ConfigurableRetryLogic {
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            
-            if (Files.isDirectory(Paths.get(
-                    ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation().toURI()))) {
+
+            if (Files.isDirectory(Paths
+                    .get(ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation().toURI()))) {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
-                // from class files and should remove a suffix (i.e. the props file is in a different location from the 
+                // from class files and should remove a suffix (i.e. the props file is in a different location from the
                 // location returned)
                 location = location.substring(0, location.length() - locationSuffix.length());
             }
-            
-            return  new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
+
+            return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
             Object[] msgArgs = {location};
