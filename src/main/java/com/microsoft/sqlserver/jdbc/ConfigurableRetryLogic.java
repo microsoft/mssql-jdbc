@@ -293,18 +293,11 @@ public class ConfigurableRetryLogic {
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             CodeSource codeSource = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource();
             
-            if (codeSource == null) {
-                // CodeSource should never be null, so throw an error
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
-                Object[] msgArgs = {ConfigurableRetryLogic.class};
-                throw new SQLServerException(form.format(msgArgs), null, 0, null);
-            } else {
-                if (Files.isDirectory(Paths.get(codeSource.getLocation().toURI()))) {
-                    // We check if the Path we get from the CodeSource location is a directory. If so, we are running
-                    // from class files and should remove a suffix (i.e. the props file is in a different location from the 
-                    // location returned)
-                    location = location.substring(0, location.length() - locationSuffix.length());
-                }
+            if (null != codeSource && Files.isDirectory(Paths.get(codeSource.getLocation().toURI()))) {
+                // We check if the Path we get from the CodeSource location is a directory. If so, we are running
+                // from class files and should remove a suffix (i.e. the props file is in a different location from the 
+                // location returned)
+                location = location.substring(0, location.length() - locationSuffix.length());
             }
 
             URI uri = new URI(location);
