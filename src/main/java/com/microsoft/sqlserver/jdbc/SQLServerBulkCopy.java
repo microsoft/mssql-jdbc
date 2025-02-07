@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.BULK_COPY_OPERATION_CACHE;
 import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -1731,19 +1730,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
         String key = null;
-
+        HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = connection.getBulkCopyOperationCache();
         if (connection.getcacheBulkCopyMetadata()) {
             String databaseName = connection.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
             key = getHashedSecret(new String[] {escapedDestinationTableName, databaseName});
-            destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+            destColumnMetadata = bulkCopyOperationCache.get(key);
         }
 
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
             if (connection.getcacheBulkCopyMetadata()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
                 try {
-                    destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+                    destColumnMetadata = bulkCopyOperationCache.get(key);
 
                     if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                         setDestinationColumnMetadata(escapedDestinationTableName);
@@ -1758,7 +1757,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         // driver will not be aware of this and the inserted data will likely be corrupted. In such
                         // scenario, we can't detect this without making an additional metadata query, which would
                         // defeat the purpose of caching.
-                        BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
+                        bulkCopyOperationCache.put(key, destColumnMetadata);
                     }
                 } finally {
                     DESTINATION_COL_METADATA_LOCK.unlock();

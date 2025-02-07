@@ -1763,7 +1763,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** transaction descriptor */
     private byte[] transactionDescriptor = new byte[8];
 
-    static final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> BULK_COPY_OPERATION_CACHE = new HashMap<>();
+    final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = new HashMap<>();
 
     /**
      * Flag (Yukon and later) set to true whenever a transaction is rolled back..The flag's value is reset to false when
@@ -1782,6 +1782,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.state = state;
     }
 
+    final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> getBulkCopyOperationCache() {
+        return bulkCopyOperationCache;
+    }
     /**
      * This function actually represents whether a database session is not open. The session is not available before the
      * session is established and after the session is closed.
@@ -2039,6 +2042,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // reset prepared statement handle cache
         if (null != preparedStatementHandleCache) {
             preparedStatementHandleCache.clear();
+        }
+
+        //clear bulk copy operation cache for this connection
+        if (null != bulkCopyOperationCache) {
+            bulkCopyOperationCache.clear();
         }
     }
 
