@@ -26,6 +26,7 @@ public class KerberosTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
+        Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
         setConnection();
     }
 
