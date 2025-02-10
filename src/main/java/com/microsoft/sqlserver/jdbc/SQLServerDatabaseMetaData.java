@@ -1234,25 +1234,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         * 
         * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
         */
-        SQLServerResultSet rs = null;
         PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_QUERY);
-        try {
-            pstmt.setString(1, table);
-            pstmt.setString(2, schema);
-            rs = (SQLServerResultSet) pstmt.executeQuery();
-        } catch (SQLException e) {
-            if (null != pstmt) {
-                try {
-                    pstmt.close();
-                } catch (SQLServerException ignore) {
-                    if (loggerExternal.isLoggable(Level.FINER)) {
-                        loggerExternal.finer(
-                                "getIndexInfo() threw an exception when attempting to close PreparedStatement");
-                    }
-                }
-            }
-        }
-        return rs;
+        pstmt.setString(1, table);
+        pstmt.setString(2, schema);
+        return (SQLServerResultSet) pstmt.executeQuery();
     }
 
     @Override
