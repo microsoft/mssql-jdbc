@@ -284,7 +284,6 @@ public class ConfigurableRetryLogic {
     private static String getCurrentClassPath() throws SQLServerException {
         String location = "";
         String className = "";
-        String locationSuffix = "target/classes/";
 
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
@@ -295,7 +294,7 @@ public class ConfigurableRetryLogic {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
                 // from class files and should remove a suffix (i.e. the props file is in a different location from the
                 // location returned)
-                location = location.substring(0, location.length() - locationSuffix.length());
+                location = location.substring(0, location.length() - ("target/classes/").length());
             }
 
             return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
