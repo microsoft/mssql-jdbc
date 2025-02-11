@@ -12,6 +12,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -36,7 +38,6 @@ public class ConfigurableRetryLogic {
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
-    private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
     private static final String RETRY_EXEC = "retryExec";
     private static final String RETRY_CONN = "retryConn";
@@ -287,12 +288,19 @@ public class ConfigurableRetryLogic {
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            location = location.substring(0, location.length() - 16);
-            URI uri = new URI(location + FORWARD_SLASH);
-            return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
+
+            if (Files.isDirectory(Paths
+                    .get(ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation().toURI()))) {
+                // We check if the Path we get from the CodeSource location is a directory. If so, we are running
+                // from class files and should remove a suffix (i.e. the props file is in a different location from the
+                // location returned)
+                location = location.substring(0, location.length() - ("target/classes/").length());
+            }
+
+            return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
-            Object[] msgArgs = {location + FORWARD_SLASH};
+            Object[] msgArgs = {location};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (ClassNotFoundException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
