@@ -246,9 +246,9 @@ final class DTV {
     Object getValue(JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
-        if (null == impl){
+        if (null == impl) {
             impl = new ServerDTVImpl();
-        } else if (impl.isNull()){
+        } else if (impl.isNull()) {
             return null;
         }
         return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
