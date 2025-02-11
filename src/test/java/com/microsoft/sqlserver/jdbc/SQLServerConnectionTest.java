@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1368,6 +1369,21 @@ public class SQLServerConnectionTest extends AbstractTest {
         	//test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testManagedIdentityWithEncryptStrict() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        ds.setEncrypt("strict");
+
+        try (Connection con = ds.getConnection()) {
+            assertTrue(con.isValid(0), "Connection should be valid");
+        } catch (SQLException e) {
+            fail("Connection failed: " + e.getMessage());
+        }
     }
 
 }

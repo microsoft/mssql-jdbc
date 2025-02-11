@@ -505,19 +505,6 @@ public class FedauthTest extends FedauthCommon {
 
     }
 
-    @Test
-    public void testManagedIdentityWithEncryptStrict() throws SQLException {
-        String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication=ActiveDirectoryMSI;encrypt=strict;";
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(url);
-
-        try (Connection conn = ds.getConnection()) {
-            assertNotNull(conn);
-        } catch (SQLException e) {
-            fail("Expected connection to succeed with encrypt=strict, but it failed with error: " + e.getMessage());
-        }
-    }
-
     private static void validateException(String url, String resourceKey) {
         try (Connection conn = DriverManager.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
