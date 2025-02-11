@@ -186,8 +186,38 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertNotNull(resultVector, "Retrieved vector is null.");
                     assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
                     assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch.");
+                } catch (Exception e) {
+                    fail(e.getMessage());
+                } finally {
+                    try (Statement stmt = conn.createStatement();) {
+                        TestUtils.dropTableIfExists(dstTable, stmt);
+                    }
                 }
+            }
+        }
+    }
 
+    @Test
+    public void testBulkCopyJSON() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {    
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data = "{\"key\":\"value\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data));
+                
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                assertTrue(data.equals(rs.getObject(1)));
+                
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
@@ -832,7 +862,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
         @Override
         public int getPrecision(int column) {
-           return precision;
+            return precision;
         }
 
         @Override
@@ -842,6 +872,56 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             } else {
                 return 0;
             }
+        }
+        
+        @Override
+        public Object[] getRowData() {
+            return data;
+        }
+
+        @Override
+        public boolean next() {
+            if (!anyMoreData)
+                return false;
+            anyMoreData = false;
+            return true;
+        }
+    }
+
+    private static class BulkRecordJSON implements ISQLServerBulkData {
+        boolean anyMoreData = true;
+        Object[] data;
+
+        BulkRecordJSON(Object data) {
+            this.data = new Object[1];
+            this.data[0] = data;
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            Set<Integer> ords = new HashSet<>();
+            ords.add(1);
+            return ords;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return "testCol";
+        }
+
+        @Override
+        public int getColumnType(int column) {
+            return microsoft.sql.Types.JSON;
+        }
+
+        @Override
+        public int getPrecision(int column) {
+            return 0;
+        }
+
+        @Override
+        public int getScale(int column) {
+            return 0;
         }
 
         @Override
