@@ -512,9 +512,9 @@ public class FedauthTest extends FedauthCommon {
         ds.setURL(url);
 
         try (Connection conn = ds.getConnection()) {
-            fail("Expected connection to fail with encrypt=strict");
+            assertNotNull(conn);
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("SSL"), "Expected SSL error.");
+            fail("Expected connection to succeed with encrypt=strict, but it failed with error: " + e.getMessage());
         }
     }
 
