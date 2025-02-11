@@ -1375,9 +1375,14 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDB)
     public void testManagedIdentityWithEncryptStrict() {
         SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(connectionString);
+
+        String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(connectionString, "user"),
+        "password");
+
+        ds.setURL(connectionUrl);
         ds.setAuthentication("ActiveDirectoryMSI");
         ds.setEncrypt("strict");
+        ds.setTrustServerCertificate(true); // Add this line
 
         try (Connection con = ds.getConnection()) {
             assertNotNull(con);
