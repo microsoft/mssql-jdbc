@@ -249,7 +249,7 @@ final class DTV {
         if (null == impl) {
             impl = new ServerDTVImpl();
         } else if (impl.isNull()) {
-        	return null;
+            return null;
         }
         return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
                 statement);
