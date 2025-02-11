@@ -612,7 +612,7 @@ public class CallableStatementTest extends AbstractTest {
 			String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con
 					.prepareCall("INSERT INTO " + tableNameJSON + " (col1) VALUES (?)")) {
-				callableStatement.setObject(1, jsonString, microsoft.sql.Types.JSON);
+				callableStatement.setObject(1, jsonString);
 				callableStatement.execute();
 			}
 
@@ -630,7 +630,7 @@ public class CallableStatementTest extends AbstractTest {
 		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
 			String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con.prepareCall("{call " + procedureNameJSON + " (?)}")) {
-				callableStatement.setObject(1, jsonString, microsoft.sql.Types.JSON);
+				callableStatement.setObject(1, jsonString);
 				callableStatement.execute();
 
 				try (ResultSet rs = callableStatement.getResultSet()) {
