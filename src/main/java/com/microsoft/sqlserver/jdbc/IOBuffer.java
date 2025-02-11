@@ -4406,60 +4406,6 @@ final class TDSWriter {
         }
     }
 
-    void writeReaderJSON(Reader reader, long advertisedLength, boolean writeChunkSizes) throws SQLServerException {
-        assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
-
-        long actualLength = 0;
-        int charsRead = 0;
-        int charsToWrite;
-        do {
-            // Read in next chunk
-            for (charsToWrite = 0; -1 != charsRead && charsToWrite < streamCharBuffer.length;
-                    charsToWrite += charsRead) {
-                try {
-                    charsRead = reader.read(streamCharBuffer, charsToWrite, streamCharBuffer.length - charsToWrite);
-                } catch (IOException e) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
-                    Object[] msgArgs = {e.toString()};
-                    error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
-                }
-
-                if (-1 == charsRead)
-                    break;
-
-                // Check for invalid bytesRead returned from Reader.read
-                if (charsRead < 0 || charsRead > streamCharBuffer.length - charsToWrite) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
-                    Object[] msgArgs = {SQLServerException.getErrString("R_streamReadReturnedInvalidValue")};
-                    error(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET);
-                }
-            }
-
-            // Write it out
-            writeInt(charsToWrite);
-            // Convert from Unicode characters to bytes
-            //
-            // Note: The following inlined code is much faster than the equivalent
-            // call to (new String(streamCharBuffer)).getBytes("UTF-16LE") because it
-            // saves a conversion to String and use of Charset in that conversion.
-            for (int charsCopied = 0; charsCopied < charsToWrite; ++charsCopied) {
-                streamByteBuffer[charsCopied] = (byte) (streamCharBuffer[charsCopied]);
-                streamByteBuffer[charsCopied + 1] = (byte) (streamCharBuffer[charsCopied]);
-            }
-
-            writeBytes(streamByteBuffer, 0, charsToWrite);
-            actualLength += charsToWrite;
-        } while (-1 != charsRead || charsToWrite > 0);
-
-        // If we were given an input stream length that we had to match and
-        // the actual stream length did not match then cancel the request.
-        if (DataTypes.UNKNOWN_STREAM_LENGTH != advertisedLength && actualLength != advertisedLength) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_mismatchedStreamLength"));
-            Object[] msgArgs = {advertisedLength, actualLength};
-            error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
-        }
-    }
-
     GregorianCalendar initializeCalender(TimeZone timeZone) {
         GregorianCalendar calendar;
 

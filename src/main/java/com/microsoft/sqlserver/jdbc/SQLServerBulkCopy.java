@@ -2358,6 +2358,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.LONGVARCHAR:
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
+                case microsoft.sql.Types.JSON:
                     if (isStreaming) // PLP
                     {
                         // PLP_BODY rule in TDS
@@ -2494,25 +2495,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             tdsWriter.writeBytes(typevarlen);
                             tdsWriter.writeString(colValue.toString());
                         }
-                    }
-                    break;
-                case microsoft.sql.Types.JSON:
-                    // Send length as unknown.
-                    tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
-                    try {
-                        // Read and Send the data as chunks.
-                        Reader reader;
-                        if (colValue instanceof Reader) {
-                            reader = (Reader) colValue;
-                        } else {
-                            reader = new StringReader(colValue.toString());
-                        }
-
-                        tdsWriter.writeReaderJSON(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false);
-                        reader.close();
-                    } catch (IOException e) {
-                        throw new SQLServerException(
-                                SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
                     }
                     break;
                 case java.sql.Types.LONGVARBINARY:
