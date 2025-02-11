@@ -778,7 +778,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             collation = connection.getDatabaseCollation();
 
         if ((java.sql.Types.NCHAR == bulkJdbcType) || (java.sql.Types.NVARCHAR == bulkJdbcType)
-                || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)) {
+                || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)
+                || (microsoft.sql.Types.JSON == bulkJdbcType)) {
             isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < bulkPrecision)
                     || (DataTypes.SHORT_VARTYPE_MAX_CHARS < destPrecision);
         } else {
@@ -835,7 +836,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
 
             if ((java.sql.Types.NCHAR == baseDestJDBCType) || (java.sql.Types.NVARCHAR == baseDestJDBCType)
-                    || (java.sql.Types.LONGNVARCHAR == baseDestJDBCType))
+                    || (java.sql.Types.LONGNVARCHAR == baseDestJDBCType)
+                    || (microsoft.sql.Types.JSON == baseDestJDBCType))
                 isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < baseDestPrecision);
             else
                 isStreaming = (DataTypes.SHORT_VARTYPE_MAX_BYTES < baseDestPrecision);
@@ -995,6 +997,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
+            case microsoft.sql.Types.JSON:
                 if (unicodeConversionRequired(srcJdbcType, destSSType)) {
                     tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
                     if (isStreaming) {
@@ -1023,14 +1026,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 collation.writeCollation(tdsWriter);
                 break;
-            case microsoft.sql.Types.JSON: // 0x62
-                tdsWriter.writeByte(TDSType.JSON.byteValue());
-                if (isStreaming) {
-                    tdsWriter.writeShort((short) 0xFFFF);
-                } else {
-                    tdsWriter.writeShort(isBaseType ? (short) (srcPrecision) : (short) (2 * srcPrecision));
-                }
-                break; 
             case java.sql.Types.BINARY: // 0xAD
                 tdsWriter.writeByte(TDSType.BIGBINARY.byteValue());
                 tdsWriter.writeShort((short) (srcPrecision));
@@ -2460,7 +2455,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.LONGNVARCHAR:
                 case java.sql.Types.NCHAR:
                 case java.sql.Types.NVARCHAR:
-                case microsoft.sql.Types.JSON:
                     if (isStreaming) {
                         // PLP_BODY rule in TDS
                         // Use ResultSet.getString for non-streaming data and ResultSet.getNCharacterStream() for
@@ -2502,7 +2496,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         }
                     }
                     break;
+                case microsoft.sql.Types.JSON:
+                    // Send length as unknown.
+                    tdsWriter.writeLong(PLPInputStream.UNKNOWN_PLP_LEN);
+                    try {
+                        // Read and Send the data as chunks.
+                        Reader reader;
+                        if (colValue instanceof Reader) {
+                            reader = (Reader) colValue;
+                        } else {
+                            reader = new StringReader(colValue.toString());
+                        }
 
+                        tdsWriter.writeReaderJSON(reader, DataTypes.UNKNOWN_STREAM_LENGTH, false);
+                        reader.close();
+                    } catch (IOException e) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
+                    }
+                    break;
                 case java.sql.Types.LONGVARBINARY:
                 case java.sql.Types.BINARY:
                 case java.sql.Types.VARBINARY:
