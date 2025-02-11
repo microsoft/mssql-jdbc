@@ -1370,25 +1370,23 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
-
+    
     @Test
     @Tag(Constants.xAzureSQLDB)
     public void testManagedIdentityWithEncryptStrict() {
         SQLServerDataSource ds = new SQLServerDataSource();
 
-        String connectionUrl = TestUtils.removeProperty(TestUtils.removeProperty(connectionString, "user"),
-        "password");
+        String connectionUrl = TestUtils.removeProperty(connectionString, "user");
+        connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
 
         ds.setURL(connectionUrl);
         ds.setAuthentication("ActiveDirectoryMSI");
         ds.setEncrypt("strict");
-        ds.setTrustServerCertificate(true); // Add this line
 
         try (Connection con = ds.getConnection()) {
             assertNotNull(con);
         } catch (SQLException e) {
             fail("Connection failed: " + e.getMessage());
         }
-    }
-
+    } 
 }
