@@ -249,13 +249,61 @@ public class RegressionTest extends AbstractTest {
             tableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                        + " ([c1] int, [c2] json, [c3] json)");
+                        + " ([c1] int NOT NULL PRIMARY KEY, [c2] json, [c3] json)");
 
-            String sql = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET [c2] = ?, [c3] = ?";
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
-                pstmt.setObject(1, null);
-                pstmt.setObject(2, null);
+            int pkRow1 = 1;
+            int pkRow2 = 2;
+            int pkRow3 = 3;            
+            String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setInt(1, pkRow1);
+                pstmt.setObject(2, "{\"key11\":\"value11\"}");
+                pstmt.setObject(3, "{\"key12\":\"value12\"}");
                 pstmt.executeUpdate();
+            }
+
+            sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setInt(1, pkRow2);
+                pstmt.setObject(2, "{\"key21\":\"value21\"}");
+                pstmt.setObject(3, "{\"key22\":\"value22\"}");
+                pstmt.executeUpdate();
+            }
+
+            sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
+                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setInt(1, pkRow3);
+                pstmt.setObject(2, "{\"key31\":\"value31\"}");
+                pstmt.setObject(3, "{\"key32\":\"value32\"}");
+                pstmt.executeUpdate();
+            }
+
+            sql = "DELETE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where [c1] = ?";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setInt(1, pkRow1);
+                pstmt.executeUpdate();
+            }
+            
+            sql = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET [c2] = ?, [c3] = ? where [c1] = ?";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setObject(1, "{\"key21.1\":\"value21.1\"}");
+                pstmt.setObject(2, "{\"key22.1\":\"value22.1\"}");
+                pstmt.setInt(3, pkRow2);
+                pstmt.executeUpdate();
+            } 
+
+            sql = "DELETE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where [c1] = ?";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+                pstmt.setInt(1, pkRow3);
+                pstmt.executeUpdate();
+            }
+
+            try (ResultSet rs = stmt
+                    .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(rs.getInt(1), 2, "Value mismatch");
+                assertEquals(rs.getObject(2), "{\"key21.1\":\"value21.1\"}", "Value mismatch");
+                assertEquals(rs.getObject(3), "{\"key22.1\":\"value22.1\"}", "Value mismatch");
             } finally {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
