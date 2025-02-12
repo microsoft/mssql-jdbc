@@ -126,7 +126,7 @@ public class KerberosTest extends AbstractTest {
         try {
             JaasConfiguration config = new JaasConfiguration(Configuration.getConfiguration());
             Assertions.assertNotNull(config);
-        } catch (SQLServerException e) {
+        } catch (Exception e) {
             Assertions.fail("Exception was thrown: " + e.getMessage());
         }
     }
