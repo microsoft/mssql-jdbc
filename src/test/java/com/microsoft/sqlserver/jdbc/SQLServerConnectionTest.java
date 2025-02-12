@@ -1382,6 +1382,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setURL(connectionUrl);
         ds.setAuthentication("ActiveDirectoryMSI");
         ds.setEncrypt("strict");
+        ds.setTrustServerCertificate(true); 
 
         try (Connection con = ds.getConnection()) {
             assertNotNull(con);
