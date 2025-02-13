@@ -1382,8 +1382,13 @@ public class SQLServerConnectionTest extends AbstractTest {
     public void testManagedIdentityWithEncryptStrict() {
         SQLServerDataSource ds = new SQLServerDataSource();
 
-        String connectionUrl = TestUtils.removeProperty(connectionString, "user");
-        connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
+        String connectionUrl = connectionString;
+        if (connectionUrl.contains("user=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "user");
+        }
+        if (connectionUrl.contains("password=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
+        }
 
         ds.setURL(connectionUrl);
         ds.setAuthentication("ActiveDirectoryMSI");
