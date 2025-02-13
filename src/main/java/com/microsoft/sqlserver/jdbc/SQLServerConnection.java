@@ -1703,7 +1703,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (0 == connectRetryCount) {
                         // connection retry disabled
                         throw e;
-                    } else if (connectRetryAttempt++ > connectRetryCount) {
+                    } else if (connectRetryAttempt++ >= connectRetryCount) {
                         // maximum connection retry count reached
                         if (connectionlogger.isLoggable(Level.FINE)) {
                             connectionlogger.fine("Connection failed. Maximum connection retry count "
@@ -1735,11 +1735,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
                                     + connectRetryInterval + ")s before retry.");
                         }
-                        try {
-                            Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
-                        } catch (InterruptedException ex) {
-                            // re-interrupt the current thread, in order to restore the thread's interrupt status.
-                            Thread.currentThread().interrupt();
+                        if (connectRetryAttempt > 1) {
+                            try {
+                                Thread.sleep(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                            } catch (InterruptedException ex) {
+                                // re-interrupt the current thread, in order to restore the thread's interrupt status.
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
                 }
