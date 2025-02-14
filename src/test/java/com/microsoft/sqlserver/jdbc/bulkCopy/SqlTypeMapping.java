@@ -15,6 +15,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlDateTimeOffset;
 import com.microsoft.sqlserver.testframework.sqlType.SqlDecimal;
 import com.microsoft.sqlserver.testframework.sqlType.SqlFloat;
 import com.microsoft.sqlserver.testframework.sqlType.SqlInt;
+import com.microsoft.sqlserver.testframework.sqlType.SqlJson;
 import com.microsoft.sqlserver.testframework.sqlType.SqlMoney;
 import com.microsoft.sqlserver.testframework.sqlType.SqlNChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlNVarChar;
@@ -62,7 +63,8 @@ public enum SqlTypeMapping {
     DATETIMEOFFSET(new SqlDateTimeOffset()),
     // Binary
     BINARY(new SqlBinary()),
-    VARBINARY(new SqlVarBinary()),;
+    VARBINARY(new SqlVarBinary()),
+    JSON(new SqlJson()),;
 
     public SqlType sqlType;
 

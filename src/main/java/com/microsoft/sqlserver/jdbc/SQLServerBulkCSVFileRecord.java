@@ -646,11 +646,19 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this.escapeDelimiters = escapeDelimiters;
     }
 
+    private static boolean isJson(String token) {
+        return token.startsWith("{") && token.endsWith("}");
+    }
+
     private static String[] escapeQuotesRFC4180(String[] tokens) throws SQLServerException {
         if (null == tokens) {
             return tokens;
         }
         for (int i = 0; i < tokens.length; i++) {
+            if (isJson(tokens[i])) {
+                continue; // Skip JSON strings
+            }
+            
             boolean escaped = false;
             int j = 0;
             StringBuilder sb = new StringBuilder();
