@@ -41,7 +41,7 @@ public class RandomUtil {
         sb.append(prefix);
         sb.append("_");
         sb.append("jdbc_");
-        sb.append(System.getProperty("user.name"));
+        sb.append(System.getProperty("user.name").replace(".", "_"));
         sb.append("_");
         // Added to always test table names with apostrophe.
         sb.append("'");
