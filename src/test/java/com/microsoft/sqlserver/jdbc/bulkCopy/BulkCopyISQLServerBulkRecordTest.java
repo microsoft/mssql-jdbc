@@ -197,6 +197,9 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test bulk copy with a single JSON row.
+     */
     @Test
     public void testBulkCopyJSON() throws SQLException {
         String dstTable = TestUtils
@@ -211,13 +214,179 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.setDestinationTableName(dstTable);
                 String data = "{\"key\":\"value\"}";
                 bulkCopy.writeToServer(new BulkRecordJSON(data));
-                
+
                 String select = "SELECT * FROM " + dstTable;
                 ResultSet rs = dstStmt.executeQuery(select);
 
                 assertTrue(rs.next());
                 assertTrue(data.equals(rs.getObject(1)));
-                
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple JSON rows.
+     */
+    @Test
+    public void testBulkCopyMultipleJsonRows() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1 = "{\"key1\":\"value1\"}";
+                String data2 = "{\"key2\":\"value2\"}";
+                String data3 = "{\"key3\":\"value3\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data1));
+                bulkCopy.writeToServer(new BulkRecordJSON(data2));
+                bulkCopy.writeToServer(new BulkRecordJSON(data3));
+
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                assertTrue(data1.equals(rs.getObject(1)));
+                assertTrue(rs.next());
+                assertTrue(data2.equals(rs.getObject(1)));
+                assertTrue(rs.next());
+                assertTrue(data3.equals(rs.getObject(1)));
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple JSON rows and columns.
+     */
+    @Test
+    public void testBulkCopyMultipleJsonRowsAndColumns() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol1 JSON, testCol2 JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1Col1 = "{\"key1\":\"value1\"}";
+                String data1Col2 = "{\"key2\":\"value2\"}";
+                String data2Col1 = "{\"key3\":\"value3\"}";
+                String data2Col2 = "{\"key4\":\"value4\"}";
+                bulkCopy.writeToServer(new BulkRecordJSONMultipleColumns(data1Col1, data1Col2));
+                bulkCopy.writeToServer(new BulkRecordJSONMultipleColumns(data2Col1, data2Col2));
+
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                assertTrue(data1Col1.equals(rs.getObject(1)));
+                assertTrue(data1Col2.equals(rs.getObject(2)));
+                assertTrue(rs.next());
+                assertTrue(data2Col1.equals(rs.getObject(1)));
+                assertTrue(data2Col2.equals(rs.getObject(2)));
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with nested JSON rows.
+     */
+    @Test
+    public void testBulkCopyNestedJsonRows() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1 = "{\"key1\":{\"nestedKey1\":\"nestedValue1\"}}";
+                String data2 = "{\"key2\":{\"nestedKey2\":\"nestedValue2\"}}";
+                String data3 = "{\"key3\":{\"nestedKey3\":\"nestedValue3\"}}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data1));
+                bulkCopy.writeToServer(new BulkRecordJSON(data2));
+                bulkCopy.writeToServer(new BulkRecordJSON(data3));
+
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                assertTrue(data1.equals(rs.getObject(1)));
+                assertTrue(rs.next());
+                assertTrue(data2.equals(rs.getObject(1)));
+                assertTrue(rs.next());
+                assertTrue(data3.equals(rs.getObject(1)));
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with various data types in JSON.
+     */
+    @Test
+    public void testBulkCopyWithVariousDataTypes() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON)");
+
+                bulkCopy.setDestinationTableName(dstTable);
+
+                // JSON data to be inserted
+                String data = "{\"bitCol\":true,\"tinyIntCol\":2,\"smallIntCol\":-32768,\"intCol\":0,\"bigIntCol\":0,\"floatCol\":-1700.0000000000,\"realCol\":-3400.0000000000,\"decimalCol\":22.335600,\"numericCol\":22.3356,\"moneyCol\":-922337203685477.5808,\"smallMoneyCol\":-214748.3648,\"charCol\":\"a5()b\",\"nCharCol\":\"?????\",\"varcharCol\":\"test to test csv files\",\"nVarcharCol\":\"???\",\"binaryCol\":\"6163686974\",\"varBinaryCol\":\"6163686974\",\"dateCol\":\"1922-11-02\",\"datetimeCol\":\"2004-05-23 14:25:10.487\",\"datetime2Col\":\"2007-05-02 19:58:47.1234567\",\"datetimeOffsetCol\":\"2025-12-10 12:32:10.1234567+01:00\"}";
+
+                // Insert data directly
+                String insertSql = "INSERT INTO " + dstTable + " VALUES ('" + data + "')";
+                dstStmt.executeUpdate(insertSql);
+
+                String select = "SELECT * FROM " + dstTable;
+                ResultSet rs = dstStmt.executeQuery(select);
+
+                assertTrue(rs.next());
+                String jsonData = rs.getString(1);
+                assertEquals(data, jsonData);
+
             } catch (Exception e) {
                 fail(e.getMessage());
             } finally {
@@ -992,4 +1161,59 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
 
+    private static class BulkRecordJSONMultipleColumns implements ISQLServerBulkData {
+        boolean anyMoreData = true;
+        Object[] data;
+
+        BulkRecordJSONMultipleColumns(Object data1, Object data2) {
+            this.data = new Object[2];
+            this.data[0] = data1;
+            this.data[1] = data2;
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            Set<Integer> ords = new HashSet<>();
+            ords.add(1);
+            ords.add(2);
+            return ords;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            if (column == 1) {
+                return "testCol1";
+            } else {
+                return "testCol2";
+            }
+        }
+
+        @Override
+        public int getColumnType(int column) {
+            return microsoft.sql.Types.JSON;
+        }
+
+        @Override
+        public int getPrecision(int column) {
+            return 0;
+        }
+
+        @Override
+        public int getScale(int column) {
+            return 0;
+        }
+
+        @Override
+        public Object[] getRowData() {
+            return data;
+        }
+
+        @Override
+        public boolean next() {
+            if (!anyMoreData)
+                return false;
+            anyMoreData = false;
+            return true;
+        }
+    }
 }
