@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -48,7 +50,6 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -126,7 +127,8 @@ public class ResultSetTest extends AbstractTest {
 
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values("
                         + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
-                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null)");
+                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
+                        + "null)");
 
                 try (ResultSet rs = stmt.executeQuery("select * from "
                         + AbstractSQLGenerator.escapeIdentifier(tableName) + " order by order_column")) {
@@ -170,8 +172,8 @@ public class ResultSetTest extends AbstractTest {
                     blob = rs.getObject(7, Blob.class);
                     try {
                         assertArrayEquals(
-                                new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
-                                        0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
+                                new byte[] { 0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
+                                        0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76 },
                                 blob.getBytes(1, 16));
                     } finally {
                         blob.free();
@@ -194,8 +196,8 @@ public class ResultSetTest extends AbstractTest {
                     }
 
                     assertArrayEquals(
-                            new byte[] {0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
-                                    0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76},
+                            new byte[] { 0x63, (byte) 0xC3, 0x4D, 0x6B, (byte) 0xCA, (byte) 0xD5, 0x55, (byte) 0xEB,
+                                    0x64, (byte) 0xBF, 0x7E, (byte) 0x84, (byte) 0x8D, 0x02, (byte) 0xC3, 0x76 },
                             rs.getObject(10, byte[].class));
 
                     assertEquals(java.sql.Date.valueOf("2017-05-19"), rs.getObject(11, java.sql.Date.class));
@@ -215,7 +217,8 @@ public class ResultSetTest extends AbstractTest {
                     assertEquals("2017-05-19 10:47:15.1234567 +02:00",
                             rs.getObject("col14", microsoft.sql.DateTimeOffset.class).toString());
 
-                    // BigDecimal#equals considers the number of decimal places (ResultSet returns all digits after
+                    // BigDecimal#equals considers the number of decimal places (ResultSet returns
+                    // all digits after
                     // decimal unlike CallableStatement outparams)
                     assertEquals(0, rs.getObject(15, BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
                     assertEquals(0, rs.getObject("col15", BigDecimal.class).compareTo(new BigDecimal("0.123456789")));
@@ -224,12 +227,13 @@ public class ResultSetTest extends AbstractTest {
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
                     assertEquals(0, rs.getObject("col16", BigDecimal.class)
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
-    
-                    String expectedJsonValue = "{\"test\":\"123\"}";        
+
+                    String expectedJsonValue = "{\"test\":\"123\"}";
                     assertEquals(expectedJsonValue, rs.getObject(17).toString());
                     assertEquals(expectedJsonValue, rs.getObject("col17").toString());
-                
-                    // test null values, mostly to verify primitive wrappers do not return default values
+
+                    // test null values, mostly to verify primitive wrappers do not return default
+                    // values
                     assertTrue(rs.next());
                     assertNull(rs.getObject("col1", Boolean.class));
                     assertNull(rs.getObject(1, Boolean.class));
@@ -360,7 +364,8 @@ public class ResultSetTest extends AbstractTest {
             TimeZone prevTimeZone = TimeZone.getDefault();
             TimeZone.setDefault(TimeZone.getTimeZone("America/Edmonton"));
 
-            // a local date/time that does not actually exist because of Daylight Saving Time
+            // a local date/time that does not actually exist because of Daylight Saving
+            // Time
             final String testValueDate = "2018-03-11";
             final String testValueTime = "02:00:00.1234567";
             final String testValueDateTime = testValueDate + "T" + testValueTime;
@@ -393,7 +398,8 @@ public class ResultSetTest extends AbstractTest {
     }
 
     /**
-     * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n, java.time.OffsetTime.class).
+     * Tests getObject(n, java.time.OffsetDateTime.class) and getObject(n,
+     * java.time.OffsetTime.class).
      * 
      * @throws SQLException
      */
@@ -453,13 +459,15 @@ public class ResultSetTest extends AbstractTest {
     }
 
     /**
-     * Tests calling any getter on a null column should work regardless of their type.
+     * Tests calling any getter on a null column should work regardless of their
+     * type.
      * 
      * @throws SQLException
      */
     @Test
     public void testGetterOnNull() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
             rs.next();
             assertEquals(null, rs.getTime(1));
@@ -474,9 +482,10 @@ public class ResultSetTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testGetSetHoldability() throws SQLException {
-        int[] holdabilityOptions = {ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
+        int[] holdabilityOptions = { ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT };
 
-        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("select null")) {
 
             int connHold = con.getHoldability();
@@ -665,7 +674,8 @@ public class ResultSetTest extends AbstractTest {
             assert (warningCount == 26);
 
             /*
-             * Testing Scenario: There are no more results when the following is true ............
+             * Testing Scenario: There are no more results when the following is true
+             * ............
              * ((stmt.getMoreResults() == false) && (stmt.getUpdateCount() == -1))
              */
             stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (12345)");
@@ -707,13 +717,50 @@ public class ResultSetTest extends AbstractTest {
                     .execute("select * from " + AbstractSQLGenerator.escapeIdentifier(tableName) + "; select 1/0");
             while (hasResults) {
                 ResultSet rs = stmt.getResultSet();
-                while (rs.next()) {}
+                while (rs.next()) {
+                }
                 hasResults = stmt.getMoreResults();
             }
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
             assertEquals(expectedSqlState, e.getSQLState());
             assertEquals(expectedErrorCode, e.getErrorCode());
+        }
+    }
+
+    /**
+     * Test casting JSON data and retrieving it as various data types.
+     */
+    @Test
+    public void testCastOnJSON() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        String jsonData = "{\"key\":\"123\"}";
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonData JSON)");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " VALUES (CAST('" + jsonData + "' AS JSON))");
+
+                String select = "SELECT JSON_VALUE(jsonData, '$.key') AS c1 FROM " + dstTable;
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(select)) {
+                    rs.next();
+                    assertEquals(123, rs.getShort("c1"));
+                    assertEquals(123, rs.getInt("c1"));
+                    assertEquals(123f, rs.getFloat("c1"));
+                    assertEquals(123L, rs.getLong("c1"));
+                    assertEquals(123d, rs.getDouble("c1"));
+                    assertEquals(new BigDecimal(123), rs.getBigDecimal("c1"));
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
         }
     }
 
