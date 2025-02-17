@@ -42,14 +42,16 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default)
-			kerberos  - - - - - For tests using Kerberos authentication (excluded by default)
+			NTLM - - - For tests using NTLM Authentication mode (excluded by default)
+			kerberos  - - - - For tests using Kerberos authentication (excluded by default)
 			reqExternalSetup - For tests requiring external setup (excluded by default)
 			clientCertAuth - - For tests requiring client certificate authentication 
-			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
+			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - -
+			requireSecret - For tests requiring setting up secrets manually
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos</excludedGroups>
+		<excludedGroups>
+			xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,requireSecret</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
@@ -228,7 +230,8 @@
 	<repositories>
 		<repository>
 			<id>central</id>
-			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<url>
+				https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
@@ -240,7 +243,8 @@
 	<pluginRepositories>
 		<pluginRepository>
 			<id>central</id>
-			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<url>
+				https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
@@ -253,7 +257,8 @@
 		<profile>
 			<id>jre8</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
+				<finalName>
+					${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -261,14 +266,20 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerConnection43.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerConnection43.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java</exclude>
 							</excludes>
 							<testExcludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/connection/ConnectionWrapper43Test.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/connection/RequestBoundaryMethodsTest.java</exclude>
-								<exclude>**/com/microsoft/sqlserver/jdbc/JDBC43Test.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/connection/ConnectionWrapper43Test.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/connection/RequestBoundaryMethodsTest.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/JDBC43Test.java</exclude>
 							</testExcludes>
 							<source>1.8</source>
 							<target>1.8</target>
@@ -287,7 +298,8 @@
 						<version>3.1.1</version>
 						<configuration>
 							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestFile>
+									${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 							</archive>
 						</configuration>
 					</plugin>
@@ -296,7 +308,8 @@
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>3.0.0-M1</version>
 						<configuration>
-							<!-- Exclude [xJDBC42] For tests not compatible with JDBC 4.2 Specifications -->
+							<!-- Exclude [xJDBC42] For tests not compatible with
+							JDBC 4.2 Specifications -->
 							<excludedGroups>${excludedGroups}, xJDBC42</excludedGroups>
 						</configuration>
 					</plugin>
@@ -306,7 +319,8 @@
 		<profile>
 			<id>jre11</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
+				<finalName>
+					${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -314,7 +328,8 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>11</source>
 							<target>11</target>
@@ -326,9 +341,11 @@
 						<version>3.1.1</version>
 						<configuration>
 							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestFile>
+									${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 								<manifestEntries>
-									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+									<Automatic-Module-Name>
+										com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
 								</manifestEntries>
 							</archive>
 						</configuration>
@@ -339,7 +356,8 @@
 		<profile>
 			<id>jre17</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
+				<finalName>
+					${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -347,7 +365,8 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>17</source>
 							<target>17</target>
@@ -359,9 +378,11 @@
 						<version>3.1.1</version>
 						<configuration>
 							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestFile>
+									${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 								<manifestEntries>
-									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+									<Automatic-Module-Name>
+										com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
 								</manifestEntries>
 							</archive>
 						</configuration>
@@ -372,7 +393,8 @@
 		<profile>
 			<id>jre21</id>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
+				<finalName>
+					${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -380,7 +402,8 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>21</source>
 							<target>21</target>
@@ -392,9 +415,11 @@
 						<version>3.1.1</version>
 						<configuration>
 							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestFile>
+									${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 								<manifestEntries>
-									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+									<Automatic-Module-Name>
+										com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
 								</manifestEntries>
 							</archive>
 						</configuration>
@@ -408,7 +433,8 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre23${releaseExt}</finalName>
+				<finalName>
+					${project.artifactId}-${project.version}.jre23${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -416,7 +442,8 @@
 						<version>3.8.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+								<exclude>
+									**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
 							<source>23</source>
 							<target>23</target>
@@ -428,9 +455,11 @@
 						<version>3.1.1</version>
 						<configuration>
 							<archive>
-								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestFile>
+									${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
 								<manifestEntries>
-									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+									<Automatic-Module-Name>
+										com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
 								</manifestEntries>
 							</archive>
 						</configuration>
@@ -477,12 +506,16 @@
 						<configuration>
 							<rules>
 								<bannedPlugins>
-									<!-- will only display a warning but does not fail the build. -->
+									<!-- will only display a warning but does
+									not fail the build. -->
 									<level>WARN</level>
 									<excludes>
-										<exclude>org.apache.maven.plugins:maven-verifier-plugin</exclude>
+										<exclude>
+											org.apache.maven.plugins:maven-verifier-plugin</exclude>
 									</excludes>
-									<message>Please consider using the maven-invoker-plugin
+									<message>
+										Please consider using the
+										maven-invoker-plugin
 										(http://maven.apache.org/plugins/maven-invoker-plugin/)!</message>
 								</bannedPlugins>
 								<requireMavenVersion>
@@ -535,8 +568,10 @@
 							com.microsoft.sqlserver.jdbc.dataclassification,
 							microsoft.sql
 						</_exportcontents>
-						<Import-Package>!microsoft.sql,jdk.net;resolution:=optional,*</Import-Package>
-						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
+						<Import-Package>
+							!microsoft.sql,jdk.net;resolution:=optional,*</Import-Package>
+						<Bundle-Activator>
+							com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
 					</instructions>
 				</configuration>
 				<executions>
@@ -573,7 +608,8 @@
 				<inherited>true</inherited>
 				<configuration>
 					<outputFile>outdated-dependencies.txt</outputFile>
-					<rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
+					<rulesUri>
+						file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
 				</configuration>
 			</plugin>
 			<plugin>
