@@ -1134,7 +1134,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.SQL_VARIANT: // 0x62
                 tdsWriter.writeByte(TDSType.SQL_VARIANT.byteValue());
                 tdsWriter.writeInt(TDS.SQL_VARIANT_LENGTH);
-                break;   
+                break;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 String unsupportedDataType = JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH);

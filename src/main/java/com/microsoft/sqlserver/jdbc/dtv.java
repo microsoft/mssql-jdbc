@@ -3048,7 +3048,7 @@ final class TypeInfo implements Serializable {
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
                 typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
                 typeInfo.ssType = SSType.JSON;
-                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE / 2;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE;
                 typeInfo.charset = Encoding.UTF8.charset();
             }
         });
