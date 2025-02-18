@@ -692,24 +692,34 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
     private static String[] parseString(String buffer, String delimiter) {
         ArrayList<String> tokens = new ArrayList<>();
-        int position = 0;
+        StringBuilder currentToken = new StringBuilder();
         boolean quoted = false;
+        int braceCount = 0; // track nested JSON
 
         for (int i = 0; i < buffer.length(); i++) {
-            if (buffer.charAt(i) == doubleQuoteChar) {
-                quoted = !quoted;
-            } else if (!quoted && i + delimiter.length() <= buffer.length()
-                    && buffer.substring(i, i + delimiter.length()).equals(delimiter)) {
-                // Add field to token list when delimiter is found
-                tokens.add(buffer.substring(position, i));
+            char c = buffer.charAt(i);
 
-                position = i + delimiter.length();
-                i = position - 1; // Adjust the index to start after the delimiter
+            if (c == doubleQuoteChar) {
+                quoted = !quoted;
+            } else if (c == '{') {
+                braceCount++;
+            } else if (c == '}') {
+                braceCount--;
             }
+
+            // If delimiter is encountered and we're not inside quotes or JSON, we add the token
+            if (!quoted && braceCount == 0 && buffer.startsWith(delimiter, i)) {
+                tokens.add(currentToken.toString());
+                currentToken.setLength(0); // Reset current token
+                i += delimiter.length() - 1; // Skip delimiter
+                continue;
+            }
+
+            currentToken.append(c);
         }
 
         // Add the last field
-        tokens.add(buffer.substring(position));
+        tokens.add(currentToken.toString());
         return tokens.toArray(new String[0]);
     }
 }
