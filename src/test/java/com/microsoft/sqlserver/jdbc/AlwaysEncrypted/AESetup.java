@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.JDBCType;
 import java.sql.SQLException;
@@ -62,7 +63,6 @@ public class AESetup extends AbstractTest {
     static String cekWin = Constants.CEK_NAME + "_WIN";
     static String cekAkv = Constants.CEK_NAME + "_AKV";
     static SQLServerStatementColumnEncryptionSetting stmtColEncSetting = null;
-
     static String AETestConnectionString;
     static String enclaveProperties = "";
 
@@ -73,6 +73,8 @@ public class AESetup extends AbstractTest {
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AETest_")));
     public static final String CHAR_TABLE_AE = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedChar")));
+    public static final String CHAR_TABLE_AE_NON_UNICODE = TestUtils
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedCharNonUnicode")));
     public static final String BINARY_TABLE_AE = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedBinary")));
     public static final String DATE_TABLE_AE = TestUtils
@@ -106,6 +108,16 @@ public class AESetup extends AbstractTest {
             {"Uniqueidentifier", "uniqueidentifier", "GUID"},
             {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},
             {"Nvarchar4000", "nvarchar(4000) COLLATE Latin1_General_BIN2", "NCHAR"},};
+
+    static String charTableNonUnicode[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2", "CHAR"},
+            {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2", "CHAR"},
+            {"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2", "LONGVARCHAR"},
+            {"Varchar8000", "varchar(8000) COLLATE Latin1_General_BIN2", "CHAR"},};
+
+    static String charTableUTF8Collate[][] = {{"Char", "char(20) COLLATE Latin1_General_100_BIN2_UTF8", "CHAR"},
+            {"Varchar", "varchar(50) COLLATE Latin1_General_100_BIN2_UTF8", "CHAR"},
+            {"VarcharMax", "varchar(max) COLLATE Latin1_General_100_BIN2_UTF8", "LONGVARCHAR"},
+            {"Varchar8000", "varchar(8000) COLLATE Latin1_General_100_BIN2_UTF8", "CHAR"},};
 
     static String dateTable[][] = {{"Date", "date", "DATE"}, {"Datetime2Default", "datetime2", "TIMESTAMP"},
             {"DatetimeoffsetDefault", "datetimeoffset", "DATETIMEOFFSET"}, {"TimeDefault", "time", "TIME"},
@@ -345,6 +357,25 @@ public class AESetup extends AbstractTest {
         }
     }
 
+    protected static void createTable(String tableName, String cekName, String table[][], SQLServerStatement stmt) {
+        try {
+            String sql = "";
+            for (int i = 0; i < table.length; i++) {
+                sql += ColumnType.PLAIN.name() + table[i][0] + " " + table[i][1] + " NULL,";
+                sql += ColumnType.DETERMINISTIC.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.DETERMINISTIC.name(), cekName) + ") NULL,";
+                sql += ColumnType.RANDOMIZED.name() + table[i][0] + " " + table[i][1]
+                        + String.format(encryptSql, ColumnType.RANDOMIZED.name(), cekName) + ") NULL,";
+            }
+            TestUtils.dropTableIfExists(tableName, stmt);
+            sql = String.format(createSql, tableName, sql);
+            stmt.execute(sql);
+            stmt.execute("DBCC FREEPROCCACHE");
+        } catch (SQLException e) {
+            fail(e.getMessage());
+        }
+    }
+
     protected static void createPrecisionTable(String tableName, String table[][], String cekName, int floatPrecision,
             int precision, int scale) throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
@@ -407,6 +438,48 @@ public class AESetup extends AbstractTest {
         }
     }
 
+    protected static void createDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            String dropDB = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'"+ dbName + "') DROP DATABASE " + dbName + ";";
+            String createDB = "CREATE DATABASE " + dbName + " COLLATE Latin1_General_100_CS_AS_WS_SC_UTF8";
+            stmt.execute(dropDB);
+            stmt.execute(createDB);
+        }
+    }
+
+    protected static void dropDatabaseWithUtf8Collation(Connection conn, String dbName) throws SQLException {
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            String dropDB = "IF EXISTS (SELECT name FROM sys.databases WHERE name = N'"+ dbName + "') DROP DATABASE " + dbName + ";";
+            stmt.execute(dropDB);
+        }
+    }
+
+    protected static void createUtf8CollationDbCredentials(Connection conn, String dbName, String login, String user, String password) throws SQLException {
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = '" + login + "') DROP LOGIN " + login;
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = '" + user + "') DROP USER " + user;
+        String createLogin = "CREATE LOGIN " + login + " WITH PASSWORD=N'" + password + "'";
+        String createUser = "USE " + dbName + ";CREATE USER " + user + " FOR LOGIN " + login;
+        String grantRole = "USE " + dbName + ";ALTER ROLE db_owner ADD MEMBER " + user;
+        String grantAlterServerState = "USE MASTER;GRANT ALTER SERVER STATE TO " + login;
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            stmt.execute(dropLogin);
+            stmt.execute(dropUser);
+            stmt.execute(createLogin);
+            stmt.execute(createUser);
+            stmt.execute(grantRole);
+            stmt.execute(grantAlterServerState);
+        }
+    }
+
+    protected static void dropUtf8CollationDbCredentials(Connection conn, String login, String user) throws SQLException {
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = '" + login + "') DROP LOGIN " + login;
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = '" + user + "') DROP USER " + user;
+        try (SQLServerStatement stmt = (SQLServerStatement) conn.createStatement()) {
+            stmt.execute(dropLogin);
+            stmt.execute(dropUser);
+        }
+    }
+
     /**
      * Create a list of binary values
      * 
@@ -452,6 +525,24 @@ public class AESetup extends AbstractTest {
 
         String[] values = {char20.trim(), varchar50, varcharmax, nchar30, nvarchar60, nvarcharmax, Constants.UID,
                 varchar8000, nvarchar4000};
+
+        return values;
+    }
+
+    /**
+     * Create a list of char values for non-unicode data types
+     *
+     * @param nullable
+     */
+    protected static String[] createCharValuesNonUnicode(boolean nullable) {
+
+        boolean encrypted = true;
+        String char20 = RandomData.generateCharTypes("20", nullable, encrypted);
+        String varchar50 = RandomData.generateCharTypes("50", nullable, encrypted);
+        String varcharmax = RandomData.generateCharTypes("max", nullable, encrypted);
+        String varchar8000 = RandomData.generateCharTypes("8000", nullable, encrypted);
+
+        String[] values = {char20.trim(), varchar50, varcharmax, varchar8000};
 
         return values;
     }
@@ -816,7 +907,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "sendStringParametersAsUnicode", Boolean.toString(false));
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -874,6 +966,82 @@ public class AESetup extends AbstractTest {
     }
 
     /**
+     * Populate char data non-unicode.
+     *
+     * @param charValues
+     * @throws SQLException
+     */
+    protected static void populateCharNormalCaseNonUnicode(String connectionString, String[] charValues, boolean sendStringParametersAsUnicode) throws SQLException {
+        String sql = "insert into " + CHAR_TABLE_AE_NON_UNICODE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?)";
+
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "sendStringParametersAsUnicode", Boolean.toString(sendStringParametersAsUnicode));
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(cs, AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setString(i, charValues[0]);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setString(i, charValues[1]);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setString(i, charValues[2]);
+            }
+
+            // varchar8000
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setString(i, charValues[3]);
+            }
+
+            pstmt.execute();
+        }
+    }
+
+    /**
+     * Populate char data using set object.
+     *
+     * @param charValues
+     * @throws SQLException
+     */
+    protected static void populateCharSetObjectNonUnicode(String connectionString, String[] charValues, boolean sendStringParametersAsUnicode) throws SQLException {
+        String sql = "insert into " + CHAR_TABLE_AE_NON_UNICODE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?)";
+
+        String cs = TestUtils.addOrOverrideProperty(connectionString, "sendStringParametersAsUnicode", Boolean.toString(sendStringParametersAsUnicode));
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(cs, AEInfo);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
+                        stmtColEncSetting)) {
+
+            // char
+            for (int i = 1; i <= 3; i++) {
+                pstmt.setObject(i, charValues[0]);
+            }
+
+            // varchar
+            for (int i = 4; i <= 6; i++) {
+                pstmt.setObject(i, charValues[1]);
+            }
+
+            // varchar(max)
+            for (int i = 7; i <= 9; i++) {
+                pstmt.setObject(i, charValues[2], java.sql.Types.LONGVARCHAR);
+            }
+
+            // varchar8000
+            for (int i = 10; i <= 12; i++) {
+                pstmt.setObject(i, charValues[3]);
+            }
+
+            pstmt.execute();
+        }
+    }
+
+    /**
      * Populate char data using set object.
      * 
      * @param charValues
@@ -883,7 +1051,8 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        String connectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "sendStringParametersAsUnicode", "false");
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString, AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -946,7 +1115,7 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 
@@ -1008,7 +1177,7 @@ public class AESetup extends AbstractTest {
         String sql = "insert into " + CHAR_TABLE_AE + " values( " + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,"
                 + "?,?,?," + "?,?,?," + "?,?,?," + "?,?,?" + ")";
 
-        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) TestUtils.getPreparedStmt(con, sql,
                         stmtColEncSetting)) {
 

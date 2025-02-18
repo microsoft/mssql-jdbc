@@ -541,7 +541,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(multiStatementsProcedure)
                 + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE " + multiStatementsProcedure;
 
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -557,7 +557,7 @@ public class CallableStatementTest extends AESetup {
     private void MultiInsertionSelection() throws SQLException {
 
         String sql = "{call " + multiStatementsProcedure + " (?,?,?,?,?,?)}";
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -674,7 +674,7 @@ public class CallableStatementTest extends AESetup {
                 + TestUtils.escapeSingleQuotes(inputProcedure2) + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)"
                 + " DROP PROCEDURE " + inputProcedure2;
 
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             stmt.execute(sql);
 
@@ -691,7 +691,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testInputProcedure2(String sql) throws SQLException {
 
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1497,7 +1497,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorder(String sql) throws SQLException {
 
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
@@ -1547,7 +1547,7 @@ public class CallableStatementTest extends AESetup {
 
     private void testOutputProcedureCharInorderObject(String sql) throws SQLException {
 
-        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString + ";sendStringParametersAsUnicode=false;", AEInfo);
                 SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
                         .getCallableStmt(con, sql, stmtColEncSetting)) {
 
