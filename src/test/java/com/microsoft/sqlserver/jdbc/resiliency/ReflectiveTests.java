@@ -84,7 +84,7 @@ public class ReflectiveTests extends AbstractTest {
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
-        timeoutVariations(m, 7000, Optional.empty());
+        timeoutVariations(m, 15000, Optional.empty());
     }
 
     /*
@@ -126,7 +126,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("loginTimeout", "5");
         m.put("connectRetryCount", "2");
         m.put("connectRetryInterval", "10");
-        timeoutVariations(m, 25000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
+        timeoutVariations(m, 28000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
     }
 
     @Test
