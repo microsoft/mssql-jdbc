@@ -33,6 +33,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
 @Tag(Constants.reqExternalSetup)
+@Tag(Constants.requireSecret)
 public class ParameterMetaDataCacheTest extends AESetup {
 
     @BeforeAll
