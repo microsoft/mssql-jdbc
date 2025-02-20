@@ -255,27 +255,23 @@ public class RegressionTest extends AbstractTest {
             int pkRow2 = 2;
             int pkRow3 = 3;            
             String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
                 pstmt.setInt(1, pkRow1);
                 pstmt.setObject(2, "{\"key11\":\"value11\"}");
                 pstmt.setObject(3, "{\"key12\":\"value12\"}");
-                pstmt.executeUpdate();
-            }
+                pstmt.addBatch();
 
-            sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
                 pstmt.setInt(1, pkRow2);
                 pstmt.setObject(2, "{\"key21\":\"value21\"}");
                 pstmt.setObject(3, "{\"key22\":\"value22\"}");
-                pstmt.executeUpdate();
-            }
+                pstmt.addBatch();
 
-            sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values (?, ?,?)";
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sql)) {
                 pstmt.setInt(1, pkRow3);
                 pstmt.setObject(2, "{\"key31\":\"value31\"}");
                 pstmt.setObject(3, "{\"key32\":\"value32\"}");
-                pstmt.executeUpdate();
+                pstmt.addBatch();
+
+                pstmt.executeBatch();
             }
 
             sql = "DELETE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " where [c1] = ?";
