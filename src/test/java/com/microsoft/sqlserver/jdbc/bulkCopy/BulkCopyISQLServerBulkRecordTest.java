@@ -126,26 +126,26 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordDT(data8));
 
                 String select = "SELECT * FROM " + dstTable + " order by Dataid";
-                ResultSet rs = dstStmt.executeQuery(select);
-
-                assertTrue(rs.next());
-                assertTrue(data.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data1.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data2.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data3.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data4.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data5.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data6.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data7.equals(rs.getObject(2, LocalDateTime.class)));
-                assertTrue(rs.next());
-                assertTrue(data8.equals(rs.getObject(2, LocalDateTime.class)));
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertTrue(data.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data1.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data2.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data3.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data4.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data5.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data6.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data7.equals(rs.getObject(2, LocalDateTime.class)));
+                    assertTrue(rs.next());
+                    assertTrue(data8.equals(rs.getObject(2, LocalDateTime.class)));
+                }
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -217,10 +217,94 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordJSON(data));
 
                 String select = "SELECT * FROM " + dstTable;
-                ResultSet rs = dstStmt.executeQuery(select);
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertTrue(data.equals(rs.getObject(1)));
+                }
 
-                assertTrue(rs.next());
-                assertTrue(data.equals(rs.getObject(1)));
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with empty JSON document
+     */
+    @Test
+    public void testBulkCopyWithEmptyJsonDocument() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1 = "{}";
+                String data2 = "{\"key2\":\"value2\",\"key3\":123}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data1));
+                bulkCopy.writeToServer(new BulkRecordJSON(data2));
+
+                String select = "SELECT * FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertEquals(data1, rs.getString(1));
+                    assertTrue(rs.next());
+                    assertEquals(data2, rs.getString(1));
+                }
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Test bulk copy with multiple JSON rows containing different structures
+     * and compared using getString(columnIndex)
+     */
+    @Test
+    public void testBulkCopyMultipleJsonRowsWithDifferentStructures() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1 = "{\"key1\":\"value1\"}";
+                String data2 = "{\"key2\":\"value2\",\"key3\":123}";
+                String data3 = "{\"key3\":123,\"key4\":\"value4\",\"key5\":\"value5\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data1));
+                bulkCopy.writeToServer(new BulkRecordJSON(data2));
+                bulkCopy.writeToServer(new BulkRecordJSON(data3));
+
+                String select = "SELECT * FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertEquals(data1, rs.getString(1));
+                    assertTrue(rs.next());
+                    assertEquals(data2, rs.getString(1));
+                    assertTrue(rs.next());
+                    assertEquals(data3, rs.getString(1));
+                }
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -256,14 +340,14 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordJSON(data3));
 
                 String select = "SELECT * FROM " + dstTable;
-                ResultSet rs = dstStmt.executeQuery(select);
-
-                assertTrue(rs.next());
-                assertTrue(data1.equals(rs.getObject(1)));
-                assertTrue(rs.next());
-                assertTrue(data2.equals(rs.getObject(1)));
-                assertTrue(rs.next());
-                assertTrue(data3.equals(rs.getObject(1)));
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertTrue(data1.equals(rs.getObject(1)));
+                    assertTrue(rs.next());
+                    assertTrue(data2.equals(rs.getObject(1)));
+                    assertTrue(rs.next());
+                    assertTrue(data3.equals(rs.getObject(1)));
+                }
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -299,14 +383,14 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordJSONMultipleColumns(data2Col1, data2Col2));
 
                 String select = "SELECT * FROM " + dstTable;
-                ResultSet rs = dstStmt.executeQuery(select);
-
-                assertTrue(rs.next());
-                assertTrue(data1Col1.equals(rs.getObject(1)));
-                assertTrue(data1Col2.equals(rs.getObject(2)));
-                assertTrue(rs.next());
-                assertTrue(data2Col1.equals(rs.getObject(1)));
-                assertTrue(data2Col2.equals(rs.getObject(2)));
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertTrue(data1Col1.equals(rs.getObject(1)));
+                    assertTrue(data1Col2.equals(rs.getObject(2)));
+                    assertTrue(rs.next());
+                    assertTrue(data2Col1.equals(rs.getObject(1)));
+                    assertTrue(data2Col2.equals(rs.getObject(2)));
+                }
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -319,7 +403,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     }
 
     /**
-     * Test bulk copy with nested JSON rows.
+     * Test bulk copy with nested JSON documents.
      */
     @Test
     public void testBulkCopyNestedJsonRows() throws SQLException {
@@ -335,21 +419,21 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
                 bulkCopy.setDestinationTableName(dstTable);
                 String data1 = "{\"key1\":{\"nestedKey1\":\"nestedValue1\"}}";
-                String data2 = "{\"key2\":{\"nestedKey2\":\"nestedValue2\"}}";
-                String data3 = "{\"key3\":{\"nestedKey3\":\"nestedValue3\"}}";
+                String data2 = "{\"key2\":{\"nestedKey2\":{\"nestedKey3\":\"nestedValue3\"}}}";
+                String data3 = "{\"key3\":{\"nestedKey4\":{\"nestedKey5\":{\"nestedKey6\":\"nestedValue6\"}}}}";
                 bulkCopy.writeToServer(new BulkRecordJSON(data1));
                 bulkCopy.writeToServer(new BulkRecordJSON(data2));
                 bulkCopy.writeToServer(new BulkRecordJSON(data3));
 
                 String select = "SELECT * FROM " + dstTable;
-                ResultSet rs = dstStmt.executeQuery(select);
-
-                assertTrue(rs.next());
-                assertTrue(data1.equals(rs.getObject(1)));
-                assertTrue(rs.next());
-                assertTrue(data2.equals(rs.getObject(1)));
-                assertTrue(rs.next());
-                assertTrue(data3.equals(rs.getObject(1)));
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertTrue(data1.equals(rs.getObject(1)));
+                    assertTrue(rs.next());
+                    assertTrue(data2.equals(rs.getObject(1)));
+                    assertTrue(rs.next());
+                    assertEquals(data3, rs.getString(1));
+                }
 
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -384,11 +468,60 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 bulkCopy.writeToServer(new BulkRecordJSON(data));
 
                 String select = "SELECT * FROM " + dstTable;
-                ResultSet rs = dstStmt.executeQuery(select);
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    String jsonData = rs.getString(1);
+                    assertEquals(data, jsonData);
+                }
 
-                assertTrue(rs.next());
-                String jsonData = rs.getString(1);
-                assertEquals(data, jsonData);
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with count verification.
+     */
+    @Test
+    public void testBulkCopyWithCountVerification() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (testCol JSON);");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                String data1 = "{\"key1\":\"value1\"}";
+                String data2 = "{\"key2\":\"value2\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data1));
+                bulkCopy.writeToServer(new BulkRecordJSON(data2));
+
+                String selectCount = "SELECT COUNT(*) FROM " + dstTable;
+                int count1 = 0;
+                try (ResultSet rs = dstStmt.executeQuery(selectCount)) {
+                    if (rs.next()) {
+                        count1 = rs.getInt(1);
+                    }
+                }
+
+                String select = "SELECT * FROM " + dstTable;
+                int count2 = 0;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    while (rs.next()) {
+                        count2++;
+                    }
+                }
+
+                assertEquals(count1, count2);
 
             } catch (Exception e) {
                 fail(e.getMessage());
