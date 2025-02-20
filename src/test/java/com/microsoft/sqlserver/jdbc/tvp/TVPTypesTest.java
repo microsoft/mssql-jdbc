@@ -174,7 +174,7 @@ public class TVPTypesTest extends AbstractTest {
                     ResultSet rs = stmt.executeQuery(
                             "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
                 while (rs.next())
-                    assertEquals(rs.getString(1), value);
+                    assertEquals(rs.getString("c1"), value);
             }
         }
     }
