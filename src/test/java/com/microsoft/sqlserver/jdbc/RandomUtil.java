@@ -40,9 +40,7 @@ public class RandomUtil {
         StringBuilder sb = new StringBuilder();
         sb.append(prefix);
         sb.append("_");
-        sb.append("jdbc_");
-        sb.append(System.getProperty("user.name").replace(".", "_"));
-        sb.append("_");
+        sb.append("jdbc_testsuite_");
         // Added to always test table names with apostrophe.
         sb.append("'");
         if (unique) {
