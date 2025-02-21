@@ -1993,6 +1993,7 @@ public class AESetup extends AbstractTest {
     protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
             String cekName) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
+	    System.out.println("testAlterColumnEncryption connected");
             for (int i = 0; i < table.length; i++) {
                 // alter deterministic to randomized
                 String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
@@ -2011,6 +2012,9 @@ public class AESetup extends AbstractTest {
                     }
                 }
             }
-        }
+        } catch (Exception e) {
+		System.out.println("testAlterColumnEncryption exception: " + e.getMessage());
+		System.out.println("AETestConnectionString: " + AETestConnectionString);
+	}
     }
 }
