@@ -692,7 +692,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
     private static String[] parseString(String buffer, String delimiter) {
         ArrayList<String> tokens = new ArrayList<>();
-        StringBuilder currentToken = new StringBuilder();
+        int position = 0;
         boolean quoted = false;
         int braceCount = 0; // track nested JSON
 
@@ -709,17 +709,15 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
             // If delimiter is encountered and we're not inside quotes or JSON, we add the token
             if (!quoted && braceCount == 0 && buffer.startsWith(delimiter, i)) {
-                tokens.add(currentToken.toString());
-                currentToken.setLength(0); // Reset current token
-                i += delimiter.length() - 1; // Skip delimiter
-                continue;
+                // Add field to token list when delimiter is found
+                tokens.add(buffer.substring(position, i));
+                position = i + delimiter.length(); 
+                i = position - 1;// Adjust the index to start after the delimiter
             }
-
-            currentToken.append(c);
         }
 
         // Add the last field
-        tokens.add(currentToken.toString());
+        tokens.add(buffer.substring(position));
         return tokens.toArray(new String[0]);
     }
 }
