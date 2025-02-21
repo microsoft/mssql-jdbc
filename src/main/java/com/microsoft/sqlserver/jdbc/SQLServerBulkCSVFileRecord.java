@@ -711,8 +711,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             if (!quoted && braceCount == 0 && buffer.startsWith(delimiter, i)) {
                 // Add field to token list when delimiter is found
                 tokens.add(buffer.substring(position, i));
-                position = i + delimiter.length(); 
-                i = position - 1;// Adjust the index to start after the delimiter
+
+                position = i + delimiter.length();
+                i = position - 1; // Adjust the index to start after the delimiter
             }
         }
 
