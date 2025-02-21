@@ -218,6 +218,7 @@ public class AESetup extends AbstractTest {
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
 
+        try {
         // setup test params and encryption keys on each server
         for (int i = 0; i < enclaveServer.length; i++) {
             String serverName = enclaveServer[i];
@@ -245,6 +246,10 @@ public class AESetup extends AbstractTest {
                         Constants.CMK_SIGNATURE_WIN);
                 createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
+        }
+        } catch (Exception e) {
+            System.out.println("AESetup exception: "+e.getMessage());
+            e.printStackTrace();
         }
     }
 

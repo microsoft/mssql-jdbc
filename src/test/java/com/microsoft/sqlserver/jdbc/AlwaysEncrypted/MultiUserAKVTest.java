@@ -100,7 +100,7 @@ public class MultiUserAKVTest extends AESetup {
             tempMap.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null != akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null != akvProvider) {
             tempMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
 
