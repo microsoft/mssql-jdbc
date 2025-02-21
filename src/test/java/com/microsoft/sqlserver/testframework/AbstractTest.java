@@ -34,6 +34,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
@@ -64,6 +68,7 @@ public abstract class AbstractTest {
     protected static String servicePrincipalCertificateApplicationClientId = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
+    protected static String akvProviderManagedClientId = null;
 
     protected static String linkedServer = null;
     protected static String linkedServerUser = null;
@@ -162,8 +167,12 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+
+        akvProviderManagedClientId = getConfiguredProperty("akvProviderManagedClientId");
+
         tenantID = getConfiguredProperty("tenantID");
-        servicePrincipalCertificateApplicationClientId = getConfiguredProperty("servicePrincipalCertificateApplicationClientId");
+        servicePrincipalCertificateApplicationClientId = getConfiguredProperty(
+                "servicePrincipalCertificateApplicationClientId");
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
@@ -235,7 +244,12 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null == akvProvider && null != akvProviderManagedClientId) {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        } else if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
