@@ -300,6 +300,7 @@ public final class SQLServerDataTable {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     if (val instanceof UUID)
                         val = val.toString();
                     nValueLen = (2 * ((String) val).length());

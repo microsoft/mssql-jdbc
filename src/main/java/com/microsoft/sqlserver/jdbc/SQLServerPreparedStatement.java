@@ -1674,8 +1674,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
-        }
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
+        } 
+        if (microsoft.sql.Types.JSON == jdbcType) {
+            setObjectNoType(n, obj, false);
+        } else {
+            setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
+        } 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
