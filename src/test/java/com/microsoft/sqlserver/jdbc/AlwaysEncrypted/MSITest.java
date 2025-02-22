@@ -458,9 +458,9 @@ public class MSITest extends AESetup {
         }
     }
 
-    /*
     @BeforeEach
     public void registerAKVProvider() throws Exception {
+        try {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
@@ -470,6 +470,7 @@ public class MSITest extends AESetup {
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
             map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            System.out.println("ManagedIdentityCredential: registered akvProvider");
         } else if (null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
@@ -487,9 +488,12 @@ public class MSITest extends AESetup {
                     file.delete();
                 }
             }
+            System.out.println("applicationClientID: registered akvProvider");
         }
 
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        } catch (Exception e) {
+            System.out.println("MSITest registerAKVProvider exception: " +e.getMessage());
+        }
     }
-    */
 }

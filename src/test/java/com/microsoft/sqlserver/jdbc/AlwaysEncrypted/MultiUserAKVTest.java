@@ -332,7 +332,7 @@ public class MultiUserAKVTest extends AESetup {
                 }
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (SQLServerException ex) {
-                assertTrue(ex.getMessage().contains("AADSTS700016"));
+                org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("AADSTS700016"), ex.getMessage());
             }
         } finally {
             dropObject(AETestConnectionString, "TABLE", customProviderTableName);
