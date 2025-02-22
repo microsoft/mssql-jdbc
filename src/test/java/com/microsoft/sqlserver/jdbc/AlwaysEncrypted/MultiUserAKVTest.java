@@ -35,6 +35,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
@@ -152,6 +154,7 @@ public class MultiUserAKVTest extends AESetup {
 
     @Test
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void signatureVerificationResultIsCachedDuringVerification() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
@@ -271,6 +274,9 @@ public class MultiUserAKVTest extends AESetup {
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                .clientId(akvProviderManagedClientId).build();
+        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 

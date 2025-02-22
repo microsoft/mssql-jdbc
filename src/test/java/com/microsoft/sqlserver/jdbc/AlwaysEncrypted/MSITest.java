@@ -458,6 +458,7 @@ public class MSITest extends AESetup {
         }
     }
 
+    /*
     @BeforeEach
     public void registerAKVProvider() throws Exception {
         // unregister the custom providers registered in AESetup
@@ -490,4 +491,5 @@ public class MSITest extends AESetup {
 
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
     }
+    */
 }
