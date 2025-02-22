@@ -218,7 +218,6 @@ public class AESetup extends AbstractTest {
         // reset logging to avoid severe logs due to negative testing
         LogManager.getLogManager().reset();
 
-        try {
         // setup test params and encryption keys on each server
         for (int i = 0; i < enclaveServer.length; i++) {
             String serverName = enclaveServer[i];
@@ -246,10 +245,6 @@ public class AESetup extends AbstractTest {
                         Constants.CMK_SIGNATURE_WIN);
                 createCEK(AETestConnectionString, cmkWin, cekWin, null);
             }
-        }
-        } catch (Exception e) {
-            System.out.println("AESetup exception: "+e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -1993,7 +1988,6 @@ public class AESetup extends AbstractTest {
     protected void testAlterColumnEncryption(SQLServerStatement stmt, String tableName, String table[][],
             String cekName) throws SQLException {
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo)) {
-	    System.out.println("testAlterColumnEncryption connected");
             for (int i = 0; i < table.length; i++) {
                 // alter deterministic to randomized
                 String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + ColumnType.DETERMINISTIC.name()
@@ -2012,9 +2006,6 @@ public class AESetup extends AbstractTest {
                     }
                 }
             }
-        } catch (Exception e) {
-		System.out.println("testAlterColumnEncryption exception: " + e.getMessage());
-		System.out.println("AETestConnectionString: " + AETestConnectionString);
-	}
+        }
     }
 }
