@@ -272,11 +272,10 @@ public class MultiUserAKVTest extends AESetup {
             fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
-        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
-                .clientId(akvProviderManagedClientId).build();
-        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        ManagedIdentityCredential credential;
+
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 
@@ -306,9 +305,6 @@ public class MultiUserAKVTest extends AESetup {
             SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
             System.out.println("two");
 
-            credential = new ManagedIdentityCredentialBuilder().clientId(akvProviderManagedClientId).build();
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
-
             // Register key store provider on statement level
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, provider);
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
@@ -326,9 +322,6 @@ public class MultiUserAKVTest extends AESetup {
             // Register invalid key store provider on statement level. This will overwrite the previous one.
             SQLServerColumnEncryptionAzureKeyVaultProvider providerWithBadCred = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     "badApplicationID", "badApplicationKey");
-            credential = new ManagedIdentityCredentialBuilder().clientId(akvProviderManagedClientId).build();
-            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
-
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, providerWithBadCred);
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
             System.out.println("four");

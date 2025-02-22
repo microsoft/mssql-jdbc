@@ -168,7 +168,7 @@ public abstract class AbstractTest {
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
 
-        akvProviderManagedClientId = getConfiguredProperty("akvProviderManagedClientId");
+        akvProviderManagedClientId = getConfiguredProperty("jdbc-akvProviderManagedClientId");
 
         tenantID = getConfiguredProperty("tenantID");
         servicePrincipalCertificateApplicationClientId = getConfiguredProperty(
