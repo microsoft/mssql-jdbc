@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.azure.identity.CredentialUnavailableException;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -455,13 +458,18 @@ public class MSITest extends AESetup {
         }
     }
 
-    // @BeforeEach
+    @BeforeEach
     public void registerAKVProvider() throws Exception {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null != applicationClientID && null != applicationKey) {
+        if (null != akvProviderManagedClientId) {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        } else if (null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
