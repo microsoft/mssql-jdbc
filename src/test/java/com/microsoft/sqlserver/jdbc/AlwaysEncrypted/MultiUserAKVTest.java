@@ -280,6 +280,7 @@ public class MultiUserAKVTest extends AESetup {
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 
+        System.out.println("one");
         int customerId = 10;
         String customerName = "Microsoft";
         createTableForCustomProvider(AETestConnectionString, customProviderTableName, cekAkv);
@@ -303,6 +304,10 @@ public class MultiUserAKVTest extends AESetup {
 
             // Clean up global custom providers
             SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+            System.out.println("two");
+
+            credential = new ManagedIdentityCredentialBuilder().clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
 
             // Register key store provider on statement level
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, provider);
@@ -316,12 +321,17 @@ public class MultiUserAKVTest extends AESetup {
                     assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
                 }
             }
+            System.out.println("three");
 
             // Register invalid key store provider on statement level. This will overwrite the previous one.
             SQLServerColumnEncryptionAzureKeyVaultProvider providerWithBadCred = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     "badApplicationID", "badApplicationKey");
+            credential = new ManagedIdentityCredentialBuilder().clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, providerWithBadCred);
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
+            System.out.println("four");
 
             // The following query should fail due to an empty cek cache and invalid credentials
             try (ResultSet rs3 = pstmt.executeQuery()) {
