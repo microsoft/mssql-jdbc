@@ -260,6 +260,7 @@ public class MultiUserAKVTest extends AESetup {
 
     @Test
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void testLocalCekCacheIsScopedToProvider() throws Exception {
         SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
@@ -272,14 +273,13 @@ public class MultiUserAKVTest extends AESetup {
             fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
 
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        ManagedIdentityCredential credential;
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         providerMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(providerMap);
 
-        System.out.println("one");
         int customerId = 10;
         String customerName = "Microsoft";
         createTableForCustomProvider(AETestConnectionString, customProviderTableName, cekAkv);
@@ -303,7 +303,6 @@ public class MultiUserAKVTest extends AESetup {
 
             // Clean up global custom providers
             SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
-            System.out.println("two");
 
             // Register key store provider on statement level
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, provider);
@@ -317,14 +316,12 @@ public class MultiUserAKVTest extends AESetup {
                     assertTrue((customerId == intValue) && strValue.equalsIgnoreCase(customerName));
                 }
             }
-            System.out.println("three");
 
             // Register invalid key store provider on statement level. This will overwrite the previous one.
             SQLServerColumnEncryptionAzureKeyVaultProvider providerWithBadCred = new SQLServerColumnEncryptionAzureKeyVaultProvider(
                     "badApplicationID", "badApplicationKey");
             providerMap.put(Constants.AZURE_KEY_VAULT_NAME, providerWithBadCred);
             pstmt.registerColumnEncryptionKeyStoreProvidersOnStatement(providerMap);
-            System.out.println("four");
 
             // The following query should fail due to an empty cek cache and invalid credentials
             try (ResultSet rs3 = pstmt.executeQuery()) {

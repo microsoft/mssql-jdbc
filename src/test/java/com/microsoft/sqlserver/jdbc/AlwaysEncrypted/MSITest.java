@@ -466,6 +466,8 @@ public class MSITest extends AESetup {
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null != akvProviderManagedClientId) {
+            System.out.println("ManagedIdentityCredential: registering akvProvider");
+
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);

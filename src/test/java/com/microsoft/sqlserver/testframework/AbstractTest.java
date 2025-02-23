@@ -245,6 +245,7 @@ public abstract class AbstractTest {
         }
 
         if (null == akvProvider && null != akvProviderManagedClientId) {
+            System.out.println("akvProviderManagedClientId="+akvProviderManagedClientId);
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
