@@ -3,7 +3,7 @@
  * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
-package com.microsoft.sqlserver.jdbc;
+package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,17 +18,16 @@ import java.sql.Statement;
 import org.junit.jupiter.api.Test; 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
-@DisplayName("Test Json Functions")
-@Tag(Constants.xAzureSQLDW) 
+@DisplayName("Test Json Functions") 
 public class JSONFunctionTest extends AbstractTest{
     
     @BeforeAll
@@ -388,20 +387,43 @@ public class JSONFunctionTest extends AbstractTest{
      */
     @Test
     public void testJSONArrayAggWithTwoColumns() throws SQLException {
-        String select = "SELECT TOP(5) c.object_id, JSON_ARRAYAGG(c.name ORDER BY c.column_id) AS column_list " +
-                        "FROM sys.columns AS c " +
-                        "GROUP BY c.object_id";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
-            while (rs.next()) {
-                int objectId = rs.getInt("object_id");
-                String columnList = rs.getString("column_list");
-                assertTrue(columnList.startsWith("[\""));
-                assertTrue(columnList.endsWith("\"]"));
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement stmt = conn.createStatement()) {
+                // Create table and insert data
+                stmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (object_id INT, name NVARCHAR(50), column_id INT);");
+
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
+
+                String select = "SELECT object_id, JSON_ARRAYAGG(name ORDER BY column_id) AS column_list " +
+                                "FROM " + dstTable + " " +
+                                "GROUP BY object_id";
+                try (ResultSet rs = stmt.executeQuery(select)) {
+                    while (rs.next()) {
+                        int objectId = rs.getInt("object_id");
+                        String columnList = rs.getString("column_list");
+                        if (objectId == 1) {
+                            assertEquals("[\"column1\",\"column2\"]", columnList);
+                        } else if (objectId == 2) {
+                            assertEquals("[\"column3\",\"column4\"]", columnList);
+                        } else {
+                            fail("Unexpected object_id: " + objectId);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -716,23 +738,47 @@ public class JSONFunctionTest extends AbstractTest{
      * Test JSON_OBJECTAGG function to return a result with two columns. The first column contains the object_id value.
      * The second column contains a JSON object where the key is the column name and value is the column_id.
      * JSON_OBJECTAGG() -> Constructs a JSON object with column names and column IDs.
-     * input: JSON_OBJECTAGG(c.name:c.column_id) ->
-     * output: {"bitpos":12,"cid":6,"colguid":13,"hbcolid":3,"maxinrowlen":8,"nullbit":11,"offset":10,"ordkey":7,"ordlock":14,"rcmodified":4,"rscolid":2,"rsid":1,"status":9,"ti":5}
+     * input: JSON_OBJECTAGG(c.name:c.column_id) -> 
+     * output: {"column1":1,"column2":2}
      */
     @Test
     public void testJSONObjectAggWithColumnNamesAndIDs() throws SQLException {
-        String select = "SELECT TOP(5) c.object_id, JSON_OBJECTAGG(c.name:c.column_id) AS columns FROM sys.columns AS c GROUP BY c.object_id";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
-            while (rs.next()) {
-                int objectId = rs.getInt("object_id");
-                String columns = rs.getString("columns");
-                assertTrue(columns.contains("\""));
-                assertTrue(columns.contains(":"));
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (object_id INT, name NVARCHAR(50), column_id INT);");
+
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
+
+                String select = "SELECT object_id, JSON_OBJECTAGG(name:column_id) AS columns " +
+                                "FROM " + dstTable + " " +
+                                "GROUP BY object_id";
+                try (ResultSet rs = stmt.executeQuery(select)) {
+                    while (rs.next()) {
+                        int objectId = rs.getInt("object_id");
+                        String columns = rs.getString("columns");
+                        if (objectId == 1) {
+                            assertEquals("{\"column1\":1,\"column2\":2}", columns);
+                        } else if (objectId == 2) {
+                            assertEquals("{\"column3\":1,\"column4\":2}", columns);
+                        } else {
+                            fail("Unexpected object_id: " + objectId);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
