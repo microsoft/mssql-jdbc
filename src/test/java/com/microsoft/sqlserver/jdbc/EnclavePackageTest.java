@@ -33,7 +33,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
-@Tag(Constants.requireSecret)
 public class EnclavePackageTest extends AbstractTest {
 
     private static String connectionStringEnclave = null;

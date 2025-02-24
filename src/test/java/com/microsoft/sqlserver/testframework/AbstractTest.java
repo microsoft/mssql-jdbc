@@ -32,6 +32,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+<<<<<<< HEAD
+=======
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+>>>>>>> c01814b5 (Re-enable AE Tests (#2611))
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -60,6 +68,7 @@ public abstract class AbstractTest {
     protected static String applicationKey = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
+    protected static String akvProviderManagedClientId = null;
 
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
@@ -136,6 +145,9 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+
+        akvProviderManagedClientId = getConfiguredProperty("akvProviderManagedClientId");
+
         tenantID = getConfiguredProperty("tenantID");
 
         trustServerCertificate = getConfiguredProperty("trustServerCertificate", "true");
@@ -180,7 +192,12 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null == akvProvider && null != akvProviderManagedClientId) {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        } else if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
