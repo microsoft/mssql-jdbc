@@ -1968,7 +1968,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (-1 == cm.destinationColumnOrdinal) {
                         boolean foundColumn = false;
 
-                        for (int j = 1; j <= destColumnCount; ++j) {
+                        for (Integer j : destColumnMetadata.keySet()) {
                             if (destColumnMetadata.get(j).columnName.equals(cm.destinationColumnName)) {
                                 foundColumn = true;
                                 cm.destinationColumnOrdinal = j;
