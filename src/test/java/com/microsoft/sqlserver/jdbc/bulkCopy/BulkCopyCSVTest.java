@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -105,13 +104,13 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
     public void testCSV() {
-        String fileName = filePath + jsonInputFile;
+        String fileName = filePath + inputFile;
         try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);
                 SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);) {
-            testBulkCopyCSV(f1, true, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f1, true);
 
             f2.setEscapeColumnDelimitersCSV(true);
-            testBulkCopyCSV(f2, true, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f2, true);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -123,13 +122,13 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
     public void testCSVFirstLineNotColumnName() {
-        String fileName = filePath + jsonInputFileNoColumnName;
+        String fileName = filePath + inputFileNoColumnName;
         try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false);
                 SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false)) {
-            testBulkCopyCSV(f1, false, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f1, false);
 
             f2.setEscapeColumnDelimitersCSV(true);
-            testBulkCopyCSV(f2, false, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f2, false);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -148,7 +147,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                         .openStream();
                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding,
                         delimiter, true)) {
-            testBulkCopyCSV(fileRecord, true, inputFile, inputFileNoColumnName);
+            testBulkCopyCSV(fileRecord, true);
         } catch (Exception e) {
             fail(e.getMessage());
         }
@@ -281,13 +280,13 @@ public class BulkCopyCSVTest extends AbstractTest {
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord GitHb 1391")
     public void testCSV1391() {
-        String fileName = filePath + jsonInputFile;
+        String fileName = filePath + inputFile;
         try (SQLServerBulkCSVFileRecord f1 = new BulkData1391(fileName, encoding, delimiter, true);
                 SQLServerBulkCSVFileRecord f2 = new BulkData1391(fileName, encoding, delimiter, true);) {
-            testBulkCopyCSV(f1, true, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f1, true);
 
             f2.setEscapeColumnDelimitersCSV(true);
-            testBulkCopyCSV(f2, true, jsonInputFile, jsonInputFileNoColumnName);
+            testBulkCopyCSV(f2, true);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -311,10 +310,10 @@ public class BulkCopyCSVTest extends AbstractTest {
         }
     }
 
-    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord, boolean firstLineIsColumnNames, String csvFileName, String csvInputFileNoColumnName) {
+    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord, boolean firstLineIsColumnNames) {
         DBTable destTable = null;
         try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(new FileInputStream(filePath + csvFileName), encoding))) {
+                new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
             // read the first line from csv and parse it to get datatypes to create destination column
             String[] columnTypes = br.readLine().substring(1)/* Skip the Byte order mark */.split(delimiter, -1);
             br.close();
@@ -352,18 +351,18 @@ public class BulkCopyCSVTest extends AbstractTest {
                     } else {
                         sqlType = SqlTypeMapping.valueOf(columnType.toUpperCase()).sqlType;
                     }
-                    int vendorTypeNumber = sqlType.getJdbctype() != JDBCType.NULL ? sqlType.getJdbctype().getVendorTypeNumber() : sqlType.getVendorTypeNumber();
+
                     destTable.addColumn(sqlType);
-                    fileRecord.addColumnMetadata(i + 1, "", vendorTypeNumber,
+                    fileRecord.addColumnMetadata(i + 1, "", sqlType.getJdbctype().getVendorTypeNumber(),
                             (-1 == precision) ? 0 : precision, (-1 == scale) ? 0 : scale);
                 }
                 stmt.createTable(destTable);
                 bulkCopy.writeToServer(fileRecord);
             }
             if (firstLineIsColumnNames)
-                validateValuesFromCSV(destTable, csvFileName);
+                validateValuesFromCSV(destTable, inputFile);
             else
-                validateValuesFromCSV(destTable, csvInputFileNoColumnName);
+                validateValuesFromCSV(destTable, inputFileNoColumnName);
 
         } catch (Exception e) {
             fail(e.getMessage());
@@ -382,7 +381,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     static void validateValuesFromCSV(DBTable destinationTable, String inputFile) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
-            if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv") || inputFile.equalsIgnoreCase("BulkCopyCSVTestInputWithJson.csv"))
+            if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv"))
                 br.readLine(); // skip first line as it is header
 
             try (DBResultSet dstResultSet = stmt
@@ -455,6 +454,56 @@ public class BulkCopyCSVTest extends AbstractTest {
             fail("Stack overflow: " + e.getMessage());
         } catch (SQLException e) {
             fail("SQL exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("Test Bulk Copy with JSON Data")
+    public void testBulkCopyWithJson() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkJsonTest"));
+        String fileName = filePath + jsonInputFile;
+
+        // Expected values as read from the CSV file
+        String[][] expectedValues = new String[][]{
+            {"0", "testing", "{\"age\":25,\"address\":{\"pincode\":123456,\"state\":\"NY\"}}"},
+            {"1","test }","{\"age\":25,\"city\":\"Los Angeles\"}"},
+            {"0","test {0}","{\"age\":40,\"city\":\"Chicago\"}"}
+        };
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", false)) {
+            bulkCopy.setDestinationTableName(tableName);
+
+            // Define column metadata
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.BIT, 0, 0);
+            fileRecord.addColumnMetadata(2, null, java.sql.Types.NCHAR, 10, 0);
+            fileRecord.addColumnMetadata(3, null, microsoft.sql.Types.JSON, 0, 0); // JSON column
+
+            // Create table
+            stmt.executeUpdate("CREATE TABLE " + tableName + " ("
+                    + "c1 BIT, c2 nchar(50), c3 JSON)");
+
+            // Perform bulk copy
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+            bulkCopy.writeToServer(fileRecord);
+
+            // Verify the data
+            int i = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+                BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+
+                while (rs.next()) {
+                    for (int j = 1; j <= 3; j++) {
+                        String actual = rs.getString(j);
+                        String expected = expectedValues[i][j - 1];
+                        assertEquals(expected.trim(), actual.trim(), "Mismatch in column " + j);
+                    }
+                    i++;
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 

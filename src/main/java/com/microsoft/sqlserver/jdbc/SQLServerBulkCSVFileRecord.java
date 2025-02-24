@@ -646,18 +646,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this.escapeDelimiters = escapeDelimiters;
     }
 
-    private static boolean isJson(String token) {
-        return token.startsWith("{") && token.endsWith("}");
-    }
 
     private static String[] escapeQuotesRFC4180(String[] tokens) throws SQLServerException {
         if (null == tokens) {
             return tokens;
         }
         for (int i = 0; i < tokens.length; i++) {
-            if (isJson(tokens[i])) {
-                continue; // Skip JSON strings
-            }
             
             boolean escaped = false;
             int j = 0;
@@ -694,21 +688,12 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         ArrayList<String> tokens = new ArrayList<>();
         int position = 0;
         boolean quoted = false;
-        int braceCount = 0; // track nested JSON
 
         for (int i = 0; i < buffer.length(); i++) {
-            char c = buffer.charAt(i);
-
-            if (c == doubleQuoteChar) {
+            if (buffer.charAt(i) == doubleQuoteChar) {
                 quoted = !quoted;
-            } else if (c == '{') {
-                braceCount++;
-            } else if (c == '}') {
-                braceCount--;
-            }
-
-            // If delimiter is encountered and we're not inside quotes or JSON, we add the token
-            if (!quoted && braceCount == 0 && buffer.startsWith(delimiter, i)) {
+            } else if (!quoted && i + delimiter.length() <= buffer.length()
+                    && buffer.substring(i, i + delimiter.length()).equals(delimiter)) {
                 // Add field to token list when delimiter is found
                 tokens.add(buffer.substring(position, i));
 
