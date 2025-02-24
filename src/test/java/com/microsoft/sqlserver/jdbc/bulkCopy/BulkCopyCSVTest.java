@@ -71,7 +71,6 @@ public class BulkCopyCSVTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVTestInput.csv";
     static String jsonInputFile = "BulkCopyCSVTestInputWithJson.csv";
     static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
-    static String jsonInputFileNoColumnName = "BulkCopyCSVTestInputNoColumnNameWithJson.csv";
     static String inputFileDelimiterEscape = "BulkCopyCSVTestInputDelimiterEscape.csv";
     static String inputFileDelimiterEscapeNoNewLineAtEnd = "BulkCopyCSVTestInputDelimiterEscapeNoNewLineAtEnd.csv";
     static String inputFileMultipleDoubleQuotes = "BulkCopyCSVTestInputMultipleDoubleQuotes.csv";
