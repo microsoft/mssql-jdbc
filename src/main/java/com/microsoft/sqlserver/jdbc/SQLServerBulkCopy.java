@@ -1914,7 +1914,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 // Generate default column mappings
                 ColumnMapping cm;
-                for (int i = 1; i <= srcColumnCount; ++i) {
+                for (Integer i : destColumnMetadata.keySet()) {
                     // Only skip identity column mapping if KEEP IDENTITY OPTION is FALSE
                     if (!(destColumnMetadata.get(i).isIdentity && !copyOptions.isKeepIdentity())) {
                         cm = new ColumnMapping(i, i);

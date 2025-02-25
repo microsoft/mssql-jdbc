@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -449,7 +450,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         }
     }
 
-    /**
+   /**
      * Test to perform bulk copy with a computed column as the last column in the table.
      */
     @Test
@@ -459,18 +460,19 @@ public class BulkCopyCSVTest extends AbstractTest {
         String fileName = filePath + computeColumnCsvFile;
 
         assertDoesNotThrow(() -> {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement();
-                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+            try (Connection con = getConnection();
+                    Statement stmt = con.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
+                            true)) {
 
-                String createTableSQL = "IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Test' AND xtype='U') " +
-                                        "CREATE TABLE [dbo].[Test](" +
-                                        "[NAME] varchar(50) NOT NULL," +
-                                        "[AGE] int NULL," +
-                                        "[CAL_COL] numeric(17, 2) NULL," +
-                                        "[ORIGINAL] varchar(50) NOT NULL," +
-                                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" +
-                                        ") ON [PRIMARY]";
+                String createTableSQL = "CREATE TABLE " + tableName + " (" +
+                        "[NAME] varchar(50) NOT NULL," +
+                        "[AGE] int NULL," +
+                        "[CAL_COL] numeric(17, 2) NULL," +
+                        "[ORIGINAL] varchar(50) NOT NULL," +
+                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" +
+                        ")";
                 stmt.executeUpdate(createTableSQL);
 
                 fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
@@ -487,7 +489,14 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 bulkCopy.writeToServer(fileRecord);
 
-                TestUtils.dropTableIfExists(tableName, stmt);
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                    if (rs.next()) {
+                        int rowCount = rs.getInt(1);
+                        assertTrue(rowCount > 0);
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -495,7 +504,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     }
 
     /**
-     * Test to perform bulk copy with a computed column as not the last column in the table.
+     * Test to perform bulk copy with a computed column not as the last column in the table.
      */
     @Test
     @DisplayName("Test bulk copy with computed column not as last column")
@@ -504,19 +513,20 @@ public class BulkCopyCSVTest extends AbstractTest {
         String fileName = filePath + computeColumnCsvFile;
 
         assertDoesNotThrow(() -> {
-            try (Connection con = getConnection(); Statement stmt = con.createStatement();
-                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+            try (Connection con = getConnection();
+                    Statement stmt = con.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
+                            true)) {
 
-                String createTableSQL = "IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Test' AND xtype='U') " +
-                                        "CREATE TABLE [dbo].[Test](" +
-                                        "[NAME] varchar(50) NOT NULL," +
-                                        "[AGE] int NULL," +
-                                        "[CAL_COL] numeric(17, 2) NULL," +
-                                        "[ORIGINAL] varchar(50) NOT NULL," +
-                                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," +
-                                        "[LAST_COL] varchar(50) NULL" +
-                                        ") ON [PRIMARY]";
+                String createTableSQL = "CREATE TABLE " + tableName + " (" +
+                        "[NAME] varchar(50) NOT NULL," +
+                        "[AGE] int NULL," +
+                        "[CAL_COL] numeric(17, 2) NULL," +
+                        "[ORIGINAL] varchar(50) NOT NULL," +
+                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," +
+                        "[LAST_COL] varchar(50) NULL" +
+                        ")";
                 stmt.executeUpdate(createTableSQL);
 
                 fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
@@ -534,7 +544,14 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 bulkCopy.writeToServer(fileRecord);
 
-                TestUtils.dropTableIfExists(tableName, stmt);
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                    if (rs.next()) {
+                        int rowCount = rs.getInt(1);
+                        assertTrue(rowCount > 0);
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
