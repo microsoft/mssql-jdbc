@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -1042,6 +1043,291 @@ public class JSONFunctionTest extends AbstractTest{
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
                 }
+            }
+        }
+    }
+
+    /**
+     * Test JSON insertion and retrieval in a global temporary table.
+     * Global temporary tables (##TempJson) are shared across sessions and persist until all sessions using them close.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJsonInsertionInGlobalTempTable() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("##TempJson")));
+        try (Connection conn = getConnection()) {
+            String createTableSQL = "CREATE TABLE " + dstTable + "  (id INT PRIMARY KEY, data JSON)";
+            String insertSQL = "INSERT INTO " + dstTable + "  VALUES (?, ?)";
+            String selectSQL = "SELECT data FROM " + dstTable + "  WHERE id = ?";
+
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+                stmt.execute(createTableSQL);
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, "{\"status\": \"success\", \"code\": 200}");
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    String jsonData = rs.getString(1);
+                    assertEquals("{\"status\":\"success\",\"code\":200}", jsonData);
+                }
+            }
+        } finally {
+            // Ensure cleanup of the global temporary table
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test JSON insertion and retrieval in a local temporary table.
+     * Local temporary tables (#TempJson) are session-bound and deleted automatically when the session ends.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJsonInsertionInLocalTempTable() throws SQLException {
+        try (Connection conn = getConnection()) {
+            String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#TempJson")));
+            String createTableSQL = "CREATE TABLE " + dstTable + " (id INT PRIMARY KEY, data JSON)";
+            String insertSQL = "INSERT INTO " + dstTable + "  VALUES (?, ?)";
+            String selectSQL = "SELECT data FROM " + dstTable + " WHERE id = ?";
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(createTableSQL);
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, "{\"status\": \"success\", \"code\": 200}");
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    String jsonData = rs.getString(1);
+                    assertEquals("{\"status\":\"success\",\"code\":200}", jsonData);
+                }
+            }
+        } // Connection auto-closes here, so #TempJson is automatically dropped
+    }
+
+    /**
+     * Test `SELECT INTO` query to copy JSON data into a new table.
+     * `SELECT INTO` creates a new table and inserts the result of the select statement.
+     * input: `SELECT id, data INTO TargetJsonTable FROM SourceJsonTable`
+     * output: A new table `TargetJsonTable` with copied JSON data.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testSelectIntoWithJsonType() throws SQLException {
+        String sourceTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SourceJsonTable")));
+        String targetTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TargetJsonTable")));
+
+        try (Connection conn = getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(targetTable, stmt);
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+
+                String createSourceTableSQL = "CREATE TABLE " + sourceTable + " (id INT PRIMARY KEY, data JSON)";
+                stmt.execute(createSourceTableSQL);
+
+                String insertSQL = "INSERT INTO " + sourceTable + " VALUES (?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "{\"name\": \"Alice\", \"age\": 25}");
+                    pstmt.executeUpdate();
+
+                    pstmt.setInt(1, 2);
+                    pstmt.setString(2, "{\"name\": \"Bob\", \"age\": 30}");
+                    pstmt.executeUpdate();
+                }
+
+                // Perform `SELECT INTO` to copy data into TargetJsonTable
+                String selectIntoSQL = "SELECT id, data INTO " + targetTable + " FROM " + sourceTable;
+                stmt.execute(selectIntoSQL);
+
+                String selectSQL = "SELECT id, data FROM " + targetTable + " ORDER BY id";
+                try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt("id"));
+                    assertEquals("{\"name\":\"Alice\",\"age\":25}", rs.getString("data"));
+
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt("id"));
+                    assertEquals("{\"name\":\"Bob\",\"age\":30}", rs.getString("data"));
+                }
+            }
+        } finally {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(targetTable, stmt);
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test `JOIN` query to validate JSON support.
+     * This test checks if a `JOIN` operation correctly retrieves JSON data
+     * from multiple tables using a foreign key relationship.
+     * input: `SELECT u.id, JSON_VALUE(u.data, '$.name'), o.orderDetails FROM UsersTable u JOIN OrdersTable o ON u.id = o.userId`
+     * output: Joined data with extracted JSON fields.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJoinQueryWithJsonType() throws SQLException {
+        String usersTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UsersTable")));
+        String ordersTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("OrdersTable")));
+
+        try (Connection conn = getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(ordersTable, stmt);
+                TestUtils.dropTableIfExists(usersTable, stmt);
+
+                String createUsersTableSQL = "CREATE TABLE " + usersTable + " (id INT PRIMARY KEY, data JSON)";
+                stmt.execute(createUsersTableSQL);
+
+                String createOrdersTableSQL = "CREATE TABLE " + ordersTable + " (orderId INT PRIMARY KEY, userId INT, orderDetails JSON, FOREIGN KEY (userId) REFERENCES " + usersTable + "(id))";
+                stmt.execute(createOrdersTableSQL);
+
+                String insertUserSQL = "INSERT INTO " + usersTable + " VALUES (?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(insertUserSQL)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "{\"name\": \"Alice\", \"age\": 25}");
+                    pstmt.executeUpdate();
+
+                    pstmt.setInt(1, 2);
+                    pstmt.setString(2, "{\"name\": \"Bob\", \"age\": 30}");
+                    pstmt.executeUpdate();
+                }
+                String insertOrderSQL = "INSERT INTO " + ordersTable + " VALUES (?, ?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(insertOrderSQL)) {
+                    pstmt.setInt(1, 101);
+                    pstmt.setInt(2, 1);
+                    pstmt.setString(3, "{\"product\": \"Laptop\", \"price\": 1200}");
+                    pstmt.executeUpdate();
+
+                    pstmt.setInt(1, 102);
+                    pstmt.setInt(2, 2);
+                    pstmt.setString(3, "{\"product\": \"Phone\", \"price\": 800}");
+                    pstmt.executeUpdate();
+                }
+
+                // Perform `JOIN` to extract JSON values
+                String joinQuery = "SELECT u.id, JSON_VALUE(u.data, '$.name') AS userName, JSON_VALUE(o.orderDetails, '$.product') AS product " +
+                                "FROM " + usersTable + " u " +
+                                "JOIN " + ordersTable + " o ON u.id = o.userId " +
+                                "ORDER BY u.id";
+
+                try (ResultSet rs = stmt.executeQuery(joinQuery)) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt("id"));
+                    assertEquals("Alice", rs.getString("userName"));
+                    assertEquals("Laptop", rs.getString("product"));
+
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt("id"));
+                    assertEquals("Bob", rs.getString("userName"));
+                    assertEquals("Phone", rs.getString("product"));
+                }
+            }
+        } finally {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(ordersTable, stmt);
+                TestUtils.dropTableIfExists(usersTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test JSON input and output with a User-Defined Function (UDF).
+     * This test ensures that JSON data can be processed via UDFs
+     * in SELECT, WHERE, and FROM clauses.
+     * input: UDF `GetAgeFromJson(JSON) RETURNS INT`
+     * output: Extracted JSON age field in various queries.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJsonInputOutputWithUdf() throws SQLException {
+        String personsTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
+        String udfName = "dbo.GetAgeFromJson";
+
+        try (Connection conn = getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(personsTable, stmt);
+                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
+                stmt.execute(dropUdfSQL);
+
+
+                // Create UDF to extract "age" from JSON
+                String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
+                                    "RETURNS INT " +
+                                    "AS BEGIN " +
+                                    "RETURN CAST(JSON_VALUE(@json, '$.age') AS INT) " +
+                                    "END";
+                stmt.execute(createUdfSQL);
+
+                String createTableSQL = "CREATE TABLE " + personsTable + " (id INT PRIMARY KEY, data JSON)";
+                stmt.execute(createTableSQL);
+                String insertSQL = "INSERT INTO " + personsTable + " VALUES (?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "{\"name\": \"Alice\", \"age\": 25}");
+                    pstmt.executeUpdate();
+
+                    pstmt.setInt(1, 2);
+                    pstmt.setString(2, "{\"name\": \"Bob\", \"age\": 30}");
+                    pstmt.executeUpdate();
+                }
+
+                // Test JSON UDF in SELECT clause
+                String selectSQL = "SELECT id, " + udfName + "(data) AS extractedAge FROM " + personsTable + " ORDER BY id";
+                try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt("id"));
+                    assertEquals(25, rs.getInt("extractedAge"));
+
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt("id"));
+                    assertEquals(30, rs.getInt("extractedAge"));
+                }
+
+                // Test JSON UDF in WHERE clause
+                String whereSQL = "SELECT id FROM " + personsTable + " WHERE " + udfName + "(data) > 25 ORDER BY id";
+                try (ResultSet rs = stmt.executeQuery(whereSQL)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt("id"));
+                }
+
+                // Test JSON UDF in FROM clause (as part of a subquery)
+                String fromSQL = "SELECT extractedAge FROM (SELECT " + udfName + "(data) AS extractedAge FROM " + personsTable + ") AS AgeTable";
+                try (ResultSet rs = stmt.executeQuery(fromSQL)) {
+                    assertTrue(rs.next());
+                    assertEquals(25, rs.getInt("extractedAge"));
+
+                    assertTrue(rs.next());
+                    assertEquals(30, rs.getInt("extractedAge"));
+                }
+            }
+        } finally {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropTableIfExists(personsTable, stmt);
             }
         }
     }
