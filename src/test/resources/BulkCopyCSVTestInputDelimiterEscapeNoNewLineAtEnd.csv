@@ -1,0 +1,15 @@
+1@"test"@ " test"""@ "no@split" @ testNoQuote@ 
+2@""@  ""@ ""@ ""@ 
+3@""""@ "test""test"@ "test@""  test"@ ""@ 
+4@testNoQuote  @ testSpaceAround @ " testSpaceInside "@  "  testSpaceQuote"" "@ 
+5@""@  ""@ ""@ " testSpaceInside "@ 
+6@1997@Ford@E350@E63@ 
+7@"1997"@"Ford"@"E350"@"E63"@ 
+8@1997@Ford@E350@"Super@ luxurious truck"@ 
+9@1997@Ford@E350@"Super@ ""luxurious"" truck"@ 
+10@1997@ "Ford" @E350@  "E63"@ 
+11@1997@Ford@E350@" Super luxurious truck "@ 
+12@1997@"F
+o
+r
+d"@"E350"@"""Super"" ""luxurious"" ""truck"""@

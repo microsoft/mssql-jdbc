@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1369,5 +1370,36 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
+    public void testManagedIdentityWithEncryptStrict() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        String connectionUrl = connectionString;
+        if (connectionUrl.contains("user=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "user");
+        }
+        if (connectionUrl.contains("password=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
+        }
+
+        ds.setURL(connectionUrl);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        ds.setEncrypt("strict");
+        ds.setHostNameInCertificate("*.database.windows.net"); 
+
+        try (Connection con = ds.getConnection()) {
+            assertNotNull(con);
+        } catch (SQLException e) {
+            fail("Connection failed: " + e.getMessage());
+        }
+    } 
 
 }

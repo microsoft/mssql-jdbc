@@ -4155,7 +4155,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         final byte fedAuthOffset;
         if (fedAuthRequiredByUser) {
             messageLength = TDS.B_PRELOGIN_MESSAGE_LENGTH_WITH_FEDAUTH;
-            requestedEncryptionLevel = TDS.ENCRYPT_ON;
+            if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
+                requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
+            } else {
+                requestedEncryptionLevel = TDS.ENCRYPT_ON;
+            }
 
             // since we added one more line for prelogin option with fedauth,
             // we also needed to modify the offsets above, by adding 5 to each offset,
