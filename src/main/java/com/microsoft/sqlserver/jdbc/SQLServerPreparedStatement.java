@@ -97,6 +97,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** Set to true if the statement is a stored procedure call that expects a return value */
     final boolean bReturnValueSyntax;
+    final int iReturnValueOffset;
 
     /** user FMTOnly flag */
     private boolean useFmtOnly = this.connection.getUseFmtOnly();
@@ -281,6 +282,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Retrieve meta data from cache item.
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
+        iReturnValueOffset = parsedSQL.bReturnValueSyntax ? 1 : 0;
         userSQL = parsedSQL.processedSQL;
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);

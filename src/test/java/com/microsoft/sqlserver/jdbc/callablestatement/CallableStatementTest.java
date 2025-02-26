@@ -8,21 +8,21 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +39,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -76,6 +77,24 @@ public class CallableStatementTest extends AbstractTest {
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
 
+    private static String simpleDefaultsProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("simple_defaults_Procedure"));
+    private static String manyParamsDefTable = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParamDef_Table"));
+    private static String manyParamWithDefaultsProc = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParamWithDefaults_Procedure"));
+    private static String manyParamWithDefaultsProcRet = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("manyParamWithDefaultsRet_Procedure"));
+
+    private static final Integer[] intParams = {Integer.valueOf(123), Integer.valueOf(456), Integer.valueOf(789)};
+    private static final String[] strParams = {"Hello from test", "Hello again", "Final hello"};
+    private static final Date[] dateParams = {new Date(0), new Date(System.currentTimeMillis()),
+            Date.valueOf("2020-12-30")};
+
+    private static final Integer[] defaultInts = {Integer.valueOf(444), Integer.valueOf(888)};
+    private static final String[] defaultStrs = {"val 5s default param", "val 8s default param"};
+    private static final String[] defaultDates = {"2025-02-01", "2020-10-12"};
+
     /**
      * Setup before test
      * 
@@ -98,6 +117,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            TestUtils.dropTableIfExists(simpleDefaultsProc, stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
@@ -112,6 +132,10 @@ public class CallableStatementTest extends AbstractTest {
             createGetObjectOffsetDateTimeProcedure(stmt);
             createConditionalProcedure();
             createSimpleRetValSproc();
+            createSimpleDefaultsProc();
+            createTableManyParamsDefaults();
+            createProcedureManyParamsWithDefaults();
+            createProcedureManyParamsWithDefaultsAndReturn();
         }
     }
 
@@ -162,6 +186,57 @@ public class CallableStatementTest extends AbstractTest {
             }
         }
     }
+
+
+    // Test Needs more work to be configured to run on azureDB as there are slight differences
+    // between the regular SQL Server vs. azureDB
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testCallableStatementManyParametersWithReturn() throws SQLException {
+        String tempPass = UUID.randomUUID().toString();
+        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
+        String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
+        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'" + tempPass + "', "
+                + "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
+        String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
+        String grantExecute = "GRANT EXECUTE ON " + manyParamProc + " TO NewUser;";
+
+        // Need to create a user with limited permissions in order to run through the code block we are testing
+        // The user created will execute sp_sproc_columns internally by the driver, which should not return all
+        // the column names as the user has limited permissions
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(dropLogin);
+                stmt.execute(dropUser);
+                stmt.execute(createLogin);
+                stmt.execute(createUser);
+                stmt.execute(grantExecute);
+            }
+        }
+
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=" + tempPass + ";")) {
+            BigDecimal money = new BigDecimal("9999.99");
+
+            // Should not throw an "Index is out of range error"
+            // Should not throw R_parameterNotDefinedForProcedure
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{?=call " + manyParamProc + "(?,?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setObject("@p1", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p2", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p3", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p4", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p5", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p6", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p7", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p8", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p9", money, microsoft.sql.Types.MONEY);
+                callableStatement.setObject("@p10", money, microsoft.sql.Types.MONEY);
+                callableStatement.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+                callableStatement.execute();
+            }
+        }
+    }
+
 
     @Test
     public void testCallableStatementSpPrepare() throws SQLException {
@@ -435,7 +510,7 @@ public class CallableStatementTest extends AbstractTest {
     public void testExecDocumentedSystemStoredProceduresIndexedParameters() throws SQLException {
         String serverName;
         String testTableName = "testTable";
-        Integer integer = new Integer(1);
+        Integer integer = Integer.valueOf(1);
 
         try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery("SELECT @@SERVERNAME")) {
             rs.next();
@@ -479,8 +554,7 @@ public class CallableStatementTest extends AbstractTest {
 
         } catch (Exception e) {
             String msg = e.getMessage();
-            assertTrue(TestResource
-                    .getResource("R_nullPointerExceptionFromResultSet").equalsIgnoreCase(msg)
+            assertTrue(TestResource.getResource("R_nullPointerExceptionFromResultSet").equalsIgnoreCase(msg)
                     || msg == null);
         }
 
@@ -598,6 +672,671 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+
+    /**
+     * Tests for Procedures with default parameters
+     */
+    @Test
+    public void testCallProcHavingDefaultParameters_SupplyingAllParameters() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?,?)}")) {
+            stmt.setInt("@ID", 1);
+            stmt.setInt("@RAND", 123123);
+            stmt.setString("@NAME", "Fred");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(1, rs.getObject(1));
+                    assertEquals(123123,rs.getObject(3));
+                    assertEquals("Tom",rs.getObject(2));
+                }
+            }
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with all parameters");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_SupplyingAllParametersWithReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?,?,?)}")) {
+            stmt.setInt("@ID", 1);
+            stmt.setInt("@RAND", 123123);
+            stmt.setString("@NAME", "Fred");
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(1, rs.getObject(1));
+                    assertEquals(123123,rs.getObject(3));
+                    assertEquals("Tom",rs.getObject(2));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with all parameters");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_SupplyingAllParametersWithOutAndReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?,?,?)}")) {
+            stmt.setInt("@ID", 1);
+            stmt.setInt("@RAND", 123123);
+            stmt.setString("@NAME", "Fred");
+            stmt.registerOutParameter("@NAME", java.sql.Types.VARCHAR);
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(1, rs.getObject(1));
+                    assertEquals(123123,rs.getObject(3));
+                    assertEquals("Tom",rs.getObject(2));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+            assertEquals("Tom", stmt.getObject("@NAME"));
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with all parameters");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying2Parameters() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@ID", 2);
+            stmt.setInt("@RAND", 123123);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(2, rs.getObject(1));
+                    assertEquals(123123, rs.getObject(3));
+                    assertEquals("Dick", rs.getObject(2));
+                }
+            }
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 2 parameters");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying2ParametersWithReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@ID", 2);
+            stmt.setInt("@RAND", 123123);
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(2, rs.getObject(1));
+                    assertEquals(123123, rs.getObject(3));
+                    assertEquals("Dick", rs.getObject(2));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 2 parameters. "+e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying2ParametersWithOutAndReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?,?,?)}")) {
+            stmt.setInt("@RAND", 123123);
+            stmt.setInt("@ID", 2);
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            stmt.registerOutParameter("@NAME", java.sql.Types.VARCHAR);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(2, rs.getObject(1));
+                    assertEquals("Dick", rs.getObject(2));
+                    assertEquals(123123, rs.getObject(3));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+            assertEquals("Dick", stmt.getObject("@NAME"));
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 2 parameters. " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying1Parameter() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?)}")) {
+            stmt.setInt("@ID", 3);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(3, rs.getObject(1));
+                    assertEquals("Harry",rs.getObject(2));
+                    assertEquals(91919292,rs.getObject(3));
+                }
+            }
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 1 parameter");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying1IndexedParameter() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?)}")) {
+            stmt.setInt(1, 3);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(3, rs.getObject(1));
+                    assertEquals("Harry",rs.getObject(2));
+                    assertEquals(91919292,rs.getObject(3));
+                }
+            }
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 1 parameter");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying1ParameterWithReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?)}")) {
+            stmt.setInt("@ID", 3);
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(3, rs.getObject(1));
+                    assertEquals("Harry",rs.getObject(2));
+                    assertEquals(91919292,rs.getObject(3));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+        } catch (SQLException e) {
+            fail("Failed executing '" + simpleDefaultsProc + "' with 1 parameter");
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_Supplying1ParameterWithOutAndReturn() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{?=call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@ID", 3);
+            stmt.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+            stmt.registerOutParameter("@NAME", java.sql.Types.VARCHAR);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assertEquals(3, rs.getObject(1));
+                    assertEquals("Harry",rs.getObject(2));
+                    assertEquals(91919292,rs.getObject(3));
+                }
+            }
+            assertEquals(123, stmt.getObject("@RETURN_VALUE"));
+            assertEquals("Harry", stmt.getObject("@NAME"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    
+    @Test
+    public void testCallProcHavingDefaultParameters_MissingRequiredParameter() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@RAND", 123123);
+            stmt.setString("@NAME", "Fred");
+            stmt.execute();
+            fail("Expected SQLException not thrown");
+        } catch (SQLException e) {
+        	// Full error = Procedure or function '...' expects parameter '@ID', which was not supplied.
+        	// but the table name changes, so just look for the @ID part
+        	assertTrue(e.getMessage().contains("'@ID'"));
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_OutTypeInvalid() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@ID", 1);
+            stmt.registerOutParameter("@NAME", java.sql.Types.INTEGER);
+            stmt.execute();
+            assertEquals("Harry", stmt.getObject("@NAME"));
+            fail("Expected SQLException not thrown");
+        } catch (SQLException e) {
+        	// Expected error = Error converting data type varchar to int.
+        	assertTrue(e.getMessage().contains("varchar to int"));
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_InvalidMix() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt("@ID", 1);
+            stmt.setInt(2, 123);
+            stmt.execute();
+            fail("Expected SQLException not thrown");
+        } catch (SQLException e) {
+        	// Expected error = Error converting data type varchar to int.
+        	assertTrue(e.getMessage().contains("Cannot mix"));
+        }
+    }
+
+    @Test
+    public void testCallProcHavingDefaultParameters_InvalidMix2() throws SQLException {
+        try (CallableStatement stmt = connection.prepareCall("{call " + simpleDefaultsProc + "(?,?)}")) {
+            stmt.setInt(1, 1);
+            stmt.setInt("@RAND", 123);
+            stmt.execute();
+            fail("Expected SQLException not thrown");
+        } catch (SQLException e) {
+        	// Expected error = Error converting data type varchar to int.
+        	assertTrue(e.getMessage().contains("Cannot mix"));
+        }
+    }
+
+
+    @Test
+    public void testCallableStatementManySomeDefaultParameters() throws SQLException {
+        Date d = new Date(System.currentTimeMillis());
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", 123);
+                callableStatement.setString("@val2", "Hello from test");
+                callableStatement.setDate("@val3", d);
+                callableStatement.setObject("@val4", 456, java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", "Hello again", java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", d, java.sql.Types.DATE);
+                callableStatement.setInt("@val7", 789);
+                callableStatement.setString("@val8", "Final hello");
+                callableStatement.setDate("@val9", d);
+                callableStatement.execute();
+            }
+        }
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", 123);
+                callableStatement.setString("@val2", "Hello from test");
+                callableStatement.setDate("@val3", d);
+                callableStatement.setInt("@val7", 789);
+                callableStatement.setString("@val8", "Final hello");
+                callableStatement.setDate("@val9", d);
+                callableStatement.execute();
+            }
+        }
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", 123);
+                callableStatement.setString("@val2", "Hello from test");
+                callableStatement.setDate("@val3", d);
+                callableStatement.setInt("@val7", 789);
+                callableStatement.setString("@val8", "Final hello");
+                callableStatement.setDate("@val9", d);
+                callableStatement.execute();
+            }
+        }
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?)}")) {
+                callableStatement.setString("@val2", "Hello from test");
+                callableStatement.setDate("@val3", d);
+                callableStatement.setInt("@val7", 789);
+                callableStatement.setString("@val8", "Final hello");
+                callableStatement.setDate("@val9", d);
+                callableStatement.execute();
+                fail(TestResource.getResource("R_shouldThrowException"));
+
+            } catch (SQLException sse) {
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotProvided"));
+                Object[] msgArgs = {"'@val1'"};
+                String msgx = form.format(msgArgs);
+                if (!sse.getMessage().contains(msgx)) {
+                    fail(TestResource.getResource("R_unexpectedExceptionContent"));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParameters() throws SQLException {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+                callableStatement.setInt("@val7", intParams[2]);
+                callableStatement.setString("@val8", strParams[2]);
+                callableStatement.setDate("@val9", dateParams[2]);
+                callableStatement.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+                    assertEquals(intParams[1], rs.getInt(4));
+                    assertEquals(strParams[1], rs.getString(5));
+                    assertEquals(dateParams[1].toString(), rs.getDate(6).toString());
+                    assertEquals(intParams[2], rs.getInt(7));
+                    assertEquals(strParams[2], rs.getString(8));
+                    assertEquals(dateParams[2].toString(), rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersWithReturn() throws SQLException {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{?=call " + manyParamWithDefaultsProcRet + "(?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+                callableStatement.setInt("@val7", intParams[2]);
+                callableStatement.setString("@val8", strParams[2]);
+                callableStatement.setDate("@val9", dateParams[2]);
+                callableStatement.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+                callableStatement.execute();
+                Integer retval = callableStatement.getInt(1);
+                assertEquals(12345678, retval);
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+                    assertEquals(intParams[1], rs.getInt(4));
+                    assertEquals(strParams[1], rs.getString(5));
+                    assertEquals(dateParams[1].toString(), rs.getDate(6).toString());
+                    assertEquals(intParams[2], rs.getInt(7));
+                    assertEquals(strParams[2], rs.getString(8));
+                    assertEquals(dateParams[2].toString(), rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersInRandomOrder() throws SQLException {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setInt("@val7", intParams[2]);
+
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setString("@val8", strParams[2]);
+
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+                callableStatement.setDate("@val9", dateParams[2]);
+                callableStatement.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+                    assertEquals(intParams[1], rs.getInt(4));
+                    assertEquals(strParams[1], rs.getString(5));
+                    assertEquals(dateParams[1].toString(), rs.getDate(6).toString());
+                    assertEquals(intParams[2], rs.getInt(7));
+                    assertEquals(strParams[2], rs.getString(8));
+                    assertEquals(dateParams[2].toString(), rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersReturningDefaultValues1() throws SQLException {
+        // Params 7,8,9 are ommitted and should use the procs default value instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+                callableStatement.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    // These 6 should match the passed parameters
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+
+                    assertEquals(intParams[1], rs.getInt(4));
+                    assertEquals(strParams[1], rs.getString(5));
+                    assertEquals(dateParams[1].toString(), rs.getDate(6).toString());
+                    // These should match the defaults from the SP
+                    assertEquals(defaultInts[1], rs.getInt(7));
+                    assertEquals(defaultStrs[1], rs.getString(8));
+                    assertEquals(defaultDates[1], rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersCheckOutParameters() throws SQLException {
+        // Params 7,8,9 are ommitted and should use the procs default value instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+
+                callableStatement.registerOutParameter("@val4", java.sql.Types.INTEGER);
+                callableStatement.registerOutParameter("@val5", java.sql.Types.VARCHAR);
+
+                callableStatement.execute();
+
+                assertEquals(intParams[1], callableStatement.getObject(4));
+                assertEquals(intParams[1], callableStatement.getObject("@val4"));
+                assertEquals(intParams[1], callableStatement.getInt(4));
+                assertEquals(intParams[1], callableStatement.getInt("@val4"));
+
+                assertEquals(strParams[1], callableStatement.getObject(5));
+                assertEquals(strParams[1], callableStatement.getObject("@val5"));
+                assertEquals(strParams[1], callableStatement.getString(5));
+                assertEquals(strParams[1], callableStatement.getString("@val5"));
+
+            } catch (Exception e) {
+                fail("Exception should not have been thrown: " + e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithIndexedParametersReturningDefaultValues1() throws SQLException {
+        // Params 7,8,9 are ommitted and should use the procs default value instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt(1, intParams[0]);
+                callableStatement.setString(2, strParams[0]);
+                callableStatement.setDate(3, dateParams[0]);
+                callableStatement.setObject(4, intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject(5, strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject(6, dateParams[1], java.sql.Types.DATE);
+                callableStatement.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    // These 6 should match the passed parameters
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+
+                    assertEquals(intParams[1], rs.getInt(4));
+                    assertEquals(strParams[1], rs.getString(5));
+                    assertEquals(dateParams[1].toString(), rs.getDate(6).toString());
+                    // These should match the defaults from the SP
+                    assertEquals(defaultInts[1], rs.getInt(7));
+                    assertEquals(defaultStrs[1], rs.getString(8));
+                    assertEquals(defaultDates[1], rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersReturningDefaultValues2() throws SQLException {
+        // Params 4,5,6 are ommitted and should use the procs default values instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setInt("@val7", intParams[2]);
+                callableStatement.setString("@val8", strParams[2]);
+                callableStatement.setDate("@val9", dateParams[2]);
+                callableStatement.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    // These 3 should match the passed parameters
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+                    // These 3 should match the defaults from the sp
+                    assertEquals(defaultInts[0], rs.getInt(4));
+                    assertEquals(defaultStrs[0], rs.getString(5));
+                    assertEquals(defaultDates[0], rs.getDate(6).toString());
+                    // These 6 should match the passed parameters
+                    assertEquals(intParams[2], rs.getInt(7));
+                    assertEquals(strParams[2], rs.getString(8));
+                    assertEquals(dateParams[2].toString(), rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithIndexedParametersReturningDefaultValues2() throws SQLException {
+        // Params 4,5,6 are ommitted and should use the procs default values instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt(1, intParams[0]);
+                callableStatement.setString(2, strParams[0]);
+                callableStatement.setDate(3, dateParams[0]);
+                callableStatement.setInt(7, intParams[2]);
+                callableStatement.setString(8, strParams[2]);
+                callableStatement.setDate(9, dateParams[2]);
+                callableStatement.execute();
+            } catch (SQLException e) {
+                System.out.println("BOOM");
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersReturningDefaultValuesAndReturn() throws SQLException {
+        // Params 7,8,9 are ommitted and should use the procs default values instead
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{?=call " + manyParamWithDefaultsProcRet + "(?,?,?,?,?,?)}")) {
+                callableStatement.setInt("@val1", intParams[0]);
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setInt("@val7", intParams[2]);
+                callableStatement.setString("@val8", strParams[2]);
+                callableStatement.setDate("@val9", dateParams[2]);
+                callableStatement.registerOutParameter("@RETURN_VALUE", java.sql.Types.INTEGER);
+                callableStatement.execute();
+                Integer retval = callableStatement.getInt(1);
+                assertEquals(12345678, retval);
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT c1,c2,c3,c4,c5,c6,c7,c8,c9 FROM " + manyParamsDefTable);) {
+                if (rs.next()) {
+                    // These 3 should match the passed parameters
+                    assertEquals(intParams[0], rs.getInt(1));
+                    assertEquals(strParams[0], rs.getString(2));
+                    assertEquals(dateParams[0].toString(), rs.getDate(3).toString());
+                    // These 3 should match the defaults from the sp
+                    assertEquals(defaultInts[0], rs.getInt(4));
+                    assertEquals(defaultStrs[0], rs.getString(5));
+                    assertEquals(defaultDates[0], rs.getDate(6).toString());
+                    // These 6 should match the passed parameters
+                    assertEquals(intParams[2], rs.getInt(7));
+                    assertEquals(strParams[2], rs.getString(8));
+                    assertEquals(dateParams[2].toString(), rs.getDate(9).toString());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParameters_tooFewParameters() throws SQLException {
+        // Parameter1 has no default although we provide 3 parameters, that is not one of them so exception should be thrown
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?)}")) {
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.execute();
+                fail(TestResource.getResource("R_shouldThrowException"));
+
+            } catch (SQLException sse) {
+                // Expects message "The value is not set for the parameter number3" as not enough parameters were provided
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotSet"));
+                Object[] msgArgs = {"3"};
+                if (!sse.getMessage().contains(form.format(msgArgs))) {
+                    fail(TestResource.getResource("R_unexpectedExceptionContent"));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementWithNamedParametersMissingExpectedParameter() throws SQLException {
+
+        // missing param1 and no defaults specified
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            clearTable(manyParamsDefTable);
+            try (CallableStatement callableStatement = conn
+                    .prepareCall("{call " + manyParamWithDefaultsProc + "(?,?,?,?,?)}")) {
+                callableStatement.setString("@val2", strParams[0]);
+                callableStatement.setDate("@val3", dateParams[0]);
+                callableStatement.setObject("@val4", intParams[1], java.sql.Types.INTEGER);
+                callableStatement.setObject("@val5", strParams[1], java.sql.Types.VARCHAR);
+                callableStatement.setObject("@val6", dateParams[1], java.sql.Types.DATE);
+                callableStatement.execute();
+                fail(TestResource.getResource("R_shouldThrowException"));
+
+            } catch (SQLException sse) {
+                MessageFormat form = new MessageFormat(TestResource.getResource("R_parameterNotProvided"));
+                Object[] msgArgs = {"'@val1'"};
+                if (!sse.getMessage().contains(form.format(msgArgs))) {
+                    fail(TestResource.getResource("R_unexpectedExceptionContent"));
+                }
+            }
+        }
+    }
+
     /**
      * Cleanup after test
      * 
@@ -608,6 +1347,8 @@ public class CallableStatementTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableNameGUID, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            TestUtils.dropTableIfExists(manyParamsDefTable, stmt);
+
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
@@ -617,6 +1358,9 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
+            TestUtils.dropProcedureIfExists(simpleDefaultsProc, stmt);
+            TestUtils.dropProcedureIfExists(manyParamWithDefaultsProc, stmt);
+            TestUtils.dropProcedureIfExists(manyParamWithDefaultsProcRet, stmt);
         }
     }
 
@@ -715,4 +1459,54 @@ public class CallableStatementTest extends AbstractTest {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
+
+    private static void clearTable(String table) throws SQLException {
+        String truncate = "TRUNCATE TABLE " + table;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(truncate);
+        }
+    }
+
+    private static void createTableManyParamsDefaults() throws SQLException {
+        String sql = "CREATE TABLE" + manyParamsDefTable + " (c1 int null, c2 varchar(128) null, c3 date null, "
+                + "c4 int null, c5 varchar(128) null, c6 date null, "
+                + "c7 int null, c8 varchar(128) null, c9 date null);";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createSimpleDefaultsProc() throws SQLException {
+        String sql = "CREATE PROCEDURE " + simpleDefaultsProc
+                + " @ID int, @RAND int=91919292, @NAME varchar(20)='Unknown' OUT " + "AS BEGIN SET NOCOUNT ON;"
+                + "     if @ID=1 SET @NAME='Tom';" + " if @ID=2 SET @NAME='Dick';" + " if @ID=3 SET @NAME='Harry';"
+                + "     SELECT @ID, @NAME, @RAND;" + " return 123;" + "END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureManyParamsWithDefaults() throws SQLException {
+        String sql = "CREATE PROCEDURE " + manyParamWithDefaultsProc + " @val1 INT, @val2 varchar(128), @val3 date,"
+                + " @val4 int=" + defaultInts[0] + " OUT, @val5 varchar(128)='" + defaultStrs[0] + "' OUT, @val6 date='"
+                + defaultDates[0] + "' OUT," + " @val7 int=" + defaultInts[1] + ", @val8 varchar(128)='"
+                + defaultStrs[1] + "', @val9 date='" + defaultDates[1] + "' " + "AS INSERT INTO " + manyParamsDefTable
+                + " VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7, @val8, @val9)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureManyParamsWithDefaultsAndReturn() throws SQLException {
+        String sql = "CREATE PROCEDURE " + manyParamWithDefaultsProcRet + " @val1 INT, @val2 varchar(128), @val3 date,"
+                + " @val4 int=" + defaultInts[0] + " OUT, @val5 varchar(128)='" + defaultStrs[0] + "' OUT, @val6 date='"
+                + defaultDates[0] + "' OUT," + " @val7 int=" + defaultInts[1] + " OUT, @val8 varchar(128)='"
+                + defaultStrs[1] + "' OUT, @val9 date='" + defaultDates[1] + "' OUT " + "AS INSERT INTO "
+                + manyParamsDefTable
+                + " VALUES(@val1, @val2, @val3, @val4, @val5, @val6, @val7, @val8, @val9) return 12345678";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
 }

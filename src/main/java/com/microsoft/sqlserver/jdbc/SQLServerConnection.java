@@ -8037,8 +8037,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
             boolean isReturnValueSyntax) {
         final int MAX_PARAM_NAME_LEN = 6;
+        
+        int paramNameLen = 0;
+        for(Parameter p : params) {
+        	paramNameLen+=p.getInOutParameterName().length();
+        }
+
         char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
-                + (params.length * 2)];
+                + (params.length * 2) + paramNameLen];
         int dstBegin = 0;
         int srcBegin = 0;
         int nParam = 0;
@@ -8052,9 +8058,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (sqlSrc.length() == srcEnd)
                 break;
 
+            String paramName = params[paramIndex].getInOutParameterName();
+            if (paramName.length()>0) {
+            	paramName.getChars(0, paramName.length(), sqlDst, dstBegin);
+                dstBegin += paramName.length();
+                sqlDst[dstBegin++] = '=';
+            }
+
             dstBegin += makeParamName(nParam++, sqlDst, dstBegin, true);
             srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
-
+            
+            System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
+            
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
                 dstBegin += OUT.length;

@@ -158,6 +158,10 @@ final class Parameter {
     private String name;
     private String schemaName;
 
+
+    // The parameter name from sp_sproc_columns. Used for building the CALL string with @<inOutParameterName>x=@...
+    private String inOutParameterName;
+
     /*
      * The different DTVs representing the parameter's value: getterDTV - The OUT value, if set, of the parameter after
      * execution. This is the value retrieved by CallableStatement getter methods. registeredOutDTV - The "IN" value
@@ -201,6 +205,7 @@ final class Parameter {
         clonedParam.valueLength = valueLength;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
+        clonedParam.inOutParameterName = inOutParameterName;
         return clonedParam;
     }
 
@@ -1270,5 +1275,13 @@ final class Parameter {
 
     void setForceEncryption(boolean forceEncryption) {
         this.forceEncryption = forceEncryption;
+    }
+
+    public String getInOutParameterName() {
+        return inOutParameterName == null ? "" : inOutParameterName;
+    }
+
+    public void setInOutParameterName(String inOutParameterName) {
+        this.inOutParameterName = inOutParameterName;
     }
 }

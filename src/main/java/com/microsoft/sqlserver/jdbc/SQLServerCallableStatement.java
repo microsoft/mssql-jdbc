@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -19,6 +20,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
@@ -73,11 +75,29 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /** Currently active Stream Note only one stream can be active at a time */
     private transient Closeable activeStream;
 
-    /** map */
-    private Map<String, Integer> map = new ConcurrentHashMap<>();
+    /**
+     * Does the number of parameters in CALL(?,?,?) match the number of parameters
+     * in the proc (from exec sp_sproc_columns ). If true we expect the proc to
+     * provide defaults for the unspecified parameters and that all parameters must
+     * be named not ordinal
+     */
+    private boolean parameterCountMissmatch = false;
 
-    /** atomic integer */
-    AtomicInteger ai = new AtomicInteger(0);
+    /**
+     * When paramCountMissmatch is true, this generates the parameters index into inOutParams
+     **/
+    private AtomicInteger registeredNamedParameterIndex = new AtomicInteger(0);
+
+    /**
+     * True if any parameter has been set by name
+     */
+    private boolean hasNamedParameters;
+
+    /**
+     * revised indexes mapping column name to index into inOutParam[] to allow for
+     * default values
+     */
+    private Map<String, Integer> calculatedParameterIndex;
 
     /**
      * Create a new callable statement.
@@ -1357,23 +1377,72 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                         insensitiveParameterNames.put(p, columnIndex++);
                     }
                 }
+                calculatedParameterIndex = new ConcurrentHashMap<String, Integer>();
+                // ParameterNames will always contain @RETURN_VALUE, but inOutParam only will if
+                // ?=CALL, so add 1 to
+                // if no return requested to balance the parameter counts
+                parameterCountMissmatch = parameterNames.size() != inOutParam.length + (bReturnValueSyntax ? 0 : 1);
+                hasNamedParameters = true;
+
+                if (parameterCountMissmatch)
+                    validateParameters();
+
             } catch (SQLException e) {
                 SQLServerException.makeFromDriverError(connection, this, e.toString(), null, false);
             }
-
         }
-
-        // If the server didn't return anything (eg. the param names for the sp_sproc_columns), user might not
-        // have required permissions to view all the parameterNames. And, there's also the case depending on the permissions,
-        // @RETURN_VALUE may or may not be present. So, the parameterNames list might have an additional +1 parameter.
-        if (null != parameterNames && parameterNames.size() <= 1) {
-            return map.computeIfAbsent(columnName, ifAbsent -> ai.incrementAndGet());
-        }
-
         // handle `@name` as well as `name`, since `@name` is what's returned
         // by DatabaseMetaData#getProcedureColumns
         String columnNameWithSign = columnName.startsWith("@") ? columnName : "@" + columnName;
 
+        int index = 0;
+        // If proc has the same number of parameters as the CALL(?,?,?) declared, and the server successfully returned
+        // a list of the procs parameters then fix the column names to the order they are returned from sp_sproc_columns
+        if (!parameterCountMissmatch && null != parameterNames && parameterNames.size() > 1) {
+            Integer matchPos = checkParameterNameExists(columnName, columnNameWithSign);
+
+            // @RETURN_VALUE is always in the list.
+            // If the user uses return value ?=call(@p1) syntax then @p1 is index 2 otherwise its index 1.
+            index = matchPos + iReturnValueOffset;
+            calculatedParameterIndex.put(columnNameWithSign, index);
+
+        } else {
+            // The proc defines more parameters than the CALL(?,?,?) provided or the server didn't return
+            // the param names from the sp_sproc_columns as user might not have required permissions
+            // to view all the parameterNames. And, there's also the case depending on the permissions,
+            // @RETURN_VALUE may or may not be present. So, the parameterNames list might
+            // have an additional +1 parameter.
+
+            // Return_value will always be index1
+            if (bReturnValueSyntax && "@RETURN_VALUE".equals(columnNameWithSign)) {
+                index = 1;
+            } else {
+                Integer storedIndex = calculatedParameterIndex.get(columnNameWithSign);
+                if (storedIndex != null) {
+                    return storedIndex;
+                }
+                if (null == parameterNames || parameterNames.size() > 1) {
+                    checkParameterNameExists(columnName, columnNameWithSign);
+                }
+                index = calculatedParameterIndex.computeIfAbsent(columnNameWithSign,
+                        idx -> registeredNamedParameterIndex.incrementAndGet() + iReturnValueOffset);
+
+                inOutParam[index - 1].setInOutParameterName(columnNameWithSign);
+            }
+        }
+        return index;
+    }
+
+    /**
+     * Check the provided parameter name against the names returned from
+     * sp_sproc_columns
+     * 
+     * @param columnName
+     * @param columnNameWithSign
+     * @return
+     * @throws SQLServerException
+     */
+    private Integer checkParameterNameExists(String columnName, String columnNameWithSign) throws SQLServerException {
         // In order to be as accurate as possible when locating parameter name
         // indexes, as well as be deterministic when running on various client
         // locales, we search for parameter names using the following scheme:
@@ -1390,13 +1459,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             Object[] msgArgs = {columnName, procedureName};
             SQLServerException.makeFromDriverError(connection, this, form.format(msgArgs), SQLSTATE_07009, false);
         }
-
-        // @RETURN_VALUE is always in the list. If the user uses return value ?=call(@p1) syntax then
-        // @p1 is index 2 otherwise its index 1.
-        if (bReturnValueSyntax) // 3.2717
-            return matchPos + 1;
-        else
-            return matchPos;
+        return matchPos;
     }
 
     @Override
@@ -2444,4 +2507,59 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber());
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
+
+    @Override
+    public ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
+        validateParameters();
+        return super.executeQuery();
+    }
+
+    @Override
+    public int executeUpdate() throws SQLServerException, SQLTimeoutException {
+        validateParameters();
+        return super.executeUpdate();
+    }
+
+    @Override
+    public long executeLargeUpdate() throws SQLServerException, SQLTimeoutException {
+        validateParameters();
+        return super.executeLargeUpdate();
+    }
+
+    @Override
+    public boolean execute() throws SQLServerException, SQLTimeoutException {
+        validateParameters();
+        return super.execute();
+    }
+
+    @Override
+    public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        validateParameters();
+        return super.executeBatch();
+    }
+
+    @Override
+    public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        validateParameters();
+        return super.executeLargeBatch();
+    }
+
+    private void validateParameters() throws SQLServerException {
+        if (parameterCountMissmatch) {
+            boolean hasIndexedParameters = false;
+            // Check for un-named parameters excluding return value if expected
+            for (int x = (bReturnValueSyntax ? 1 : 0); x < inOutParam.length; x++) {
+                Parameter p = inOutParam[x];
+                if ("".equals(p.getInOutParameterName()) && p.getJdbcType() != JDBCType.UNKNOWN) {
+                    hasIndexedParameters = true;
+                    break;
+                }
+            }
+            if (hasNamedParameters && hasIndexedParameters) {
+                throw new SQLServerException(SQLServerException.getErrString("R_InvalidMixedParameters"),
+                        SQLState.DATA_EXCEPTION_NOT_SPECIFIC, DriverError.NOT_SET, null);
+            }
+        }
+    }
+
 }

@@ -68,6 +68,8 @@ public final class TestResource extends ListResourceBundle {
             {"R_deadConnection", "Dead connection should be invalid"},
             {"R_wrongExceptionMessage", "Wrong exception message"}, {"R_wrongSqlState", "Wrong sql state"},
             {"R_parameterNotDefined", "Parameter {0} was not defined"},
+            {"R_parameterNotSet", "The value is not set for the parameter number {0}."},
+            {"R_parameterNotProvided", "expects parameter {0}, which was not supplied"},
             {"R_unexpectedExceptionContent", "Unexpected content in exception message"},
             {"R_connectionClosed", "The connection has been closed"},
             {"R_conversionFailed", "Conversion failed when converting {0} to {1} data type"},

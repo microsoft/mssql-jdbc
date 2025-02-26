@@ -559,6 +559,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_UnableToFindClass", "Unable to locate specified class: {0}"},
         {"R_ibmModuleNotFound", "com.ibm.security.auth.module.Krb5LoginModule module was not found."},
         {"R_moduleNotFound", "Neither com.sun.security.auth.module.Krb5LoginModule nor com.ibm.security.auth.module.Krb5LoginModule was found."},
+        {"R_InvalidMixedParameters", "Cannot mix named and indexed parameters unless all parameters are provided."},
     };
 }
 // @formatter:on
