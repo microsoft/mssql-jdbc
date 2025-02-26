@@ -1271,9 +1271,6 @@ public class JSONFunctionTest extends AbstractTest{
                 TestUtils.dropTableIfExists(personsTable, stmt);
                 String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
                 stmt.execute(dropUdfSQL);
-
-
-                // Create UDF to extract "age" from JSON
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
                                     "RETURNS INT " +
                                     "AS BEGIN " +
@@ -1321,6 +1318,60 @@ public class JSONFunctionTest extends AbstractTest{
 
                     assertTrue(rs.next());
                     assertEquals(30, rs.getInt("extractedAge"));
+                }
+            }
+        } finally {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropTableIfExists(personsTable, stmt);
+            }
+        }
+    }
+
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testUdfReturningJson() throws SQLException {
+        String personsTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
+        String udfName = "dbo.GetPersonJson";
+
+        try (Connection conn = getConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(personsTable, stmt);
+                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
+                stmt.execute(dropUdfSQL);
+
+                String createUdfSQL = "CREATE FUNCTION " + udfName + " (@id INT, @name NVARCHAR(100)) " +
+                                    "RETURNS JSON " +
+                                    "AS BEGIN " +
+                                    "RETURN JSON_QUERY('{\"id\": ' + CAST(@id AS NVARCHAR) + ', \"name\": \"' + @name + '\"}') " +
+                                    "END";
+                stmt.execute(createUdfSQL);
+                String createTableSQL = "CREATE TABLE " + personsTable + " (id INT PRIMARY KEY, name NVARCHAR(100))";
+                stmt.execute(createTableSQL);
+
+                String insertSQL = "INSERT INTO " + personsTable + " VALUES (?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "Alice");
+                    pstmt.executeUpdate();
+
+                    pstmt.setInt(1, 2);
+                    pstmt.setString(2, "Bob");
+                    pstmt.executeUpdate();
+                }
+
+                String selectSQL = "SELECT id, name, " + udfName + "(id, name) AS personJson FROM " + personsTable + " ORDER BY id";
+                try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt("id"));
+                    assertEquals("Alice", rs.getString("name"));
+                    assertEquals("{\"id\":1,\"name\":\"Alice\"}", rs.getString("personJson"));
+
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt("id"));
+                    assertEquals("Bob", rs.getString("name"));
+                    assertEquals("{\"id\":2,\"name\":\"Bob\"}", rs.getString("personJson"));
                 }
             }
         } finally {
