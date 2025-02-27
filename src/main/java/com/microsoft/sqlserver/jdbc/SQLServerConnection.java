@@ -1634,6 +1634,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         sqlWarnings = null;
         sCatalog = originalCatalog;
         databaseMetaData = null;
+
+        try{
+            // check QUOTED_IDENTIFIER property
+            String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
+            String quotedIdentifierValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
+            if (null == quotedIdentifierValue) {
+                quotedIdentifierValue = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue();
+                activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
+            }
+
+            String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
+            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+            } else if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
+            }
+
+            // check CONCAT_NULL_YIELDS_NULL property
+            String concatNullYieldsNullProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
+            String concatNullYieldsNullValue = activeConnectionProperties.getProperty(concatNullYieldsNullProperty);
+            if (null == concatNullYieldsNullValue) {
+                concatNullYieldsNullValue = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue();
+                activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
+            }
+            String concatNullYieldsNullOption = OnOffOption.valueOfString(concatNullYieldsNullValue).toString();
+            if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYieldsNull");
+
+            } else if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYieldsNull");
+            }
+        } catch(SQLServerException e) {
+            loggerExternal.log(Level.WARNING, "Error setting QUOTED_IDENTIFIER and CONCAT_NULL_YIELDS_NULL properties", e);
+        }
     }
 
     /** Limit for the maximum number of rows returned from queries on this connection */
@@ -3270,36 +3304,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             state = State.OPENED;
-
-            // check QUOTED_IDENTIFIER property
-            String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
-            String quotedIdentifierValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
-            if (null == quotedIdentifierValue) {
-                quotedIdentifierValue = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue();
-                activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
-            }
-
-            String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
-            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
-                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
-            } else if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
-                connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
-            }
-
-            // check CONCAT_NULL_YIELDS_NULL property
-            String concatNullYieldsNullProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
-            String concatNullYieldsNullValue = activeConnectionProperties.getProperty(concatNullYieldsNullProperty);
-            if (null == concatNullYieldsNullValue) {
-                concatNullYieldsNullValue = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue();
-                activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
-            }
-            String concatNullYieldsNullOption = OnOffOption.valueOfString(concatNullYieldsNullValue).toString();
-            if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYieldsNull");
-
-            } else if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYieldsNull");
-            }
 
             // Socket timeout is bounded by loginTimeout during the login phase.
             // Reset socket timeout back to the original value.
