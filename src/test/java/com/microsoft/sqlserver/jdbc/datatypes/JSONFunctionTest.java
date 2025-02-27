@@ -38,8 +38,6 @@ public class JSONFunctionTest extends AbstractTest {
         setConnection();
     }
 
-    private static final String JSON_FILE_PATH = "large_json.json";
-
     /**
      * Test ISJSON function with JSON.
      * ISJSON -> Tests whether a string contains valid JSON.
