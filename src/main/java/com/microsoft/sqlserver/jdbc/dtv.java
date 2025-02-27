@@ -249,8 +249,6 @@ final class DTV {
         if (null == impl) {
             impl = new ServerDTVImpl();
         } else if (impl.isNull()) {
-            if (streamGetterArgs != null && !streamGetterArgs.streamType.convertsFrom(typeInfo))
-                DataTypes.throwConversionError(typeInfo.getSSType().toString(), streamGetterArgs.streamType.toString());
             return null;
         }
         return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
