@@ -16,7 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.Test; 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.platform.runner.JUnitPlatform;
@@ -30,13 +30,15 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
-@DisplayName("Test Json Functions") 
-public class JSONFunctionTest extends AbstractTest{
-    
+@DisplayName("Test Json Functions")
+public class JSONFunctionTest extends AbstractTest {
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
     }
+
+    private static final String JSON_FILE_PATH = "large_json.json";
 
     /**
      * Test ISJSON function with JSON.
@@ -59,8 +61,8 @@ public class JSONFunctionTest extends AbstractTest{
                         "INSERT INTO " + dstTable + " (testCol) VALUES ('" + validJson + "')");
 
                 String select = "SELECT testCol, " +
-                                "ISJSON(testCol) AS isJsonValid " +
-                                "FROM " + dstTable;
+                        "ISJSON(testCol) AS isJsonValid " +
+                        "FROM " + dstTable;
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
                     assertEquals(validJson, rs.getString("testCol"));
@@ -102,8 +104,8 @@ public class JSONFunctionTest extends AbstractTest{
                 stmt.executeUpdate("INSERT INTO " + dstTable + " (testCol) VALUES ('" + jsonScalar + "')");
 
                 String select = "SELECT testCol, " +
-                                "ISJSON(testCol) AS isJsonValid " +
-                                "FROM " + dstTable;
+                        "ISJSON(testCol) AS isJsonValid " +
+                        "FROM " + dstTable;
                 try (ResultSet rs = stmt.executeQuery(select)) {
                     assertTrue(rs.next());
                     assertEquals(validJson, rs.getString("testCol"));
@@ -131,7 +133,7 @@ public class JSONFunctionTest extends AbstractTest{
     /**
      * Test JSON_ARRAY function without NULL values.
      * JSON_ARRAY -> Constructs JSON array text from zero or more expressions.
-     * input: JSON_ARRAY('value1', 123, NULL) -> 
+     * input: JSON_ARRAY('value1', 123, NULL) ->
      * output: ["value1",123]
      */
     @Test
@@ -166,7 +168,7 @@ public class JSONFunctionTest extends AbstractTest{
     /**
      * Test JSON_ARRAY function with NULL values included.
      * JSON_ARRAY -> Constructs JSON array text from zero or more expressions.
-     * input: JSON_ARRAY('value1', 123, NULL, 'value2' NULL ON NULL) -> 
+     * input: JSON_ARRAY('value1', 123, NULL, 'value2' NULL ON NULL) ->
      * output: ["value1",123,null,"value2"]
      */
     @Test
@@ -201,7 +203,8 @@ public class JSONFunctionTest extends AbstractTest{
     /**
      * Test JSON_ARRAY with string, JSON object, and JSON array.
      * JSON_ARRAY -> Constructs JSON array text from zero or more expressions.
-     * input: JSON_ARRAY('a', JSON_OBJECT('name':'value', 'type':1), JSON_ARRAY(1, null, 2 NULL ON NULL)) -> 
+     * input: JSON_ARRAY('a', JSON_OBJECT('name':'value', 'type':1), JSON_ARRAY(1,
+     * null, 2 NULL ON NULL)) ->
      * output: ["a",{"name":"value","type":1},[1,null,2]]
      */
     @Test
@@ -251,8 +254,8 @@ public class JSONFunctionTest extends AbstractTest{
                         "CREATE TABLE " + dstTable + " (testCol NVARCHAR(MAX));");
 
                 String data = "DECLARE @id_value nvarchar(64) = NEWID(); " +
-                              "INSERT INTO " + dstTable + " (testCol) " +
-                              "SELECT JSON_ARRAY(1, @id_value, (SELECT @@SPID)) AS jsonArray";
+                        "INSERT INTO " + dstTable + " (testCol) " +
+                        "SELECT JSON_ARRAY(1, @id_value, (SELECT @@SPID)) AS jsonArray";
 
                 dstStmt.execute(data);
 
@@ -291,9 +294,10 @@ public class JSONFunctionTest extends AbstractTest{
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (session_id INT, info JSON);");
 
-                String data = "SELECT s.session_id, JSON_ARRAY(s.host_name, s.program_name, s.client_interface_name) AS info " +
-                              "FROM sys.dm_exec_sessions AS s " +
-                              "WHERE s.is_user_process = 1";
+                String data = "SELECT s.session_id, JSON_ARRAY(s.host_name, s.program_name, s.client_interface_name) AS info "
+                        +
+                        "FROM sys.dm_exec_sessions AS s " +
+                        "WHERE s.is_user_process = 1";
                 dstStmt.executeUpdate("INSERT INTO " + dstTable + " (session_id, info) " + data);
 
                 String select = "SELECT session_id, info FROM " + dstTable;
@@ -317,7 +321,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_ARRAYAGG function.
-     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or columns.
+     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or
+     * columns.
      * input: JSON_ARRAYAGG(testCol) ->
      * output: ["<value1>","<value2>"]
      */
@@ -354,7 +359,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_ARRAYAGG with three elements from a result set.
-     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or columns.
+     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or
+     * columns.
      * input: JSON_ARRAYAGG(c1) ->
      * output: ["c","b","a"]
      */
@@ -362,9 +368,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONArrayAggWithThreeElements() throws SQLException {
         String select = "SELECT JSON_ARRAYAGG(c1) AS jsonArrayAgg FROM (VALUES ('c'), ('b'), ('a')) AS t(c1)";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("[\"c\",\"b\",\"a\"]", rs.getString("jsonArrayAgg"));
         } catch (Exception e) {
@@ -374,7 +380,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_ARRAYAGG with three elements ordered by the value of the column.
-     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or columns.
+     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or
+     * columns.
      * input: JSON_ARRAYAGG(c1 ORDER BY c1) ->
      * output: ["a","b","c"]
      */
@@ -382,9 +389,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONArrayAggWithOrderedElements() throws SQLException {
         String select = "SELECT JSON_ARRAYAGG(c1 ORDER BY c1) AS jsonArrayAgg FROM (VALUES ('c'), ('b'), ('a')) AS t(c1)";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("[\"a\",\"b\",\"c\"]", rs.getString("jsonArrayAgg"));
         } catch (Exception e) {
@@ -394,7 +401,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_ARRAYAGG with two columns.
-     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or columns.
+     * JSON_ARRAYAGG -> Constructs a JSON array from an aggregation of SQL data or
+     * columns.
      * input: JSON_ARRAYAGG(c.name ORDER BY c.column_id) ->
      * output: ["column1","column2"]
      */
@@ -410,14 +418,18 @@ public class JSONFunctionTest extends AbstractTest{
                 stmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (object_id INT, name NVARCHAR(50), column_id INT);");
 
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
 
                 String select = "SELECT object_id, JSON_ARRAYAGG(name ORDER BY column_id) AS column_list " +
-                                "FROM " + dstTable + " " +
-                                "GROUP BY object_id";
+                        "FROM " + dstTable + " " +
+                        "GROUP BY object_id";
                 try (ResultSet rs = stmt.executeQuery(select)) {
                     while (rs.next()) {
                         int objectId = rs.getInt("object_id");
@@ -443,7 +455,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_MODIFY function with various operations.
-     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns the updated JSON string.
+     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns
+     * the updated JSON string.
      * input: JSON_MODIFY(testCol, '$.key', 'value2') ->
      * output: {"key":"value2"}
      */
@@ -496,16 +509,19 @@ public class JSONFunctionTest extends AbstractTest{
                 select = "SELECT testCol FROM " + dstTable;
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
-                    assertEquals("{\"name\":\"John\",\"skills\":[\"C#\",\"SQL\"],\"surname\":\"Smith\"}", rs.getString("testCol"));
+                    assertEquals("{\"name\":\"John\",\"skills\":[\"C#\",\"SQL\"],\"surname\":\"Smith\"}",
+                            rs.getString("testCol"));
                 }
 
-                String addSkill = "UPDATE " + dstTable + " SET testCol = JSON_MODIFY(testCol, 'append $.skills', 'Azure')";
+                String addSkill = "UPDATE " + dstTable
+                        + " SET testCol = JSON_MODIFY(testCol, 'append $.skills', 'Azure')";
                 dstStmt.executeUpdate(addSkill);
 
                 select = "SELECT testCol FROM " + dstTable;
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
-                    assertEquals("{\"name\":\"John\",\"skills\":[\"C#\",\"SQL\",\"Azure\"],\"surname\":\"Smith\"}", rs.getString("testCol"));
+                    assertEquals("{\"name\":\"John\",\"skills\":[\"C#\",\"SQL\",\"Azure\"],\"surname\":\"Smith\"}",
+                            rs.getString("testCol"));
                 }
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -519,8 +535,10 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_MODIFY with multiple updates.
-     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns the updated JSON string.
-     * input: JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@info, '$.name', 'Mike'), '$.surname', 'Smith'), 'append $.skills', 'Azure') ->
+     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns
+     * the updated JSON string.
+     * input: JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@info, '$.name', 'Mike'),
+     * '$.surname', 'Smith'), 'append $.skills', 'Azure') ->
      * output: {"name":"Mike","skills":["C#","SQL","Azure"],"surname":"Smith"}
      */
     @Test
@@ -530,11 +548,12 @@ public class JSONFunctionTest extends AbstractTest{
         String expectedJson = "{\"name\":\"Mike\",\"skills\":[\"C#\",\"SQL\",\"Azure\"],\"surname\":\"Smith\"}";
 
         String update = "DECLARE @info JSON = '" + json + "'; " +
-                        "SET @info = JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@info, '$.name', 'Mike'), '$.surname', 'Smith'), 'append $.skills', 'Azure'); " +
-                        "SELECT @info AS info;";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(update)) {
+                "SET @info = JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@info, '$.name', 'Mike'), '$.surname', 'Smith'), 'append $.skills', 'Azure'); "
+                +
+                "SELECT @info AS info;";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("info"));
         } catch (Exception e) {
@@ -544,8 +563,10 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_MODIFY to rename a key.
-     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns the updated JSON string.
-     * input: JSON_MODIFY(JSON_MODIFY(@product, '$.Price', CAST(JSON_VALUE(@product, '$.price') AS NUMERIC(4, 2))), '$.price', NULL) ->
+     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns
+     * the updated JSON string.
+     * input: JSON_MODIFY(JSON_MODIFY(@product, '$.Price', CAST(JSON_VALUE(@product,
+     * '$.price') AS NUMERIC(4, 2))), '$.price', NULL) ->
      * output: {"Price":49.99}
      */
     @Test
@@ -555,11 +576,12 @@ public class JSONFunctionTest extends AbstractTest{
         String expectedJson = "{\"Price\":49.99}";
 
         String update = "DECLARE @product JSON = '" + json + "'; " +
-                        "SET @product = JSON_MODIFY(JSON_MODIFY(@product, '$.Price', CAST(JSON_VALUE(@product, '$.price') AS NUMERIC(4, 2))), '$.price', NULL); " +
-                        "SELECT @product AS product;";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(update)) {
+                "SET @product = JSON_MODIFY(JSON_MODIFY(@product, '$.Price', CAST(JSON_VALUE(@product, '$.price') AS NUMERIC(4, 2))), '$.price', NULL); "
+                +
+                "SELECT @product AS product;";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("product"));
         } catch (Exception e) {
@@ -569,8 +591,10 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_MODIFY to increment a value.
-     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns the updated JSON string.
-     * input: JSON_MODIFY(@stats, '$.click_count', CAST(JSON_VALUE(@stats, '$.click_count') AS INT) + 1) ->
+     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns
+     * the updated JSON string.
+     * input: JSON_MODIFY(@stats, '$.click_count', CAST(JSON_VALUE(@stats,
+     * '$.click_count') AS INT) + 1) ->
      * output: {"click_count":174}
      */
     @Test
@@ -580,11 +604,12 @@ public class JSONFunctionTest extends AbstractTest{
         String expectedJson = "{\"click_count\":174}";
 
         String update = "DECLARE @stats JSON = '" + json + "'; " +
-                        "SET @stats = JSON_MODIFY(@stats, '$.click_count', CAST(JSON_VALUE(@stats, '$.click_count') AS INT) + 1); " +
-                        "SELECT @stats AS stats;";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(update)) {
+                "SET @stats = JSON_MODIFY(@stats, '$.click_count', CAST(JSON_VALUE(@stats, '$.click_count') AS INT) + 1); "
+                +
+                "SELECT @stats AS stats;";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("stats"));
         } catch (Exception e) {
@@ -594,7 +619,8 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON_MODIFY to update a JSON column.
-     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns the updated JSON string.
+     * JSON_MODIFY -> Updates the value of a property in a JSON string and returns
+     * the updated JSON string.
      * input: JSON_MODIFY(jsonCol, '$.info.address.town', 'London') ->
      * output: {"info":{"address":{"town":"London"}}}
      */
@@ -614,7 +640,8 @@ public class JSONFunctionTest extends AbstractTest{
                 dstStmt.executeUpdate(
                         "INSERT INTO " + dstTable + " (EmployeeID, jsonCol) VALUES (17, '" + data + "')");
 
-                String update = "UPDATE " + dstTable + " SET jsonCol = JSON_MODIFY(jsonCol, '$.info.address.town', 'London') WHERE EmployeeID = 17";
+                String update = "UPDATE " + dstTable
+                        + " SET jsonCol = JSON_MODIFY(jsonCol, '$.info.address.town', 'London') WHERE EmployeeID = 17";
                 dstStmt.executeUpdate(update);
 
                 String select = "SELECT jsonCol FROM " + dstTable + " WHERE EmployeeID = 17";
@@ -642,9 +669,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONObjectEmpty() throws SQLException {
         String select = "SELECT JSON_OBJECT() AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{}", rs.getString("jsonObject"));
         } catch (Exception e) {
@@ -653,7 +680,8 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_OBJECT function to return a JSON object with one key since the value for one of the keys is NULL and the ABSENT ON NULL option is specified.
+     * Test JSON_OBJECT function to return a JSON object with one key since the
+     * value for one of the keys is NULL and the ABSENT ON NULL option is specified.
      * JSON_OBJECT() -> Constructs JSON object text from zero or more expressions.
      * input: JSON_OBJECT('name':'value', 'type':NULL ABSENT ON NULL) ->
      * output: {"name":"value"}
@@ -662,9 +690,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONObjectWithMultipleKeys() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':NULL ABSENT ON NULL) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\"}", rs.getString("jsonObject"));
         } catch (Exception e) {
@@ -673,7 +701,8 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_OBJECT function to return a JSON object with two keys. One key contains a JSON string and another key contains a JSON array.
+     * Test JSON_OBJECT function to return a JSON object with two keys. One key
+     * contains a JSON string and another key contains a JSON array.
      * JSON_OBJECT() -> Constructs JSON object text from zero or more expressions.
      * input: JSON_OBJECT('name':'value', 'type':JSON_ARRAY(1, 2)) ->
      * output: {"name":"value","type":[1,2]}
@@ -682,9 +711,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONObjectWithJsonArray() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':JSON_ARRAY(1, 2)) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\",\"type\":[1,2]}", rs.getString("jsonObject"));
         } catch (Exception e) {
@@ -693,18 +722,20 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_OBJECT function to return a JSON object with two keys. One key contains a JSON string and another key contains a JSON object.
+     * Test JSON_OBJECT function to return a JSON object with two keys. One key
+     * contains a JSON string and another key contains a JSON object.
      * JSON_OBJECT() -> Constructs JSON object text from zero or more expressions.
-     * input: JSON_OBJECT('name':'value', 'type':JSON_OBJECT('type_id':1, 'name':'a')) ->
+     * input: JSON_OBJECT('name':'value', 'type':JSON_OBJECT('type_id':1,
+     * 'name':'a')) ->
      * output: {"name":"value","type":{"type_id":1,"name":"a"}}
      */
     @Test
     @Tag(Constants.JSONTest)
     public void testJSONObjectWithNestedJsonObject() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':JSON_OBJECT('type_id':1, 'name':'a')) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\",\"type\":{\"type_id\":1,\"name\":\"a\"}}", rs.getString("jsonObject"));
         } catch (Exception e) {
@@ -715,18 +746,21 @@ public class JSONFunctionTest extends AbstractTest{
     /**
      * Test JSON_OBJECT function to return a JSON object per row in the query.
      * JSON_OBJECT() -> Constructs a JSON object per row in the query.
-     * input: JSON_OBJECT('security_id':s.security_id, 'login':s.login_name, 'status':s.status) ->
-     * output: {"security_id":"<security_id>","login":"<login_name>","status":"<status>"}
+     * input: JSON_OBJECT('security_id':s.security_id, 'login':s.login_name,
+     * 'status':s.status) ->
+     * output:
+     * {"security_id":"<security_id>","login":"<login_name>","status":"<status>"}
      */
     @Test
     @Tag(Constants.JSONTest)
     public void testJSONObjectPerRow() throws SQLException {
-        String select = "SELECT s.session_id, JSON_OBJECT('security_id':s.security_id, 'login':s.login_name, 'status':s.status) AS info " +
-                        "FROM sys.dm_exec_sessions AS s " +
-                        "WHERE s.is_user_process = 1";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        String select = "SELECT s.session_id, JSON_OBJECT('security_id':s.security_id, 'login':s.login_name, 'status':s.status) AS info "
+                +
+                "FROM sys.dm_exec_sessions AS s " +
+                "WHERE s.is_user_process = 1";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             while (rs.next()) {
                 int sessionId = rs.getInt("session_id");
                 String info = rs.getString("info");
@@ -740,7 +774,8 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_OBJECTAGG function to construct a JSON object with three properties from a result set.
+     * Test JSON_OBJECTAGG function to construct a JSON object with three properties
+     * from a result set.
      * JSON_OBJECTAGG() -> Constructs a JSON object with three properties.
      * input: JSON_OBJECTAGG(c1:c2) ->
      * output: {"key1":"c","key2":"b","key3":"a"}
@@ -749,9 +784,9 @@ public class JSONFunctionTest extends AbstractTest{
     @Tag(Constants.JSONTest)
     public void testJSONObjectAggWithThreeProperties() throws SQLException {
         String select = "SELECT JSON_OBJECTAGG(c1:c2) AS jsonObjectAgg FROM (VALUES('key1', 'c'), ('key2', 'b'), ('key3','a')) AS t(c1, c2)";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"key1\":\"c\",\"key2\":\"b\",\"key3\":\"a\"}", rs.getString("jsonObjectAgg"));
         } catch (Exception e) {
@@ -760,9 +795,12 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_OBJECTAGG function to return a result with two columns. The first column contains the object_id value.
-     * The second column contains a JSON object where the key is the column name and value is the column_id.
-     * JSON_OBJECTAGG() -> Constructs a JSON object with column names and column IDs.
+     * Test JSON_OBJECTAGG function to return a result with two columns. The first
+     * column contains the object_id value.
+     * The second column contains a JSON object where the key is the column name and
+     * value is the column_id.
+     * JSON_OBJECTAGG() -> Constructs a JSON object with column names and column
+     * IDs.
      * input: JSON_OBJECTAGG(c.name:c.column_id) ->
      * output: {"column1":1,"column2":2}
      */
@@ -777,14 +815,18 @@ public class JSONFunctionTest extends AbstractTest{
                 stmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (object_id INT, name NVARCHAR(50), column_id INT);");
 
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
-                stmt.executeUpdate("INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column1', 1);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (1, 'column2', 2);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column3', 1);");
+                stmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (object_id, name, column_id) VALUES (2, 'column4', 2);");
 
                 String select = "SELECT object_id, JSON_OBJECTAGG(name:column_id) AS columns " +
-                                "FROM " + dstTable + " " +
-                                "GROUP BY object_id";
+                        "FROM " + dstTable + " " +
+                        "GROUP BY object_id";
                 try (ResultSet rs = stmt.executeQuery(select)) {
                     while (rs.next()) {
                         int objectId = rs.getInt("object_id");
@@ -809,8 +851,10 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_PATH_EXISTS function to return 1 since the input JSON string contains the specified SQL/JSON path.
-     * JSON_PATH_EXISTS() -> Checks if a specified SQL/JSON path exists in the input JSON string.
+     * Test JSON_PATH_EXISTS function to return 1 since the input JSON string
+     * contains the specified SQL/JSON path.
+     * JSON_PATH_EXISTS() -> Checks if a specified SQL/JSON path exists in the input
+     * JSON string.
      * input: JSON_PATH_EXISTS(@jsonInfo, '$.info.address') ->
      * output: 1
      */
@@ -819,10 +863,10 @@ public class JSONFunctionTest extends AbstractTest{
     public void testJSONPathExistsTrue() throws SQLException {
         String jsonInfo = "{\"info\":{\"address\":[{\"town\":\"Paris\"},{\"town\":\"London\"}]}}";
         String select = "DECLARE @jsonInfo AS JSON = N'" + jsonInfo + "'; " +
-                        "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.address') AS pathExists";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+                "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.address') AS pathExists";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals(1, rs.getInt("pathExists"));
         } catch (Exception e) {
@@ -831,8 +875,10 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_PATH_EXISTS function to return 0 since the input JSON string doesn't contain the specified SQL/JSON path.
-     * JSON_PATH_EXISTS() -> Checks if a specified SQL/JSON path exists in the input JSON string.
+     * Test JSON_PATH_EXISTS function to return 0 since the input JSON string
+     * doesn't contain the specified SQL/JSON path.
+     * JSON_PATH_EXISTS() -> Checks if a specified SQL/JSON path exists in the input
+     * JSON string.
      * input: JSON_PATH_EXISTS(@jsonInfo, '$.info.addresses') ->
      * output: 0
      */
@@ -841,10 +887,10 @@ public class JSONFunctionTest extends AbstractTest{
     public void testJSONPathExistsFalse() throws SQLException {
         String jsonInfo = "{\"info\":{\"address\":[{\"town\":\"Paris\"},{\"town\":\"London\"}]}}";
         String select = "DECLARE @jsonInfo AS JSON = N'" + jsonInfo + "'; " +
-                        "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.addresses') AS pathExists";
-        try (Connection conn = DriverManager.getConnection(connectionString); 
-             Statement stmt = conn.createStatement(); 
-             ResultSet rs = stmt.executeQuery(select)) {
+                "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.addresses') AS pathExists";
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals(0, rs.getInt("pathExists"));
         } catch (Exception e) {
@@ -853,7 +899,8 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_QUERY function to return a JSON fragment from a CustomFields column in query results.
+     * Test JSON_QUERY function to return a JSON fragment from a CustomFields column
+     * in query results.
      * JSON_QUERY() -> Extracts a JSON fragment from a JSON string.
      * input: JSON_QUERY(CustomFields,'$.OtherLanguages') ->
      * output: JSON fragment of OtherLanguages
@@ -871,11 +918,12 @@ public class JSONFunctionTest extends AbstractTest{
                         "CREATE TABLE " + dstTable + " (PersonID INT, FullName NVARCHAR(100), CustomFields JSON);");
 
                 String insert = "INSERT INTO " + dstTable + " (PersonID, FullName, CustomFields) VALUES " +
-                                "(1, 'John Doe', '{\"OtherLanguages\":[\"French\",\"Spanish\"]}'), " +
-                                "(2, 'Jane Smith', '{\"OtherLanguages\":[\"German\",\"Italian\"]}')";
+                        "(1, 'John Doe', '{\"OtherLanguages\":[\"French\",\"Spanish\"]}'), " +
+                        "(2, 'Jane Smith', '{\"OtherLanguages\":[\"German\",\"Italian\"]}')";
                 dstStmt.executeUpdate(insert);
 
-                String select = "SELECT PersonID, FullName, JSON_QUERY(CustomFields, '$.OtherLanguages') AS Languages FROM " + dstTable;
+                String select = "SELECT PersonID, FullName, JSON_QUERY(CustomFields, '$.OtherLanguages') AS Languages FROM "
+                        + dstTable;
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
                     assertEquals(1, rs.getInt("PersonID"));
@@ -899,9 +947,11 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_QUERY function to include JSON fragments in the output of the FOR JSON clause.
+     * Test JSON_QUERY function to include JSON fragments in the output of the FOR
+     * JSON clause.
      * JSON_QUERY() -> Extracts a JSON fragment from a JSON string.
-     * input: JSON_QUERY(Tags), JSON_QUERY(CONCAT('[\"',ValidFrom,'\",\"',ValidTo,'\"]')) ValidityPeriod ->
+     * input: JSON_QUERY(Tags),
+     * JSON_QUERY(CONCAT('[\"',ValidFrom,'\",\"',ValidTo,'\"]')) ValidityPeriod ->
      * output: JSON fragments in the output of the FOR JSON clause
      */
     @Test
@@ -914,16 +964,18 @@ public class JSONFunctionTest extends AbstractTest{
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
-                        "CREATE TABLE " + dstTable + " (StockItemID INT, StockItemName NVARCHAR(100), Tags JSON, ValidFrom DATE, ValidTo DATE);");
+                        "CREATE TABLE " + dstTable
+                                + " (StockItemID INT, StockItemName NVARCHAR(100), Tags JSON, ValidFrom DATE, ValidTo DATE);");
 
-                String insert = "INSERT INTO " + dstTable + " (StockItemID, StockItemName, Tags, ValidFrom, ValidTo) VALUES " +
-                                "(1, 'Item1', '[\"Tag1\",\"Tag2\"]', '2023-01-01', '2023-12-31'), " +
-                                "(2, 'Item2', '[\"Tag3\",\"Tag4\"]', '2023-02-01', '2023-11-30')";
+                String insert = "INSERT INTO " + dstTable
+                        + " (StockItemID, StockItemName, Tags, ValidFrom, ValidTo) VALUES " +
+                        "(1, 'Item1', '[\"Tag1\",\"Tag2\"]', '2023-01-01', '2023-12-31'), " +
+                        "(2, 'Item2', '[\"Tag3\",\"Tag4\"]', '2023-02-01', '2023-11-30')";
                 dstStmt.executeUpdate(insert);
 
                 String select = "SELECT StockItemID, StockItemName, JSON_QUERY(Tags) AS Tags, " +
-                                "JSON_QUERY(CONCAT('[\"', ValidFrom, '\",\"', ValidTo, '\"]')) AS ValidityPeriod " +
-                                "FROM " + dstTable + " FOR JSON PATH";
+                        "JSON_QUERY(CONCAT('[\"', ValidFrom, '\",\"', ValidTo, '\"]')) AS ValidityPeriod " +
+                        "FROM " + dstTable + " FOR JSON PATH";
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
                     String jsonResult = rs.getString(1);
@@ -964,17 +1016,18 @@ public class JSONFunctionTest extends AbstractTest{
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
-                        "CREATE TABLE " + dstTable + " (FirstName NVARCHAR(50), LastName NVARCHAR(50), jsonInfo JSON);");
+                        "CREATE TABLE " + dstTable
+                                + " (FirstName NVARCHAR(50), LastName NVARCHAR(50), jsonInfo JSON);");
 
                 String insert = "INSERT INTO " + dstTable + " (FirstName, LastName, jsonInfo) VALUES " +
-                                "('John', 'Doe', '{\"info\":{\"address\":{\"town\":\"New York\",\"state\":\"US-NY\"}}}'), " +
-                                "('Jane', 'Smith', '{\"info\":{\"address\":{\"town\":\"Los Angeles\",\"state\":\"US-CA\"}}}')";
+                        "('John', 'Doe', '{\"info\":{\"address\":{\"town\":\"New York\",\"state\":\"US-NY\"}}}'), " +
+                        "('Jane', 'Smith', '{\"info\":{\"address\":{\"town\":\"Los Angeles\",\"state\":\"US-CA\"}}}')";
                 dstStmt.executeUpdate(insert);
 
                 String select = "SELECT FirstName, LastName, JSON_VALUE(jsonInfo,'$.info.address.town') AS Town " +
-                                "FROM " + dstTable + " " +
-                                "WHERE JSON_VALUE(jsonInfo,'$.info.address.state') LIKE 'US%' " +
-                                "ORDER BY JSON_VALUE(jsonInfo,'$.info.address.town')";
+                        "FROM " + dstTable + " " +
+                        "WHERE JSON_VALUE(jsonInfo,'$.info.address.state') LIKE 'US%' " +
+                        "ORDER BY JSON_VALUE(jsonInfo,'$.info.address.town')";
                 try (ResultSet rs = dstStmt.executeQuery(select)) {
                     assertTrue(rs.next());
                     assertEquals("Jane", rs.getString("FirstName"));
@@ -998,7 +1051,8 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
-     * Test JSON_VALUE function to create computed columns based on the values of JSON properties.
+     * Test JSON_VALUE function to create computed columns based on the values of
+     * JSON properties.
      * JSON_VALUE() -> Extracts a scalar value from a JSON string.
      * input: JSON_VALUE(jsonContent, '$.address[0].longitude') ->
      * output: JSON property value of longitude
@@ -1013,13 +1067,16 @@ public class JSONFunctionTest extends AbstractTest{
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
-                        "CREATE TABLE " + dstTable + " (StoreID INT IDENTITY(1,1) NOT NULL, Address VARCHAR(500), jsonContent NVARCHAR(4000), " +
-                        "Longitude AS JSON_VALUE(jsonContent, '$.address[0].longitude'), " +
-                        "Latitude AS JSON_VALUE(jsonContent, '$.address[0].latitude'));");
+                        "CREATE TABLE " + dstTable
+                                + " (StoreID INT IDENTITY(1,1) NOT NULL, Address VARCHAR(500), jsonContent NVARCHAR(4000), "
+                                +
+                                "Longitude AS JSON_VALUE(jsonContent, '$.address[0].longitude'), " +
+                                "Latitude AS JSON_VALUE(jsonContent, '$.address[0].latitude'));");
 
                 String insert = "INSERT INTO " + dstTable + " (Address, jsonContent) VALUES " +
-                                "('123 Main St', '{\"address\":[{\"longitude\":\"-73.935242\",\"latitude\":\"40.730610\"}]}'), " +
-                                "('456 Elm St', '{\"address\":[{\"longitude\":\"-118.243683\",\"latitude\":\"34.052235\"}]}')";
+                        "('123 Main St', '{\"address\":[{\"longitude\":\"-73.935242\",\"latitude\":\"40.730610\"}]}'), "
+                        +
+                        "('456 Elm St', '{\"address\":[{\"longitude\":\"-118.243683\",\"latitude\":\"34.052235\"}]}')";
                 dstStmt.executeUpdate(insert);
 
                 String select = "SELECT StoreID, Address, Longitude, Latitude FROM " + dstTable;
@@ -1048,8 +1105,133 @@ public class JSONFunctionTest extends AbstractTest{
     }
 
     /**
+     * Test OPENJSON function to parse JSON data.
+     * OPENJSON -> Parses JSON data and returns a set of rows.
+     * input: OPENJSON((SELECT jsonCol FROM dstTable WHERE EmployeeID = 17)) ->
+     * output: Parsed JSON data
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testOpenJsonParseJson() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement dstStmt = conn.createStatement()) {
+
+                dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
+
+                String jsonData = "{\"id\":1, \"name\":\"John\"}";
+                dstStmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (EmployeeID, jsonCol) VALUES (17, '" + jsonData + "')");
+
+                String select = "SELECT [key], [value] FROM OPENJSON((SELECT jsonCol FROM " + dstTable
+                        + " WHERE EmployeeID = 17))";
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertEquals("id", rs.getString("key"));
+                    assertEquals("1", rs.getString("value"));
+                    assertTrue(rs.next());
+                    assertEquals("name", rs.getString("key"));
+                    assertEquals("John", rs.getString("value"));
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test OPENJSON function to parse nested JSON data.
+     * OPENJSON -> Parses JSON data and returns a set of rows.
+     * input: OPENJSON((SELECT jsonCol FROM dstTable WHERE EmployeeID = 18),
+     * '$.person') ->
+     * output: Parsed nested JSON data
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testOpenJsonParseNestedJson() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement dstStmt = conn.createStatement()) {
+             
+                dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
+
+                String jsonData = "{\"person\": {\"name\": \"John\", \"age\": 30}}";
+                dstStmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (EmployeeID, jsonCol) VALUES (18, '" + jsonData + "')");
+
+                String select = "SELECT [key], [value] FROM OPENJSON((SELECT jsonCol FROM " + dstTable
+                        + " WHERE EmployeeID = 18), '$.person')";
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertEquals("name", rs.getString("key"));
+                    assertEquals("John", rs.getString("value"));
+                    assertTrue(rs.next());
+                    assertEquals("age", rs.getString("key"));
+                    assertEquals("30", rs.getString("value"));
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test OPENJSON function to parse JSON array.
+     * OPENJSON -> Parses JSON data and returns a set of rows.
+     * input: OPENJSON((SELECT jsonCol FROM dstTable WHERE EmployeeID = 19),
+     * '$.colors') ->
+     * output: Parsed JSON array data
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testOpenJsonParseArray() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement dstStmt = conn.createStatement()) {
+        
+                dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
+
+                String jsonData = "{\"colors\": [\"red\", \"green\", \"blue\"]}";
+                dstStmt.executeUpdate(
+                        "INSERT INTO " + dstTable + " (EmployeeID, jsonCol) VALUES (19, '" + jsonData + "')");
+
+                String select = "SELECT [key], [value] FROM OPENJSON((SELECT jsonCol FROM " + dstTable
+                        + " WHERE EmployeeID = 19), '$.colors')";
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    assertEquals("0", rs.getString("key"));
+                    assertEquals("red", rs.getString("value"));
+                    assertTrue(rs.next());
+                    assertEquals("1", rs.getString("key"));
+                    assertEquals("green", rs.getString("value"));
+                    assertTrue(rs.next());
+                    assertEquals("2", rs.getString("key"));
+                    assertEquals("blue", rs.getString("value"));
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
      * Test JSON insertion and retrieval in a global temporary table.
-     * Global temporary tables (##TempJson) are shared across sessions and persist until all sessions using them close.
+     * Global temporary tables (##TempJson) are shared across sessions and persist
+     * until all sessions using them close.
      */
     @Test
     @Tag(Constants.JSONTest)
@@ -1083,7 +1265,7 @@ public class JSONFunctionTest extends AbstractTest{
         } finally {
             // Ensure cleanup of the global temporary table
             try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
         }
@@ -1091,14 +1273,15 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test JSON insertion and retrieval in a local temporary table.
-     * Local temporary tables (#TempJson) are session-bound and deleted automatically when the session ends.
+     * Local temporary tables (#TempJson) are session-bound and deleted
+     * automatically when the session ends.
      */
     @Test
     @Tag(Constants.JSONTest)
     public void testJsonInsertionInLocalTempTable() throws SQLException {
         try (Connection conn = getConnection()) {
             String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#TempJson")));
+                    .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#TempJson")));
             String createTableSQL = "CREATE TABLE " + dstTable + " (id INT PRIMARY KEY, data JSON)";
             String insertSQL = "INSERT INTO " + dstTable + "  VALUES (?, ?)";
             String selectSQL = "SELECT data FROM " + dstTable + " WHERE id = ?";
@@ -1126,15 +1309,18 @@ public class JSONFunctionTest extends AbstractTest{
 
     /**
      * Test `SELECT INTO` query to copy JSON data into a new table.
-     * `SELECT INTO` creates a new table and inserts the result of the select statement.
+     * `SELECT INTO` creates a new table and inserts the result of the select
+     * statement.
      * input: `SELECT id, data INTO TargetJsonTable FROM SourceJsonTable`
      * output: A new table `TargetJsonTable` with copied JSON data.
      */
     @Test
     @Tag(Constants.JSONTest)
     public void testSelectIntoWithJsonType() throws SQLException {
-        String sourceTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SourceJsonTable")));
-        String targetTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TargetJsonTable")));
+        String sourceTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SourceJsonTable")));
+        String targetTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TargetJsonTable")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
@@ -1172,7 +1358,7 @@ public class JSONFunctionTest extends AbstractTest{
             }
         } finally {
             try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(targetTable, stmt);
                 TestUtils.dropTableIfExists(sourceTable, stmt);
             }
@@ -1183,14 +1369,17 @@ public class JSONFunctionTest extends AbstractTest{
      * Test `JOIN` query to validate JSON support.
      * This test checks if a `JOIN` operation correctly retrieves JSON data
      * from multiple tables using a foreign key relationship.
-     * input: `SELECT u.id, JSON_VALUE(u.data, '$.name'), o.orderDetails FROM UsersTable u JOIN OrdersTable o ON u.id = o.userId`
+     * input: `SELECT u.id, JSON_VALUE(u.data, '$.name'), o.orderDetails FROM
+     * UsersTable u JOIN OrdersTable o ON u.id = o.userId`
      * output: Joined data with extracted JSON fields.
      */
     @Test
     @Tag(Constants.JSONTest)
     public void testJoinQueryWithJsonType() throws SQLException {
-        String usersTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UsersTable")));
-        String ordersTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("OrdersTable")));
+        String usersTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UsersTable")));
+        String ordersTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("OrdersTable")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
@@ -1200,7 +1389,9 @@ public class JSONFunctionTest extends AbstractTest{
                 String createUsersTableSQL = "CREATE TABLE " + usersTable + " (id INT PRIMARY KEY, data JSON)";
                 stmt.execute(createUsersTableSQL);
 
-                String createOrdersTableSQL = "CREATE TABLE " + ordersTable + " (orderId INT PRIMARY KEY, userId INT, orderDetails JSON, FOREIGN KEY (userId) REFERENCES " + usersTable + "(id))";
+                String createOrdersTableSQL = "CREATE TABLE " + ordersTable
+                        + " (orderId INT PRIMARY KEY, userId INT, orderDetails JSON, FOREIGN KEY (userId) REFERENCES "
+                        + usersTable + "(id))";
                 stmt.execute(createOrdersTableSQL);
 
                 String insertUserSQL = "INSERT INTO " + usersTable + " VALUES (?, ?)";
@@ -1227,10 +1418,11 @@ public class JSONFunctionTest extends AbstractTest{
                 }
 
                 // Perform `JOIN` to extract JSON values
-                String joinQuery = "SELECT u.id, JSON_VALUE(u.data, '$.name') AS userName, JSON_VALUE(o.orderDetails, '$.product') AS product " +
-                                "FROM " + usersTable + " u " +
-                                "JOIN " + ordersTable + " o ON u.id = o.userId " +
-                                "ORDER BY u.id";
+                String joinQuery = "SELECT u.id, JSON_VALUE(u.data, '$.name') AS userName, JSON_VALUE(o.orderDetails, '$.product') AS product "
+                        +
+                        "FROM " + usersTable + " u " +
+                        "JOIN " + ordersTable + " o ON u.id = o.userId " +
+                        "ORDER BY u.id";
 
                 try (ResultSet rs = stmt.executeQuery(joinQuery)) {
                     assertTrue(rs.next());
@@ -1246,7 +1438,7 @@ public class JSONFunctionTest extends AbstractTest{
             }
         } finally {
             try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(ordersTable, stmt);
                 TestUtils.dropTableIfExists(usersTable, stmt);
             }
@@ -1263,7 +1455,8 @@ public class JSONFunctionTest extends AbstractTest{
     @Test
     @Tag(Constants.JSONTest)
     public void testJsonInputOutputWithUdf() throws SQLException {
-        String personsTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
+        String personsTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
         String udfName = "dbo.GetAgeFromJson";
 
         try (Connection conn = getConnection()) {
@@ -1272,10 +1465,10 @@ public class JSONFunctionTest extends AbstractTest{
                 String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
                 stmt.execute(dropUdfSQL);
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
-                                    "RETURNS INT " +
-                                    "AS BEGIN " +
-                                    "RETURN CAST(JSON_VALUE(@json, '$.age') AS INT) " +
-                                    "END";
+                        "RETURNS INT " +
+                        "AS BEGIN " +
+                        "RETURN CAST(JSON_VALUE(@json, '$.age') AS INT) " +
+                        "END";
                 stmt.execute(createUdfSQL);
 
                 String createTableSQL = "CREATE TABLE " + personsTable + " (id INT PRIMARY KEY, data JSON)";
@@ -1292,7 +1485,8 @@ public class JSONFunctionTest extends AbstractTest{
                 }
 
                 // Test JSON UDF in SELECT clause
-                String selectSQL = "SELECT id, " + udfName + "(data) AS extractedAge FROM " + personsTable + " ORDER BY id";
+                String selectSQL = "SELECT id, " + udfName + "(data) AS extractedAge FROM " + personsTable
+                        + " ORDER BY id";
                 try (ResultSet rs = stmt.executeQuery(selectSQL)) {
                     assertTrue(rs.next());
                     assertEquals(1, rs.getInt("id"));
@@ -1311,7 +1505,8 @@ public class JSONFunctionTest extends AbstractTest{
                 }
 
                 // Test JSON UDF in FROM clause (as part of a subquery)
-                String fromSQL = "SELECT extractedAge FROM (SELECT " + udfName + "(data) AS extractedAge FROM " + personsTable + ") AS AgeTable";
+                String fromSQL = "SELECT extractedAge FROM (SELECT " + udfName + "(data) AS extractedAge FROM "
+                        + personsTable + ") AS AgeTable";
                 try (ResultSet rs = stmt.executeQuery(fromSQL)) {
                     assertTrue(rs.next());
                     assertEquals(25, rs.getInt("extractedAge"));
@@ -1322,7 +1517,7 @@ public class JSONFunctionTest extends AbstractTest{
             }
         } finally {
             try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 TestUtils.dropFunctionIfExists(udfName, stmt);
                 TestUtils.dropTableIfExists(personsTable, stmt);
             }
@@ -1332,7 +1527,8 @@ public class JSONFunctionTest extends AbstractTest{
     @Test
     @Tag(Constants.JSONTest)
     public void testUdfReturningJson() throws SQLException {
-        String personsTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
+        String personsTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
         String udfName = "dbo.GetPersonJson";
 
         try (Connection conn = getConnection()) {
@@ -1342,10 +1538,10 @@ public class JSONFunctionTest extends AbstractTest{
                 stmt.execute(dropUdfSQL);
 
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@id INT, @name NVARCHAR(100)) " +
-                                    "RETURNS JSON " +
-                                    "AS BEGIN " +
-                                    "RETURN JSON_QUERY('{\"id\": ' + CAST(@id AS NVARCHAR) + ', \"name\": \"' + @name + '\"}') " +
-                                    "END";
+                        "RETURNS JSON " +
+                        "AS BEGIN " +
+                        "RETURN JSON_QUERY('{\"id\": ' + CAST(@id AS NVARCHAR) + ', \"name\": \"' + @name + '\"}') " +
+                        "END";
                 stmt.execute(createUdfSQL);
                 String createTableSQL = "CREATE TABLE " + personsTable + " (id INT PRIMARY KEY, name NVARCHAR(100))";
                 stmt.execute(createTableSQL);
@@ -1361,7 +1557,8 @@ public class JSONFunctionTest extends AbstractTest{
                     pstmt.executeUpdate();
                 }
 
-                String selectSQL = "SELECT id, name, " + udfName + "(id, name) AS personJson FROM " + personsTable + " ORDER BY id";
+                String selectSQL = "SELECT id, name, " + udfName + "(id, name) AS personJson FROM " + personsTable
+                        + " ORDER BY id";
                 try (ResultSet rs = stmt.executeQuery(selectSQL)) {
                     assertTrue(rs.next());
                     assertEquals(1, rs.getInt("id"));
@@ -1376,7 +1573,7 @@ public class JSONFunctionTest extends AbstractTest{
             }
         } finally {
             try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 TestUtils.dropFunctionIfExists(udfName, stmt);
                 TestUtils.dropTableIfExists(personsTable, stmt);
             }
