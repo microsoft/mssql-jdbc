@@ -9,6 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -37,6 +43,8 @@ public class JSONFunctionTest extends AbstractTest {
     public static void setupTests() throws Exception {
         setConnection();
     }
+    
+    private static final String JSON_FILE_PATH = "large_json.json";
 
     /**
      * Test ISJSON function with JSON.
@@ -1522,6 +1530,13 @@ public class JSONFunctionTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test a User-Defined Function (UDF) that returns JSON data.
+     * This test ensures that the UDF can be used in SELECT queries
+     * to return JSON-formatted results.
+     * input: UDF `GetPersonJson(INT, NVARCHAR(100)) RETURNS JSON`
+     * output: JSON object with id and name fields.
+     */
     @Test
     @Tag(Constants.JSONTest)
     public void testUdfReturningJson() throws SQLException {
@@ -1575,6 +1590,161 @@ public class JSONFunctionTest extends AbstractTest {
                 TestUtils.dropFunctionIfExists(udfName, stmt);
                 TestUtils.dropTableIfExists(personsTable, stmt);
             }
+        }
+    }
+
+    /*
+     * Test inserting a 1 GB JSON file into a table.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testInsert1GBJson() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
+
+            generateHugeJsonFile(1L * 1024 * 1024 * 1024); // 1GB JSON file
+
+            try (PreparedStatement pstmt = conn
+                    .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
+                    FileReader reader = new FileReader(JSON_FILE_PATH)) {
+
+                pstmt.setCharacterStream(1, reader);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT DATALENGTH(jsonColumn) FROM " + dstTable);
+                    ResultSet rs = pstmt.executeQuery()) {
+
+                assertTrue(rs.next());
+                assertTrue(rs.getLong(1) >= 1L * 1024 * 1024 * 1024);
+            }
+
+        } catch (Exception e) {
+            fail("Test failed due to: " + e.getMessage());
+        } finally {
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /*
+     * Test inserting a 1.99 GB JSON file into a table.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testInsertHugeJsonData() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
+
+            generateHugeJsonFile(2L * 1024 * 1024 * 1019); // 1.99GB JSON file
+
+            try (PreparedStatement pstmt = conn
+                    .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
+                    FileReader reader = new FileReader(JSON_FILE_PATH)) {
+
+                pstmt.setCharacterStream(1, reader);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT DATALENGTH(jsonColumn) FROM " + dstTable);
+                    ResultSet rs = pstmt.executeQuery()) {
+
+                assertTrue(rs.next());
+                assertTrue(rs.getLong(1) >= 2L * 1024 * 1024 * 1019); // Ensure size is ~2GB
+            }
+
+        } catch (Exception e) {
+            fail("Test failed due to: " + e.getMessage());
+        } finally {
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /*
+     * Test inserting a 2 GB JSON file into a table.
+     * Note: This test is expected to fail due to the maximum allowed size for a LOB.
+     * The test is designed to validate the error handling for large JSON data.
+     * Expected error -> org.opentest4j.AssertionFailedError: Test failed due to: Attempting to grow LOB beyond maximum allowed size of 216895848447 bytes.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testInsert2GBData() throws SQLException, FileNotFoundException, IOException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn NVARCHAR(MAX));");
+
+            generateHugeJsonFile(2L * 1024 * 1024 * 1020); // ~2 GB JSON file
+
+            try (PreparedStatement pstmt = conn
+                    .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
+                    FileReader reader = new FileReader(JSON_FILE_PATH)) {
+
+                pstmt.setCharacterStream(1, reader);
+                pstmt.executeUpdate();
+                fail("Expected an exception due to exceeding the maximum allowed size for a LOB.");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Attempting to grow LOB beyond maximum allowed size"));
+            }
+
+        } finally {
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    private void generateHugeJsonFile(long targetSize) {
+        File file = new File(JSON_FILE_PATH);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write("{\"data\": [");
+
+            long currentSize = 10;
+            boolean firstGroup = true;
+
+            while (currentSize < targetSize - 10) {
+                if (!firstGroup) {
+                    writer.write(",");
+                }
+                writer.write("{\"group\":[");
+
+                boolean firstElement = true;
+                for (int i = 0; i < 500; i++) {
+                    if (!firstElement) {
+                        writer.write(",");
+                    }
+                    String jsonChunk = "{\"value\": \"" + "a".repeat(1000) + "\"}";
+                    writer.write(jsonChunk);
+                    currentSize += jsonChunk.length();
+                    firstElement = false;
+                }
+
+                writer.write("]}");
+                firstGroup = false;
+            }
+
+            writer.write("]}");
+        } catch (IOException e) {
+            fail("Failed to create large JSON file: " + e.getMessage());
         }
     }
 }
