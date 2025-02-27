@@ -467,7 +467,14 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidSSLProtocol", "SSL Protocol {0} label is not valid. Only TLS, TLSv1, TLSv1.1, and TLSv1.2 are supported."},
         {"R_cancelQueryTimeoutPropertyDescription", "The number of seconds to wait to cancel sending a query timeout."},
         {"R_invalidCancelQueryTimeout", "The cancel timeout value {0} is not valid."},
-        {"R_useBulkCopyForBatchInsertPropertyDescription", "Whether the driver will use bulk copy API for batch insert operations"},
+        {"R_useBulkCopyForBatchInsertPropertyDescription", "Determines whether the driver will use bulk copy API for batch insert operations."},
+        {"R_bulkCopyForBatchInsertBatchSizePropertyDescription", "The default batch size for bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertCheckConstraintsPropertyDescription", "Determines whether to check constraints during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertFireTriggersPropertyDescription", "Determines whether to fire triggers during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertKeepIdentityPropertyDescription", "Determines whether to keep identity values during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertKeepNullsPropertyDescription", "Determines whether to keep null values during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertTableLockPropertyDescription", "Determines whether to use table lock during bulk copy operations created from batch insert operations."},
+        {"R_bulkCopyForBatchInsertAllowEncryptedValueModificationsPropertyDescription", "Determines whether to allow encrypted value modifications during bulk copy operations created from batch insert operations."},        
         {"R_UnknownDataClsTokenNumber", "Unknown token for Data Classification."}, // From Server
         {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
         {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
@@ -519,7 +526,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
         {"R_calcBigDecimalPrecisionPropertyDescription", "Indicates whether the driver should calculate precision for big decimal values."},
-        {"R_retryExecPropertyDescription", "List of rules to follow for configurable retry logic."},
+        {"R_retryExecPropertyDescription", "List of statement retry rules to follow for configurable retry logic."},
+        {"R_retryConnPropertyDescription", "List of connection retry rules to follow for configurable retry logic."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},
         {"R_maxResultBufferInvalidSyntax", "Invalid syntax: {0} in maxResultBuffer parameter."},
         {"R_maxResultBufferNegativeParameterValue", "MaxResultBuffer must have positive value: {0}."},
@@ -551,6 +559,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidRuleFormat", "Wrong number of parameters supplied to rule. Number of parameters: {0}, expected: 2 or 3."},
         {"R_InvalidRetryInterval", "Current retry interval: {0}, is longer than queryTimeout: {1}."},
         {"R_UnableToFindClass", "Unable to locate specified class: {0}"},
+        {"R_ibmModuleNotFound", "com.ibm.security.auth.module.Krb5LoginModule module was not found."},
+        {"R_moduleNotFound", "Neither com.sun.security.auth.module.Krb5LoginModule nor com.ibm.security.auth.module.Krb5LoginModule was found."},
     };
 }
 // @formatter:on

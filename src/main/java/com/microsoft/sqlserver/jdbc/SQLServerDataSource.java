@@ -170,7 +170,7 @@ public class SQLServerDataSource
     @Override
     public String getApplicationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
-                SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
+        SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
     /**
@@ -1023,6 +1023,96 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
     }
 
+    @Override
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                bulkCopyForBatchInsertBatchSize);
+    }
+
+    @Override
+    public int getBulkCopyForBatchInsertBatchSize() {
+        return getIntProperty(connectionProps,
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                bulkCopyForBatchInsertCheckConstraints);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                bulkCopyForBatchInsertFireTriggers);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                bulkCopyForBatchInsertKeepIdentity);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                bulkCopyForBatchInsertKeepNulls);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                bulkCopyForBatchInsertTableLock);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertTableLock() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                bulkCopyForBatchInsertAllowEncryptedValueModifications);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
+    }    
     /**
      * @deprecated
      */
@@ -1380,11 +1470,22 @@ public class SQLServerDataSource
                 SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue());
     }
 
+    /**
+     * Sets the 'retryExec' setting.
+     *
+     * @param retryExec
+     *        String property giving the custom statement retry rules to use for configurable retry logic
+     */
     @Override
     public void setRetryExec(String retryExec) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), retryExec);
     }
 
+    /**
+     * Returns the value for 'retryExec'.
+     *
+     * @return retryExec String value
+     */
     @Override
     public String getRetryExec() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), null);
@@ -1411,6 +1512,27 @@ public class SQLServerDataSource
     public void setConcatNullYieldsNull(String concatNullYieldNull) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
                 concatNullYieldNull);
+    }
+
+    /**
+     * Sets the 'retryConn' setting.
+     *
+     * @param retryConn
+     *        String property giving the custom connection retry rules to use for configurable retry logic
+     */
+    @Override
+    public void setRetryConn(String retryConn) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_CONN.toString(), retryConn);
+    }
+
+    /**
+     * Returns the value for 'retryConn'.
+     *
+     * @return retryConn String value
+     */
+    @Override
+    public String getRetryConn() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_CONN.toString(), null);
     }
 
     /**

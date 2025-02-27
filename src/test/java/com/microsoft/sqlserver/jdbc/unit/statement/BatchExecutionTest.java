@@ -170,9 +170,9 @@ public class BatchExecutionTest extends AbstractTest {
 
             if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
                 bulkcopyMetadataCacheField = con.getClass().getSuperclass()
-                        .getDeclaredField("BULK_COPY_OPERATION_CACHE");
+                        .getDeclaredField("bulkCopyOperationCache");
             } else {
-                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("bulkCopyOperationCache");
             }
 
             bulkcopyMetadataCacheField.setAccessible(true);
@@ -233,9 +233,9 @@ public class BatchExecutionTest extends AbstractTest {
 
             if (con.getClass().getName().equals("com.microsoft.sqlserver.jdbc.SQLServerConnection43")) {
                 bulkcopyMetadataCacheField = con.getClass().getSuperclass()
-                        .getDeclaredField("BULK_COPY_OPERATION_CACHE");
+                        .getDeclaredField("bulkCopyOperationCache");
             } else {
-                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("BULK_COPY_OPERATION_CACHE");
+                bulkcopyMetadataCacheField = con.getClass().getDeclaredField("bulkCopyOperationCache");
             }
 
             bulkcopyMetadataCacheField.setAccessible(true);

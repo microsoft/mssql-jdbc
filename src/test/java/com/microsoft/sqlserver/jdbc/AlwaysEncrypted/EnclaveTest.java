@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
+@Tag(Constants.requireSecret)
 public class EnclaveTest extends AESetup {
     /**
      * Tests basic connection.

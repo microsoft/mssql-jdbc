@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -42,6 +43,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.aad.msal4j.TokenCache;
 import com.microsoft.aad.msal4j.TokenCacheAccessContext;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.SqlFedAuthInfo;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -50,6 +52,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 public class SQLServerConnectionTest extends AbstractTest {
+	
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
@@ -211,6 +214,9 @@ public class SQLServerConnectionTest extends AbstractTest {
                 TestResource.getResource("R_valuesAreDifferent"));
         ds.setRetryExec(stringPropValue);
         assertEquals(stringPropValue, ds.getRetryExec(), TestResource.getResource("R_valuesAreDifferent"));
+
+        ds.setRetryConn(stringPropValue);
+        assertEquals(stringPropValue, ds.getRetryConn(), TestResource.getResource("R_valuesAreDifferent"));
 
         ds.setServerCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getServerCertificate(), TestResource.getResource("R_valuesAreDifferent"));
@@ -1324,4 +1330,82 @@ public class SQLServerConnectionTest extends AbstractTest {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }
+    
+
+    @Test
+    public void testGetSqlFedAuthTokenFailure() throws SQLException {
+        try (Connection conn = getConnection()){
+        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+        	fedAuthInfo.spn = "https://database.windows.net/";
+        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+                    "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), 10);
+        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+        	//test pass
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
+        }        
+    }
+
+    @Test
+    public void testGetSqlFedAuthTokenFailureNoWaiting() throws SQLException {
+        try (Connection conn = getConnection()){
+        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+        	fedAuthInfo.spn = "https://database.windows.net/";
+        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+                    "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), 0);
+        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+        	//test pass
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
+        }        
+    }
+
+    @Test
+    public void testGetSqlFedAuthTokenFailureNagativeWaiting() throws SQLException {
+        try (Connection conn = getConnection()){
+        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+        	fedAuthInfo.spn = "https://database.windows.net/";
+        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+                    "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), -1);
+        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+        	//test pass
+            assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
+        }        
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
+    public void testManagedIdentityWithEncryptStrict() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        String connectionUrl = connectionString;
+        if (connectionUrl.contains("user=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "user");
+        }
+        if (connectionUrl.contains("password=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
+        }
+
+        ds.setURL(connectionUrl);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        ds.setEncrypt("strict");
+        ds.setHostNameInCertificate("*.database.windows.net"); 
+
+        try (Connection con = ds.getConnection()) {
+            assertNotNull(con);
+        } catch (SQLException e) {
+            fail("Connection failed: " + e.getMessage());
+        }
+    } 
+
 }

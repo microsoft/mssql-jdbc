@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
@@ -366,8 +367,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
         // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
 
         // Should fail on invalid cert field values
         String invalidPasswordUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
@@ -428,8 +429,8 @@ public class FedauthTest extends FedauthCommon {
     public void testAADServicePrincipalCertAuth() {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username=" + servicePrincipalCertificateApplicationClientId
-                + ";clientCertificate=" + clientCertificate;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";Username="
+                + servicePrincipalCertificateApplicationClientId + ";clientCertificate=" + clientCertificate;
         String urlEncrypted = url + ";encrypt=false;trustServerCertificate=true;";
 
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -450,7 +451,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName=" + servicePrincipalCertificateApplicationClientId;
+                + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName="
+                + servicePrincipalCertificateApplicationClientId;
 
         // no certificate provided.
         String url = baseUrl;
@@ -469,8 +471,8 @@ public class FedauthTest extends FedauthCommon {
         validateException(url, "R_readCertError");
 
         // wrong certificate key or password
-        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate + ";clientKey=wrongKey;"
-                + "clientPassword=wrongPassword";
+        url = baseUrl + ";password=" + azurePassword + ";clientCertificate=" + clientCertificate
+                + ";clientKey=wrongKey;" + "clientPassword=wrongPassword";
         validateException(url, "R_readCertError");
     }
 

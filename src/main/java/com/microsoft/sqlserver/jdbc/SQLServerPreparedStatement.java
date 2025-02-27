@@ -705,7 +705,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"),
                     null, true);
-        } else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
+        } else if ((EXECUTE_UPDATE == executeMethod) && (null != resultSet) && !bRequestedGeneratedKeys) {
             SQLServerException.makeFromDriverError(connection, this,
                     SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
@@ -1246,16 +1246,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private SQLServerResultSet buildExecuteMetaData() throws SQLServerException, SQLTimeoutException {
         String fmtSQL = userSQL;
-
+ 
         SQLServerResultSet emptyResultSet = null;
         try {
-            fmtSQL = replaceMarkerWithNull(fmtSQL);
             internalStmt = (SQLServerStatement) connection.createStatement();
             emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
         } catch (SQLServerException sqle) {
             // Ignore empty result set errors, otherwise propagate the server error.
             if (!sqle.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
-                throw sqle;
+                //try by replacing ? characters in case that was an issue 
+                       try {
+                          fmtSQL = replaceMarkerWithNull(fmtSQL);
+                          internalStmt = (SQLServerStatement) connection.createStatement();
+                          emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
+                       } catch (SQLServerException ex) {
+                          // Ignore empty result set errors, otherwise propagate the server error.
+                          if (!ex.getMessage().equals(SQLServerException.getErrString("R_noResultset"))) {
+                             throw ex;
+                          }
+               }
             }
         }
         return emptyResultSet;
@@ -2215,7 +2224,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
@@ -2396,7 +2405,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
