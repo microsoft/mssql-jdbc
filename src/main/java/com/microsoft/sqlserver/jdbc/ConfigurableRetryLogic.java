@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -284,13 +285,17 @@ public class ConfigurableRetryLogic {
     private static String getCurrentClassPath() throws SQLServerException {
         String location = "";
         String className = "";
+        String schemeSpecificPart = "";
 
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
 
-            if (Files.isDirectory(Paths
-                    .get(ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation().toURI()))) {
+            schemeSpecificPart = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation()
+                    .toURI().getSchemeSpecificPart();
+            schemeSpecificPart = schemeSpecificPart.substring(1, schemeSpecificPart.length() - 1); // Remove leading /
+
+            if (Files.isDirectory(Paths.get(schemeSpecificPart))) {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
                 // from class files and should remove a suffix (i.e. the props file is in a different location from the
                 // location returned)
@@ -298,6 +303,10 @@ public class ConfigurableRetryLogic {
             }
 
             return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
+        } catch (InvalidPathException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_PathInvalid"));
+            Object[] msgArgs = {schemeSpecificPart};
+            throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
             Object[] msgArgs = {location};
