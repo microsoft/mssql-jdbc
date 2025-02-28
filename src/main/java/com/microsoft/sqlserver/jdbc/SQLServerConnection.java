@@ -1841,8 +1841,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
             if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
                 connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
-            } else if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
-                connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
             }
 
             // check CONCAT_NULL_YIELDS_NULL property
@@ -1856,8 +1854,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
                 connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYieldsNull");
 
-            } else if (concatNullYieldsNullOption.compareToIgnoreCase(OnOffOption.ON.toString()) == 0) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYieldsNull");
             }
         } catch(SQLServerException e) {
             loggerExternal.log(Level.WARNING, "Error setting QUOTED_IDENTIFIER and CONCAT_NULL_YIELDS_NULL properties", e);
@@ -3568,9 +3564,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
-        } catch (
-
-        SocketException e) {
+        } catch (SocketException e) {
             throw new SQLServerException(e.getMessage(), null);
         } finally {
             // once we exit the connect function, the connection can be only in one of two
