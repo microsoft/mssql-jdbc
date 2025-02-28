@@ -392,10 +392,10 @@ public final class SQLServerDataTable {
                 boolean equalColumnMetadata = columnMetadata.equals(aSQLServerDataTable.columnMetadata);
                 boolean equalColumnNames = columnNames.equals(aSQLServerDataTable.columnNames);
                 boolean equalRowData = compareRows(aSQLServerDataTable.rows);
+                boolean equalTvpName = tvpName.equals(aSQLServerDataTable.tvpName);
 
                 return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
-                        && tvpName.equals(aSQLServerDataTable.tvpName) && equalColumnMetadata && equalColumnNames
-                        && equalRowData);
+                        && equalTvpName && equalColumnMetadata && equalColumnNames && equalRowData);
             }
         }
         return false;
