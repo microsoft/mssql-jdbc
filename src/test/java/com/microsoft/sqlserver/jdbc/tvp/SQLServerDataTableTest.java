@@ -111,4 +111,21 @@ public class SQLServerDataTableTest {
         table.setTvpName("TVP_HashCode");
         return table;
     }
+
+    @Test()
+    public void testEqualsTvp() throws SQLServerException {
+        SQLServerDataTable a = new SQLServerDataTable();
+        SQLServerDataTable b = new SQLServerDataTable();
+
+        assert (a.equals(b));
+
+        a.setTvpName("test");
+        b.setTvpName(new String("test"));
+
+        assert (a.equals(b));
+
+        a.setTvpName("test");
+        b.setTvpName(new String("test2"));
+        assert (!a.equals(b));
+    }
 }
