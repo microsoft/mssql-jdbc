@@ -93,17 +93,17 @@ public class SQLServerDataTableTest {
 
     @Test()
     public void testEqualsTvp() throws SQLServerException {
-        SQLServerDataTable sqlServerDataTable = new SQLServerDataTable();
-        sqlServerDataTable.setTvpName("test");
+        SQLServerDataTable a = new SQLServerDataTable();
+        a.setTvpName("test");
 
-        SQLServerDataTable sqlServerDataTable1 = new SQLServerDataTable();
-        sqlServerDataTable1.setTvpName(new String("test"));
+        SQLServerDataTable b = new SQLServerDataTable();
+        b.setTvpName(new String("test"));
 
-        assert (sqlServerDataTable.equals(sqlServerDataTable1));
+        assert (a.equals(b));
 
-        sqlServerDataTable.setTvpName("test");
-        sqlServerDataTable1.setTvpName(new String("test2"));
-        assert (!sqlServerDataTable.equals(sqlServerDataTable1));
+        a.setTvpName("test");
+        b.setTvpName(new String("test2"));
+        assert (!a.equals(b));
     }
 
     private SQLServerDataTable createTable(SQLServerDataColumn a, SQLServerDataColumn b) throws SQLServerException {
