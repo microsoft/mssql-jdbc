@@ -9,15 +9,8 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -392,7 +385,7 @@ public final class SQLServerDataTable {
                 boolean equalColumnMetadata = columnMetadata.equals(aSQLServerDataTable.columnMetadata);
                 boolean equalColumnNames = columnNames.equals(aSQLServerDataTable.columnNames);
                 boolean equalRowData = compareRows(aSQLServerDataTable.rows);
-                boolean equalTvpName = tvpName.equals(aSQLServerDataTable.tvpName);
+                boolean equalTvpName = Objects.equals(tvpName, aSQLServerDataTable.tvpName);
 
                 return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
                         && equalTvpName && equalColumnMetadata && equalColumnNames && equalRowData);

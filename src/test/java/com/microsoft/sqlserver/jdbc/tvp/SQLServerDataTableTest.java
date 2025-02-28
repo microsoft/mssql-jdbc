@@ -94,9 +94,11 @@ public class SQLServerDataTableTest {
     @Test()
     public void testEqualsTvp() throws SQLServerException {
         SQLServerDataTable a = new SQLServerDataTable();
-        a.setTvpName("test");
-
         SQLServerDataTable b = new SQLServerDataTable();
+
+        assert (a.equals(b));
+
+        a.setTvpName("test");
         b.setTvpName(new String("test"));
 
         assert (a.equals(b));
