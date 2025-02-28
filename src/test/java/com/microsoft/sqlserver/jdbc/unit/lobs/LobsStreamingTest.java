@@ -1,6 +1,9 @@
 package com.microsoft.sqlserver.jdbc.unit.lobs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,9 +19,11 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -277,6 +282,90 @@ public class LobsStreamingTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
                 }
+            }
+        }
+    }
+
+    @Nested
+    public class TestPLP {
+        private String tableName;
+
+        @AfterEach
+        public void cleanUp() {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            } catch (SQLException ex) {
+                fail(ex.getMessage());
+            }
+        }
+
+        @Test
+        public void testGetAsciiStreamOnXml() {
+            tableName = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TestXmlTable")));
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 XML NULL)");
+                stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES ('<root><child>Hello</child></root>')");
+                stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (NULL)");
+
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + tableName)) {
+                    int rowIndex = 0;
+                    while (rs.next()) {
+                        rowIndex++;
+                        try {
+                            InputStream asciiStream = rs.getAsciiStream(1);
+                            if (rowIndex == 1) {
+                                fail("Expected SQLException was not thrown for non-null value"); // Non-null value: Should throw an exception
+                            } else {
+                                assertNull(asciiStream, "Expected null for NULL value, but got a non-null InputStream"); // Null value: Should return null without throwing an exception
+                            }
+                        } catch (SQLException e) {
+                            if (rowIndex == 1) {
+                                assertTrue(e.getMessage().contains("The conversion from xml to AsciiStream is unsupported."),
+                                        "Unexpected SQLException message: " + e.getMessage());
+                            } else {
+                                fail("Unexpected SQLException for NULL value: " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail("Database setup or execution failed: " + e.getMessage());
+            }
+        }
+
+        @Test
+        public void testGetBinaryStreamOnVarchar() {
+            tableName = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TestPLPTable")));
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (col1 VARCHAR(50) NULL)");
+                stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES ('TestValue')");
+                stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (NULL)");
+
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + tableName)) {
+                    int rowIndex = 0;
+                    while (rs.next()) {
+                        rowIndex++;
+                        try {
+                            InputStream binaryStream = rs.getBinaryStream(1);
+                            if (rowIndex == 1)
+                                fail("Expected SQLException was not thrown for non-null value"); // Non-null value
+                            else
+                                assertNull(binaryStream, "Expected null for NULL value, but got a non-null InputStream"); // Null value
+                        } catch (SQLException e) {
+                            if (rowIndex == 1) {
+                                assertTrue(e.getMessage().contains("The conversion from varchar to BinaryStream is unsupported."),
+                                        "Unexpected SQLException message: " + e.getMessage());
+                            } else {
+                                fail("Unexpected SQLException for NULL value: " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail("Database setup or execution failed: " + e.getMessage());
             }
         }
     }
