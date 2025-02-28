@@ -394,7 +394,7 @@ public final class SQLServerDataTable {
                 boolean equalRowData = compareRows(aSQLServerDataTable.rows);
 
                 return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
-                        && tvpName == aSQLServerDataTable.tvpName && equalColumnMetadata && equalColumnNames
+                        && tvpName.equals(aSQLServerDataTable.tvpName) && equalColumnMetadata && equalColumnNames
                         && equalRowData);
             }
         }

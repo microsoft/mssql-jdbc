@@ -91,6 +91,21 @@ public class SQLServerDataTableTest {
         assert (!table.equals(tableClone));
     }
 
+    @Test()
+    public void testEqualsTvp() throws SQLServerException {
+        SQLServerDataTable sqlServerDataTable = new SQLServerDataTable();
+        sqlServerDataTable.setTvpName("test");
+
+        SQLServerDataTable sqlServerDataTable1 = new SQLServerDataTable();
+        sqlServerDataTable1.setTvpName(new String("test"));
+
+        assert (sqlServerDataTable.equals(sqlServerDataTable1));
+
+        sqlServerDataTable.setTvpName("test");
+        sqlServerDataTable1.setTvpName(new String("test2"));
+        assert (!sqlServerDataTable.equals(sqlServerDataTable1));
+    }
+
     private SQLServerDataTable createTable(SQLServerDataColumn a, SQLServerDataColumn b) throws SQLServerException {
         SQLServerDataTable table = new SQLServerDataTable();
         table.addColumnMetadata(a);
