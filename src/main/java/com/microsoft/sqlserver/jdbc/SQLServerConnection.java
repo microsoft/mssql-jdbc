@@ -1821,12 +1821,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private void setCustomFlags() {
         try{
-            if (OnOffOption.OFF.equals(isQuotedIdentifierOn)) {
-                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+            if (!isQuotedIdentifierOn.equals(OnOffOption.NOT_SET)) {
+                connectionCommand("SET QUOTED_IDENTIFIER " + isQuotedIdentifierOn, "quotedIdentifier");
             }
 
-            if (OnOffOption.OFF.equals(isConcatNullYieldsNullOn)) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYieldsNull");
+            if (!isConcatNullYieldsNullOn.equals(OnOffOption.NOT_SET)) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL " + isConcatNullYieldsNullOn, "concatNullYieldsNull");
             }
         } catch(SQLServerException e) {
             loggerExternal.log(Level.WARNING, "Error setting QUOTED_IDENTIFIER and CONCAT_NULL_YIELDS_NULL properties", e);
