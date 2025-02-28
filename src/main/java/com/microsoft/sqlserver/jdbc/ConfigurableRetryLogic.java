@@ -293,8 +293,7 @@ public class ConfigurableRetryLogic {
 
             schemeSpecificPart = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation()
                     .toURI().getSchemeSpecificPart();
-            schemeSpecificPart = schemeSpecificPart.substring(1, schemeSpecificPart.length() - 1); // Remove leading /
-
+            schemeSpecificPart = schemeSpecificPart.substring(1); // Remove leading /
             if (Files.isDirectory(Paths.get(schemeSpecificPart))) {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
                 // from class files and should remove a suffix (i.e. the props file is in a different location from the
