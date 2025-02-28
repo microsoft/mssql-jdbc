@@ -40,9 +40,11 @@ public class ConfigurableRetryLogic {
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
     private static final String EQUALS_SIGN = "=";
+    private static final String FORWARD_SLASH = "/";
     private static final String RETRY_EXEC = "retryExec";
     private static final String RETRY_CONN = "retryConn";
     private static final String STATEMENT = "statement";
+    private static final String CLASS_FILES_SUFFIX = "target/classes/";
     private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
     /**
      * The time the properties file was last modified.
@@ -290,15 +292,17 @@ public class ConfigurableRetryLogic {
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-
             schemeSpecificPart = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation()
                     .toURI().getSchemeSpecificPart();
-            schemeSpecificPart = schemeSpecificPart.substring(1); // Remove leading /
+            if (schemeSpecificPart.startsWith(FORWARD_SLASH)) {
+                schemeSpecificPart = schemeSpecificPart.substring(1); // Remove leading /
+            }
+
             if (Files.isDirectory(Paths.get(schemeSpecificPart))) {
                 // We check if the Path we get from the CodeSource location is a directory. If so, we are running
                 // from class files and should remove a suffix (i.e. the props file is in a different location from the
                 // location returned)
-                location = location.substring(0, location.length() - ("target/classes/").length());
+                location = location.substring(0, location.length() - CLASS_FILES_SUFFIX.length());
             }
 
             return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
