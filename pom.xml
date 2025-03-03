@@ -64,8 +64,8 @@
 		
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.9.1</azure-security-keyvault-keys.version>
-		<azure-identity.version>1.15.0</azure-identity.version>
+		<azure-security-keyvault-keys.version>4.9.2</azure-security-keyvault-keys.version>
+		<azure-identity.version>1.15.3</azure-identity.version>
 		<msal.version>1.17.2</msal.version>
 		<osgi.jdbc.version>1.1.0</osgi.jdbc.version>
 		<antlr-runtime.version>4.9.3</antlr-runtime.version>
