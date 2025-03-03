@@ -37,6 +37,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class FedauthWithAE extends FedauthCommon {
 
     static String cmkName1 = Constants.CMK_NAME + "fedauthAE1";
@@ -307,7 +308,7 @@ public class FedauthWithAE extends FedauthCommon {
     private void callDbccFreeProcCache() throws SQLException {
         try (Connection connection = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = connection.createStatement()) {
-            stmt.execute("DBCC FREEPROCCACHE");
+            TestUtils.freeProcCache(stmt);
         }
     }
 

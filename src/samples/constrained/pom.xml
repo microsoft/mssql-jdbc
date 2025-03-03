@@ -16,7 +16,7 @@
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>11.2.0.jre18</version>
+            <version>11.2.4.jre18</version>
         </dependency>
     </dependencies>
     <profiles>

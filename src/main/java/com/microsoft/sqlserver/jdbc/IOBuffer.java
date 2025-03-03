@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -196,12 +197,17 @@ final class TDS {
     static final int TDS_FEDAUTH_LIBRARY_SECURITYTOKEN = 0x01;
     static final int TDS_FEDAUTH_LIBRARY_ADAL = 0x02;
     static final int TDS_FEDAUTH_LIBRARY_RESERVED = 0x7F;
+
+    // workflows
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYPASSWORD = 0x01;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTEGRATED = 0x02;
-    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMSI = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYMANAGEDIDENTITY = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYINTERACTIVE = 0x03;
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYDEFAULT = 0x03;
     static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPAL = 0x01; // Using the Password byte as that is the
-                                                                           // closest we have.
+                                                                           // closest we have
+    static final byte ADALWORKFLOW_ACTIVEDIRECTORYSERVICEPRINCIPALCERTIFICATE = 0x01;
+
     static final byte FEDAUTH_INFO_ID_STSURL = 0x01; // FedAuthInfoData is token endpoint URL from which to acquire fed
                                                      // auth token
     static final byte FEDAUTH_INFO_ID_SPN = 0x02; // FedAuthInfoData is the SPN to use for acquiring fed auth token
@@ -793,6 +799,28 @@ final class TDSChannel implements Serializable {
             SQLServerException.ConvertConnectExceptionToSQLServerException(host, port, con, ex);
         }
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
+    }
+
+    /**
+     * Set TCP keep-alive options for idle connection resiliency
+     */
+    private void setSocketOptions(Socket tcpSocket, TDSChannel channel) throws IOException {
+        try {
+            if (SQLServerDriver.socketSetOptionMethod != null && SQLServerDriver.socketKeepIdleOption != null
+                    && SQLServerDriver.socketKeepIntervalOption != null) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(channel.toString() + ": Setting KeepAlive extended socket options.");
+                }
+
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIdleOption, 30); // 30 seconds
+                SQLServerDriver.socketSetOptionMethod.invoke(tcpSocket, SQLServerDriver.socketKeepIntervalOption, 1); // 1 second
+            }
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(channel.toString() + ": KeepAlive extended socket options not supported on this platform. "
+                        + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -1756,7 +1784,7 @@ final class TDSChannel implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Getting TLS or better SSL context");
 
-            KeyManager[] km = (null != clientCertificate && clientCertificate.length() > 0) ? SQLServerCertificateUtils
+            KeyManager[] km = (null != clientCertificate && !clientCertificate.isEmpty()) ? SQLServerCertificateUtils
                     .getKeyManagerFromFile(clientCertificate, clientKey, clientKeyPassword) : null;
 
             sslContext = SSLContext.getInstance(sslProtocol);
