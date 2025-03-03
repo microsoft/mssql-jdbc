@@ -6,15 +6,22 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -1595,35 +1602,49 @@ public class JSONFunctionTest extends AbstractTest {
 
     /*
      * Test inserting a 1 GB JSON file into a table.
+     * And verify there is no data loss.
      */
     @Test
     @Tag(Constants.JSONTest)
-    public void testInsert1GBJson() throws SQLException {
+    public void testInsert1GBJson() throws SQLException, IOException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
-
+        
+        Path tempFile = Files.createTempFile("json_output", ".json");
+        
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
-
+            
             generateHugeJsonFile(1L * 1024 * 1024 * 1024); // 1GB JSON file
-
+            
             try (PreparedStatement pstmt = conn
                     .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
                     FileReader reader = new FileReader(JSON_FILE_PATH)) {
-
                 pstmt.setCharacterStream(1, reader);
                 pstmt.executeUpdate();
             }
-
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT DATALENGTH(jsonColumn) FROM " + dstTable);
+            
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT jsonColumn FROM " + dstTable);
                     ResultSet rs = pstmt.executeQuery()) {
-
+                
                 assertTrue(rs.next());
-                assertTrue(rs.getLong(1) >= 1L * 1024 * 1024 * 1024);
+                Clob jsonClob = rs.getClob(1);
+                
+                try (Reader clobReader = jsonClob.getCharacterStream();
+                     BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+                    
+                    char[] buffer = new char[1024];
+                    int charsRead;
+                    while ((charsRead = clobReader.read(buffer)) != -1) {
+                        writer.write(buffer, 0, charsRead);
+                    }
+                }
             }
-
+            
+            assertTrue(Files.mismatch(Path.of(JSON_FILE_PATH), tempFile) == -1);
+        
         } catch (Exception e) {
             fail("Test failed due to: " + e.getMessage());
         } finally {
@@ -1631,40 +1652,56 @@ public class JSONFunctionTest extends AbstractTest {
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
+            Files.deleteIfExists(tempFile);
         }
     }
 
     /*
-     * Test inserting a 1.99 GB JSON file into a table.
+     * Test inserting a 1.98 GB JSON file into a table.
+     * And verify there is no data loss.
+     * Note: This test took around 4 mins to run
      */
     @Test
     @Tag(Constants.JSONTest)
-    public void testInsertHugeJsonData() throws SQLException {
+    public void testInsertHugeJsonData() throws SQLException, IOException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
-
+        
+        Path tempFile = Files.createTempFile("json_output", ".json");
+        
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
-
-            generateHugeJsonFile(2L * 1024 * 1024 * 1019); // 1.99GB JSON file
-
+            
+            generateHugeJsonFile(2L * 1024 * 1024 * 1015); // 1.98GB JSON file
+            
             try (PreparedStatement pstmt = conn
                     .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
                     FileReader reader = new FileReader(JSON_FILE_PATH)) {
-
                 pstmt.setCharacterStream(1, reader);
                 pstmt.executeUpdate();
             }
-
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT DATALENGTH(jsonColumn) FROM " + dstTable);
+             
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT jsonColumn FROM " + dstTable);
                     ResultSet rs = pstmt.executeQuery()) {
-
+                
                 assertTrue(rs.next());
-                assertTrue(rs.getLong(1) >= 2L * 1024 * 1024 * 1019); // Ensure size is ~2GB
+                Clob jsonClob = rs.getClob(1);
+                
+                try (Reader clobReader = jsonClob.getCharacterStream();
+                     BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+                    
+                    char[] buffer = new char[1024];
+                    int charsRead;
+                    while ((charsRead = clobReader.read(buffer)) != -1) {
+                        writer.write(buffer, 0, charsRead);
+                    }
+                }
             }
-
+            
+            assertTrue(Files.mismatch(Path.of(JSON_FILE_PATH), tempFile) == -1);
+        
         } catch (Exception e) {
             fail("Test failed due to: " + e.getMessage());
         } finally {
@@ -1672,11 +1709,12 @@ public class JSONFunctionTest extends AbstractTest {
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
+            Files.deleteIfExists(tempFile);
         }
     }
 
     /*
-     * Test inserting a 2 GB JSON file into a table.
+     * Test inserting around 2 GB JSON file into a table.
      * Note: This test is expected to fail due to the maximum allowed size for a LOB.
      * The test is designed to validate the error handling for large JSON data.
      * Expected error -> org.opentest4j.AssertionFailedError: Test failed due to: Attempting to grow LOB beyond maximum allowed size of 216895848447 bytes.
@@ -1692,7 +1730,7 @@ public class JSONFunctionTest extends AbstractTest {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn NVARCHAR(MAX));");
 
-            generateHugeJsonFile(2L * 1024 * 1024 * 1020); // ~2 GB JSON file
+            generateHugeJsonFile(2L * 1024 * 1024 * 1022); // ~2 GB JSON file
 
             try (PreparedStatement pstmt = conn
                     .prepareStatement("INSERT INTO " + dstTable + " (jsonColumn) VALUES (?)");
@@ -1716,7 +1754,7 @@ public class JSONFunctionTest extends AbstractTest {
     private void generateHugeJsonFile(long targetSize) {
         File file = new File(JSON_FILE_PATH);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            writer.write("{\"data\": [");
+            writer.write("{\"data\":[");
 
             long currentSize = 10;
             boolean firstGroup = true;
@@ -1732,7 +1770,7 @@ public class JSONFunctionTest extends AbstractTest {
                     if (!firstElement) {
                         writer.write(",");
                     }
-                    String jsonChunk = "{\"value\": \"" + "a".repeat(1000) + "\"}";
+                    String jsonChunk = "{\"value\":\"" + "a".repeat(1000) + "\"}";
                     writer.write(jsonChunk);
                     currentSize += jsonChunk.length();
                     firstElement = false;
