@@ -294,9 +294,14 @@ public class ConfigurableRetryLogic {
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
             URI uri = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation()
                     .toURI();
+
             uriToString = uri.toString();
+            
             int initialIndexOfForwardSlash = uriToString.indexOf(FORWARD_SLASH);
-            if (initialIndexOfForwardSlash > 0) {
+            
+            if (!uri.getScheme().isEmpty() && initialIndexOfForwardSlash > 0) {
+                // If the URI has a scheme, i.e. jar:file:, jar:, or file: then we create a substring from the
+                // forward slash onwards.
                 uriToString = uriToString.substring(initialIndexOfForwardSlash + 1);
             }
 
