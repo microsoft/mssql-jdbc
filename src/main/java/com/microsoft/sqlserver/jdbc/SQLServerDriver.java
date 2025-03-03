@@ -613,8 +613,8 @@ enum SQLServerDriverStringProperty {
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
     RETRY_EXEC("retryExec", ""),
     RETRY_CONN("retryConn", ""),
-    QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.NOT_SET.toString()),
-    CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.NOT_SET.toString());
+    QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
+    CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString());
 
     private final String name;
     private final String defaultValue;
@@ -732,8 +732,7 @@ enum SQLServerDriverBooleanProperty {
 
 enum OnOffOption {
     ON("ON"),
-    OFF("OFF"),
-    NOT_SET("NOT_SET");
+    OFF("OFF");
 
     private final String option;
 
@@ -753,8 +752,6 @@ enum OnOffOption {
             option = OnOffOption.ON;
         } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(OnOffOption.OFF.toString())) {
             option = OnOffOption.OFF;
-        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(OnOffOption.NOT_SET.toString())) {
-            option = OnOffOption.NOT_SET;
         } else {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
             Object[] msgArgs = {"OnOffOption", value};

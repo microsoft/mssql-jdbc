@@ -299,12 +299,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether prelogin TLS handshake is required */
     private boolean isTDS8 = false;
 
-    /** flag to indicating whether QUOTED_IDENTIFIER is ON/OFF */
-    private OnOffOption isQuotedIdentifierOn = OnOffOption.NOT_SET;
-    
-    /** flag to indicating whether CONCAT_NULL_YIELDS_NULL is ON/OFF */
-    private OnOffOption isConcatNullYieldsNullOn = OnOffOption.NOT_SET;
-    
     /** encrypted truststore password */
     byte[] encryptedTrustStorePassword = null;
 
@@ -1819,20 +1813,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private void setCustomFlags() {
-        try{
-            if (!isQuotedIdentifierOn.equals(OnOffOption.NOT_SET)) {
-                connectionCommand("SET QUOTED_IDENTIFIER " + isQuotedIdentifierOn, "quotedIdentifier");
-            }
-
-            if (!isConcatNullYieldsNullOn.equals(OnOffOption.NOT_SET)) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL " + isConcatNullYieldsNullOn, "concatNullYieldsNull");
-            }
-        } catch(SQLServerException e) {
-            loggerExternal.log(Level.WARNING, "Error setting QUOTED_IDENTIFIER and CONCAT_NULL_YIELDS_NULL properties", e);
-        }
-    }
-
     /**
      * This function is used both to init the values on creation of connection and resetting the values after the
      * connection is released to the pool for reuse.
@@ -1848,7 +1828,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         sqlWarnings = null;
         sCatalog = originalCatalog;
         databaseMetaData = null;
-        setCustomFlags();
     }
 
     /** Limit for the maximum number of rows returned from queries on this connection */
@@ -3556,9 +3535,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
             }
 
-            isQuotedIdentifierOn = OnOffOption.valueOfString(quotedIdentifierValue);
-            if (!isQuotedIdentifierOn.equals(OnOffOption.NOT_SET)) {
-                connectionCommand("SET QUOTED_IDENTIFIER " + isQuotedIdentifierOn, "quotedIdentifier");
+            String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
+            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");           
             }
 
             // check CONCAT_NULL_YIELDS_NULL property
@@ -3568,9 +3547,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 concatNullYieldsNullValue = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue();
                 activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
             }
-            isConcatNullYieldsNullOn = OnOffOption.valueOfString(concatNullYieldsNullValue);
-            if (!isConcatNullYieldsNullOn.equals(OnOffOption.NOT_SET)) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL " + isConcatNullYieldsNullOn, "concatNullYieldsNull");
+            
+            String concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsNullValue).toString();
+            if (concatNullYieldsOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
+                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
             }
 
             // Socket timeout is bounded by loginTimeout during the login phase.
