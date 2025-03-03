@@ -804,6 +804,122 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
+     * Test inserting complex JSON data using prepared statement with bulk copy enabled.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testInsertJsonWithBulkCopy() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkCopyComplexJsonTest");
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (jsonCol) values (?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+             SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+             Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (jsonCol JSON)";
+            stmt.execute(createTable);
+
+            String complexJsonData = "{"
+                    + "\"name\":\"John\","
+                    + "\"age\":30,"
+                    + "\"address\":{"
+                    + "\"street\":\"123 Main St\","
+                    + "\"city\":\"New York\","
+                    + "\"zipcode\":\"10001\""
+                    + "},"
+                    + "\"phoneNumbers\":["
+                    + "{\"type\":\"home\",\"number\":\"212-555-1234\"},"
+                    + "{\"type\":\"work\",\"number\":\"646-555-4567\"}"
+                    + "],"
+                    + "\"children\":["
+                    + "{\"name\":\"Jane\",\"age\":10},"
+                    + "{\"name\":\"Doe\",\"age\":8}"
+                    + "]"
+                    + "}";
+
+            pstmt.setString(1, complexJsonData);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            try (ResultSet rs = stmt.executeQuery("select jsonCol from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next());
+                assertEquals(complexJsonData, rs.getString(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test select, update, create, and delete operations on JSON data and verify at each step.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testCRUDOperationsWithJson() throws Exception {
+        String tableName = RandomUtil.getIdentifier("CRUDJsonTest");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id INT PRIMARY KEY, jsonCol JSON)";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, jsonCol) VALUES (?, ?)";
+        String selectSQL = "SELECT jsonCol FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        String updateSQL = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET jsonCol = ? WHERE id = ?";
+        String deleteSQL = "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+             Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            stmt.execute(createTableSQL);
+
+            String initialJsonData = "{\"name\":\"John\",\"age\":30}";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, initialJsonData);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(initialJsonData, rs.getString(1));
+                }
+            }
+
+            String updatedJsonData = "{\"name\":\"Jane\",\"age\":25}";
+            try (PreparedStatement pstmt = connection.prepareStatement(updateSQL)) {
+                pstmt.setString(1, updatedJsonData);
+                pstmt.setInt(2, 1);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(updatedJsonData, rs.getString(1));
+                }
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertFalse(rs.next());
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
      * Test bulk insert with no space after table name
      * 
      * @throws Exception

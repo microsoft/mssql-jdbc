@@ -64,6 +64,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
+    static String jsonInputFile = "BulkCopyCSVTestInputWithJson.csv";
     static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
     static String inputFileDelimiterEscape = "BulkCopyCSVTestInputDelimiterEscape.csv";
     static String inputFileDelimiterEscapeNoNewLineAtEnd = "BulkCopyCSVTestInputDelimiterEscapeNoNewLineAtEnd.csv";
@@ -443,6 +444,56 @@ public class BulkCopyCSVTest extends AbstractTest {
             fail("Stack overflow: " + e.getMessage());
         } catch (SQLException e) {
             fail("SQL exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("Test Bulk Copy with JSON Data")
+    public void testBulkCopyWithJson() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkJsonTest"));
+        String fileName = filePath + jsonInputFile;
+
+        // Expected values as read from the CSV file
+        String[][] expectedValues = new String[][]{
+            {"0", "testing", "{\"age\":25,\"address\":{\"pincode\":123456,\"state\":\"NY\"}}"},
+            {"1","test }","{\"age\":25,\"city\":\"Los Angeles\"}"},
+            {"0","test {0}","{\"age\":40,\"city\":\"Chicago\"}"}
+        };
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", false)) {
+            bulkCopy.setDestinationTableName(tableName);
+
+            // Define column metadata
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.BIT, 0, 0);
+            fileRecord.addColumnMetadata(2, null, java.sql.Types.NCHAR, 10, 0);
+            fileRecord.addColumnMetadata(3, null, microsoft.sql.Types.JSON, 0, 0); // JSON column
+
+            // Create table
+            stmt.executeUpdate("CREATE TABLE " + tableName + " ("
+                    + "c1 BIT, c2 nchar(50), c3 JSON)");
+
+            // Perform bulk copy
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+            bulkCopy.writeToServer(fileRecord);
+
+            // Verify the data
+            int i = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+                BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+
+                while (rs.next()) {
+                    for (int j = 1; j <= 3; j++) {
+                        String actual = rs.getString(j);
+                        String expected = expectedValues[i][j - 1];
+                        assertEquals(expected.trim(), actual.trim(), "Mismatch in column " + j);
+                    }
+                    i++;
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 

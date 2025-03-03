@@ -29,6 +29,7 @@ public final class Constants {
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
      * Fedauth - - - - - - For Fedauth tests
+     * JSONTest -  - - - - For tests requiring JSON setup
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -48,6 +49,7 @@ public final class Constants {
     public static final String clientCertAuth = "clientCertAuth";
     public static final String fedAuth = "fedAuth";
     public static final String requireSecret = "requireSecret";
+    public static final String JSONTest = "JSONTest";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

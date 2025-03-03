@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -48,7 +50,6 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -100,7 +101,7 @@ public class ResultSetTest extends AbstractTest {
                     + "col2 varchar(512), " + "col3 float, " + "col4 decimal(10,5), " + "col5 uniqueidentifier, "
                     + "col6 xml, " + "col7 varbinary(max), " + "col8 text, " + "col9 ntext, " + "col10 varbinary(max), "
                     + "col11 date, " + "col12 time, " + "col13 datetime2, " + "col14 datetimeoffset, "
-                    + "col15 decimal(10,9), " + "col16 decimal(38,38), "
+                    + "col15 decimal(10,9), " + "col16 decimal(38,38), " + "col17 json, "
                     + "order_column int identity(1,1) primary key)");
             try {
 
@@ -120,12 +121,14 @@ public class ResultSetTest extends AbstractTest {
                                 + "'2017-05-19T10:47:15.1234567'," // col13
                                 + "'2017-05-19T10:47:15.1234567+02:00'," // col14
                                 + "0.123456789, " // col15
-                                + "0.1234567890123456789012345678901234567" // col16
+                                + "0.1234567890123456789012345678901234567, " // col16
+                                + "'{\"test\":\"123\"}'" // col17
                                 + ")");
 
                 stmt.executeUpdate("Insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " values("
                         + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
-                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null)");
+                        + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, " + "null, "
+                        + "null)");
 
                 try (ResultSet rs = stmt.executeQuery("select * from "
                         + AbstractSQLGenerator.escapeIdentifier(tableName) + " order by order_column")) {
@@ -223,6 +226,9 @@ public class ResultSetTest extends AbstractTest {
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
                     assertEquals(0, rs.getObject("col16", BigDecimal.class)
                             .compareTo(new BigDecimal("0.12345678901234567890123456789012345670")));
+                    String expectedJsonValue = "{\"test\":\"123\"}";
+                    assertEquals(expectedJsonValue, rs.getObject(17).toString());
+                    assertEquals(expectedJsonValue, rs.getObject("col17").toString());
 
                     // test null values, mostly to verify primitive wrappers do not return default values
                     assertTrue(rs.next());
@@ -283,6 +289,9 @@ public class ResultSetTest extends AbstractTest {
 
                     assertNull(rs.getObject(16, BigDecimal.class));
                     assertNull(rs.getObject("col16", BigDecimal.class));
+
+                    assertNull(rs.getObject(17));
+                    assertNull(rs.getObject("col17"));
 
                     assertFalse(rs.next());
                 }
@@ -706,6 +715,42 @@ public class ResultSetTest extends AbstractTest {
         } catch (SQLException e) {
             assertEquals(expectedSqlState, e.getSQLState());
             assertEquals(expectedErrorCode, e.getErrorCode());
+        }
+    }
+
+    /**
+     * Test casting JSON data and retrieving it as various data types.
+     */
+    @Test
+    public void testCastOnJSON() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        String jsonData = "{\"key\":\"123\"}";
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonData JSON)");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " VALUES (CAST('" + jsonData + "' AS JSON))");
+
+                String select = "SELECT JSON_VALUE(jsonData, '$.key') AS c1 FROM " + dstTable;
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(select)) {
+                    rs.next();
+                    assertEquals(123, rs.getShort("c1"));
+                    assertEquals(123, rs.getInt("c1"));
+                    assertEquals(123f, rs.getFloat("c1"));
+                    assertEquals(123L, rs.getLong("c1"));
+                    assertEquals(123d, rs.getDouble("c1"));
+                    assertEquals(new BigDecimal(123), rs.getBigDecimal("c1"));
+                }
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
         }
     }
 
