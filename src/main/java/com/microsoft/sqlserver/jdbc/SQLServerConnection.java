@@ -3530,27 +3530,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // check QUOTED_IDENTIFIER property
             String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
             String quotedIdentifierValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
-            if (null == quotedIdentifierValue) {
-                quotedIdentifierValue = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue();
+            if (null != quotedIdentifierValue) {
+                OnOffOption quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue);
                 activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
-            }
-
-            String quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue).toString();
-            if (quotedIdentifierOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
-                connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");           
+                switch (quotedIdentifierOption) {
+                    case ON:
+                        connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
+                        break;
+                    case OFF:
+                        connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+                        break;
+                }
             }
 
             // check CONCAT_NULL_YIELDS_NULL property
             String concatNullYieldsNullProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
             String concatNullYieldsNullValue = activeConnectionProperties.getProperty(concatNullYieldsNullProperty);
-            if (null == concatNullYieldsNullValue) {
-                concatNullYieldsNullValue = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue();
+            if (null != concatNullYieldsNullValue) {
+                OnOffOption concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsNullValue);
                 activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
-            }
-            
-            String concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsNullValue).toString();
-            if (concatNullYieldsOption.compareToIgnoreCase(OnOffOption.OFF.toString()) == 0) {
-                connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
+                switch (concatNullYieldsOption) {
+                    case ON:
+                        connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYields");        
+                        break;
+                    case OFF:
+                        connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
+                        break;
+                }
             }
 
             // Socket timeout is bounded by loginTimeout during the login phase.
