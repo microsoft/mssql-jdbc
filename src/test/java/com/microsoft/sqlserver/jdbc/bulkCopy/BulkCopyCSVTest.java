@@ -450,7 +450,7 @@ public class BulkCopyCSVTest extends AbstractTest {
         }
     }
 
-   /**
+    /**
      * Test to perform bulk copy with a computed column as the last column in the table.
      */
     @Test
@@ -459,48 +459,51 @@ public class BulkCopyCSVTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
-        assertDoesNotThrow(() -> {
-            try (Connection con = getConnection();
-                    Statement stmt = con.createStatement();
-                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
-                            true)) {
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
+                        true)) {
 
-                String createTableSQL = "CREATE TABLE " + tableName + " (" +
-                        "[NAME] varchar(50) NOT NULL," +
-                        "[AGE] int NULL," +
-                        "[CAL_COL] numeric(17, 2) NULL," +
-                        "[ORIGINAL] varchar(50) NOT NULL," +
-                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" +
-                        ")";
-                stmt.executeUpdate(createTableSQL);
+            String createTableSQL = "CREATE TABLE " + tableName + " (" +
+                    "[NAME] varchar(50) NOT NULL," +
+                    "[AGE] int NULL," +
+                    "[CAL_COL] numeric(17, 2) NULL," +
+                    "[ORIGINAL] varchar(50) NOT NULL," +
+                    "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" +
+                    ")";
+            stmt.executeUpdate(createTableSQL);
 
-                fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
-                fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
-                fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
-                fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
 
-                bulkCopy.setDestinationTableName(tableName);
+            bulkCopy.setDestinationTableName(tableName);
 
-                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
-                options.setKeepIdentity(false);
-                options.setTableLock(true);
-                bulkCopy.setBulkCopyOptions(options);
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
 
-                bulkCopy.writeToServer(fileRecord);
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
-                    if (rs.next()) {
-                        int rowCount = rs.getInt(1);
-                        assertTrue(rowCount > 0);
-                    }
-                } finally {
-                    TestUtils.dropTableIfExists(tableName, stmt);
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
-        });
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -512,50 +515,54 @@ public class BulkCopyCSVTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
-        assertDoesNotThrow(() -> {
-            try (Connection con = getConnection();
-                    Statement stmt = con.createStatement();
-                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
-                            true)) {
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
+                        true)) {
 
-                String createTableSQL = "CREATE TABLE " + tableName + " (" +
-                        "[NAME] varchar(50) NOT NULL," +
-                        "[AGE] int NULL," +
-                        "[CAL_COL] numeric(17, 2) NULL," +
-                        "[ORIGINAL] varchar(50) NOT NULL," +
-                        "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," +
-                        "[LAST_COL] varchar(50) NULL" +
-                        ")";
-                stmt.executeUpdate(createTableSQL);
+            String createTableSQL = "CREATE TABLE " + tableName + " (" +
+                    "[NAME] varchar(50) NOT NULL," +
+                    "[AGE] int NULL," +
+                    "[CAL_COL] numeric(17, 2) NULL," +
+                    "[ORIGINAL] varchar(50) NOT NULL," +
+                    "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," +
+                    "[LAST_COL] varchar(50) NULL" +
+                    ")";
+            stmt.executeUpdate(createTableSQL);
 
-                fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
-                fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
-                fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
-                fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
-                fileRecord.addColumnMetadata(5, "LAST_COL", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(5, "LAST_COL", java.sql.Types.VARCHAR, 50, 0);
 
-                bulkCopy.setDestinationTableName(tableName);
+            bulkCopy.setDestinationTableName(tableName);
 
-                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
-                options.setKeepIdentity(false);
-                options.setTableLock(true);
-                bulkCopy.setBulkCopyOptions(options);
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
+            bulkCopy.addColumnMapping("LAST_COL", "LAST_COL");
 
-                bulkCopy.writeToServer(fileRecord);
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
-                    if (rs.next()) {
-                        int rowCount = rs.getInt(1);
-                        assertTrue(rowCount > 0);
-                    }
-                } finally {
-                    TestUtils.dropTableIfExists(tableName, stmt);
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
-        });
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
