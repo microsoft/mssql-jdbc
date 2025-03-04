@@ -4,26 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.10.0] Stable Release
-### Fixed issues
-- Fixed getGeneratedKeys functionality for execute API [#2554](https://github.com/microsoft/mssql-jdbc/pull/2554)
+### Added
 - Added provision to set SQLServerBulkCopy options in PreparedStatement [#2555](https://github.com/microsoft/mssql-jdbc/pull/2555)
-- Fixed ISQLServerConnection java doc reference [#2560](https://github.com/microsoft/mssql-jdbc/pull/2560)
-- Capture Client Guest OS and architecture in JDBC [#2561](https://github.com/microsoft/mssql-jdbc/pull/2561)
-- Introduced timeouts for MSAL calls [#2562](https://github.com/microsoft/mssql-jdbc/pull/2562)
-- Fixed OffsetDateTime conversion for pre-Gregorian dates [#2568](https://github.com/microsoft/mssql-jdbc/pull/2568)
-- Fix for driver cutting out the question mark from columns labels (aliases) [#2569](https://github.com/microsoft/mssql-jdbc/pull/2569)
-- Handled failure in getApplicationName() [#2571](https://github.com/microsoft/mssql-jdbc/pull/2571)
-- Fixed issue with SQLServerBulkCopy from CSV with setEscapeColumnDelimerts set to true [#2575](https://github.com/microsoft/mssql-jdbc/pull/2575)
-- Apply new naming scheme to interfaceLibName [#2577](https://github.com/microsoft/mssql-jdbc/pull/2577)
-- Fixed issue for finding `mssql-jdbc.properties` location in test environments [#2579](https://github.com/microsoft/mssql-jdbc/pull/2579)
-- Fixed issue for IBM Semeru Runtime Certified Edition for z/OS and Kerberos [#2581](https://github.com/microsoft/mssql-jdbc/pull/2581)
+### Changed
 - Changed the scope of BULK_COPY_OPERATION_CACHE to connection [#2594](https://github.com/microsoft/mssql-jdbc/pull/2594)
 - Added "requireSecret" exclude tag for tests which require adding a secret to app registration [#2596](https://github.com/microsoft/mssql-jdbc/pull/2596)
+- Added com.ibm.security.auth.module and com.sun.security.auth.module as option import [#2609](https://github.com/microsoft/mssql-jdbc/pull/2609)
+- Updated driver dependency versions [#2614](https://github.com/microsoft/mssql-jdbc/pull/2614)
+### Fixed issues
+- Introduced timeouts for MSAL calls [#2562](https://github.com/microsoft/mssql-jdbc/pull/2562)
+- Fixed getGeneratedKeys functionality for execute API [#2554](https://github.com/microsoft/mssql-jdbc/pull/2554)
+- Fixed ISQLServerConnection java doc reference [#2560](https://github.com/microsoft/mssql-jdbc/pull/2560)
+- Fixed OffsetDateTime conversion for pre-Gregorian dates [#2568](https://github.com/microsoft/mssql-jdbc/pull/2568)
+- Fix for driver cutting out the question mark from columns labels (aliases) [#2569](https://github.com/microsoft/mssql-jdbc/pull/2569)
+- Fixed issue with SQLServerBulkCopy from CSV with setEscapeColumnDelimerts set to true [#2575](https://github.com/microsoft/mssql-jdbc/pull/2575)
+- Fixed issue for finding `mssql-jdbc.properties` location in test environments [#2579](https://github.com/microsoft/mssql-jdbc/pull/2579)
+- Fixed issue for IBM Semeru Runtime Certified Edition for z/OS and Kerberos [#2581](https://github.com/microsoft/mssql-jdbc/pull/2581)
 - Set appropriate value to requestedEncryptionLevel for encrypt=STRICT [#2597](https://github.com/microsoft/mssql-jdbc/pull/2597)
 - Add test for ManagedIdentityWithEncryptStrict [#2599](https://github.com/microsoft/mssql-jdbc/pull/2599)
 - Check for null when getting DTV values (JDBC spec compliance - getBinaryStream /getAsciiStream will return null when the value is null) [#2600](https://github.com/microsoft/mssql-jdbc/pull/2600)
-- Added com.ibm.security.auth.module and com.sun.security.auth.module as option import [#2609](https://github.com/microsoft/mssql-jdbc/pull/2609)
-- Updated driver dependency versions [#2614](https://github.com/microsoft/mssql-jdbc/pull/2614)
 - Removed scheme from URI before fetching path for CRL path check [#2622](https://github.com/microsoft/mssql-jdbc/pull/2622)
 
 ## [12.9.0] Preview Release
