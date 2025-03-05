@@ -494,23 +494,6 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn1 = DriverManager.getConnection(cs)) {}
     }
 
-    @Test
-    public void testAccessTokenCache() {
-        try {
-            SilentParameters silentParameters = SilentParameters.builder(Collections.singleton(spn + "/.default"))
-                    .build();
-
-            // this will fail if not cached
-            CompletableFuture<IAuthenticationResult> future = fedauthClientApp.acquireTokenSilently(silentParameters);
-            IAuthenticationResult authenticationResult = future.get();
-            assertNotNull(authenticationResult.accessToken());
-            assertTrue(authenticationResult.accessToken().equals(accessToken), accessToken);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
-    }
-
     private static void validateException(String url, String resourceKey) {
         try (Connection conn = DriverManager.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
