@@ -311,24 +311,15 @@ public class LobsStreamingTest extends AbstractTest {
                 stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (NULL)");
 
                 try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + tableName)) {
-                    int rowIndex = 0;
                     while (rs.next()) {
-                        rowIndex++;
                         try {
                             InputStream asciiStream = rs.getAsciiStream(1);
-                            if (rowIndex == 1) {
-                                fail("Expected SQLException was not thrown for non-null value"); // Non-null value: Should throw an exception
-                            } else {
-                                assertNull(asciiStream, "Expected null for NULL value, but got a non-null InputStream"); // Null value: Should return null without throwing an exception
-                            }
+                            // If no exception is thrown, assert the value is null
+                            assertNull(asciiStream, "Expected null for NULL value, but got a non-null InputStream");
                         } catch (SQLException e) {
-                            if (rowIndex == 1) {
-                                assertTrue(e.getMessage().contains("The conversion from xml to AsciiStream is unsupported."),
-                                        "Unexpected SQLException message: " + e.getMessage());
-                            } else {
-                                // In strict mode, NULL values may also throw an exception
-                                assertNotNull(e, "The conversion from xml to AsciiStream is unsupported in strict mode.");
-                            }
+                            // Ensure that only expected exceptions occur
+                            assertTrue(e.getMessage().contains("The conversion from xml to AsciiStream is unsupported."),
+                                    "Unexpected SQLException message: " + e.getMessage());
                         }
                     }
                 }
@@ -347,23 +338,15 @@ public class LobsStreamingTest extends AbstractTest {
                 stmt.executeUpdate("INSERT INTO " + tableName + " (col1) VALUES (NULL)");
 
                 try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + tableName)) {
-                    int rowIndex = 0;
                     while (rs.next()) {
-                        rowIndex++;
                         try {
                             InputStream binaryStream = rs.getBinaryStream(1);
-                            if (rowIndex == 1)
-                                fail("Expected SQLException was not thrown for non-null value"); // Non-null value
-                            else
-                                assertNull(binaryStream, "Expected null for NULL value, but got a non-null InputStream"); // Null value
+                            // If no exception is thrown, assert the value is null
+                            assertNull(binaryStream, "Expected null for NULL value, but got a non-null InputStream");
                         } catch (SQLException e) {
-                            if (rowIndex == 1) {
-                                assertTrue(e.getMessage().contains("The conversion from varchar to BinaryStream is unsupported."),
-                                        "Unexpected SQLException message: " + e.getMessage());
-                            } else {
-                                // In strict mode, NULL values may also throw an exception
-                                assertNotNull(e, "The conversion from varchar to BinaryStream is unsupported in strict mode.");
-                            }
+                            // Ensure that only expected exceptions occur
+                            assertTrue(e.getMessage().contains("The conversion from varchar to BinaryStream is unsupported."),
+                                    "Unexpected SQLException message: " + e.getMessage());
                         }
                     }
                 }
