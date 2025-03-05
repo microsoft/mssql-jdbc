@@ -19,8 +19,6 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -1765,16 +1763,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(this.toString() + " Acquiring existing destination column metadata " +
-                            "from cache for bulk copy");
+                    loggerExternal.finer(this.toString() + " Acquiring existing destination column metadata "
+                            + "from cache for bulk copy");
                 }
 
             } else {
                 setDestinationColumnMetadata(escapedDestinationTableName);
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(this.toString() + " cacheBulkCopyMetadata=false - Querying server " +
-                            "for destination column metadata");
+                    loggerExternal.finer(this.toString() + " cacheBulkCopyMetadata=false - Querying server "
+                            + "for destination column metadata");
                 }
             }
         }
@@ -2129,7 +2127,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void writeColumnToTdsWriter(TDSWriter tdsWriter, int bulkPrecision, int bulkScale, int bulkJdbcType,
             boolean bulkNullable, // should it be destNullable instead?
-            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue, Calendar cal) throws SQLServerException {
+            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue,
+            Calendar cal) throws SQLServerException {
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType,
@@ -3046,8 +3045,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Reads the given column from the result set current row and writes the data to tdsWriter.
      */
-    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
-            Object colValue, Calendar cal) throws SQLServerException {
+    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal, Object colValue,
+            Calendar cal) throws SQLServerException {
         String destName = destColumnMetadata.get(destColOrdinal).columnName;
         int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
@@ -3699,8 +3698,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
                 for (ColumnMapping columnMapping : columnMappings) {
-                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal, null,
-                            null // cell
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
+                            null, null // cell
                     // value is
                     // retrieved
                     // inside

@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,7 +13,6 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StackOverflowError;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -265,7 +263,7 @@ public class BulkCopyCSVTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * test simple csv file for bulkcopy, for GitHub issue 1391 Tests to ensure that the set returned by
      * getColumnOrdinals doesn't have to be ordered
@@ -459,19 +457,13 @@ public class BulkCopyCSVTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
-        try (Connection con = getConnection();
-                Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
-                        true)) {
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
 
-            String createTableSQL = "CREATE TABLE " + tableName + " (" +
-                    "[NAME] varchar(50) NOT NULL," +
-                    "[AGE] int NULL," +
-                    "[CAL_COL] numeric(17, 2) NULL," +
-                    "[ORIGINAL] varchar(50) NOT NULL," +
-                    "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" +
-                    ")";
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" + ")";
             stmt.executeUpdate(createTableSQL);
 
             fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
@@ -515,20 +507,13 @@ public class BulkCopyCSVTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
-        try (Connection con = getConnection();
-                Statement stmt = con.createStatement();
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
-                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",",
-                        true)) {
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
 
-            String createTableSQL = "CREATE TABLE " + tableName + " (" +
-                    "[NAME] varchar(50) NOT NULL," +
-                    "[AGE] int NULL," +
-                    "[CAL_COL] numeric(17, 2) NULL," +
-                    "[ORIGINAL] varchar(50) NOT NULL," +
-                    "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," +
-                    "[LAST_COL] varchar(50) NULL" +
-                    ")";
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," + "[LAST_COL] varchar(50) NULL" + ")";
             stmt.executeUpdate(createTableSQL);
 
             fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
