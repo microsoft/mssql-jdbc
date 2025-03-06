@@ -325,6 +325,12 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyStorePrincipalId(stringPropValue);
         assertTrue(ds.getKeyStorePrincipalId().equals(stringPropValue));
+        
+        ds.setQuotedIdentifier(stringPropValue);
+        assertTrue(ds.getQuotedIdentifier().equals(stringPropValue));
+        
+        ds.setConcatNullYieldsNull(stringPropValue);
+        assertTrue(ds.getConcatNullYieldsNull().equals(stringPropValue));
     }
 
     @Test
@@ -459,6 +465,126 @@ public class SQLServerConnectionTest extends AbstractTest {
             // make sure that connection is closed.
             if (null != pooledConnection)
                 pooledConnection.close();
+        }
+    }
+
+    /**
+     * Test connection properties: CONCAT_NULL_YIELDS_NULL with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testConcatNullYieldsNull() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setConcatNullYieldsNull("OFF");
+        int expectedResultForNewConnection = 0;
+        // Server default is CONCAT_NULL_YIELDS_NULL = ON  
+        int expectedResultForPooledConnection = 1;
+
+        String sqlSelect = "SELECT SESSIONPROPERTY('CONCAT_NULL_YIELDS_NULL')";
+
+        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
+            try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
+                if (rs.next()) {
+                    assertEquals(expectedResultForNewConnection, rs.getInt(1));
+                } else {
+                    assertTrue(false, "Expected row of data was not found.");
+                }
+            }
+        }
+
+        // Test pooled connections
+        SQLServerXADataSource pds = new SQLServerXADataSource();
+        pds.setURL(connectionString);
+        pds.setConcatNullYieldsNull("OFF");
+
+        PooledConnection pc = pds.getPooledConnection();
+        try {
+         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
+             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                 if (rs.next()) {
+                     assertEquals(expectedResultForNewConnection, rs.getInt(1));
+                 } else {
+                     assertTrue(false, "Expected row of data was not found.");
+                 }
+             }
+         }
+         // Repeat getConnection to put the physical connection through a RESETCONNECTION
+         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
+             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                 if (rs.next()) {
+                     assertEquals(expectedResultForPooledConnection, rs.getInt(1));
+                 } else {
+                     assertTrue(false, "Expected row of data was not found.");
+                 }
+             }
+         }
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
+        }
+    }
+
+    /**
+     * Test connection properties: QUOTED_IDENTIFIER with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testQuptedIdentifier() throws SQLException {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setQuotedIdentifier("OFF");
+        int expectedResultForNewConnection = 0;
+        // Server default is QUOTED_IDENTIFIER = ON  
+        int expectedResultForPooledConnection = 1;
+
+        String sqlSelect = "SELECT SESSIONPROPERTY('QUOTED_IDENTIFIER')";
+
+        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
+            try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
+                if (rs.next()) {
+                    assertEquals(expectedResultForNewConnection, rs.getInt(1));
+                } else {
+                    assertTrue(false, "Expected row of data was not found.");
+                }
+            }
+        }
+
+        // Test pooled connections
+        SQLServerXADataSource pds = new SQLServerXADataSource();
+        pds.setURL(connectionString);
+        pds.setQuotedIdentifier("OFF");
+
+        PooledConnection pc = pds.getPooledConnection();
+        try {
+         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
+             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                 if (rs.next()) {
+                     assertEquals(expectedResultForNewConnection, rs.getInt(1));
+                 } else {
+                     assertTrue(false, "Expected row of data was not found.");
+                 }
+             }
+         }
+         // Repeat getConnection to put the physical connection through a RESETCONNECTION
+         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
+             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                 if (rs.next()) {
+                     assertEquals(expectedResultForPooledConnection, rs.getInt(1));
+                 } else {
+                     assertTrue(false, "Expected row of data was not found.");
+                 }
+             }
+         }
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            if (null != pc) {
+                pc.close();
+            }
         }
     }
 
