@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -37,7 +39,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
-@Tag(Constants.requireSecret)
 public class FedauthWithAE extends FedauthCommon {
 
     static String cmkName1 = Constants.CMK_NAME + "fedauthAE1";
@@ -283,16 +284,17 @@ public class FedauthWithAE extends FedauthCommon {
 
     private SQLServerColumnEncryptionKeyStoreProvider setupKeyStoreProvider_AKV() throws SQLServerException {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
-        return registerAKVProvider(
-                new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey));
+        return registerAKVProvider();
     }
 
-    private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider(
-            SQLServerColumnEncryptionKeyStoreProvider provider) throws SQLServerException {
-        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map1 = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        map1.put(provider.getName(), provider);
-        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map1);
-        return provider;
+    private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider() throws SQLServerException {
+        Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
+        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                .clientId(akvProviderManagedClientId).build();
+        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        return akvProvider;
     }
 
     private void createCMK(String cmkName, String keyStoreName, String keyPath, Statement stmt) throws SQLException {

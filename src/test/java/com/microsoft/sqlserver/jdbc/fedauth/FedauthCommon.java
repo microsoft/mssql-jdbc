@@ -7,6 +7,13 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
@@ -150,6 +157,42 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
+        int retry = 0;
+        long interval = THROTTLE_RETRY_INTERVAL;
+        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                .clientId(akvProviderManagedClientId).build();
+
+        while (retry <= THROTTLE_RETRY_COUNT) {
+            try {
+                TokenRequestContext requestContext = new TokenRequestContext()
+                        .setScopes(Collections.singletonList(spn + "/.default"));
+
+                AccessToken token = credential.getToken(requestContext).block();
+
+                if (token != null) {
+                    secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                            .toSeconds(token.getExpiresAt().toInstant().toEpochMilli() - new Date().getTime());
+                    accessToken = token.getToken();
+                }
+
+                retry = THROTTLE_RETRY_COUNT + 1;
+            } catch (MsalThrottlingException te) {
+                interval = te.retryInMs();
+                if (!checkForRetry(te, retry++, interval)) {
+                    te.printStackTrace();
+                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail(ERR_FAILED_FEDAUTH + e.getMessage());
+            }
+        }
+    }
+
+    static boolean checkForRetry(Exception e, int retry, long interval) {
+        if (retry > THROTTLE_RETRY_COUNT) {
+            return false;
+        }
         try {
 
             final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
