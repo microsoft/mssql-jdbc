@@ -64,6 +64,8 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
      */
     protected transient DateTimeFormatter timeFormatter = null;
 
+    protected boolean columnNameCaseSensitive = false;
+
     /*
      * Logger
      */
@@ -153,7 +155,10 @@ abstract class SQLServerBulkRecord implements ISQLServerBulkRecord {
                 // duplicate check is not performed in case of same
                 // positionInTable value
                 if (null != entry && entry.getKey() != positionInTable && null != entry.getValue()
-                        && colName.trim().equalsIgnoreCase(entry.getValue().columnName)) {
+                        && (this.columnNameCaseSensitive
+                        ? colName.trim().equals(entry.getValue().columnName)
+                        : colName.trim().equalsIgnoreCase(entry.getValue().columnName)
+                )) {
                     throw new SQLServerException(SQLServerException.getErrString("R_BulkDataDuplicateColumn"), null);
                 }
             }
