@@ -1728,7 +1728,7 @@ public class JSONFunctionTest extends AbstractTest {
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
-            stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn NVARCHAR(MAX));");
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
 
             generateHugeJsonFile(2L * 1024 * 1024 * 1022); // ~2 GB JSON file
 

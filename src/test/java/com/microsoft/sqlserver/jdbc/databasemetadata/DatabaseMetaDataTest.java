@@ -1152,6 +1152,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
         String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
 

@@ -606,6 +606,7 @@ public class CallableStatementTest extends AbstractTest {
     }
     
     @Test
+    @Tag(Constants.JSONTest)
 	public void testJSONColumnInTableWithSetObject() throws SQLException {
 
 		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
@@ -625,6 +626,7 @@ public class CallableStatementTest extends AbstractTest {
 	}
 
 	@Test
+    @Tag(Constants.JSONTest)
 	public void testJSONProcedureWithSetObject() throws SQLException {
 
 		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {

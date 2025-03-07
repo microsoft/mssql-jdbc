@@ -201,6 +201,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a single JSON row.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyJSON() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -236,6 +237,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with empty JSON document
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyWithEmptyJsonDocument() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -277,6 +279,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * and compared using getString(columnIndex)
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsWithDifferentStructures() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -320,6 +323,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with multiple JSON rows.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRows() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -363,6 +367,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with multiple JSON rows and columns.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsAndColumns() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -406,6 +411,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with nested JSON documents.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyNestedJsonRows() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -449,6 +455,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with various data types in JSON.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyWithVariousDataTypes() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -488,6 +495,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with count verification.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testBulkCopyWithCountVerification() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));

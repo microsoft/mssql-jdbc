@@ -155,6 +155,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testJSON() throws SQLException {
         createTables("json");
         createTVPS("json");
@@ -385,6 +386,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testTVPJSONStoredProcedure() throws SQLException {
         createTables("json");
         createTVPS("json");
@@ -757,6 +759,7 @@ public class TVPTypesTest extends AbstractTest {
     }
     
     @Test
+    @Tag(Constants.JSONTest)
     public void testJSONTVPCallableAPI() throws SQLException {
         createTables("json");
         createTVPS("json");
