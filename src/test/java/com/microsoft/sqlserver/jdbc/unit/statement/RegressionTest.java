@@ -244,6 +244,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testJsonQuery() throws SQLException {
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             tableName = RandomUtil.getIdentifier("try_SQLJSON_Table");

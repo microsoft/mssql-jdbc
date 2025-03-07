@@ -95,6 +95,7 @@ public class ResultSetTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.JSONTest)
     public void testJdbc41ResultSetMethods() throws SQLException {
         try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ( " + "col1 int, "
@@ -722,6 +723,7 @@ public class ResultSetTest extends AbstractTest {
      * Test casting JSON data and retrieving it as various data types.
      */
     @Test
+    @Tag(Constants.JSONTest)
     public void testCastOnJSON() throws SQLException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));

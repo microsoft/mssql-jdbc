@@ -458,6 +458,7 @@ public class BulkCopyCSVTest extends AbstractTest {
 
     @Test
     @DisplayName("Test Bulk Copy with JSON Data")
+    @Tag(Constants.JSONTest)
     public void testBulkCopyWithJson() throws Exception {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkJsonTest"));
         String fileName = filePath + jsonInputFile;
