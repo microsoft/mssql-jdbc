@@ -152,16 +152,14 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 driverVersion = driverVersion.replaceAll("[^0-9]", "");
                 buildVersion = buildVersion.replaceAll("[^0-9]", "");
 
-                System.out.println("Driver Version (cleaned): " + driverVersion);
-                System.out.println("Build Version (cleaned): " + buildVersion);
-
                 // Not comparing last build number. We will compare only major.minor.patch
                 driverVersion = driverVersion.length() > 4 ? driverVersion.substring(0, 4) : driverVersion;
                 buildVersion = buildVersion.length() > 4 ? buildVersion.substring(0, 4) : buildVersion;
 
                 int intBuildVersion = Integer.valueOf(buildVersion);
                 int intDriverVersion = Integer.valueOf(driverVersion);
-                assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError"));
+                assertTrue(intDriverVersion == intBuildVersion, TestResource.getResource("R_buildVersionError")
+                        + " driverVersion: " + driverVersion + " buildVersion: " + buildVersion);
             }
         }
     }
