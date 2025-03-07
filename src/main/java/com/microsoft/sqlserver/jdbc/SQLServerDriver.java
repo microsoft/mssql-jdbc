@@ -737,63 +737,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             + " for SQL Server";
     static final String AUTH_DLL_NAME = "mssql-jdbc_auth-" + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "."
             + SQLJdbcVersion.PATCH + "." + Util.getJVMArchOnWindows() + SQLJdbcVersion.RELEASE_EXT;
-    static final String DEFAULT_APP_NAME = "MS-JDBC|Unknown|Unknown|Unknown|Unknown";
-    static final String APP_NAME_TEMPLATE = "%s|%s|%s|%s|%s";
-    static final String constructedAppName;
-    static {
-        constructedAppName = getAppName();
-    }
-
-    /**
-     * Constructs the application name using system properties for OS, platform, and architecture.
-     * If any of the properties cannot be fetched, it falls back to the default application name.
-     * Format -> Microsoft JDBC - {OS}, {Platform} - {architecture}
-     *
-     * @return the constructed application name or the default application name if properties are not available
-     */
-    static String getAppName() {
-        return String.format(
-            APP_NAME_TEMPLATE, 
-            "MS-JDBC", 
-            getOSType(), 
-            getArchitecture(), 
-            getOSDetails(), 
-            getRuntimeDetails()
-        );
-    }
-
-    static String getOSType() {
-        String osName = System.getProperty("os.name", "Unknown").trim();
-        if (osName.startsWith("Windows")) return "Windows";
-        if (osName.startsWith("Linux")) return "Linux";
-        if (osName.startsWith("Mac")) return "macOS";
-        if (osName.startsWith("FreeBSD")) return "FreeBSD";
-        if (osName.startsWith("Android")) return "Android";
-        return "Unknown";
-    }
-
-    static String getArchitecture() {
-        return sanitizeField(System.getProperty("os.arch", "Unknown").trim(), 10);
-    }
-    
-    static String getOSDetails() {
-        String osName = System.getProperty("os.name", "").trim();
-        String osVersion = System.getProperty("os.version", "").trim();
-        if (osName.isEmpty() && osVersion.isEmpty()) return "Unknown";
-        return sanitizeField(osName + " " + osVersion, 44);
-    }
-    
-    static String getRuntimeDetails() {
-        String javaVmName = System.getProperty("java.vm.name", "").trim();
-        String javaVmVersion = System.getProperty("java.vm.version", "").trim();
-        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) return "Unknown";
-        return sanitizeField(javaVmName + " " + javaVmVersion, 44);
-    }
-
-    static String sanitizeField(String field, int maxLength) {
-        String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
-        return sanitized.isEmpty() ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
-    }
+    static final String DEFAULT_APP_NAME = "Microsoft JDBC Driver for SQL Server";
     
     private static final String[] TRUE_FALSE = {"true", "false"};
 
@@ -1104,9 +1048,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                 drLogger.finer("Error registering driver: " + e);
             }
         }
-        if (loggerExternal.isLoggable(Level.FINE)) {
-            loggerExternal.log(Level.FINE, "Application Name: " + SQLServerDriver.constructedAppName);
-        }
     }
 
     // Check for jdk.net.ExtendedSocketOptions to set TCP keep-alive options for idle connection resiliency
@@ -1345,9 +1286,6 @@ public final class SQLServerDriver implements java.sql.Driver {
         Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
         if (connectProperties != null) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            if (connectProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
-                connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
-            }   
             result.connect(connectProperties, null);
         }
         loggerExternal.exiting(getClassNameLogging(), "connect", result);

@@ -98,6 +98,57 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private static final long serialVersionUID = 1965647556064751510L;
 
+    static final String INTERFACE_LIB_NAME_TEMPLATE = "%s|%s|%s|%s|%s";
+    static final String constructedInterfaceLibName;
+
+    static {
+        constructedInterfaceLibName = getInterfaceLibName();
+    }
+
+    static String getInterfaceLibName() {
+        return String.format(
+            INTERFACE_LIB_NAME_TEMPLATE, 
+            "MS-JDBC", 
+            getOSType(), 
+            getArchitecture(), 
+            getOSDetails(), 
+            getRuntimeDetails()
+        );
+    }
+
+    static String getOSType() {
+        String osName = System.getProperty("os.name", "Unknown").trim();
+        if (osName.startsWith("Windows")) return "Windows";
+        if (osName.startsWith("Linux")) return "Linux";
+        if (osName.startsWith("Mac")) return "macOS";
+        if (osName.startsWith("FreeBSD")) return "FreeBSD";
+        if (osName.startsWith("Android")) return "Android";
+        return "Unknown";
+    }
+
+    static String getArchitecture() {
+        return sanitizeField(System.getProperty("os.arch", "Unknown").trim(), 10);
+    }
+
+    static String getOSDetails() {
+        String osName = System.getProperty("os.name", "").trim();
+        String osVersion = System.getProperty("os.version", "").trim();
+        if (osName.isEmpty() && osVersion.isEmpty()) return "Unknown";
+        return sanitizeField(osName + " " + osVersion, 44);
+    }
+
+    static String getRuntimeDetails() {
+        String javaVmName = System.getProperty("java.vm.name", "").trim();
+        String javaVmVersion = System.getProperty("java.vm.version", "").trim();
+        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) return "Unknown";
+        return sanitizeField(javaVmName + " " + javaVmVersion, 44);
+    }
+
+    static String sanitizeField(String field, int maxLength) {
+        String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
+        return sanitized.isEmpty() ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
+    }
+
     /**
      * A random netAddress for this process to send during LOGIN7
      */
@@ -2623,7 +2674,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != sPropValue)
                     validateMaxSQLLoginName(sPropKey, sPropValue);
                 else
-                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.constructedAppName);
+                    activeConnectionProperties.setProperty(sPropKey, SQLServerDriver.DEFAULT_APP_NAME);
 
                 sPropKey = SQLServerDriverBooleanProperty.LAST_UPDATE_COUNT.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -6904,7 +6955,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
-                String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
+        String interfaceLibName = constructedInterfaceLibName;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
 

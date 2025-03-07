@@ -2,8 +2,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -204,7 +202,7 @@ public class SQLServerDriverTest extends AbstractTest {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT program_name FROM sys.dm_exec_sessions WHERE session_id = @@SPID")) {
             if (rs.next()) {
-                assertEquals(SQLServerDriver.constructedAppName, rs.getString("program_name"));
+                assertEquals(SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), rs.getString("program_name"));
             }
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -222,7 +220,7 @@ public class SQLServerDriverTest extends AbstractTest {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT app_name()")) {
             if (rs.next()) {
-                assertEquals(SQLServerDriver.constructedAppName, rs.getString(1));
+                assertEquals(SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue(), rs.getString(1));
             }
         } catch (SQLException e) {
             fail(e.getMessage());
@@ -247,24 +245,5 @@ public class SQLServerDriverTest extends AbstractTest {
         } catch (SQLException e) {
             fail(e.getMessage());
         }
-    }
-
-    /**
-     * test application name when system properties are empty
-     * 
-     */
-    @Test
-    public void testGetAppName() {
-        String appName = SQLServerDriver.getAppName();
-        assertNotNull(appName, "Application name should not be null");
-        assertFalse(appName.isEmpty(), "Application name should not be empty");
-
-        System.setProperty("os.name", "");
-        System.setProperty("os.arch", "");
-        System.setProperty("os.version", "");
-        System.setProperty("java.vm.name", "");
-        System.setProperty("java.vm.version", "");
-        String defaultAppName = SQLServerDriver.getAppName();
-        assertEquals(SQLServerDriver.DEFAULT_APP_NAME, defaultAppName, "Application name should be the default one");
     }
 }
