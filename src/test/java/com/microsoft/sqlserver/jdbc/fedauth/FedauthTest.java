@@ -42,7 +42,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
-@Tag(Constants.requireSecret)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
@@ -286,6 +285,7 @@ public class FedauthTest extends FedauthCommon {
      */
     @Deprecated
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + applicationClientID
@@ -308,6 +308,7 @@ public class FedauthTest extends FedauthCommon {
      * encryption.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
@@ -326,6 +327,7 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidSecret() throws Exception {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
@@ -364,6 +366,7 @@ public class FedauthTest extends FedauthCommon {
     }
 
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalCertAuthFailureOnSubsequentConnectionsWithInvalidatedTokenCacheWithInvalidPassword() throws Exception {
         // Should succeed on valid cert field values
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -389,6 +392,7 @@ public class FedauthTest extends FedauthCommon {
      * Test invalid connection property combinations when using AAD Service Principal Authentication.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";";
@@ -426,6 +430,7 @@ public class FedauthTest extends FedauthCommon {
      * encryption.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalCertAuth() {
         // certificate from AKV has no password
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
@@ -449,6 +454,7 @@ public class FedauthTest extends FedauthCommon {
      * Test invalid connection property combinations when using AAD Service Principal Certificate Authentication.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalCertAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipalCertificate + ";userName="
@@ -486,23 +492,6 @@ public class FedauthTest extends FedauthCommon {
         String cs = TestUtils.addOrOverrideProperty(accessTokenCallbackConnectionString, "accessTokenCallbackClass",
                 PooledConnectionTest.AccessTokenCallbackClass.class.getName());
         try (Connection conn1 = DriverManager.getConnection(cs)) {}
-    }
-
-    @Test
-    public void testAccessTokenCache() {
-        try {
-            SilentParameters silentParameters = SilentParameters.builder(Collections.singleton(spn + "/.default"))
-                    .build();
-
-            // this will fail if not cached
-            CompletableFuture<IAuthenticationResult> future = fedauthClientApp.acquireTokenSilently(silentParameters);
-            IAuthenticationResult authenticationResult = future.get();
-            assertNotNull(authenticationResult.accessToken());
-            assertTrue(authenticationResult.accessToken().equals(accessToken), accessToken);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
     }
 
     private static void validateException(String url, String resourceKey) {

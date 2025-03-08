@@ -14,7 +14,7 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>12.8.0.jre11</version>
+			<version>12.10.0.jre11</version>
 		</dependency>
 	</dependencies>
 	<profiles>
@@ -41,8 +41,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>22</source>
-					<target>22</target>
+					<source>23</source>
+					<target>23</target>
 				</configuration>
 			</plugin>
 			<plugin>
