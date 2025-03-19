@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [11.2.4] HotFix & Stable Release
+### Added
+- Added support for Azure Active Directory Service Principal Certificate Authentication [2128](https://github.com/microsoft/mssql-jdbc/pull/2128)
+### Changed
+- Made jdk.net optional OSGi import [2069](https://github.com/microsoft/mssql-jdbc/pull/2069)
+- Upgraded to latest OSGi JDBC specification [2017](https://github.com/microsoft/mssql-jdbc/pull/2017)
+- Managed Identity authentication uses Azure Identity library instead [1936](https://github.com/microsoft/mssql-jdbc/pull/1936)
+- Updated azure-security-keyvault-keys, azure-identity, antlr4, bouncycastle, junit, slf4j, gemini, gson, and h2 library versions
+
 ## [11.2.3] HotFix & Stable Release
 ### Fixed issues
 - Fixed null SQL state and zero error code when database exception is thrown [2022](https://github.com/microsoft/mssql-jdbc/pull/2022)
