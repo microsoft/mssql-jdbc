@@ -51,6 +51,8 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.reqExternalSetup)
+@Tag(Constants.requireSecret)
 public class CallableStatementTest extends AESetup {
 
     private static String multiStatementsProcedure = AbstractSQLGenerator
@@ -2174,7 +2176,7 @@ public class CallableStatementTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
             stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
+            TestUtils.freeProcCache(stmt);
         } catch (SQLException e) {
             fail(e.getMessage());
         }

@@ -496,7 +496,17 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setUseFmtOnly");
         verifiedMethodNames.add("setDelayLoadingLobs");
         verifiedMethodNames.add("registerColumnEncryptionKeyStoreProvidersOnConnection");
+<<<<<<< HEAD
 
+=======
+        verifiedMethodNames.add("getPrepareMethod");
+        verifiedMethodNames.add("setPrepareMethod");
+        verifiedMethodNames.add("getIPAddressPreference");
+        verifiedMethodNames.add("setIPAddressPreference");
+        verifiedMethodNames.add("getMsiTokenCacheTtl");
+        verifiedMethodNames.add("setMsiTokenCacheTtl");
+        
+>>>>>>> 921abb71 (Update 11.2 servicing branch to run on test pipelines + dependency update (#2602))
         return verifiedMethodNames;
     }
 }

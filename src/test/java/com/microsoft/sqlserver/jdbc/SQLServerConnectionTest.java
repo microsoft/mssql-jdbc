@@ -162,6 +162,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setEncrypt(booleanPropValue);
         assertEquals(booleanPropValue, ds.getEncrypt(), TestResource.getResource("R_valuesAreDifferent"));
 
+
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -644,13 +645,22 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase")));
+            assertTrue(
+                    e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                    && e.getMessage().toLowerCase()
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                    e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }
 
     @Test
     public void testIncorrectUserName() throws SQLException {
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null
+                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
+
         long timerStart = 0;
         long timerEnd = 0;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
@@ -668,13 +678,22 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                    && e.getMessage().toLowerCase()
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                    e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }
 
     @Test
     public void testIncorrectPassword() throws SQLException {
+        String auth = TestUtils.getProperty(connectionString, "authentication");
+        org.junit.Assume.assumeTrue(auth != null
+                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
+
         long timerStart = 0;
         long timerEnd = 0;
         final long milsecs = threshHoldForNoRetryInMilliseconds;
@@ -692,7 +711,12 @@ public class SQLServerConnectionTest extends AbstractTest {
                 assertTrue(timeDiff <= milsecs, form.format(msgArgs));
             }
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_loginFailed")));
+            assertTrue(
+                    e.getMessage().contains(TestResource.getResource("R_loginFailed"))
+                            || (TestUtils.getProperty(connectionString, "msiClientId") != null
+                                    && e.getMessage().toLowerCase()
+                                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
+                    e.getMessage());
             timerEnd = System.currentTimeMillis();
         }
     }

@@ -16,7 +16,11 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
+<<<<<<< HEAD
 			<version>10.2.0.jre17</version>
+=======
+			<version>11.2.4.jre18</version>
+>>>>>>> 921abb71 (Update 11.2 servicing branch to run on test pipelines + dependency update (#2602))
 		</dependency>
 	</dependencies>
 	<profiles>

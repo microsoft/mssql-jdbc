@@ -24,6 +24,7 @@ public final class Constants {
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
      * NTLM  - - - - - - - For NTLM tests
+     * Kerberos  - - - - - For Kerberos tests
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
      * Fedauth - - - - - - For Fedauth tests
@@ -39,10 +40,12 @@ public final class Constants {
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";
     public static final String NTLM = "NTLM";
+    public static final String Kerberos = "kerberos";
     public static final String MSI = "MSI";
     public static final String reqExternalSetup = "reqExternalSetup";
     public static final String clientCertAuth = "clientCertAuth";
     public static final String fedAuth = "fedAuth";
+    public static final String requireSecret = "requireSecret";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

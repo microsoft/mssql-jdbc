@@ -167,6 +167,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         }
     }
 
+<<<<<<< HEAD
     /*
      * Test killing a session while retrieving result set should result in exception thrown
      */
@@ -254,6 +255,8 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
         }
     }
 
+=======
+>>>>>>> 921abb71 (Update 11.2 servicing branch to run on test pipelines + dependency update (#2602))
     @Test
     public void testResultSetClientCursorInitializerOnDone() throws SQLException {
         try (Connection con = ResiliencyUtils.getConnection(connectionString); Statement stmt = con.createStatement()) {

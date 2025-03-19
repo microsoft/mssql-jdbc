@@ -376,4 +376,18 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *        boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     */
+    @Deprecated
+    int getMsiTokenCacheTtl();
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Deprecated
+    void setMsiTokenCacheTtl(int timeToLive);
 }

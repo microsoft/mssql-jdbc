@@ -33,4 +33,26 @@ class SqlFedAuthToken implements Serializable {
         this.accessToken = accessToken;
         this.expiresOn = expiresOn;
     }
+
+    /**
+     * Returns the expiration date of the token.
+     *
+     * @return The token expiration date.
+     */
+    public Date getExpiresOn() {
+        return expiresOn;
+    }
+
+    /**
+     * Returns the access token string.
+     *
+     * @return The access token.
+     */
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public String toString() {
+        return "accessToken hashCode: " + accessToken.hashCode() + " expiresOn: " + expiresOn.toInstant().toString();
+    }
 }

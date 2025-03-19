@@ -961,8 +961,17 @@ public class SQLServerDataSource
     @Override
     public void setMSIClientId(String msiClientId) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
+
     }
 
+    /**
+     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
+     *
+     * Returns the value for the connection property 'msiClientId'.
+     *
+     * @return msiClientId property value
+     */
+    @Deprecated
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1128,6 +1137,24 @@ public class SQLServerDataSource
                 SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue());
     }
 
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method will always return 0 and is for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public void setMsiTokenCacheTtl(int timeToLive) {}
+
+    /**
+     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
+     * This method is a no-op for backwards compatibility only.
+     */
+    @Deprecated
+    @Override
+    public int getMsiTokenCacheTtl() {
+        return 0;
+    }
+    
     /**
      * Sets a property string value.
      * 
