@@ -196,21 +196,13 @@ public class FedauthCommon extends AbstractTest {
             return false;
         }
         try {
+            Thread.sleep(interval);
+        } catch (InterruptedException ex) {
+            e.printStackTrace();
 
-            final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
-                    .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication
-                    .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
-                            azureUserName, azurePassword.toCharArray()).build());
-
-            final IAuthenticationResult authenticationResult = future.get();
-
-            secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                    .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-            accessToken = authenticationResult.accessToken();
-        } catch (Exception e) {
-            fail(e.getMessage());
+            fail(ERR_FAILED_FEDAUTH + ex.getMessage());
         }
+        return true;
     }
 
     void testUserName(Connection conn, String user, SqlAuthentication authentication) throws SQLException {

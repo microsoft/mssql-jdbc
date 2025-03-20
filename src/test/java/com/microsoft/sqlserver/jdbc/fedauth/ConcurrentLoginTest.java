@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
