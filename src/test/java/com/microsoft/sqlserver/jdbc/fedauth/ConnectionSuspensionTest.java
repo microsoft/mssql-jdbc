@@ -30,6 +30,7 @@ import org.junit.runner.RunWith;
 @RunWith(JUnitPlatform.class)
 @Tag("slow")
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class ConnectionSuspensionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
