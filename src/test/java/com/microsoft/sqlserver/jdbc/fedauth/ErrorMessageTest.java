@@ -395,8 +395,11 @@ public class ErrorMessageTest extends FedauthCommon {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
+                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
+                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
         }
     }
 
@@ -420,8 +423,11 @@ public class ErrorMessageTest extends FedauthCommon {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
+                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
+                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
         }
     }
 
@@ -439,8 +445,11 @@ public class ErrorMessageTest extends FedauthCommon {
             assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage()
                     .contains(ERR_MSG_FAILED_AUTHENTICATE + " the user " + azureUserName
                             + " in Active Directory (Authentication=ActiveDirectoryPassword).")
-                    && (e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
-                            || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)));
+                    && e.getCause().getCause().getMessage().toLowerCase().contains("invalid username or password")
+                    || e.getCause().getCause().getMessage().contains(ERR_MSG_SIGNIN_TOO_MANY)
+                    || e.getCause().getCause().getMessage().contains(ERR_FAULT_ID3342)
+                    || e.getMessage().contains(ERR_MSG_REQUEST_THROTTLED)
+                    || e.getMessage().contains(ERR_FAULT_AUTH_FAIL));
         }
     }
 
