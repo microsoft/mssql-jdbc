@@ -244,10 +244,11 @@ public class FedauthTest extends FedauthCommon {
      * Test the actual AAD Service Principal Authentication using connection string, data source and SSL encryption.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
-                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
+                + applicationKey;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -265,27 +266,37 @@ public class FedauthTest extends FedauthCommon {
      * Test invalid connection property combinations when using AAD Service Principal Authentication.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";";
         // Wrong AADSecurePrincipalSecret provided.
-        String url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret=wrongSecret";
+        String url = baseUrl + "AADSecurePrincipalId=" + applicationClientID + ";AADSecurePrincipalSecret=wrongSecret";
         validateException(url, "R_MSALExecution");
 
         // Wrong AADSecurePrincipalId provided.
-        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + applicationKey;
         validateException(url, "R_MSALExecution");
 
-        // AADSecurePrincipalSecret not provided.
-        url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
+        // AADSecurePrincipalSecret/password not provided.
+        url = baseUrl + "AADSecurePrincipalId=" + applicationClientID;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+        url = baseUrl + "Username=" + applicationClientID;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
-        // AADSecurePrincipalId not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        // AADSecurePrincipalId/username not provided.
+        url = baseUrl + "AADSecurePrincipalSecret=" + applicationKey;
+        validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
+        url = baseUrl + "password=" + applicationKey;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // Both AADSecurePrincipalId and AADSecurePrincipalSecret not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
+
+        // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
+        url = baseUrl + "Username=" + applicationClientID + ";password=" + applicationKey + ";AADSecurePrincipalId="
+                + applicationClientID + ";AADSecurePrincipalSecret=" + applicationKey;
+        validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
     private static void validateException(String url, String resourceKey) {

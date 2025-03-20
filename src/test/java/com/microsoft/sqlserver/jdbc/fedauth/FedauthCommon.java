@@ -42,11 +42,7 @@ public class FedauthCommon extends AbstractTest {
     static String azureUserName = null;
     static String azurePassword = null;
     static String azureGroupUserName = null;
-    static String azureAADPrincipialId = null;
-    static String azureAADPrincipialSecret = null;
-
     static boolean enableADIntegrated = false;
-
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -124,8 +120,6 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
-        azureAADPrincipialId = getConfiguredProperty("AADSecurePrincipalId");
-        azureAADPrincipialSecret = getConfiguredProperty("AADSecurePrincipalSecret");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
