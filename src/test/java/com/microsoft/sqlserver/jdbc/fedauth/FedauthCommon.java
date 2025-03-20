@@ -15,6 +15,7 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import java.sql.Connection;
@@ -86,6 +87,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
     static final String ERR_TCPIP_CONNECTION = TestResource.getResource("R_tcpipConnectionToHost");
     static final String ERR_MSG_REQUEST_THROTTLED = "Request was throttled";
+    static final String ERR_FAILED_FEDAUTH = TestResource.getResource("R_failedFedauth");
 
     enum SqlAuthentication {
         NotSpecified,
