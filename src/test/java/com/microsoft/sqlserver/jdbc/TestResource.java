@@ -196,5 +196,12 @@ public final class TestResource extends ListResourceBundle {
             {"R_socketClosed", "Socket closed"}, {"R_aeStreamReadError", "The multi-part identifier"},
             {"R_dataClassificationNotSupported", "Data Classification is not supported on this server."},
             {"R_maxResultBufferExceeded", "MaxResultBuffer exceeded {0}."},
-            {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"}};
+            {"R_databaseNotFound", "Database {0} not found."}, {"R_failedToDecrypt", "Failed to decrypt"},
+            {"R_AKVProviderNull", "The Azure key store provider is null."},
+            {"R_objectNullOrEmpty", "The {0} is null or empty."},
+            {"R_cekDecryptionFailed", "Failed to decrypt a column encryption key using key store provider: {0}."},
+            {"R_failedFedauth", "Failed to acquire fedauth token: "},
+            {"R_connectTimedOut", "connect timed out"},
+            {"R_queryCanceled", "The query was canceled."},
+            {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"}};
 }
