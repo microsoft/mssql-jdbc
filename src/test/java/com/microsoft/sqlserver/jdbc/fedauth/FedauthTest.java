@@ -254,10 +254,11 @@ public class FedauthTest extends FedauthCommon {
      * @deprecated
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
-                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + applicationClientID
+                + ";AADSecurePrincipalSecret=" + applicationKey;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -276,10 +277,11 @@ public class FedauthTest extends FedauthCommon {
      * encryption.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + azureAADPrincipialId + ";Password="
-                + azureAADPrincipialSecret;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
+                + applicationKey;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -297,36 +299,36 @@ public class FedauthTest extends FedauthCommon {
      * Test invalid connection property combinations when using AAD Service Principal Authentication.
      */
     @Test
+    @Tag(Constants.requireSecret)
     public void testAADServicePrincipalAuthWrong() {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";";
         // Wrong AADSecurePrincipalSecret provided.
-        String url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret=wrongSecret";
+        String url = baseUrl + "AADSecurePrincipalId=" + applicationClientID + ";AADSecurePrincipalSecret=wrongSecret";
         validateException(url, "R_MSALExecution");
 
         // Wrong AADSecurePrincipalId provided.
-        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + applicationKey;
         validateException(url, "R_MSALExecution");
 
         // AADSecurePrincipalSecret/password not provided.
-        url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
+        url = baseUrl + "AADSecurePrincipalId=" + applicationClientID;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-        url = baseUrl + "Username=" + azureAADPrincipialId;
+        url = baseUrl + "Username=" + applicationClientID;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // AADSecurePrincipalId/username not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
+        url = baseUrl + "AADSecurePrincipalSecret=" + applicationKey;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-        url = baseUrl + "password=" + azureAADPrincipialSecret;
+        url = baseUrl + "password=" + applicationKey;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
 
         // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
-        url = baseUrl + "Username=" + azureAADPrincipialId + ";password=" + azureAADPrincipialSecret
-                + ";AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret="
-                + azureAADPrincipialSecret;
+        url = baseUrl + "Username=" + applicationClientID + ";password=" + applicationKey + ";AADSecurePrincipalId="
+                + applicationClientID + ";AADSecurePrincipalSecret=" + applicationKey;
         validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
