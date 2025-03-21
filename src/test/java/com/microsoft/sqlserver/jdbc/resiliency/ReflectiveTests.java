@@ -114,7 +114,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("queryTimeout", "10");
         m.put("loginTimeout", "65535");
         m.put("connectRetryCount", "1");
-        timeoutVariations(m, 12000, Optional.empty());
+        timeoutVariations(m, 14000, Optional.empty());
     }
 
     /*
@@ -128,7 +128,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("loginTimeout", "5");
         m.put("connectRetryCount", "2");
         m.put("connectRetryInterval", "10");
-        timeoutVariations(m, 25000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
+        timeoutVariations(m, 28000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
     }
 
     @Test

@@ -202,5 +202,6 @@ public final class TestResource extends ListResourceBundle {
             {"R_failedFedauth", "Failed to acquire fedauth token: "},
             {"R_connectTimedOut", "connect timed out"},
             {"R_queryCanceled", "The query was canceled."},
+            {"R_loginFailedMI", "Login failed for user '<token-identified principal>'"},
             {"R_sessionKilled", "Cannot continue the execution because the session is in the kill state"}};
 }
