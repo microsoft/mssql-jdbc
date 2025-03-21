@@ -169,6 +169,11 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
+    // Vector support
+    static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
+    static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;
+    static final byte MAX_VECTORSUPPORT_VERSION = 0x01;
+
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
     static final int TVP_NULL_TOKEN = 0xFFFF;
@@ -237,6 +242,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
             case TDS_FEATURE_EXT_SESSIONRECOVERY:
                 return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
+            case TDS_FEATURE_EXT_VECTORSUPPORT:
+                return "TDS_FEATURE_EXT_VECTORSUPPORT (0x0E)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }

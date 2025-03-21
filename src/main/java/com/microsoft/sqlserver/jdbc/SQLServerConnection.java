@@ -1190,6 +1190,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportedDataClassificationVersion;
     }
 
+    /** whether server supports Vector */
+    private boolean serverSupportsVector = false;
+
+    /** server supported Vector version */
+    private byte serverSupportedVectorVersion = TDS.VECTORSUPPORT_NOT_SUPPORTED;
+
+    boolean getServerSupportsVector() {
+        return serverSupportsVector;
+    }
+
     /** Boolean that indicates whether LOB objects created by this connection should be loaded into memory */
     private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
@@ -5556,6 +5566,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeVectorSupportFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_VECTORSUPPORT);
+            tdsWriter.writeInt(1);
+            tdsWriter.writeByte(TDS.MAX_VECTORSUPPORT_VERSION);
+        }
+        return len;
+    }
+
     int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
@@ -6686,6 +6707,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
+
+            case TDS.TDS_FEATURE_EXT_VECTORSUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Vector Support.");
+                }
+
+                if (1 != data.length) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownVectorSupportValue"), null);
+                }
+
+                serverSupportedVectorVersion = data[0];
+                if (0 == serverSupportedVectorVersion || serverSupportedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorVersionNumber"), null);
+                }
+                serverSupportsVector = true;
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -6986,6 +7025,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
 
+        // request Vector support
+        len += writeVectorSupportFeatureRequest(false, tdsWriter);
+
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
         // Idle Connection Resiliency is requested
@@ -7182,6 +7224,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
         writeDNSCacheFeatureRequest(true, tdsWriter);
+        writeVectorSupportFeatureRequest(true, tdsWriter);
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
