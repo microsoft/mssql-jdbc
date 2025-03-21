@@ -186,14 +186,13 @@ public class TimeoutTest extends AbstractTest {
         } catch (Exception e) {
             totalTime = System.currentTimeMillis() - timerStart;
 
-            assertTrue(
-                    (e.getMessage().toLowerCase()
-                            .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
-                            .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
-                            || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
+            assertTrue((e.getMessage().toLowerCase().contains(
+                            TestResource.getResource("R_cannotOpenDatabase").toLowerCase())) || (TestUtils.getProperty(
+                            connectionString, "msiClientId") != null && e.getMessage().toLowerCase()
+                            .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())) || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
+        }
     }
 
     // Test connect retry for database error using Datasource

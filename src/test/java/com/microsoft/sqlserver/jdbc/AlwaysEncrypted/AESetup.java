@@ -188,7 +188,6 @@ public class AESetup extends AbstractTest {
             // remove the password in connection string
             // this is necessary as updateDataSource will only use 1st occurrence
             String password = getConfiguredProperty("enclaveServerPassword");
-            AETestConnectionString = TestUtils.removeProperty(AETestConnectionString, Constants.PASSWORD);
             AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.PASSWORD,
                     password);
         } else {
