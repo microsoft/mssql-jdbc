@@ -726,6 +726,7 @@ final class DDC {
                 case VARBINARY:
                 case LONGVARBINARY:
                 case BLOB:
+                case VECTOR:
                     // Where allowed, streams convert directly to binary representation
                     if (StreamType.BINARY == getterArgs.streamType)
                         return stream;

@@ -269,10 +269,7 @@ enum SSType {
 
         SQL_VARIANT(SSType.Category.SQL_VARIANT, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.SQL_VARIANT,
                 JDBCType.Category.NUMERIC, JDBCType.Category.DATE, JDBCType.Category.TIME, JDBCType.Category.BINARY,
-                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID)),
-
-        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
-        JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER, JDBCType.Category.BLOB, JDBCType.Category.VECTOR));    
+                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID));
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -458,7 +455,9 @@ enum JavaType {
                     case NTEXT:
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
-
+                    case VECTOR:
+                        jdbcType = JDBCType.VECTOR;
+                        break;
                     case XML:
                     default:
                         jdbcType = JDBCType.LONGVARBINARY;
@@ -741,7 +740,7 @@ enum JDBCType {
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET,
                 JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER,
                 JDBCType.Category.LONG_NCHARACTER, JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT)),
+                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT, JDBCType.Category.VECTOR)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
@@ -762,7 +761,7 @@ enum JDBCType {
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
                 JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY, JDBCType.Category.BLOB, JDBCType.Category.GUID,
-                JDBCType.Category.SQL_VARIANT)),
+                JDBCType.Category.SQL_VARIANT, JDBCType.Category.VECTOR)),
 
         LONG_BINARY(JDBCType.Category.LONG_BINARY, EnumSet.of(JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY)),
 
@@ -803,8 +802,7 @@ enum JDBCType {
 
         GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
 
-        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));
+        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -841,7 +839,7 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER, SSType.Category.XML,
                 SSType.Category.BINARY, SSType.Category.LONG_BINARY, SSType.Category.UDT, SSType.Category.GUID,
-                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT)),
+                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT, SSType.Category.VECTOR)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER,
@@ -862,7 +860,7 @@ enum JDBCType {
                 SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER,
                 SSType.Category.LONG_NCHARACTER, SSType.Category.XML, SSType.Category.BINARY,
                 SSType.Category.LONG_BINARY, SSType.Category.UDT, SSType.Category.TIMESTAMP, SSType.Category.GUID,
-                SSType.Category.SQL_VARIANT)),
+                SSType.Category.SQL_VARIANT, SSType.Category.VECTOR)),
 
         LONG_BINARY(JDBCType.Category.LONG_BINARY, EnumSet.of(SSType.Category.XML, SSType.Category.BINARY,
                 SSType.Category.LONG_BINARY, SSType.Category.UDT)),
@@ -904,9 +902,7 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER)),
 
-        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT)),
-
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(SSType.Category.VECTOR));
+        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT));
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
@@ -1009,6 +1005,8 @@ enum JDBCType {
                 case NVARCHAR:
                 case SQLXML:
                     return java.sql.Types.VARCHAR;
+                case VECTOR:
+                    return java.sql.Types.VARBINARY;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;
                 case NCLOB:

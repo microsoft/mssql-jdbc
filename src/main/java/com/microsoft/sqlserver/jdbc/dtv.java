@@ -1521,6 +1521,7 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
+                case VECTOR:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -2992,6 +2993,36 @@ final class TypeInfo implements Serializable {
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
             }
+        }),
+        
+        VECTOR(TDSType.VECTOR, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.maxLength = tdsReader.readUnsignedShort();
+                if (DataTypes.MAXTYPE_LENGTH == typeInfo.maxLength)// for PLP types
+                {
+                    typeInfo.ssLenType = SSLenType.PARTLENTYPE;
+                    typeInfo.ssType = SSType.VECTOR;
+                    typeInfo.displaySize = typeInfo.precision = DataTypes.MAX_VARTYPE_MAX_BYTES;
+                } else if (typeInfo.maxLength <= DataTypes.SHORT_VARTYPE_MAX_BYTES)// for non-PLP types
+                {
+                    typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
+                    typeInfo.ssType = SSType.VECTOR;
+                    typeInfo.precision = typeInfo.maxLength;
+                    typeInfo.displaySize = 2 * typeInfo.maxLength;
+                } else {
+                    tdsReader.throwInvalidTDS();
+                }
+            }
         });
 
         private final TDSType tdsType;
@@ -3551,6 +3582,7 @@ final class ServerDTVImpl extends DTVImpl {
             case BINARY:
             case VARBINARY:
             case VARBINARYMAX:
+            case VECTOR:
                 return DDC.convertBytesToObject(decryptedValue, jdbcType, baseTypeInfo);
 
             case DATE:
@@ -3768,6 +3800,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case IMAGE:
                 case BINARY:
                 case VARBINARY:
+                case VECTOR:
                 case TIMESTAMP: // A special BINARY(8)
                 {
                     convertedValue = DDC.convertStreamToObject(

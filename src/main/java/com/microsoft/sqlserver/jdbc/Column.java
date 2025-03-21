@@ -345,7 +345,7 @@ final class Column {
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
         else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
-                || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
+                || SSType.IMAGE == ssType || SSType.UDT == ssType || SSType.VECTOR == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;
