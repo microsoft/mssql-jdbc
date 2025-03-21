@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -64,15 +65,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** response buffer adaptive flag */
-    boolean isResponseBufferingAdaptive = false;
-
-    /** TDS token return value status **/
-    int returnValueStatus;
-
-    /** Check if statement contains TVP Type */
-    boolean isTVPType = false;
-
-    protected static final int USER_DEFINED_FUNCTION_RETURN_STATUS = 2;
+    private boolean isResponseBufferingAdaptive = false;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -120,13 +113,10 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != tdsReader;
     }
 
-    /** Return parameter for stored procedure calls */
-    transient Parameter returnParam;
-
     /**
      * The input and out parameters for statement execution.
      */
-    transient Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
+    transient Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
 
     /**
      * The statement's connection.
@@ -148,12 +138,6 @@ public class SQLServerStatement implements ISQLServerStatement {
      * closed
      */
     boolean isCloseOnCompletion = false;
-
-    /** Checks if the callable statement's parameters are set by name **/
-    protected boolean isSetByName = false;
-
-    /** Checks if the prepared statement's parameters were set by index **/
-    protected boolean isSetByIndex = false;
 
     /**
      * Currently executing or most recently executed TDSCommand (statement cmd, server cursor cmd, ...) subject to
@@ -258,22 +242,66 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         execProps = new ExecuteProperties(this);
 
-        try {
-            // (Re)execute this Statement with the new command
-            executeCommand(newStmtCmd);
-        } catch (SQLServerException e) {
-            if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
-                if (e.getCause() == null) {
-                    throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+        boolean cont;
+        int retryAttempt = 0;
+        ConfigurableRetryLogic crl = ConfigurableRetryLogic.getInstance();
+
+        do {
+            cont = false;
+            try {
+                // (Re)execute this Statement with the new command
+                executeCommand(newStmtCmd);
+            } catch (SQLServerException e) {
+                SQLServerError sqlServerError = e.getSQLServerError();
+                ConfigurableRetryRule rule = null;
+
+                if (null != sqlServerError) {
+                    rule = crl.searchRuleSet(e.getSQLServerError().getErrorNumber(), "statement");
                 }
-                throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
-            } else {
-                throw e;
+
+                // If there is a rule for this error AND we still have retries remaining THEN we can proceed, otherwise
+                // first check for query timeout, and then throw the error if queryTimeout was not reached
+                if (null != rule && retryAttempt < rule.getRetryCount()) {
+
+                    // Also check if the last executed statement matches the query constraint passed in for the rule.
+                    // Defaults to true, changed to false if the query does NOT match.
+                    boolean matchesDefinedQuery = true;
+                    if (!(rule.getRetryQueries().isEmpty())) {
+
+                        matchesDefinedQuery = rule.getRetryQueries().contains(crl.getLastQuery().split(" ")[0]);
+                    }
+
+                    if (matchesDefinedQuery) {
+                        int timeToWait = rule.getWaitTimes().get(retryAttempt);
+                        int queryTimeout = connection.getQueryTimeoutSeconds();
+                        if (queryTimeout >= 0 && timeToWait > queryTimeout) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_InvalidRetryInterval"));
+                            Object[] msgArgs = {timeToWait, queryTimeout};
+                            throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
+                        }
+                        try {
+                            Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                        cont = true;
+                        retryAttempt++;
+                    }
+                } else if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
+                    if (e.getCause() == null) {
+                        throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+                    }
+                    throw new SQLTimeoutException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e.getCause());
+                } else {
+                    throw e;
+                }
+            } finally {
+                if (newStmtCmd.wasExecuted()) {
+                    lastStmtExecCmd = newStmtCmd;
+                }
             }
-        } finally {
-            if (newStmtCmd.wasExecuted())
-                lastStmtExecCmd = newStmtCmd;
-        }
+        } while (cont);
     }
 
     /**
@@ -513,7 +541,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     /**
      * True is the statement is closed
      */
-    boolean bIsClosed;
+    volatile boolean bIsClosed;
 
     /**
      * True if the user requested to driver to generate insert keys
@@ -810,6 +838,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
+        ConfigurableRetryLogic.getInstance().storeLastQuery(sql);
         executeStatement(new StmtExecCmd(this, sql, EXECUTE, NO_GENERATED_KEYS));
         loggerExternal.exiting(getClassNameLogging(), "execute", null != resultSet);
         return null != resultSet;
@@ -1147,14 +1176,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (bIsClosed) {
             SQLServerException.makeFromDriverError(connection, this,
                     SQLServerException.getErrString("R_statementIsClosed"), null, false);
-        }
-    }
-
-    void setByIndex() throws SQLServerException {
-        isSetByIndex = true;
-        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
         }
     }
 
@@ -1580,9 +1601,15 @@ public class SQLServerStatement implements ISQLServerStatement {
                         if (null != procedureName)
                             return false;
 
+                        //For Insert, we must fetch additional TDS_DONE token that comes with the actual update count
+                        if ((StreamDone.CMD_INSERT == doneToken.getCurCmd()) &&  (-1 != doneToken.getUpdateCount()) && EXECUTE == executeMethod) {
+                            return true;
+                        }
+
                         // Always return all update counts from statements executed through Statement.execute()
-                        if (EXECUTE == executeMethod)
-                            return false;
+                        if (EXECUTE == executeMethod) {
+                           return false;
+                        }
 
                         // Statement.executeUpdate() may or may not return this update count depending on the
                         // setting of the lastUpdateCount connection property:
@@ -1647,14 +1674,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
-                    // Only read the return value from stored procedure if we are expecting one. Also, check that it is
-                    // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
-                    // executing sp_executesql for stored procedures.
-                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
-                            && inOutParam[0].isReturnValue()) {
-                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
-                        return false;
-                    }
                 }
 
                 return true;
@@ -1662,21 +1681,11 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
-                // Status: A value of 0x01 means the return value corresponds to an output parameter from
-                // a stored procedure. If it's 0x02 then the value corresponds to a return value from a
-                // user defined function.
-                //
-                // If it's a return value from a user defined function, we need to return false from this method
-                // so that the return value is not skipped.
-                int status = tdsReader.peekReturnValueStatus();
-
-                SQLServerStatement.this.returnValueStatus = status;
-
                 // We are only interested in return values that are statement OUT parameters,
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-                if (moreResults && null == procedureRetStatToken && status != USER_DEFINED_FUNCTION_RETURN_STATUS) {
+                if (moreResults && null == procedureRetStatToken) {
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);
@@ -2354,17 +2363,27 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         if (null == autoGeneratedKeys) {
             long orgUpd = updateCount;
+            //
+            //A case of SET NOCOUNT ON and GENERATED KEYS requested
+            //where we may not have received update count but would have already read the resultset
+            //so directly consume it.
+            //
+            if ((executeMethod != EXECUTE_QUERY) && bRequestedGeneratedKeys && (resultSet != null)) {
+                autoGeneratedKeys = resultSet;
+                updateCount = orgUpd;
+            } else {
 
-            // Generated keys are returned in a ResultSet result right after the update count.
-            // Try to get that ResultSet. If there are no more results after the update count,
-            // or if the next result isn't a ResultSet, then something is wrong.
-            if (!getNextResult(true) || null == resultSet) {
-                SQLServerException.makeFromDriverError(connection, this,
-                        SQLServerException.getErrString("R_statementMustBeExecuted"), null, false);
+                // Generated keys are returned in a ResultSet result right after the update count.
+                // Try to get that ResultSet. If there are no more results after the update count,
+                // or if the next result isn't a ResultSet, then something is wrong.
+                if (!getNextResult(true) || null == resultSet) {
+                    SQLServerException.makeFromDriverError(connection, this,
+                            SQLServerException.getErrString("R_statementMustBeExecuted"), null, false);
+                }
+                autoGeneratedKeys = resultSet;
+                updateCount = orgUpd;
             }
 
-            autoGeneratedKeys = resultSet;
-            updateCount = orgUpd;
         }
         loggerExternal.exiting(getClassNameLogging(), "getGeneratedKeys", autoGeneratedKeys);
         return autoGeneratedKeys;
@@ -2613,6 +2632,11 @@ public class SQLServerStatement implements ISQLServerStatement {
             lock.unlock();
         }
     }
+
+    protected void setAutoGeneratedKey(SQLServerResultSet rs) {
+        autoGeneratedKeys = rs;
+    }
+
 }
 
 

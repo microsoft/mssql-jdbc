@@ -30,7 +30,6 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 
 import java.util.Set;
 import java.util.UUID;
-
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -104,8 +103,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testAkvName(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        SQLServerColumnEncryptionAzureKeyVaultProvider akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(
-                applicationClientID, applicationKey);
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = akvProvider;
         String keystoreName = "keystoreName";
         akv.setName(keystoreName);
         assertTrue(akv.getName().equals(keystoreName), "AKV name: " + akv.getName() + " keystoreName: " + keystoreName);
@@ -135,6 +133,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @SuppressWarnings("unused")
     @ParameterizedTest
     @MethodSource("enclaveParams")
+    @Tag(Constants.requireSecret)
     public void testBadAkvCallback(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -208,8 +207,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testAkvBadEncryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = akvProvider;
 
         // null encryptedColumnEncryptionKey
         try {
@@ -287,8 +285,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     public void testAkvDecryptColumnEncryptionKey(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
-        SQLServerColumnEncryptionAzureKeyVaultProvider akv = null;
-        akv = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID, applicationKey);
+        SQLServerColumnEncryptionAzureKeyVaultProvider akv = akvProvider;
 
         // null akvpath
         try {
@@ -311,7 +308,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
             akv.decryptColumnEncryptionKey("http:///^[!#$&-;=?-[]_a-", "", null);
             fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_AKVURLInvalid")), e.getMessage());
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_URLInvalid")), e.getMessage());
         }
 
         // null encryptedColumnEncryptionKey
@@ -2269,6 +2266,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void testAkvNameWithAuthCallback(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -2287,6 +2285,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void testAkvNameWithTokenCredential(String serverName, String url, String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
@@ -2308,6 +2307,7 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     @ParameterizedTest
     @MethodSource("enclaveParams")
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void testAkvBadEncryptColumnEncryptionKeyWithAuthCallback(String serverName, String url,
             String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);

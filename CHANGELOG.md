@@ -3,6 +3,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.10.0] Stable Release
+### Added
+- Added provision to set SQLServerBulkCopy options in PreparedStatement [#2555](https://github.com/microsoft/mssql-jdbc/pull/2555)
+### Changed
+- Changed the scope of BULK_COPY_OPERATION_CACHE to connection [#2594](https://github.com/microsoft/mssql-jdbc/pull/2594)
+- Added "requireSecret" exclude tag for tests which require adding a secret to app registration [#2596](https://github.com/microsoft/mssql-jdbc/pull/2596)
+- Added com.ibm.security.auth.module and com.sun.security.auth.module as option import [#2609](https://github.com/microsoft/mssql-jdbc/pull/2609)
+- Updated driver dependency versions [#2614](https://github.com/microsoft/mssql-jdbc/pull/2614)
+### Fixed issues
+- Introduced timeouts for MSAL calls [#2562](https://github.com/microsoft/mssql-jdbc/pull/2562)
+- Fixed getGeneratedKeys functionality for execute API [#2554](https://github.com/microsoft/mssql-jdbc/pull/2554)
+- Fixed ISQLServerConnection java doc reference [#2560](https://github.com/microsoft/mssql-jdbc/pull/2560)
+- Fixed OffsetDateTime conversion for pre-Gregorian dates [#2568](https://github.com/microsoft/mssql-jdbc/pull/2568)
+- Fix for driver cutting out the question mark from columns labels (aliases) [#2569](https://github.com/microsoft/mssql-jdbc/pull/2569)
+- Fixed issue with SQLServerBulkCopy from CSV with setEscapeColumnDelimerts set to true [#2575](https://github.com/microsoft/mssql-jdbc/pull/2575)
+- Fixed issue for finding `mssql-jdbc.properties` location in test environments [#2579](https://github.com/microsoft/mssql-jdbc/pull/2579)
+- Fixed issue for IBM Semeru Runtime Certified Edition for z/OS and Kerberos [#2581](https://github.com/microsoft/mssql-jdbc/pull/2581)
+- Set appropriate value to requestedEncryptionLevel for encrypt=STRICT [#2597](https://github.com/microsoft/mssql-jdbc/pull/2597)
+- Add test for ManagedIdentityWithEncryptStrict [#2599](https://github.com/microsoft/mssql-jdbc/pull/2599)
+- Check for null when getting DTV values (JDBC spec compliance - getBinaryStream /getAsciiStream will return null when the value is null) [#2600](https://github.com/microsoft/mssql-jdbc/pull/2600)
+- Removed scheme from URI before fetching path for CRL path check [#2622](https://github.com/microsoft/mssql-jdbc/pull/2622)
+
+## [12.9.0] Preview Release
+### Added
+- Added configurable retry logic feature, supporting both statement, and connection, retry [#2396](https://github.com/microsoft/mssql-jdbc/pull/2396)[#2519](https://github.com/microsoft/mssql-jdbc/pull/2519)
+- Added JDK 23 support [#2515](https://github.com/microsoft/mssql-jdbc/pull/2515)
+
+### Changed
+- Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature [#2488](https://github.com/microsoft/mssql-jdbc/pull/2488)
+- Changed MSAL logging from FINEST to FINER [#2489](https://github.com/microsoft/mssql-jdbc/pull/2489)
+- Updated project pom file to pull dependencies from public Azure Artifacts Feed [#2504](https://github.com/microsoft/mssql-jdbc/pull/2504)
+- Changed how Kerberos authentication acquires subject to provide compatibility for Kerberos with Java 23 and above [#2539](https://github.com/microsoft/mssql-jdbc/pull/2539)
+- Removed user and password check for AccessTokenCallback [#2549](https://github.com/microsoft/mssql-jdbc/pull/2549)
+
+### Fixed issues
+- Changed driver behavior to allow prepared statement objects to be reused, preventing a "multiple queries are not allowed" error [#2482](https://github.com/microsoft/mssql-jdbc/pull/2482)
+- Adjusted DESTINATION_COL_METADATA_LOCK, in SQLServerBulkCopy, so that is properly released in all cases [#2484](https://github.com/microsoft/mssql-jdbc/pull/2484)
+- Fixed connection retry behavior when `connectRetryCount` is set to a value greater than 1 [#2513](https://github.com/microsoft/mssql-jdbc/pull/2513)
+- Resolved JavaDoc warnings that would appear during project build [#2521](https://github.com/microsoft/mssql-jdbc/pull/2521)
+- Fixed infinite loop when removing open statement [#2547](https://github.com/microsoft/mssql-jdbc/pull/2547)
+
 ## [12.8.0] Stable Release
 ### Fixed issues
 - Fixed regression with specifying argument names in callable statement syntax [#2480](https://github.com/microsoft/mssql-jdbc/pull/2480)

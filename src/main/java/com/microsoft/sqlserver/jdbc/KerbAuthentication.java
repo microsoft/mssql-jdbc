@@ -5,8 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.security.AccessControlContext;
-import java.security.AccessController;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
@@ -43,9 +43,13 @@ final class KerbAuthentication extends SSPIAuthentication {
     private GSSContext peerContext = null;
 
     static {
-        // Overrides the default JAAS configuration loader.
-        // This one will forward to the default one in all cases but the default configuration is empty.
-        Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
+        try {
+            // Overrides the default JAAS configuration loader.
+            // This one will forward to the default one in all cases but the default configuration is empty.
+            Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
+        } catch (SQLServerException e) {
+            throw new RuntimeException("Failed to set JAAS configuration: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -96,8 +100,22 @@ final class KerbAuthentication extends SSPIAuthentication {
                 Subject currentSubject;
                 KerbCallback callback = new KerbCallback(con);
                 try {
-                    AccessControlContext context = AccessController.getContext();
-                    currentSubject = Subject.getSubject(context);
+
+                    try {
+                        java.security.AccessControlContext context = java.security.AccessController.getContext();
+                        currentSubject = Subject.getSubject(context);
+
+                    } catch (UnsupportedOperationException ue) {
+                        if (authLogger.isLoggable(Level.FINE)) {
+                            authLogger.fine("JDK version does not support Subject.getSubject(), " +
+                                    "falling back to Subject.current() : " + ue.getMessage());
+                        }
+
+                        Method current = Subject.class.getDeclaredMethod("current");
+                        current.setAccessible(true);
+                        currentSubject = (Subject) current.invoke(null);
+                    }
+
                     if (null == currentSubject) {
                         if (useDefaultJaas) {
                             lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
@@ -161,6 +179,12 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ge);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
+            if (authLogger.isLoggable(Level.FINER)) {
+                authLogger.finer(toString() + "initAuthInit failed reflection exception:-" + ex);
+            }
+            con.terminate(SQLServerException.DRIVER_ERROR_NONE,
+                    SQLServerException.getErrString("R_integratedAuthenticationFailed"), ex);
         }
     }
 

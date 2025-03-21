@@ -7,6 +7,10 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -21,6 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
@@ -128,6 +133,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_HAS_BEEN_CLOSED = TestResource.getResource("R_hasBeenClosed");
     static final String ERR_MSG_SIGNIN_TOO_MANY = TestResource.getResource("R_signinTooManyTimes");
     static final String ERR_FAULT_ID3342 = "FaultMessage: ID3242";
+    static final String ERR_FAULT_AUTH_FAIL = "FaultMessage: Authentication Failure";
     static final String ERR_MSG_NOT_AUTH_AND_IS = TestUtils.R_BUNDLE
             .getString("R_SetAuthenticationWhenIntegratedSecurityTrue");
     static final String ERR_MSG_NOT_AUTH_AND_USER_PASSWORD = TestUtils.R_BUNDLE
@@ -215,25 +221,21 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
+        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                .clientId(akvProviderManagedClientId).build();
+
         while (retry <= THROTTLE_RETRY_COUNT) {
             try {
-                Set<String> scopes = new HashSet<>();
-                scopes.add(spn + "/.default");
-                if (null == fedauthClientApp) {
-                    IClientCredential credential = ClientCredentialFactory.createFromSecret(applicationKey);
-                    fedauthClientApp = ConfidentialClientApplication.builder(applicationClientID, credential)
-                            .executorService(Executors.newFixedThreadPool(1))
-                            .setTokenCacheAccessAspect(FedauthTokenCache.getInstance()).authority(stsurl).build();
+                TokenRequestContext requestContext = new TokenRequestContext()
+                        .setScopes(Collections.singletonList(spn + "/.default"));
+
+                AccessToken token = credential.getToken(requestContext).block();
+
+                if (token != null) {
+                    secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                            .toSeconds(token.getExpiresAt().toInstant().toEpochMilli() - new Date().getTime());
+                    accessToken = token.getToken();
                 }
-
-                final CompletableFuture<IAuthenticationResult> future = fedauthClientApp
-                        .acquireToken(ClientCredentialParameters.builder(scopes).build());
-
-                final IAuthenticationResult authenticationResult = future.get();
-
-                secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                        .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-                accessToken = authenticationResult.accessToken();
 
                 retry = THROTTLE_RETRY_COUNT + 1;
             } catch (MsalThrottlingException te) {

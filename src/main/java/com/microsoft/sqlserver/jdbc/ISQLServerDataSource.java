@@ -610,25 +610,6 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultGSSCredential();
 
     /**
-     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
-     *
-     * @param useFlexibleCallableStatements
-     *        When set to false, sp_sproc_columns is not used for parameter name lookup
-     *        in callable statements. This eliminates a round trip to the server but imposes limitations
-     *        on how parameters are set. When set to false, applications must either reference
-     *        parameters by name or by index, not both. Parameters must also be set in the same
-     *        order as the stored procedure definition.
-     */
-    void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
-
-    /**
-     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
-     *
-     * @return useFlexibleCallableStatements
-     */
-    boolean getUseFlexibleCallableStatements();
-
-    /**
      * Sets the GSSCredential.
      *
      * @param userCredential
@@ -1000,6 +981,111 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
+     * Sets the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertBatchSize
+     *        the default batch size for bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
+
+    /**
+     * Returns the default batch size for bulk copy operations created from batch insert operations.
+     * 
+     * @return the default batch size for bulk copy operations created from batch insert operations.
+     */
+    int getBulkCopyForBatchInsertBatchSize();
+
+    /**
+     * Sets whether to check constraints during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertCheckConstraints
+     *        indicates whether to check constraints during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
+
+    /**
+     * Returns whether to check constraints during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to check constraints during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertCheckConstraints();
+
+    /**
+     * Sets whether to fire triggers during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertFireTriggers
+     *        indicates whether to fire triggers during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers);
+
+    /**
+     * Returns whether to fire triggers during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to fire triggers during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertFireTriggers();
+
+    /**
+     * Sets whether to keep identity values during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepIdentity
+     *        indicates whether to keep identity values during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity);
+
+    /**
+     * Returns whether to keep identity values during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to keep identity values during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertKeepIdentity();
+
+    /**
+     * Sets whether to keep null values during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertKeepNulls
+     *        indicates whether to keep null values during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls);
+
+    /**
+     * Returns whether to keep null values during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to keep null values during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertKeepNulls();
+
+    /**
+     * Sets whether to use table lock during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertTableLock
+     *        indicates whether to use table lock during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock);
+
+    /**
+     * Returns whether to use table lock during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to use table lock during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertTableLock();
+
+    /**
+     * Sets whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * 
+     * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
+     *        indicates whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     */
+    void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications);
+
+    /**
+     * Returns whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * 
+     * @return whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     */
+    boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+        
+    /**
      * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
      * 
      * @param managedIdentityClientId
@@ -1365,4 +1451,59 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
+  
+   /**
+     * Returns value of 'retryExec' from Connection String.
+     *
+     * @param retryExec
+     *        Set of rules used for statement (execution) retry
+     */
+    void setRetryExec(String retryExec);
+
+    /**
+     * Sets the value for 'retryExec' property
+     *
+     * @return retryExec
+     *         String value
+     */
+    String getRetryExec();
+
+    /**
+     * Returns value of 'retryConn' from Connection String.
+     *
+     * @param retryConn
+     *          Set of rules used for connection retry
+     */
+    void setRetryConn(String retryConn);
+
+    /**
+     * Sets the value for 'retryConn' property
+     *
+     * @return retryConn
+     *         String value
+     */
+    String getRetryConn();
+
+    /**
+     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
+     *
+     * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
+     *
+     * @param useFlexibleCallableStatements
+     *        When set to false, sp_sproc_columns is not used for parameter name lookup
+     *        in callable statements. This eliminates a round trip to the server but imposes limitations
+     *        on how parameters are set. When set to false, applications must either reference
+     *        parameters by name or by index, not both. Parameters must also be set in the same
+     *        order as the stored procedure definition.
+     */
+    void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
+
+    /**
+     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
+     *
+     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
+     *
+     * @return useFlexibleCallableStatements
+     */
+    boolean getUseFlexibleCallableStatements();
 }
