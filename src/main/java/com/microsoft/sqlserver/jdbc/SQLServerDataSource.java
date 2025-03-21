@@ -948,17 +948,15 @@ public class SQLServerDataSource
 
     @Override
     public void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata) {
-        setBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
                 cacheBulkCopyMetadata);
     }
 
     @Override
     public boolean getcacheBulkCopyMetadata() {
-        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE
-                .getDefaultValue();
-        return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(), defaultValue);
+        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue();
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
+                defaultValue);
     }
 
     @Override
@@ -1392,7 +1390,6 @@ public class SQLServerDataSource
     @Override
     public void setUseFlexibleCallableStatements(boolean enable) {}
 
-
     /**
      * useFlexibleCallableStatements is temporarily removed.
      * This method is a no-op for backwards compatibility only.
@@ -1492,6 +1489,29 @@ public class SQLServerDataSource
     @Override
     public String getRetryExec() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), null);
+    }
+
+    @Override
+    public String getQuotedIdentifier() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
+                SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue());
+    }
+
+    @Override
+    public void setQuotedIdentifier(String quotedIdentifier) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(), quotedIdentifier);
+    }
+
+    @Override
+    public String getConcatNullYieldsNull() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
+                SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue());
+    }
+
+    @Override
+    public void setConcatNullYieldsNull(String concatNullYieldNull) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
+                concatNullYieldNull);
     }
 
     /**
