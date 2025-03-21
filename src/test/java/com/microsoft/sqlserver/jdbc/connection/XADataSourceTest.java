@@ -20,14 +20,14 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.reqExternalSetup)
 public class XADataSourceTest extends AbstractTest {
-    private static String connectionUrlSSL = connectionString + ";encrypt=true;trustServerCertificate=false;";
+    private static String connectionUrlSSL = connectionString;
 
     /**
      * Tests XA connection with PKCS12 truststore that is password protected.
-     * 
+     *
      * Only re-populate the truststore if need arises in the future. TestUtils.createTrustStore() can be used to create
      * the truststore.
-     * 
+     *
      * @throws Exception
      */
     @Tag(Constants.xAzureSQLDB)

@@ -24,6 +24,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class ErrorMessageTest extends FedauthCommon {
 
     String badUserName = "abc" + azureUserName;
