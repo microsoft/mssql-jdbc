@@ -899,6 +899,9 @@ final class Parameter {
                 case SQLXML:
                     param.typeDefinition = SSType.XML.toString();
                     break;
+                case VECTOR:
+                    param.typeDefinition = SSType.VECTOR.toString();
+                    break;
 
                 case TVP:
                     // definition should contain the TVP name and the keyword READONLY
