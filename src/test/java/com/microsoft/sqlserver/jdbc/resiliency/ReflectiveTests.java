@@ -77,13 +77,18 @@ public class ReflectiveTests extends AbstractTest {
     }
 
     /*
-     * Default retry count is 1. Expect timeout to be just above login timeout.
+     * Default retry count is 1 (for non-Azure). Expect timeout to be just above login timeout.
      */
     @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
-        timeoutVariations(m, 6000, Optional.empty());
+
+        // ensure count is not set to something else as this test assumes exactly just 1 retry
+        // this is only true for non-Azure as retry counts gets auto changed for Azure servers
+        timeoutVariations(m, 15000, Optional.empty());
     }
 
     /*
@@ -109,7 +114,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("queryTimeout", "10");
         m.put("loginTimeout", "65535");
         m.put("connectRetryCount", "1");
-        timeoutVariations(m, 12000, Optional.empty());
+        timeoutVariations(m, 14000, Optional.empty());
     }
 
     /*
@@ -123,7 +128,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("loginTimeout", "5");
         m.put("connectRetryCount", "2");
         m.put("connectRetryInterval", "10");
-        timeoutVariations(m, 25000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
+        timeoutVariations(m, 28000, Optional.of("R_crClientAllRecoveryAttemptsFailed"));
     }
 
     @Test

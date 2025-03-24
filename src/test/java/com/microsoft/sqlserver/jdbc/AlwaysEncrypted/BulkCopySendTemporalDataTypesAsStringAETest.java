@@ -57,6 +57,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.reqExternalSetup)
 public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
     static String encoding = "UTF-8";

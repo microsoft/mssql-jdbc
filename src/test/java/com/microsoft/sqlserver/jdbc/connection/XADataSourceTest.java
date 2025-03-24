@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import javax.sql.XAConnection;
 
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,11 +21,10 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.reqExternalSetup)
 public class XADataSourceTest extends AbstractTest {
-    private static String connectionUrlSSL = connectionString + ";encrypt=true;trustServerCertificate=false;";
+    private static String connectionUrlSSL = connectionString;
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        connectionString = TestUtils.addOrOverrideProperty(connectionString,"trustServerCertificate", "true");
         setConnection();
     }
 

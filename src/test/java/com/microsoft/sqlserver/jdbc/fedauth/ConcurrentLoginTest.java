@@ -23,6 +23,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
+@Tag(Constants.requireSecret)
 public class ConcurrentLoginTest extends FedauthCommon {
 
     final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
