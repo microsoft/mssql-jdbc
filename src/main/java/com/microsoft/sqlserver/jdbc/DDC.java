@@ -29,6 +29,8 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Utility class for all Data Dependent Conversions (DDC).
@@ -726,13 +728,14 @@ final class DDC {
                 case VARBINARY:
                 case LONGVARBINARY:
                 case BLOB:
-                case VECTOR:
                     // Where allowed, streams convert directly to binary representation
                     if (StreamType.BINARY == getterArgs.streamType)
                         return stream;
                     if (JDBCType.BLOB == jdbcType)
                         return new SQLServerBlob(stream);
                     return stream.getBytes();
+                case VECTOR:
+                    return new Vector(stream.getBytes());
                 case CHAR:
                 case VARCHAR:
                 case LONGVARCHAR:
