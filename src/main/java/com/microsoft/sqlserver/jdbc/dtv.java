@@ -3800,12 +3800,17 @@ final class ServerDTVImpl extends DTVImpl {
                 case IMAGE:
                 case BINARY:
                 case VARBINARY:
-                case VECTOR:
                 case TIMESTAMP: // A special BINARY(8)
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,
                             streamGetterArgs);
+                    break;
+                }
+                case VECTOR: {
+                    convertedValue = DDC.convertStreamToObject(
+                            new VectorInputStream(tdsReader, valueLength, streamGetterArgs, this),
+                            typeInfo, jdbcType, streamGetterArgs);
                     break;
                 }
 
