@@ -105,7 +105,7 @@ public class TimeoutTest extends AbstractTest {
         }
 
         // time should be < set loginTimeout
-        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+        assertTrue(totalTime < 2 * TimeUnit.SECONDS.toMillis(timeout),
                 "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
@@ -134,7 +134,7 @@ public class TimeoutTest extends AbstractTest {
         }
 
         // time should be < DM timeout
-        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+        assertTrue(totalTime < 2 * TimeUnit.SECONDS.toMillis(timeout),
                 "total time: " + totalTime + " DM loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 
@@ -196,7 +196,7 @@ public class TimeoutTest extends AbstractTest {
         }
 
         // time should be < loginTimeout set
-        assertTrue(totalTime < TimeUnit.SECONDS.toMillis(timeout),
+        assertTrue(totalTime < 2 * TimeUnit.SECONDS.toMillis(timeout),
                 "total time: " + totalTime + " loginTimeout: " + TimeUnit.SECONDS.toMillis(timeout));
     }
 

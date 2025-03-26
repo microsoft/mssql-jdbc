@@ -11,7 +11,7 @@
 
 apply plugin: 'java'
 
-version = '11.2.3'
+version = '11.2.4'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -129,8 +129,8 @@ repositories {
 dependencies {
     implementation 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.service.jdbc:1.1.0'
-	compileOnly 'com.azure:azure-security-keyvault-keys:4.9.1',
-			'com.azure:azure-identity:1.15.0',
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.9.2',
+			'com.azure:azure-identity:1.15.3',
 			'org.antlr:antlr4-runtime:4.9.3',
 			'com.google.code.gson:gson:2.11.0',
 			'org.bouncycastle:bcprov-jdk18on:1.79',
