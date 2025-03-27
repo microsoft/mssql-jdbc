@@ -2499,7 +2499,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(columnIndex);
-        } else if (type == Vector.class) {
+        } else if (type == microsoft.sql.Vector.class) { 
             returnValue = getVector(columnIndex); 
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
@@ -3068,20 +3068,20 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     @Override
-    public Vector getVector(int columnIndex) throws SQLServerException {
+    public microsoft.sql.Vector getVector(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getVector", columnIndex);
         checkClosed();
-        Vector vector = (Vector) getValue(columnIndex, JDBCType.VECTOR);
+        microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(columnIndex, JDBCType.VECTOR))); 
         loggerExternal.exiting(getClassNameLogging(), "getVector", vector);
         return vector;
     }
 
     @Override
-    public Vector getVector(String columnLabel) throws SQLServerException {
+    public microsoft.sql.Vector getVector(String columnLabel) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getVector", columnLabel);
         checkClosed();
-        Vector vector = (Vector) getValue(findColumn(columnLabel), JDBCType.VECTOR);
-        loggerExternal.exiting(getClassNameLogging(), "getVector", columnLabel);
+        microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(findColumn(columnLabel), JDBCType.VECTOR))); 
+        loggerExternal.exiting(getClassNameLogging(), "getVector", vector);
         return vector;
     }
     
