@@ -315,7 +315,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    Vector getVector(int columnIndex) throws SQLServerException;
+    microsoft.sql.Vector getVector(int columnIndex) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a microsoft.sql.Vector object.
@@ -326,7 +326,7 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @throws SQLServerException
      *         If any errors occur.
      */
-    Vector getVector(String columnLabel) throws SQLServerException;
+    microsoft.sql.Vector getVector(String columnLabel) throws SQLServerException;
 
     /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
