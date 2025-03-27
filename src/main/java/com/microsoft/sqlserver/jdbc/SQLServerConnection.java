@@ -2194,7 +2194,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // For example, if this is a session recovery reconnect.
         //
         if (enclaveProvider != null) {
-            connectionlogger.fine("Invalidating existing enclave session");
+            if (connectionlogger.isLoggable(Level.FINE)) {
+                connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
+            }
             enclaveProvider.invalidateEnclaveSession();
         }
 
