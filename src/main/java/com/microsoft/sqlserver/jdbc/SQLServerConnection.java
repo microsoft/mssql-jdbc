@@ -833,7 +833,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * boolean value for deciding if the driver should use bulk copy API for batch inserts.
      */
     private boolean useBulkCopyForBatchInsert;
-    
+
     /**
      * Returns the useBulkCopyForBatchInsert value.
      * 
@@ -843,7 +843,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public boolean getUseBulkCopyForBatchInsert() {
         return useBulkCopyForBatchInsert;
     }
-    
+
     /**
      * Specifies the flag for using Bulk Copy API for batch insert operations.
      * 
@@ -855,7 +855,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.useBulkCopyForBatchInsert = useBulkCopyForBatchInsert;
     }
 
-    /** 
+    /**
      * The default batch size for bulk copy operations created from batch insert operations.
      */
     private int bulkCopyForBatchInsertBatchSize = 0;
@@ -879,7 +879,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertBatchSize = bulkCopyForBatchInsertBatchSize;
     }
 
-    /** 
+    /**
      * Whether to check constraints during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertCheckConstraints = false;
@@ -912,7 +912,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return bulkCopyForBatchInsertFireTriggers;
     }
 
-    /** 
+    /**
      * Whether to fire triggers during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertFireTriggers = false;
@@ -927,7 +927,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertFireTriggers = bulkCopyForBatchInsertFireTriggers;
     }
 
-    /** 
+    /**
      * Whether to keep identity values during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertKeepIdentity = false;
@@ -951,7 +951,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertKeepIdentity = bulkCopyForBatchInsertKeepIdentity;
     }
 
-    /** 
+    /**
      * Whether to keep null values during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertKeepNulls = false;
@@ -975,7 +975,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertKeepNulls = bulkCopyForBatchInsertKeepNulls;
     }
 
-    /** 
+    /**
      * Whether to use table lock during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertTableLock = false;
@@ -999,11 +999,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertTableLock = bulkCopyForBatchInsertTableLock;
     }
 
-    /** 
+    /**
      * Whether to allow encrypted value modifications during bulk copy operations.
      */
     private boolean bulkCopyForBatchInsertAllowEncryptedValueModifications = false;
-
 
     /**
      * Returns the bulkCopyForBatchInsertAllowEncryptedValueModifications value.
@@ -1020,7 +1019,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
      *        the bulkCopyForBatchInsertAllowEncryptedValueModifications value to set.
      */
-    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
         this.bulkCopyForBatchInsertAllowEncryptedValueModifications = bulkCopyForBatchInsertAllowEncryptedValueModifications;
     }
 
@@ -1258,6 +1258,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.retryExec = retryExec;
     }
 
+    /** configurable connection retry rules */
     private String retryConn = SQLServerDriverStringProperty.RETRY_CONN.getDefaultValue();
 
     /**
@@ -1763,6 +1764,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** transaction descriptor */
     private byte[] transactionDescriptor = new byte[8];
 
+    /** bulkcopy operation cache */
     final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = new HashMap<>();
 
     /**
@@ -1785,6 +1787,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     final HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> getBulkCopyOperationCache() {
         return bulkCopyOperationCache;
     }
+
     /**
      * This function actually represents whether a database session is not open. The session is not available before the
      * session is established and after the session is closed.
@@ -2044,7 +2047,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             preparedStatementHandleCache.clear();
         }
 
-        //clear bulk copy operation cache for this connection
+        // clear bulk copy operation cache for this connection
         if (null != bulkCopyOperationCache) {
             bulkCopyOperationCache.clear();
         }
@@ -3331,12 +3334,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     bulkCopyForBatchInsertTableLock = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
-                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString();
+                sPropKey = SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS
+                        .toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     bulkCopyForBatchInsertAllowEncryptedValueModifications = isBooleanPropertyOn(sPropKey, sPropValue);
-                }                
-                
+                }
+
                 sPropKey = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
@@ -6354,7 +6358,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()), millisecondsRemaining);
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                        millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6383,7 +6388,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
                         servicePrincipalCertificate,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString, millisecondsRemaining);
+                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString,
+                        millisecondsRemaining);
 
                 // Break out of the retry loop in successful case.
                 break;
@@ -6464,7 +6470,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
                         throw new SQLServerException(form.format(msgArgs), null, 0, null);
                     }
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString, millisecondsRemaining);
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString,
+                            millisecondsRemaining);
                 }
                 // Break out of the retry loop in successful case.
                 break;
@@ -6487,7 +6494,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()), millisecondsRemaining);
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                        millisecondsRemaining);
 
                 break;
             }
@@ -6904,8 +6912,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String sPwd = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString());
         String appName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
-                String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
-        //String interfaceLibName = SQLServerDriver.constructedAppName;
+        String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
+        // String interfaceLibName = SQLServerDriver.constructedAppName;
         String databaseName = activeConnectionProperties
                 .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
 
@@ -7874,7 +7882,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original bulkCopyForBatchInsertAllowEncryptedValueModifications flag */
     private boolean originalBulkCopyForBatchInsertAllowEncryptedValueModifications;
-    
+
     /** original SqlWarnings */
     private volatile SQLWarning originalSqlWarnings;
 
@@ -7974,7 +7982,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (!sCatalog.equals(originalSCatalog)) {
                     setCatalog(originalSCatalog);
                 }
-                
+
                 if (getUseBulkCopyForBatchInsert() != originalUseBulkCopyForBatchInsert) {
                     setUseBulkCopyForBatchInsert(originalUseBulkCopyForBatchInsert);
                 }
@@ -8004,7 +8012,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 if (getBulkCopyForBatchInsertAllowEncryptedValueModifications() != originalBulkCopyForBatchInsertAllowEncryptedValueModifications) {
-                    setBulkCopyForBatchInsertAllowEncryptedValueModifications(originalBulkCopyForBatchInsertAllowEncryptedValueModifications);
+                    setBulkCopyForBatchInsertAllowEncryptedValueModifications(
+                            originalBulkCopyForBatchInsertAllowEncryptedValueModifications);
                 }
 
                 if (delayLoadingLobs != originalDelayLoadingLobs) {
