@@ -1006,30 +1006,12 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.JAAS_CONFIG_NAME.toString(),
                 SQLServerDriverStringProperty.JAAS_CONFIG_NAME.getDefaultValue());
     }
-
-    /**
-     * This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
-     *
-     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
-     *
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
-     */
-    @Deprecated
+    
     @Override
-    public void setMSIClientId(String managedIdentityClientId) {
-        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
-                managedIdentityClientId);
+    public void setMSIClientId(String msiClientId) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(), msiClientId);
     }
-
-    /**
-     * This method is deprecated. Use {@link SQLServerDataSource#getUser()} instead.
-     *
-     * Returns the value for the connection property 'msiClientId'.
-     *
-     * @return msiClientId property value
-     */
-    @Deprecated
+    
     @Override
     public String getMSIClientId() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
@@ -1205,23 +1187,16 @@ public class SQLServerDataSource
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                 SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue());
     }
-
-    /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method will always return 0 and is for backwards compatibility only.
-     */
-    @Deprecated
+    
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {}
-
-    /**
-     * Deprecated. Time-to-live is no longer supported for the cached Managed Identity tokens.
-     * This method is a no-op for backwards compatibility only.
-     */
-    @Deprecated
+    public void setMsiTokenCacheTtl(int timeToLive) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(), timeToLive);
+    }
+    
     @Override
     public int getMsiTokenCacheTtl() {
-        return 0;
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.toString(),
+                SQLServerDriverIntProperty.MSI_TOKEN_CACHE_TTL.getDefaultValue());
     }
 
     /**

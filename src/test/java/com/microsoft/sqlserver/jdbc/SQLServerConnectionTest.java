@@ -201,6 +201,9 @@ public class SQLServerConnectionTest extends AbstractTest {
         ds.setPrepareMethod(stringPropValue);
         assertEquals(stringPropValue, ds.getPrepareMethod(), TestResource.getResource("R_valuesAreDifferent"));
 
+        ds.setMsiTokenCacheTtl(intPropValue);
+        assertEquals(intPropValue, ds.getMsiTokenCacheTtl(), TestResource.getResource("R_valuesAreDifferent"));
+        
         ds.setHostNameInCertificate(stringPropValue);
         assertEquals(stringPropValue, ds.getHostNameInCertificate(), TestResource.getResource("R_valuesAreDifferent"));
 
@@ -1048,8 +1051,8 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(emptyServerNameField)) {}
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(invalidServerNameField)) {} catch (SQLException e) {
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(invalidServerNameField)) {
+        } catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }

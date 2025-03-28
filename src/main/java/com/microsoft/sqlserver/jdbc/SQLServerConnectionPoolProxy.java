@@ -638,7 +638,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Deprecated
     @Override
     public int getMsiTokenCacheTtl() {
-        return 0;
+        return wrappedConnection.getMsiTokenCacheTtl();
     }
 
     /**
@@ -647,5 +647,5 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      */
     @Deprecated
     @Override
-    public void setMsiTokenCacheTtl(int timeToLive) {}
+    public void setMsiTokenCacheTtl(int timeToLive) {wrappedConnection.setMsiTokenCacheTtl(timeToLive);}
 }

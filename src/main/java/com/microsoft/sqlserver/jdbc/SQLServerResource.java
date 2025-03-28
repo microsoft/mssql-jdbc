@@ -339,7 +339,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_NtlmNoUserPasswordDomain", "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},
         {"R_SetAccesstokenWhenIntegratedSecurityTrue", "Cannot set the AccessToken property if the \"IntegratedSecurity\" connection string keyword has been set to \"true\"."},
         {"R_IntegratedAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryIntegrated\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
-        {"R_MSIAuthenticationWithPassword", "Cannot use \"Authentication={0}\" with \"Password\" connection string keyword."},
+            {"R_MSIAuthenticationWithUserPassword", "Cannot use \"Authentication=ActiveDirectoryMSI\" with \"User\", \"UserName\" or \"Password\" connection string keywords."},
         {"R_AccessTokenWithUserPassword", "Cannot set the AccessToken property if \"User\", \"UserName\" or \"Password\" has been specified in the connection string."},
         {"R_AccessTokenCannotBeEmpty", "AccesToken cannot be empty."},
         {"R_SetBothAuthenticationAndAccessToken", "Cannot set the AccessToken property if \"Authentication\" has been specified in the connection string."},
@@ -515,7 +515,11 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_SecureStringInitFailed", "Failed to initialize SecureStringUtil to store secure strings"},
         {"R_ALPNFailed", "Failed to negotiate Application-Layer Protocol {0}. Server returned: {1}."},
         {"R_serverError", "An error occurred during the current command (Done status {0})."},
-        {"R_ManagedIdentityTokenAcquisitionFail", "Failed to acquire managed identity token. Request for the token succeeded, but no token was returned. The token is null."}
+            {"R_msiTokenCacheTtlPropertyDescription", "The number of seconds a Managed Identity (MSI) access token should be cached."},
+            {"R_MSITokenFailureImds", "MSI Token failure: Failed to acquire access token from IMDS"},
+            {"R_MSITokenFailureImdsClientId", "MSI Token failure: Failed to acquire access token from IMDS, verify your clientId."},
+            {"R_MSITokenFailureUnexpected", "MSI Token failure: Failed to acquire access token from IMDS, unexpected error occurred."},
+            {"R_invalidMsiTokenCacheTtl", "msiTokenCacheTtl {0} is not valid."}
     };
 }
 // @formatter:on
