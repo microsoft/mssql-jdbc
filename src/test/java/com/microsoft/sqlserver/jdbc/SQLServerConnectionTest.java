@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1402,4 +1403,40 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     } 
 
+    /*
+     * Test to verify the interface library name constructed by the driver
+     * Expected format: MS-JDBC|<OS>|<Architecture>|<OS Details>|<Runtime Details>
+     * Example: MS-JDBC|Windows|amd64|Windows 11 10.0|OpenJDK 64-Bit Server VM 21.0.5+11-LTS
+     */
+    @Test
+    public void testInterfaceLibName() {
+        String expectedLibName = String.format(
+            "%s|%s|%s|%s|%s",
+            "MS-JDBC",
+            SQLServerConnection.getOSType(),
+            SQLServerConnection.getArchitecture(),
+            SQLServerConnection.getOSDetails(),
+            SQLServerConnection.getRuntimeDetails()
+        );
+        assertEquals(expectedLibName, SQLServerConnection.constructedInterfaceLibName);
+    }
+
+    /**
+     * test application name when system properties are empty
+     * 
+     */
+    @Test
+    public void testGetAppName() {
+        String interfaceLibName = SQLServerConnection.getInterfaceLibName();
+        assertNotNull(interfaceLibName, "Interface lib name should not be null");
+        assertFalse(interfaceLibName.isEmpty(), "Iterface lib name should not be empty");
+
+        System.setProperty("os.name", "");
+        System.setProperty("os.arch", "");
+        System.setProperty("os.version", "");
+        System.setProperty("java.vm.name", "");
+        System.setProperty("java.vm.version", "");
+        String defaultAppName = SQLServerConnection.getInterfaceLibName();
+        assertEquals("MS-JDBC|Unknown|Unknown|Unknown|Unknown", defaultAppName);
+    }
 }
