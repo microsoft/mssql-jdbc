@@ -208,7 +208,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             // the stored procedure for cursorable ones differently ( calling sp_cursorexecute r sp_cursorprepexec.
             if (bReturnValueSyntax && inOutParam[i - 1].isValueGotten() && inOutParam[i - 1].isReturnValue()
                     && !isReturnValueAccessed && !isCursorable(executeMethod) && !isTVPType
-                    && callRPCDirectly(inOutParam)) {
+                    && makeRPC(inOutParam)) {
                 nOutParamsAssigned++;
                 isReturnValueAccessed = true;
             }
@@ -364,7 +364,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         OutParamHandler outParamHandler = new OutParamHandler();
 
         if (bReturnValueSyntax && (nOutParamsAssigned == 0) && !isCursorable(executeMethod) && !isTVPType
-                && callRPCDirectly(inOutParam) && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
+                && makeRPC(inOutParam) && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
             nOutParamsAssigned++;
         }
 
@@ -412,7 +412,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // considered to be an output parameter.
                 outParamIndex = outParamHandler.srv.getOrdinalOrLength();
 
-                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && callRPCDirectly(inOutParam)
+                if (bReturnValueSyntax && !isCursorable(executeMethod) && !isTVPType && makeRPC(inOutParam)
                         && returnValueStatus != USER_DEFINED_FUNCTION_RETURN_STATUS) {
                     outParamIndex++;
                 } else {

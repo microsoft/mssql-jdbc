@@ -1470,8 +1470,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
-<<<<<<< HEAD
-  
+
    /**
      * Returns value of 'retryExec' from Connection String.
      *

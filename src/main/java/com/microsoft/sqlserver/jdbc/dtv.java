@@ -128,7 +128,7 @@ final class DTV {
             .getLogger("com.microsoft.sqlserver.jdbc.DTV");
 
     /** The source (app or server) providing the data for this value. */
-    private DTVImpl impl;
+    DTVImpl impl;
 
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
@@ -2008,7 +2008,7 @@ abstract class DTVImpl {
  */
 final class AppDTVImpl extends DTVImpl {
     private JDBCType jdbcType = JDBCType.UNKNOWN;
-    private Object value;
+    Object value;
     private JavaType javaType;
     private StreamSetterArgs streamSetterArgs;
     private Calendar cal;

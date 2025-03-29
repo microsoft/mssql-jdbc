@@ -72,10 +72,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final String userSQL;
 
     // flag whether is exec escape syntax
-    private boolean isExecEscapeSyntax;
+    private boolean hasExecEscape;
 
     // flag whether is call escape syntax
-    private boolean isCallEscapeSyntax;
+    private boolean hasCallEscape;
+
+    private boolean hasEmbeddedParam;
 
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
@@ -134,20 +136,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * boolean value for deciding if the driver should use bulk copy API for batch inserts
      */
     private boolean useBulkCopyForBatchInsert;
-
-    /**
-     * Regex for JDBC 'call' escape syntax
-     *
-     * Matches {[? =] call sproc ([@arg =] ?, [@arg =] ?, [@arg =] ? ...)}
-     */
-    private static final Pattern callEscapePattern = Pattern
-            .compile("^\\s*(?i)\\{(\\s*\\??\\s*=?\\s*)call [^\\(\\)]+\\s*" +
-                    "((\\(\\s*(.+\\s*=\\s*)?\\?\\s*(,\\s*\\?\\s*)*\\))?|\\(\\))\\s*}");
-
-    /**
-     * Regex for 'exec' escape syntax
-     */
-    private static final Pattern execEscapePattern = Pattern.compile("^\\s*(?i)(?:exec|execute)\\b");
 
     /**
      * For caching data related to batch insert with bulkcopy
@@ -303,8 +291,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         procedureName = parsedSQL.procedureName;
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
-        isExecEscapeSyntax = isExecEscapeSyntax(sql);
-        isCallEscapeSyntax = isCallEscapeSyntax(sql);
+        hasCallEscape = parsedSQL.callEscape;
+        hasExecEscape = parsedSQL.execEscape;
+        hasEmbeddedParam = parsedSQL.embeddedParam;
         userSQLParamPositions = parsedSQL.parameterPositions;
         initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
@@ -464,8 +453,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         preparedTypeDefinitions = newTypeDefinitions;
 
-        /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
-        preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
+        if (hasEmbeddedParam && (hasExecEscape || hasCallEscape)) {
+            // If the CallableStatement has embedded parameter values eg. 'EXEC sp @param0=value0, ?, ?',
+            // retain these values and replace '?' explicitly in the sql string with the parameter values
+            // instead of the parameter numbers @p1, @p2, etc... like the else case
+            preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params);
+        } else {
+            /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
+            preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
+        }
+
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + IDENTITY_QUERY;
 
@@ -705,7 +702,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
-                TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+                TDSWriter tdsWriter = command.startRequest(hasEmbeddedParam ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -887,6 +884,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         outParamIndexAdjustment = 0;
         tdsWriter.writeShort((short) procedureName.length()); // procedure name length
         tdsWriter.writeString(procedureName);
+        if (connection.isAEv2()) {
+            tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
+        }
+
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 1
+        tdsWriter.writeByte((byte) 0); // RPC procedure option 2
+    }
+
+    private void buildParamsNonRPC(TDSWriter tdsWriter) throws SQLServerException {
+        if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+            getStatementLogger().fine(toString() + ": calling PROC" + ", SQL:" + preparedSQL);
+        }
+
+        expectPrepStmtHandle = false;
+        executedSqlDirectly = true;
+        expectCursorOutParams = false;
+        outParamIndexAdjustment = 0;
+        tdsWriter.writeString(preparedSQL);
         if (connection.isAEv2()) {
             tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
         }
@@ -1212,7 +1227,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
-        boolean callRpcDirectly = callRPCDirectly(params);
+        boolean makeRPC = makeRPC(params);
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -1221,8 +1236,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             else
                 buildServerCursorExecParams(tdsWriter);
         } else {
-            // if it is a parameterized stored procedure call and is not TVP, use sp_execute directly.
-            if (needsPrepare && callRpcDirectly) {
+            // If this is a stored procedure with
+            // embedded parameters eg EXEC sp @param1=value1,?,?...
+            if (hasEmbeddedParam && needsPrepare) {
+                buildParamsNonRPC(tdsWriter);
+
+                // Return immediately as we don't need to send the parameters over RPC
+                // as the parameters should be embedded in the 'preparedSQL' string,
+                // which is what is sent to the server
+                return needsPrepare;
+
+            }
+            // If this is a stored procedure, build the RPC call to execute it directly
+            // Can't be a cstmt batch call, as using RPC for batch will cause a significant performance drop
+            else if (makeRPC && needsPrepare && executeMethod != EXECUTE_BATCH) {
                 buildRPCExecParams(tdsWriter);
             }
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
@@ -1254,7 +1281,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax, callRpcDirectly);
+        sendParamsByRPC(tdsWriter, params, bReturnValueSyntax, makeRPC);
 
         return needsPrepare;
     }
@@ -1266,18 +1293,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return
      * @throws SQLServerException
      */
-    boolean callRPCDirectly(Parameter[] params) throws SQLServerException {
+    boolean makeRPC(Parameter[] params) throws SQLServerException {
         int paramCount = SQLServerConnection.countParams(userSQL);
 
         // In order to execute sprocs directly the following must be true:
         // 1. There must be a sproc name
         // 2. There must be parameters
         // 3. Parameters must not be a TVP type
-        // 4. Compliant CALL escape syntax
-        // If isExecEscapeSyntax is true, EXEC escape syntax is used then use prior behaviour of
-        // wrapping call to execute the procedure
-        return (null != procedureName && paramCount != 0 && !isTVPType(params) && isCallEscapeSyntax
-                && !isExecEscapeSyntax);
+        // 4. Compliant CALL escape syntax or compliant EXEC escape syntax
+        return (null != procedureName && paramCount != 0 && !isTVPType(params) && (hasCallEscape || hasExecEscape));
     }
 
     /**
@@ -1295,14 +1319,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         return false;
-    }
-
-    private boolean isExecEscapeSyntax(String sql) {
-        return execEscapePattern.matcher(sql).find();
-    }
-
-    private boolean isCallEscapeSyntax(String sql) {
-        return callEscapePattern.matcher(sql).find();
     }
 
     /**

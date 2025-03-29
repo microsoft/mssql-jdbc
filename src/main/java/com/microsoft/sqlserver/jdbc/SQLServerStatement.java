@@ -2698,9 +2698,24 @@ public class SQLServerStatement implements ISQLServerStatement {
  */
 final class JDBCSyntaxTranslator {
     private String procedureName = null;
+    private boolean callEscape = false;
+    private boolean execEscape = false;
+    private boolean embeddedParam = false;
 
     String getProcedureName() {
         return procedureName;
+    }
+
+    boolean hasCallEscape() {
+        return callEscape;
+    }
+
+    boolean hasExecEscape() {
+        return execEscape;
+    }
+
+    boolean hasEmbeddedParam() {
+        return embeddedParam;
     }
 
     private boolean hasReturnValueSyntax = false;
@@ -2741,6 +2756,12 @@ final class JDBCSyntaxTranslator {
      */
     private final static Pattern SQL_EXEC_SYNTAX = Pattern.compile("\\s*?[eE][xX][eE][cC](?:[uU][tT][eE])??\\s+?("
             + SQL_IDENTIFIER_WITHOUT_GROUPS + "\\s*?=\\s+?)??" + SQL_IDENTIFIER_WITHOUT_GROUPS + "(?:$|(?:\\s+?.*+))");
+
+    private final static Pattern SQL_EXEC_EMBEDDED_PARAM_SYNTAX = Pattern.compile("@([a-zA-Z0-9_-]+)\\s*=\\s*([^?^\\s]+)");
+
+    private final static Pattern COMMAS = Pattern.compile(",");
+
+    private final static Pattern QUESTION_MARKS = Pattern.compile("\\?");
 
     /*
      * JDBC limit escape syntax From the JDBC spec: {LIMIT <rows> [OFFSET <row_offset>]} The driver currently does not
@@ -2974,6 +2995,7 @@ final class JDBCSyntaxTranslator {
 
             // Figure out the procedure name and whether there is a return value and then
             // rewrite the JDBC call syntax as T-SQL EXEC syntax.
+            callEscape = true;
             hasReturnValueSyntax = (null != matcher.group(1));
             procedureName = matcher.group(2);
             String args = matcher.group(3);
@@ -2984,10 +3006,13 @@ final class JDBCSyntaxTranslator {
 
                 // Figure out the procedure name and whether there is a return value,
                 // but do not rewrite the statement as it is already in T-SQL EXEC syntax.
+                execEscape = true;
                 hasReturnValueSyntax = (null != matcher.group(1));
                 procedureName = matcher.group(3);
             }
         }
+
+        checkForEmbeddedParameters(matcher, sql);
 
         // Search for LIMIT escape syntax. Do further processing if present.
         matcher = LIMIT_SYNTAX_GENERIC.matcher(sql);
@@ -2999,5 +3024,42 @@ final class JDBCSyntaxTranslator {
 
         // 'sql' is modified if CALL or LIMIT escape sequence is present, Otherwise pass it straight through.
         return sql;
+    }
+
+    private void checkForEmbeddedParameters(Matcher matcher, String sql) {
+        matcher = SQL_EXEC_EMBEDDED_PARAM_SYNTAX.matcher(sql);
+        if (matcher.find()) {
+            embeddedParam = true;
+            return;
+        }
+
+        // Must use loops to count rather than the Java regex API
+        // for support for Java 8
+        matcher = COMMAS.matcher(sql);
+        int delimiterCount = 0;
+        while (matcher.find()) {
+            delimiterCount++;
+        }
+
+        matcher = QUESTION_MARKS.matcher(sql);
+        int marksCount = 0;
+        while (matcher.find()) {
+            marksCount++;
+        }
+
+        // If there is a return value, decrement marksCount
+        // to account for extra '?'
+        if (hasReturnValueSyntax) {
+            marksCount--;
+        }
+
+        // Zero parameter sproc case
+        if (marksCount == 0 && delimiterCount == 0) {
+            embeddedParam = false;
+            return;
+        }
+
+        // There's always 1 more '?' than ','
+        embeddedParam = (marksCount - delimiterCount) != 1;
     }
 }
