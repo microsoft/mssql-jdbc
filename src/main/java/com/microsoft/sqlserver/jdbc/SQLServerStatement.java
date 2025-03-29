@@ -65,7 +65,15 @@ public class SQLServerStatement implements ISQLServerStatement {
     private static final String ACTIVITY_ID = " ActivityId: ";
 
     /** response buffer adaptive flag */
-    private boolean isResponseBufferingAdaptive = false;
+    boolean isResponseBufferingAdaptive = false;
+
+    /** TDS token return value status **/
+    int returnValueStatus;
+
+    /** Check if statement contains TVP Type */
+    boolean isTVPType = false;
+
+    protected static final int USER_DEFINED_FUNCTION_RETURN_STATUS = 2;
 
     final boolean getIsResponseBufferingAdaptive() {
         return isResponseBufferingAdaptive;
@@ -113,10 +121,13 @@ public class SQLServerStatement implements ISQLServerStatement {
         return null != tdsReader;
     }
 
+    /** Return parameter for stored procedure calls */
+    transient Parameter returnParam;
+
     /**
      * The input and out parameters for statement execution.
      */
-    transient Parameter[] inOutParam; // Parameters for prepared stmts and stored procedures
+    transient Parameter[] inOutParam = null; // Parameters for prepared stmts and stored procedures
 
     /**
      * The statement's connection.
@@ -138,6 +149,12 @@ public class SQLServerStatement implements ISQLServerStatement {
      * closed
      */
     boolean isCloseOnCompletion = false;
+
+    /** Checks if the callable statement's parameters are set by name **/
+    protected boolean isSetByName = false;
+
+    /** Checks if the prepared statement's parameters were set by index **/
+    protected boolean isSetByIndex = false;
 
     /**
      * Currently executing or most recently executed TDSCommand (statement cmd, server cursor cmd, ...) subject to
@@ -1179,6 +1196,14 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
     }
 
+    void setByIndex() throws SQLServerException {
+        isSetByIndex = true;
+        if (!connection.getUseFlexibleCallableStatements() && isSetByName && isSetByIndex) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_noNamedAndIndexedParameters"), null, false);
+        }
+    }
+
     /* ---------------- JDBC API methods ------------------ */
 
     @Override
@@ -1675,6 +1700,14 @@ public class SQLServerStatement implements ISQLServerStatement {
                 else {
                     procedureRetStatToken = new StreamRetStatus();
                     procedureRetStatToken.setFromTDS(tdsReader);
+                    // Only read the return value from stored procedure if we are expecting one. Also, check that it is
+                    // not cursorable and not TVP type. For these two, the driver is still following the old behavior of
+                    // executing sp_executesql for stored procedures.
+                    if (!isCursorable(executeMethod) && !isTVPType && null != inOutParam && inOutParam.length > 0
+                            && inOutParam[0].isReturnValue()) {
+                        inOutParam[0].setFromReturnStatus(procedureRetStatToken.getStatus(), connection);
+                        return false;
+                    }
                 }
 
                 return true;
@@ -1682,11 +1715,21 @@ public class SQLServerStatement implements ISQLServerStatement {
 
             @Override
             boolean onRetValue(TDSReader tdsReader) throws SQLServerException {
+                // Status: A value of 0x01 means the return value corresponds to an output parameter from
+                // a stored procedure. If it's 0x02 then the value corresponds to a return value from a
+                // user defined function.
+                //
+                // If it's a return value from a user defined function, we need to return false from this method
+                // so that the return value is not skipped.
+                int status = tdsReader.peekReturnValueStatus();
+
+                SQLServerStatement.this.returnValueStatus = status;
+
                 // We are only interested in return values that are statement OUT parameters,
                 // in which case we need to stop parsing and let CallableStatement take over.
                 // A RETVALUE token appearing in the execution results, but before any RETSTATUS
                 // token, is a TEXTPTR return value that should be ignored.
-                if (moreResults && null == procedureRetStatToken) {
+                if (moreResults && null == procedureRetStatToken && status != USER_DEFINED_FUNCTION_RETURN_STATUS) {
                     Parameter p = new Parameter(
                             Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
                     p.skipRetValStatus(tdsReader);
@@ -2662,9 +2705,24 @@ public class SQLServerStatement implements ISQLServerStatement {
  */
 final class JDBCSyntaxTranslator {
     private String procedureName = null;
+    private boolean callEscape = false;
+    private boolean execEscape = false;
+    private boolean embeddedParam = false;
 
     String getProcedureName() {
         return procedureName;
+    }
+
+    boolean hasCallEscape() {
+        return callEscape;
+    }
+
+    boolean hasExecEscape() {
+        return execEscape;
+    }
+
+    boolean hasEmbeddedParam() {
+        return embeddedParam;
     }
 
     private boolean hasReturnValueSyntax = false;
@@ -2705,6 +2763,12 @@ final class JDBCSyntaxTranslator {
      */
     private final static Pattern SQL_EXEC_SYNTAX = Pattern.compile("\\s*?[eE][xX][eE][cC](?:[uU][tT][eE])??\\s+?("
             + SQL_IDENTIFIER_WITHOUT_GROUPS + "\\s*?=\\s+?)??" + SQL_IDENTIFIER_WITHOUT_GROUPS + "(?:$|(?:\\s+?.*+))");
+
+    private final static Pattern SQL_EXEC_EMBEDDED_PARAM_SYNTAX = Pattern.compile("@([a-zA-Z0-9_-]+)\\s*=\\s*([^?^\\s]+)");
+
+    private final static Pattern COMMAS = Pattern.compile(",");
+
+    private final static Pattern QUESTION_MARKS = Pattern.compile("\\?");
 
     /*
      * JDBC limit escape syntax From the JDBC spec: {LIMIT <rows> [OFFSET <row_offset>]} The driver currently does not
@@ -2938,6 +3002,7 @@ final class JDBCSyntaxTranslator {
 
             // Figure out the procedure name and whether there is a return value and then
             // rewrite the JDBC call syntax as T-SQL EXEC syntax.
+            callEscape = true;
             hasReturnValueSyntax = (null != matcher.group(1));
             procedureName = matcher.group(2);
             String args = matcher.group(3);
@@ -2948,10 +3013,13 @@ final class JDBCSyntaxTranslator {
 
                 // Figure out the procedure name and whether there is a return value,
                 // but do not rewrite the statement as it is already in T-SQL EXEC syntax.
+                execEscape = true;
                 hasReturnValueSyntax = (null != matcher.group(1));
                 procedureName = matcher.group(3);
             }
         }
+
+        checkForEmbeddedParameters(matcher, sql);
 
         // Search for LIMIT escape syntax. Do further processing if present.
         matcher = LIMIT_SYNTAX_GENERIC.matcher(sql);
@@ -2963,5 +3031,42 @@ final class JDBCSyntaxTranslator {
 
         // 'sql' is modified if CALL or LIMIT escape sequence is present, Otherwise pass it straight through.
         return sql;
+    }
+
+    private void checkForEmbeddedParameters(Matcher matcher, String sql) {
+        matcher = SQL_EXEC_EMBEDDED_PARAM_SYNTAX.matcher(sql);
+        if (matcher.find()) {
+            embeddedParam = true;
+            return;
+        }
+
+        // Must use loops to count rather than the Java regex API
+        // for support for Java 8
+        matcher = COMMAS.matcher(sql);
+        int delimiterCount = 0;
+        while (matcher.find()) {
+            delimiterCount++;
+        }
+
+        matcher = QUESTION_MARKS.matcher(sql);
+        int marksCount = 0;
+        while (matcher.find()) {
+            marksCount++;
+        }
+
+        // If there is a return value, decrement marksCount
+        // to account for extra '?'
+        if (hasReturnValueSyntax) {
+            marksCount--;
+        }
+
+        // Zero parameter sproc case
+        if (marksCount == 0 && delimiterCount == 0) {
+            embeddedParam = false;
+            return;
+        }
+
+        // There's always 1 more '?' than ','
+        embeddedParam = (marksCount - delimiterCount) != 1;
     }
 }

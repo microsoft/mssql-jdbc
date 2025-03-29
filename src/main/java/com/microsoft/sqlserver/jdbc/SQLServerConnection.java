@@ -9,13 +9,16 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -166,6 +169,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** Flag that determines whether the accessToken callback was set **/
     private transient SQLServerAccessTokenCallback accessTokenCallback = null;
+
+    /** Flag indicating whether to use sp_sproc_columns for parameter name lookup */
+    private boolean useFlexibleCallableStatements = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS
+            .getDefaultValue();
 
     /**
      * Keep this distinct from _federatedAuthenticationRequested, since some fedauth library types may not need more
@@ -550,12 +557,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         String parsedSql = translator.translate(sql);
         String procName = translator.getProcedureName(); // may return null
         boolean returnValueSyntax = translator.hasReturnValueSyntax();
+        boolean callEscape = translator.hasCallEscape();
+        boolean execEscape = translator.hasExecEscape();
+        boolean embeddedParam = translator.hasEmbeddedParam();
         int[] parameterPositions = locateParams(parsedSql);
 
         ParsedSQLCacheItem cacheItem = new ParsedSQLCacheItem(parsedSql, parameterPositions, procName,
-                returnValueSyntax);
+                returnValueSyntax, callEscape, execEscape, embeddedParam);
         parsedSQLCache.putIfAbsent(key, cacheItem);
         return cacheItem;
+    }
+
+    static int countParams(String sql) {
+        return locateParams(sql).length;
     }
 
     /** Default size for prepared statement caches */
@@ -2772,6 +2786,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 trustServerCertificate = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean.toString(
+                            SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useFlexibleCallableStatements = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Set requestedEncryptionLevel according to the value of the encrypt connection property
                 if (encryptOption.compareToIgnoreCase(EncryptOption.FALSE.toString()) == 0) {
@@ -8081,6 +8104,111 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return new String(sqlDst, 0, dstBegin);
     }
 
+    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params) throws SQLServerException {
+        StringBuilder buf = new StringBuilder(sqlSrc);
+        try {
+            int paramIndex = 0;
+
+            for (int pos : paramPositions) {
+                buf.replace(pos, pos + 1, normalizeData(((AppDTVImpl)(params[paramIndex++]
+                        .getInputDTV().impl)).value, sendStringParametersAsUnicode));
+            }
+
+        } catch (Exception e) {
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+        }
+
+        return buf.toString();
+    }
+
+    private static final char hex[] = {'0', '1', '2', '3', '4', '5', '6','7',
+            '8', '9', 'A', 'B', 'C', 'D', 'E','F'
+    };
+
+    static String normalizeData(Object value, boolean isUnicode) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+
+        if (value instanceof Blob) {
+            Blob blob = (Blob) value;
+
+            value = blob.getBytes(1, (int) blob.length());
+        } else if (value instanceof Clob) {
+            Clob clob = (Clob) value;
+
+            value = clob.getSubString(1, (int) clob.length());
+        }
+
+        if (value instanceof byte[]) {
+            byte[] bytes = (byte[]) value;
+
+            int len = bytes.length;
+
+            if (len >= 0) {
+                sb.append('0').append('x');
+                if (len == 0) {
+                    // Zero length binary values are not allowed
+                    sb.append('0').append('0');
+                } else {
+                    for (int i = 0; i < len; i++) {
+                        int b1 = bytes[i] & 0xFF;
+
+                        sb.append(hex[b1 >> 4]);
+                        sb.append(hex[b1 & 0x0F]);
+                    }
+                }
+            }
+
+        } else if (value instanceof String) {
+            String tmp = (String) value;
+            int len = tmp.length();
+
+            if (isUnicode) {
+                sb.append('N');
+            }
+            sb.append('\'');
+
+            for (int i = 0; i < len; i++) {
+                char c = tmp.charAt(i);
+
+                if (c == '\'') {
+                    sb.append('\'');
+                }
+
+                sb.append(c);
+            }
+
+            sb.append('\'');
+        } else if (value instanceof java.sql.Date
+                || value instanceof java.sql.Time
+                || value instanceof java.sql.Timestamp
+                ||  value instanceof microsoft.sql.DateTimeOffset) {
+            sb.append('\'');
+            sb.append(value.toString());
+            sb.append('\'');
+        } else if (value instanceof Boolean) {
+            sb.append(((Boolean) value).booleanValue() ? '1' : '0');
+
+        } else if (value instanceof BigDecimal) {
+            String tmp = value.toString();
+            int maxlen = MAX_DECIMAL_PRECISION;
+            if (tmp.charAt(0) == '-') {
+                maxlen++;
+            }
+            if (tmp.indexOf('.') >= 0) {
+                maxlen++;
+            }
+            if (tmp.length() > maxlen) {
+                sb.append(tmp.substring(0, maxlen));
+            } else {
+                sb.append(tmp);
+            }
+        } else {
+            sb.append(value.toString());
+        }
+
+        return sb.toString();
+    }
+
     /**
      * Makes a SQL Server style parameter name.
      * 
@@ -8496,19 +8624,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
      * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
      *
      * @return useFlexibleCallableStatements
      */
     public boolean getUseFlexibleCallableStatements() {
-        return true;
+        return this.useFlexibleCallableStatements;
     }
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
-     *
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
      * @param useFlexibleCallableStatements
@@ -8518,7 +8642,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *        parameters by name or by index, not both. Parameters must also be set in the same
      *        order as the stored procedure definition.
      */
-    public void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements) {}
+    public void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements) {
+        this.useFlexibleCallableStatements = useFlexibleCallableStatements;
+    }
 
     /**
      * Cleans up discarded prepared statement handles on the server using batched un-prepare actions if the batching

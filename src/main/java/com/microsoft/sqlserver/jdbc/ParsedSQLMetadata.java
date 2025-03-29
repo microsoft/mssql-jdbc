@@ -14,12 +14,18 @@ final class ParsedSQLCacheItem {
     int[] parameterPositions;
     String procedureName;
     boolean bReturnValueSyntax;
+    boolean callEscape;
+    boolean execEscape;
+    boolean embeddedParam;
 
     ParsedSQLCacheItem(String processedSQL, int[] parameterPositions, String procedureName,
-            boolean bReturnValueSyntax) {
+            boolean bReturnValueSyntax, boolean callEscape, boolean execEscape, boolean embeddedParam) {
         this.processedSQL = processedSQL;
         this.parameterPositions = parameterPositions;
         this.procedureName = procedureName;
         this.bReturnValueSyntax = bReturnValueSyntax;
+        this.callEscape = callEscape;
+        this.execEscape = execEscape;
+        this.embeddedParam = embeddedParam;
     }
 }

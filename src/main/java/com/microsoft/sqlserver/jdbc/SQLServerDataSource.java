@@ -252,6 +252,19 @@ public class SQLServerDataSource
     }
 
     @Override
+    public void setUseFlexibleCallableStatements(boolean enable) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+                enable);
+    }
+
+    @Override
+    public boolean getUseFlexibleCallableStatements() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.toString(),
+                SQLServerDriverBooleanProperty.USE_FLEXIBLE_CALLABLE_STATEMENTS.getDefaultValue());
+    }
+
+    @Override
     public void setAccessToken(String accessToken) {
         setStringProperty(connectionProps, SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
     }
@@ -1383,23 +1396,6 @@ public class SQLServerDataSource
     @Override
     public int getMsiTokenCacheTtl() {
         return 0;
-    }
-
-    /**
-     * useFlexibleCallableStatements is temporarily removed.
-     * This method is a no-op for backwards compatibility only.
-     */
-    @Override
-    public void setUseFlexibleCallableStatements(boolean enable) {}
-
-
-    /**
-     * useFlexibleCallableStatements is temporarily removed.
-     * This method is a no-op for backwards compatibility only.
-     */
-    @Override
-    public boolean getUseFlexibleCallableStatements() {
-        return true;
     }
 
     /**
