@@ -14,34 +14,38 @@ public final class Vector implements java.io.Serializable {
         F32 // 32-bit (single precision) float
     }
 
-    public VECTORTYPE vectorType;
     public int dimensionCount;
+    public VECTORTYPE vectorType;
     public float[] data;
 
-    public Vector(float[] data, VECTORTYPE vectorType, int dimensionCount) {
-        this.data = data;
-        this.vectorType = vectorType;
+    public Vector(int dimensionCount, VECTORTYPE vectorType, float[] data) {
         this.dimensionCount = dimensionCount;
+        this.vectorType = vectorType;
+        this.data = data;
     }
 
     public static microsoft.sql.Vector fromBytes(byte[] bytes) {
         if (bytes == null) {
             return null;
         }
+        if (bytes.length < 8) {
+            throw new IllegalArgumentException("Byte array length must be at least 8 bytes.");
+        }
         if (bytes.length % 4 != 0) {
             throw new IllegalArgumentException("Byte array length must be a multiple of 4.");
         }
 
-        int floatCount = bytes.length / 4;
+        int floatCount = (bytes.length - 8) / 4; // 8 bytes for header
         float[] floatArray = new float[floatCount];
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.position(8); // Skip the first 8 bytes (header)
 
         for (int i = 0; i < floatCount; i++) {
             floatArray[i] = buffer.getFloat();
         }
 
-        return new Vector(floatArray, VECTORTYPE.F32, floatCount);
+        return new Vector(floatCount, VECTORTYPE.F32, floatArray);
     }
 
     public byte[] toBytes() {
