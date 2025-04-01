@@ -42,16 +42,6 @@ final class KerbAuthentication extends SSPIAuthentication {
     private boolean useDefaultNativeGSSCredential = false;
     private GSSContext peerContext = null;
 
-    static {
-        try {
-            // Overrides the default JAAS configuration loader.
-            // This one will forward to the default one in all cases but the default configuration is empty.
-            Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
-        } catch (SQLServerException e) {
-            throw new RuntimeException("Failed to set JAAS configuration: " + e.getMessage(), e);
-        }
-    }
-
     /**
      * Initializes the Kerberos client security context
      * 
